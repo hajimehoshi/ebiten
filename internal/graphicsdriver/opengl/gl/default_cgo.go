@@ -875,6 +875,7 @@ func (c *defaultContext) PixelStorei(pname uint32, param int32) {
 
 func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
 	C.glowReadPixels(c.gpReadPixels, C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height), C.GLenum(format), C.GLenum(xtype), unsafe.Pointer(&dst[0]))
+	runtime.KeepAlive(dst)
 }
 
 func (c *defaultContext) RenderbufferStorage(target uint32, internalformat uint32, width int32, height int32) {

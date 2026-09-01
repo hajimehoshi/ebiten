@@ -285,6 +285,32 @@ func TestRewindNonSeekableBeforeDeviceCreation(t *testing.T) {
 	}
 }
 
+func TestSameSourceForMultiplePlayers(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := bytes.NewReader(make([]byte, 4))
+
+	p1, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+
+	p2, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2.Play()
+
+	p1.Pause()
+	p2.Pause()
+
+	if err := audio.UpdateForTesting(); err == nil {
+		t.Error("UpdateForTesting() must return an error, but did not")
+	}
+}
+
 type uncomparableSource []int
 
 func (uncomparableSource) Read(buf []byte) (int, error) {
@@ -307,6 +333,26 @@ func TestUncomparableSource(t *testing.T) {
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)
 	}
+}
+
+func TestComparableSourceAfterUncomparable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p1, err := context.NewPlayer(uncomparableSource{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+
+	p2, err := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2.Play()
+
+	p1.Pause()
+	p2.Pause()
 }
 
 // countingSource is an infinite source counting the Read calls.
@@ -488,5 +534,83 @@ func TestSetVolumeInvalidValue(t *testing.T) {
 		if got, want := p.Volume(), v.want; got != want {
 			t.Errorf("Volume() after SetVolume(%v) after the device creation: got: %v, want: %v", v.in, got, want)
 		}
+	}
+}
+
+func TestPositionNotGrowingAfterFinished(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// 44100 [Hz] * 8 [bytes/sample] is one second of 32bit float stereo audio.
+	src := bytes.NewReader(make([]byte, 44100*8*4))
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+	// Wait until the player finishes its source. The deadline is generous because time.Sleep has
+	// a several-millisecond floor on browsers, which slows draining the source down.
+	var finished bool
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		if err := audio.UpdateForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		if !p.IsPlaying() {
+			finished = true
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !finished {
+		t.Fatal("time out: the player did not finish")
+	}
+
+	end := p.Position()
+	if got, want := end, 4*time.Second; got < want || got > want+100*time.Millisecond {
+		t.Errorf("Position() after the player finished: got: %v, want: %v or a bit larger", got, want)
+	}
+
+	// Play on a finished player does nothing, so the position must not grow anymore.
+	for range 20 {
+		p.Play()
+		if err := audio.UpdateForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got := p.Position(); got != end {
+		t.Errorf("position grew after the player finished: %v -> %v", end, got)
+	}
+}
+
+func TestNewPlayerWithSourceOfClosedPlayer(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := bytes.NewReader(make([]byte, 256))
+
+	p0, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p0.Play()
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p0.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// A closed player no longer owns its source, so a new player can take the source over
+	// immediately.
+	p1, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Errorf("UpdateForTesting after a new player took the source of a closed player over: %v", err)
 	}
 }

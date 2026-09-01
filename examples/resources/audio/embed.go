@@ -33,7 +33,4 @@ var (
 
 	//go:embed ragtime.ogg
 	Ragtime_ogg []byte
-
-	//go:embed ragtime.opus
-	Ragtime_opus []byte
 )

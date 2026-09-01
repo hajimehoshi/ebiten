@@ -41,6 +41,10 @@ type textInputImpl struct {
 	err error
 }
 
+// errNoActiveWindow is returned by start when the application has no active
+// window, which is the case while it is not in the foreground.
+var errNoActiveWindow = errors.New("textinput: no active window")
+
 func (t *textInputImpl) markIMEDiscardNeeded() {
 }
 
@@ -55,8 +59,16 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 	ebiten.RunOnMainThread(func() {
 		t.events.end()
 		err = t.start(bounds)
+		if errors.Is(err, errNoActiveWindow) {
+			return
+		}
 		ch, _ = t.events.start()
 	})
+	if ch == nil {
+		// Text inputting needs the window, and it becomes active once the
+		// application comes to the foreground.
+		return nil, nil
+	}
 	if err != nil {
 		t.events.send(textInputState{Error: err})
 		t.events.end()
@@ -86,6 +98,9 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 
 	if t.window == 0 {
 		t.window = _GetActiveWindow()
+	}
+	if t.window == 0 {
+		return errNoActiveWindow
 	}
 	if t.origWndProc == 0 {
 		if t.wndProcCallback == 0 {

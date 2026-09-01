@@ -14,7 +14,10 @@
 
 package vector
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Point struct {
 	X, Y float32
@@ -47,4 +50,24 @@ func CurrentPosition(path *Path) (Point, bool) {
 
 func SubPathCount(path *Path) int {
 	return len(path.subPaths)
+}
+
+// PathOperationsString returns a string representation of the operations in the path.
+func PathOperationsString(path *Path) string {
+	var sb strings.Builder
+	for _, subPath := range path.subPaths {
+		sb.WriteString(fmt.Sprintf("MoveTo(%v, %v)\n", subPath.start.x, subPath.start.y))
+		for _, o := range subPath.ops {
+			switch o.typ {
+			case opTypeLineTo:
+				sb.WriteString(fmt.Sprintf("LineTo(%v, %v)\n", o.p1.x, o.p1.y))
+			case opTypeQuadTo:
+				sb.WriteString(fmt.Sprintf("QuadTo(%v, %v, %v, %v)\n", o.p1.x, o.p1.y, o.p2.x, o.p2.y))
+			}
+		}
+		if subPath.closed {
+			sb.WriteString("Close()\n")
+		}
+	}
+	return sb.String()
 }

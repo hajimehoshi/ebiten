@@ -538,7 +538,8 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 	return state
 }
 
-// addController adds a GCController to the gamepad list.
+// addController queues a GCController to be registered by the next update. The properties are read
+// here, while the controller is known to be alive.
 func addController(controller objc.ID) {
 	// Ignore if the controller is not an actual controller (e.g., Siri Remote).
 	if controller.Send(sel_extendedGamepad) == 0 && controller.Send(sel_microGamepad) != 0 {
@@ -546,18 +547,26 @@ func addController(controller objc.ID) {
 	}
 
 	prop := getControllerPropertyFromController(controller)
-	theGamepads.addGCGamepad(uintptr(controller), prop)
+
+	theGCGamepads.controllersMu.Lock()
+	defer theGCGamepads.controllersMu.Unlock()
+
+	theGCGamepads.controllersToAdd = append(theGCGamepads.controllersToAdd, gcControllerToAdd{
+		controller: uintptr(controller),
+		prop:       prop,
+	})
 }
 
-// removeController removes a GCController from the gamepad list.
+// removeController queues a GCController to be unregistered by the next update.
 func removeController(controller objc.ID) {
-	theGamepads.removeGCGamepad(uintptr(controller))
+	theGCGamepads.controllersMu.Lock()
+	defer theGCGamepads.controllersMu.Unlock()
+
+	theGCGamepads.controllersToRemove = append(theGCGamepads.controllersToRemove, uintptr(controller))
 }
 
+// addGCGamepad adds a GameController gamepad to the gamepad list. g.m must be held.
 func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
-	g.m.Lock()
-	defer g.m.Unlock()
-
 	sdlID := hex.EncodeToString(prop.guid[:])
 	gp := g.add(prop.name, sdlID)
 	gp.native = &nativeGamepadGC{
@@ -574,10 +583,8 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 	}
 }
 
+// removeGCGamepad removes a GameController gamepad from the gamepad list. g.m must be held.
 func (g *gamepads) removeGCGamepad(controller uintptr) {
-	g.m.Lock()
-	defer g.m.Unlock()
-
 	g.remove(func(gamepad *Gamepad) bool {
 		gc, ok := gamepad.native.(*nativeGamepadGC)
 		if !ok {
@@ -610,7 +617,9 @@ func initializeGCGamepads() {
 		return
 	}
 
-	// Add all currently connected controllers.
+	// Queue all currently connected controllers. initializeGCGamepads is called from gamepads.update
+	// with theGamepads.m held, so the gamepad list must not be touched until the drain in
+	// nativeGamepadsGC.update, which the same gamepads.update call reaches right after.
 	controllers := objc.ID(class_GCController).Send(sel_controllers)
 	count := int(controllers.Send(sel_count))
 	for i := range count {

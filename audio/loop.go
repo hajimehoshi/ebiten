@@ -20,7 +20,7 @@ import (
 	"math"
 )
 
-// InfiniteLoop represents a looped stream which never ends.
+// InfiniteLoop represents a looped stream which never ends as long as its source has data to loop.
 type InfiniteLoop struct {
 	src     io.ReadSeeker
 	lstart  int64
@@ -150,11 +150,50 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 }
 
 // Read is implementation of ReadSeeker's Read.
+//
+// If the source ends before the loop, the loop has nothing to repeat and Read returns [io.EOF].
+// If the source ends inside the loop, the loop is shortened to end there.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
+	if len(b) == 0 {
+		return 0, nil
+	}
+	// A buffer shorter than one sample cannot receive any data, and cannot hold the remainder
+	// carried over from the previous Read.
+	if len(b) < i.bitDepthInBytes {
+		return 0, io.ErrShortBuffer
+	}
+
 	if err := i.ensurePos(); err != nil {
 		return 0, err
 	}
 
+	// When the source or the loop reaches its end, go back to the loop start and read again so that
+	// this doesn't return (0, nil). A retry either returns data, stops at the loop start, or grows
+	// the remainder, which is shorter than one value, so the retries end.
+	for {
+		n, err := i.read(b)
+		if err != nil && err != io.EOF {
+			return 0, err
+		}
+		atEnd := i.pos == i.length() || err == io.EOF
+		if !atEnd {
+			return n, nil
+		}
+		if n == 0 && i.pos == i.lstart {
+			// The loop has no data to repeat.
+			return 0, io.EOF
+		}
+		if err := i.rewind(); err != nil {
+			return 0, err
+		}
+		if n > 0 {
+			return n, nil
+		}
+	}
+}
+
+// read reads data at the current position, and returns [io.EOF] when the source reaches its end.
+func (i *InfiniteLoop) read(b []byte) (int, error) {
 	extralen := len(i.extra)
 	if i.pos+int64(len(b))-int64(extralen) > i.length() {
 		b = b[:i.length()-i.pos+int64(extralen)]
@@ -163,7 +202,18 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	copy(b, i.extra)
 	i.extra = i.extra[:0]
 
-	n, err := i.src.Read(b[extralen:])
+	// Keep reading until one sample is available so that a source returning less than one sample
+	// at a time doesn't make Read return (0, nil).
+	var n int
+	var err error
+	for {
+		var m int
+		m, err = i.src.Read(b[extralen+n:])
+		n += m
+		if err != nil || m == 0 || extralen+n >= i.bitDepthInBytes {
+			break
+		}
+	}
 	i.pos += int64(n)
 	n += extralen
 	if i.pos > i.length() {
@@ -233,7 +283,10 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 					return 0, err
 				}
 				pos += n
-				if err == io.EOF {
+				// Break on EOF, and also when no progress is made so that a
+				// source returning (0, nil) does not spin here forever. The
+				// main read loop above has the same guard.
+				if err != nil || n == 0 {
 					break
 				}
 			}
@@ -244,18 +297,26 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		}
 	}
 
-	if i.pos == i.length() || err == io.EOF {
-		// Ignore the new position returned by Seek since the source position might not be match with the position
-		// managed by this.
-		if _, err := i.src.Seek(i.lstart, io.SeekStart); err != nil {
-			return 0, err
-		}
-		i.pos = i.lstart
+	return n, err
+}
+
+// rewind moves the position back to the loop start.
+func (i *InfiniteLoop) rewind() error {
+	// Ignore the new position returned by Seek since the source position might not be match with the position
+	// managed by this.
+	if _, err := i.src.Seek(i.lstart, io.SeekStart); err != nil {
+		return err
 	}
-	return n, nil
+	i.pos = i.lstart
+	return nil
 }
 
 // Seek is implementation of ReadSeeker's Seek.
+//
+// whence must be [io.SeekStart] or [io.SeekCurrent] since an [InfiniteLoop] has no end.
+//
+// The returned position can differ from the requested one with a nil error: a position beyond the loop end is folded
+// into the loop, and a position in the middle of a value is rounded down to a value boundary.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart, io.SeekCurrent:
@@ -278,6 +339,9 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must >= 0")
 	}
+	// A position in the middle of a value is not a position this stream can be at: reading from
+	// there would return values straddling two of the source's.
+	next = next / int64(i.bitDepthInBytes) * int64(i.bitDepthInBytes)
 	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart
 	}

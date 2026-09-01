@@ -43,8 +43,12 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
+	// A buffer shorter than one frame cannot receive any converted data.
+	if len(buf) < 4*r.r.Channels() {
+		return 0, io.ErrShortBuffer
+	}
 
-	l := max(len(buf)/4/r.r.Channels()*r.r.Channels(), 1)
+	l := len(buf) / 4 / r.r.Channels() * r.r.Channels()
 	if cap(r.fbuf) < l {
 		r.fbuf = make([]float32, l)
 	}

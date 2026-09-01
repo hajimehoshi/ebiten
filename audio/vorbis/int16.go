@@ -22,16 +22,15 @@ type float32Reader interface {
 	Read([]float32) (int, error)
 }
 
-func newInt16BytesReaderFromFloat32Reader(r float32Reader) io.Reader {
-	return &int16BytesReader{r: r}
+func newInt16BytesReaderFromFloat32Reader(r float32Reader, channels int) io.Reader {
+	return &int16BytesReader{r: r, channels: channels}
 }
 
 type int16BytesReader struct {
-	r         float32Reader
-	eof       bool
-	hasRemain bool
-	remain    byte
-	fbuf      []float32
+	r        float32Reader
+	channels int
+	eof      bool
+	fbuf     []float32
 }
 
 func (r *int16BytesReader) Read(buf []byte) (int, error) {
@@ -41,13 +40,12 @@ func (r *int16BytesReader) Read(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	if r.hasRemain {
-		buf[0] = r.remain
-		r.hasRemain = false
-		return 1, nil
+	// A buffer shorter than one frame cannot receive any converted data.
+	if len(buf) < 2*r.channels {
+		return 0, io.ErrShortBuffer
 	}
 
-	l := max(len(buf)/2, 1)
+	l := len(buf) / 2 / r.channels * r.channels
 	if cap(r.fbuf) < l {
 		r.fbuf = make([]float32, l)
 	}
@@ -60,22 +58,12 @@ func (r *int16BytesReader) Read(buf []byte) (int, error) {
 		r.eof = true
 	}
 
-	b := buf
-	if len(buf) == 1 && n > 0 {
-		b = make([]byte, 2)
-	}
 	for i := range n {
 		f := r.fbuf[i]
 		s := int16(f * (1<<15 - 1))
-		b[2*i] = byte(s)
-		b[2*i+1] = byte(s >> 8)
+		buf[2*i] = byte(s)
+		buf[2*i+1] = byte(s >> 8)
 	}
 
-	if len(buf) == 1 && len(b) == 2 {
-		buf[0] = b[0]
-		r.remain = b[1]
-		r.hasRemain = true
-		return 1, err
-	}
 	return n * 2, err
 }

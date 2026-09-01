@@ -394,3 +394,269 @@ func TestResamplingSeekInvalidWhence(t *testing.T) {
 		}
 	}
 }
+
+func TestResamplingShortBuffer(t *testing.T) {
+	cases := []struct {
+		bitDepthInBytes int
+		lens            []int
+	}{
+		{
+			bitDepthInBytes: 2,
+			lens:            []int{1, 2, 3},
+		},
+		{
+			bitDepthInBytes: 4,
+			lens:            []int{1, 2, 3, 4, 5, 6, 7},
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", c.bitDepthInBytes), func(t *testing.T) {
+			src := make([]byte, 1024)
+			r := convert.NewResampling(bytes.NewReader(src), int64(len(src)), 44100, 48000, c.bitDepthInBytes)
+
+			if n, err := r.Read(nil); n != 0 || err != nil {
+				t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+			}
+			for _, l := range c.lens {
+				if n, err := r.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+					t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+				}
+			}
+		})
+	}
+}
+
+func readAllInChunks(t *testing.T, r io.Reader, chunkSizeInBytes int) []byte {
+	t.Helper()
+
+	var got []byte
+	buf := make([]byte, chunkSizeInBytes)
+	for {
+		n, err := r.Read(buf)
+		got = append(got, buf[:n]...)
+		if err == io.EOF {
+			return got
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if n == 0 {
+			t.Fatal("Read made no progress")
+		}
+	}
+}
+
+// Issue #3589
+func TestResamplingReadBufferSize(t *testing.T) {
+	cases := []struct {
+		In  int
+		Out int
+	}{
+		{
+			In:  44100,
+			Out: 44100,
+		},
+		{
+			In:  44100,
+			Out: 48000,
+		},
+		{
+			In:  48000,
+			Out: 44100,
+		},
+		{
+			In:  48000,
+			Out: 4000,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%d to %d", c.In, c.Out), func(t *testing.T) {
+			for _, bitDepthInBytes := range []int{2, 4} {
+				t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+					bytesPerSample := bitDepthInBytes * 2
+					// A buffer of this size makes the number of frames leave every possible remainder.
+					const shortBufferInFrames = 8
+					for frames := 200; frames < 200+shortBufferInFrames; frames++ {
+						t.Run(fmt.Sprintf("frames=%d", frames), func(t *testing.T) {
+							inB := newSoundBytes(c.In, bitDepthInBytes)[:frames*bytesPerSample]
+							newResampling := func() *convert.Resampling {
+								return convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out, bitDepthInBytes)
+							}
+
+							// A buffer that is long enough to hold the entire stream.
+							r := newResampling()
+							want := r.Length()
+							gotLong := readAllInChunks(t, r, int(want)+bytesPerSample)
+							if int64(len(gotLong)) != want {
+								t.Errorf("reading with one long buffer: got %d bytes, want %d bytes", len(gotLong), want)
+							}
+
+							// A short buffer must deliver the same bytes.
+							gotShort := readAllInChunks(t, newResampling(), shortBufferInFrames*bytesPerSample)
+							if int64(len(gotShort)) != want {
+								t.Errorf("reading with buffers of %d frames: got %d bytes, want %d bytes", shortBufferInFrames, len(gotShort), want)
+							}
+							if !bytes.Equal(gotShort, gotLong) {
+								t.Errorf("reading with buffers of %d frames returned different bytes than reading with one long buffer", shortBufferInFrames)
+							}
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
+// Issue #3542
+func TestResamplingUnknownLength(t *testing.T) {
+	cases := []struct {
+		In  int
+		Out int
+	}{
+		{
+			In:  44100,
+			Out: 44100,
+		},
+		{
+			In:  44100,
+			Out: 48000,
+		},
+		{
+			In:  48000,
+			Out: 44100,
+		},
+		{
+			In:  48000,
+			Out: 4000,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%d to %d", c.In, c.Out), func(t *testing.T) {
+			for _, bitDepthInBytes := range []int{2, 4} {
+				t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+					// The source is read in blocks of this size.
+					blockSize := 4096 * bitDepthInBytes * 2
+					// A size that is shorter than one sample, that is around a block boundary,
+					// or that is a multiple of a block is the interesting case.
+					for _, size := range []int{1, 100, blockSize - 2, blockSize, blockSize + 2, 40000} {
+						t.Run(fmt.Sprintf("size=%d", size), func(t *testing.T) {
+							inB := newSoundBytes(c.In, bitDepthInBytes)[:size]
+
+							// A stream whose length is known gives the expected values.
+							known := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out, bitDepthInBytes)
+							wantB, err := io.ReadAll(known)
+							if err != nil {
+								t.Fatal(err)
+							}
+
+							for _, seekable := range []bool{true, false} {
+								t.Run(fmt.Sprintf("seekable=%v", seekable), func(t *testing.T) {
+									newResampling := func() *convert.Resampling {
+										var src io.Reader = bytes.NewReader(inB)
+										if !seekable {
+											src = &reader{r: src}
+										}
+										// 0 as a size indicates that the length is unknown.
+										return convert.NewResampling(src, 0, c.In, c.Out, bitDepthInBytes)
+									}
+
+									r := newResampling()
+									if got, want := r.Length(), int64(0); got != want {
+										t.Errorf("Length: got %d, want %d", got, want)
+									}
+									gotB, err := io.ReadAll(r)
+									if err != nil {
+										t.Fatal(err)
+									}
+									if !bytes.Equal(gotB, wantB) {
+										t.Errorf("io.ReadAll returned %d bytes, want the same %d bytes as a stream whose length is known", len(gotB), len(wantB))
+									}
+
+									// The read buffer size must not affect the result.
+									gotShortB := readAllInChunks(t, newResampling(), 97)
+									if !bytes.Equal(gotShortB, wantB) {
+										t.Errorf("reading with buffers of 97 bytes returned %d bytes, want the same %d bytes as a stream whose length is known", len(gotShortB), len(wantB))
+									}
+								})
+							}
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestResamplingUnknownLengthEmptySource(t *testing.T) {
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			for _, seekable := range []bool{true, false} {
+				t.Run(fmt.Sprintf("seekable=%v", seekable), func(t *testing.T) {
+					var src io.Reader = bytes.NewReader(nil)
+					if !seekable {
+						src = &reader{r: src}
+					}
+					r := convert.NewResampling(src, 0, 44100, 48000, bitDepthInBytes)
+					if n, err := r.Read(make([]byte, 4096)); n != 0 || err != io.EOF {
+						t.Errorf("Read: got (%d, %v), want (0, %v)", n, err, io.EOF)
+					}
+				})
+			}
+		})
+	}
+}
+
+var errStalled = errors.New("stalled")
+
+// stalledReadSeeker reports its source's end as (0, nil) instead of io.EOF,
+// and returns errStalled when zero reads repeat.
+type stalledReadSeeker struct {
+	src       io.ReadSeeker
+	zeroReads int
+}
+
+func (s *stalledReadSeeker) Read(buf []byte) (int, error) {
+	n, err := s.src.Read(buf)
+	if err == io.EOF {
+		s.zeroReads++
+		if s.zeroReads > 16 {
+			return 0, errStalled
+		}
+		return 0, nil
+	}
+	if n > 0 {
+		s.zeroReads = 0
+	}
+	return n, err
+}
+
+func (s *stalledReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return s.src.Seek(offset, whence)
+}
+
+func TestResamplingZeroReadSource(t *testing.T) {
+	const (
+		from = 44100
+		to   = 48000
+	)
+
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			inB := newSoundBytes(from, bitDepthInBytes)
+
+			wantB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			src := &stalledReadSeeker{src: bytes.NewReader(inB)}
+			gotB, err := io.ReadAll(convert.NewResampling(src, int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(gotB, wantB) {
+				t.Errorf("io.ReadAll returned %d bytes, want the same %d bytes as a source reporting io.EOF", len(gotB), len(wantB))
+			}
+		})
+	}
+}

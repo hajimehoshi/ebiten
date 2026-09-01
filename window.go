@@ -146,6 +146,11 @@ func SetWindowTitle(title string) {
 //
 // As macOS windows don't have icons, SetWindowIcon doesn't work on macOS.
 //
+// Some desktop environments ignore the window icon.
+// For example, GNOME Shell takes the icon from a desktop entry file whose StartupWMClass matches
+// [RunGameOptions.X11InstanceName] or [RunGameOptions.X11ClassName], and falls back to a generic
+// icon when there is no such file.
+//
 // SetWindowIcon doesn't work if the platform is not a desktop.
 //
 // SetWindowIcon is concurrent-safe.
@@ -157,7 +162,7 @@ func SetWindowIcon(iconImages []image.Image) {
 // The origin position is the upper-left corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// WindowPosition panics if the main loop does not start yet.
+// If the main loop does not start yet, WindowPosition returns the initial window position set by [SetWindowPosition].
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //

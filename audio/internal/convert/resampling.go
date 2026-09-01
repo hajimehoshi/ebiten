@@ -82,8 +82,12 @@ func sinc01(x float64) float64 {
 type Resampling struct {
 	source io.Reader
 
-	// size is the length of the source stream in bytes. 0 indicates the length is unknown.
-	size int64
+	// declaredSrcLength is the length in bytes given by the caller. 0 indicates the length is unknown.
+	declaredSrcLength int64
+
+	// derivedSrcLength is the length in bytes determined when the source reaches its end.
+	// derivedSrcLength is used only when declaredSrcLength is 0. 0 indicates the length is not determined yet.
+	derivedSrcLength int64
 
 	from            int
 	to              int
@@ -97,17 +101,17 @@ type Resampling struct {
 	eofBufIndex     int64
 }
 
-func NewResampling(source io.Reader, size int64, from, to int, bitDepthInBytes int) *Resampling {
+func NewResampling(source io.Reader, length int64, from, to int, bitDepthInBytes int) *Resampling {
 	r := &Resampling{
-		source:          source,
-		size:            size,
-		from:            from,
-		bitDepthInBytes: bitDepthInBytes,
-		to:              to,
-		srcBlock:        -1,
-		srcBufL:         map[int64][]float64{},
-		srcBufR:         map[int64][]float64{},
-		eofBufIndex:     -1,
+		source:            source,
+		declaredSrcLength: length,
+		from:              from,
+		bitDepthInBytes:   bitDepthInBytes,
+		to:                to,
+		srcBlock:          -1,
+		srcBufL:           map[int64][]float64{},
+		srcBufR:           map[int64][]float64{},
+		eofBufIndex:       -1,
 	}
 	return r
 }
@@ -118,7 +122,20 @@ func (r *Resampling) bytesPerSample() int {
 }
 
 func (r *Resampling) Length() int64 {
-	s := int64(float64(r.size) * float64(r.to) / float64(r.from))
+	return r.resampledLength(r.declaredSrcLength)
+}
+
+// srcLength returns the length of the source stream in bytes, or 0 when the length is unknown.
+func (r *Resampling) srcLength() int64 {
+	if r.declaredSrcLength > 0 {
+		return r.declaredSrcLength
+	}
+	return r.derivedSrcLength
+}
+
+// resampledLength returns the length of the resampled stream in bytes for a source stream of the given length.
+func (r *Resampling) resampledLength(srcLength int64) int64 {
+	s := int64(float64(srcLength) * float64(r.to) / float64(r.from))
 	return s / int64(r.bytesPerSample()) * int64(r.bytesPerSample())
 }
 
@@ -147,10 +164,18 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 			c += n
 			if err != nil {
 				if err == io.EOF {
+					// Determine the source length the first time the source reaches its end.
+					if r.declaredSrcLength == 0 && r.eofBufIndex < 0 {
+						r.derivedSrcLength = nextPos*resamplingBufferSize*sizePerSample + int64(c)
+					}
 					r.eofBufIndex = nextPos
 					break
 				}
 				return 0, 0, err
+			}
+			// A source making no progress must not spin here.
+			if n == 0 {
+				break
 			}
 		}
 		buf = buf[:c]
@@ -199,10 +224,12 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 	}
 	ii := i % resamplingBufferSize
 	var err error
-	if r.eofBufIndex == r.srcBlock && ii >= int64(len(r.srcBufL[r.srcBlock])-1) {
-		err = io.EOF
-	}
-	if r.size > 0 && r.size/sizePerSample <= i {
+	if srcLength := r.srcLength(); srcLength > 0 {
+		if srcLength/sizePerSample <= i {
+			err = io.EOF
+		}
+	} else if r.eofBufIndex == r.srcBlock {
+		// The length remains unknown at the source's end only when the source is empty.
 		err = io.EOF
 	}
 	return r.srcBufL[r.srcBlock][ii], r.srcBufR[r.srcBlock][ii], err
@@ -251,8 +278,16 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	if r.eof {
 		return 0, io.EOF
 	}
+	if len(b) == 0 {
+		return 0, nil
+	}
 
 	size := r.bytesPerSample()
+	// A buffer shorter than one frame cannot receive any resampled data.
+	if len(b) < size {
+		return 0, io.ErrShortBuffer
+	}
+
 	n := len(b) / size * size
 	switch r.bitDepthInBytes {
 	case 2:
@@ -262,9 +297,11 @@ func (r *Resampling) Read(b []byte) (int, error) {
 				return 0, err
 			}
 			// EOF from the at method indicates that the source reaches the end, and doesn't indicate the resampled data ends.
-			// Continue the loop even if EOF is returned.
-			if err == io.EOF {
+			// The check below is the terminator of the resampled data, except when the source is empty and has no length to compare with.
+			if err == io.EOF && r.srcLength() <= 0 {
+				n = 0
 				r.eof = true
+				break
 			}
 			l16 := int16(ldata * (1<<15 - 1))
 			r16 := int16(rdata * (1<<15 - 1))
@@ -272,9 +309,10 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			b[4*i+1] = byte(l16 >> 8)
 			b[4*i+2] = byte(r16)
 			b[4*i+3] = byte(r16 >> 8)
-			// If the source is an io.Seeker and the length is known, check whether the resampled data ends (#3352).
-			if r.size > 0 && r.pos+int64(size*i) >= r.Length() {
+			// If the length is known, check whether the resampled data ends (#3352).
+			if srcLength := r.srcLength(); srcLength > 0 && r.pos+int64(size*i) >= r.resampledLength(srcLength) {
 				n = size * i
+				r.eof = true
 				break
 			}
 		}
@@ -284,8 +322,10 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			if err != nil && err != io.EOF {
 				return 0, err
 			}
-			if err == io.EOF {
+			if err == io.EOF && r.srcLength() <= 0 {
+				n = 0
 				r.eof = true
+				break
 			}
 			l32 := float32(ldata)
 			r32 := float32(rdata)
@@ -299,8 +339,9 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			b[8*i+5] = byte(r32b >> 8)
 			b[8*i+6] = byte(r32b >> 16)
 			b[8*i+7] = byte(r32b >> 24)
-			if r.size > 0 && r.pos+int64(size*i) >= r.Length() {
+			if srcLength := r.srcLength(); srcLength > 0 && r.pos+int64(size*i) >= r.resampledLength(srcLength) {
 				n = size * i
+				r.eof = true
 				break
 			}
 		}
@@ -326,7 +367,7 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		pos += offset
 	case io.SeekEnd:
-		if r.size <= 0 {
+		if r.declaredSrcLength <= 0 {
 			return 0, fmt.Errorf("convert: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
 		}
 		pos = r.Length() + offset
@@ -339,7 +380,7 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	r.eof = false
 	r.pos = pos
 	// The position can be clamped by the length only when the length is known.
-	if r.size > 0 && r.Length() <= r.pos {
+	if r.declaredSrcLength > 0 && r.Length() <= r.pos {
 		r.pos = r.Length()
 	}
 	size := r.bytesPerSample()

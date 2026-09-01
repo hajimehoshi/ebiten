@@ -28,15 +28,15 @@ func systemColorMode() ColorMode {
 		return mode
 	}
 
-	homeDir, err := os.UserHomeDir()
+	configDir, err := os.UserConfigDir()
 	if err != nil {
 		return Unknown
 	}
-	if mode := checkGTKSettingsFile(filepath.Join(homeDir+".config", "gtk-4.0", "settings.ini")); mode != Unknown {
+	if mode := checkGTKSettingsFile(filepath.Join(configDir, "gtk-4.0", "settings.ini")); mode != Unknown {
 		return mode
 	}
 
-	if mode := checkGTKSettingsFile(filepath.Join(homeDir+".config", "gtk-3.0", "settings.ini")); mode != Unknown {
+	if mode := checkGTKSettingsFile(filepath.Join(configDir, "gtk-3.0", "settings.ini")); mode != Unknown {
 		return mode
 	}
 

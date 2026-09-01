@@ -23,8 +23,8 @@ type MouseButton int
 
 const (
 	MouseButton0   MouseButton = iota // The 'left' button
-	MouseButton1                      // The 'right' button
-	MouseButton2                      // The 'middle' button
+	MouseButton1                      // The 'middle' button
+	MouseButton2                      // The 'right' button
 	MouseButton3                      // The additional button (usually browser-back)
 	MouseButton4                      // The additional button (usually browser-forward)
 	MouseButtonMax = MouseButton4

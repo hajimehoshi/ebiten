@@ -1,4 +1,4 @@
-// Copyright 2024 The Ebitengine Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,12 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vorbis
+package gamepaddb
 
-import "io"
+func AddAndroidDefaultMappings(id string) bool {
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
 
-type Float32Reader = float32Reader
-
-func NewInt16BytesReaderFromFloat32Reader(r float32Reader, channels int) io.Reader {
-	return newInt16BytesReaderFromFloat32Reader(r, channels)
+	return addAndroidDefaultMappings(id)
 }

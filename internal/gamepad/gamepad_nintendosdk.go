@@ -78,18 +78,17 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 			}
 		}
 
-		gamepad.m.Lock()
-		n := gamepad.native.(*nativeGamepadImpl)
-		for i := range n.axisValues {
-			n.axisValues[i] = float64(gp.axis_values[i])
-		}
-		for i := range n.buttonValues {
-			n.buttonValues[i] = float64(gp.button_values[i])
-		}
-		for i := range n.buttonPressed {
-			n.buttonPressed[i] = gp.button_pressed[i] != 0
-		}
-		gamepad.m.Unlock()
+		withNative(gamepad, func(n *nativeGamepadImpl) {
+			for i := range n.axisValues {
+				n.axisValues[i] = float64(gp.axis_values[i])
+			}
+			for i := range n.buttonValues {
+				n.buttonValues[i] = float64(gp.button_values[i])
+			}
+			for i := range n.buttonPressed {
+				n.buttonPressed[i] = gp.button_pressed[i] != 0
+			}
+		})
 	}
 
 	// Remove an unused gamepads.

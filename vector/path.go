@@ -178,12 +178,18 @@ func (s *subPath) endDir(index int) vec2 {
 }
 
 // Path represents a collection of vector graphics operations.
+//
+// All the coordinates in a path must be finite.
+// A path with a non-finite coordinate produces an undefined result.
 type Path struct {
 	subPaths []subPath
 
 	// flatPaths is a cached actual rendering positions.
 	// flatPaths is used only for deprecated functions. Do not use this for new functions.
 	flatPaths []flatPath
+
+	// opsBuf is a buffer of operations, which AddStroke uses to normalize the source sub-paths.
+	opsBuf []op
 }
 
 // Reset resets the path.
@@ -268,7 +274,10 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 	}
 	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
-		if cur.x == x2 && cur.y == y2 {
+		// A quadratic whose start, control, and end points all coincide is a single point and can be dropped.
+		// Even if the start and end points coincide, it is not a single point when the control point differs:
+		// it is a cusp, which goes to the midpoint and comes back, so it must be kept.
+		if cur.x == x1 && cur.y == y1 && cur.x == x2 && cur.y == y2 {
 			return
 		}
 	}
@@ -454,7 +463,11 @@ func (p *Path) currentPosition() (point, bool) {
 }
 
 // ArcTo adds an arc curve to the path.
-// (x1, y1) is the first control point, and (x2, y2) is the second control point.
+// The arc is tangent to the line from the current position to (x1, y1) and to the line from (x1, y1) to (x2, y2).
+// (x1, y1) is the corner point where the two tangent lines meet, and (x2, y2) gives the direction of the second
+// tangent line. The arc ends at the tangent point on the second tangent line, which is at the distance of
+// radius / tan(θ/2) from (x1, y1), where θ is the angle at (x1, y1) between the two rays.
+// radius must be non-negative. A negative radius produces an undefined result.
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	p0, ok := p.currentPosition()
 	if !ok {
@@ -483,8 +496,9 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	d0 = d0.norm()
 	d1 = d1.norm()
 
+	dot := min(max(float64(d0.x*d1.x+d0.y*d1.y), -1.0), 1.0)
 	// theta is the angle between two vectors d0 and d1.
-	theta := math.Acos(float64(d0.x*d1.x + d0.y*d1.y))
+	theta := math.Acos(dot)
 	// TODO: When theta is bigger than π/2, the arc should be split into two.
 	if theta == 0 {
 		p.LineTo(x2, y2)
@@ -535,6 +549,7 @@ func euclideanMod(a, b float32) float32 {
 
 // Arc adds an arc to the path.
 // (x, y) is the center of the arc.
+// radius must be non-negative. A negative radius produces an undefined result.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	origStartAngle := startAngle
 	origEndAngle := endAngle
@@ -659,53 +674,86 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 	}
 }
 
-// normalize normalizes the path by removing unnecessary sub-paths and points.
-func (p *Path) normalize() {
-	for i, subPath := range p.subPaths {
-		cur := subPath.start
-		var n int
-		for _, op := range subPath.ops {
-			switch op.typ {
-			case opTypeLineTo:
-				if cur == op.p1 {
-					continue
-				}
-				cur = op.p1
-			case opTypeQuadTo:
-				switch {
-				case cur == op.p2:
-					continue
-				case cur == op.p1, op.p1 == op.p2:
-					op.typ = opTypeLineTo
-					op.p1 = op.p2
-					op.p2 = point{}
-					cur = op.p1
-				case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
-					op.typ = opTypeLineTo
-					op.p1 = op.p2
-					op.p2 = point{}
-					cur = op.p1
-				default:
-					cur = op.p2
-				}
+// countCusps counts the number of cusps in subPath, which are quadratic curves whose start and end points are the same
+// and whose control point differs from them.
+func countCusps(subPath *subPath) int {
+	var n int
+	cur := subPath.start
+	for _, op := range subPath.ops {
+		switch op.typ {
+		case opTypeLineTo:
+			cur = op.p1
+		case opTypeQuadTo:
+			if cur == op.p2 && cur != op.p1 {
+				n++
 			}
-			p.subPaths[i].ops[n] = op
-			n++
+			cur = op.p2
 		}
-		p.subPaths[i].ops = slices.Delete(p.subPaths[i].ops, n, len(subPath.ops))
+	}
+	return n
+}
+
+// normalizeSubPath normalizes src by removing unnecessary operations, and stores the result into dst.
+// dst must not be src.
+func normalizeSubPath(dst *subPath, src *subPath) {
+	// A cusp is converted into two lines, which increases the number of operations.
+	ops := slices.Grow(dst.ops[:0], len(src.ops)+countCusps(src))
+	cur := src.start
+	for _, op := range src.ops {
+		switch op.typ {
+		case opTypeLineTo:
+			if cur == op.p1 {
+				continue
+			}
+			cur = op.p1
+		case opTypeQuadTo:
+			switch {
+			case cur == op.p1 && op.p1 == op.p2:
+				// A single point: drop it.
+				continue
+			case cur == op.p2:
+				// A cusp goes to the midpoint and comes back.
+				// Keep this as lines, not as a curve, so that the 180-degree turn at the tip gets a joint.
+				// Divide by 2 before adding so that the midpoint computation cannot overflow.
+				mid := point{
+					x: cur.x/2 + op.p1.x/2,
+					y: cur.y/2 + op.p1.y/2,
+				}
+				if mid == cur {
+					// The midpoint is rounded to the current point in float32, so there is nothing to keep.
+					continue
+				}
+				first := op
+				first.typ = opTypeLineTo
+				first.p1 = mid
+				first.p2 = point{}
+				ops = append(ops, first)
+				op.typ = opTypeLineTo
+				op.p1 = op.p2
+				op.p2 = point{}
+				cur = op.p1
+			case cur == op.p1, op.p1 == op.p2:
+				op.typ = opTypeLineTo
+				op.p1 = op.p2
+				op.p2 = point{}
+				cur = op.p1
+			case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
+				op.typ = opTypeLineTo
+				op.p1 = op.p2
+				op.p2 = point{}
+				cur = op.p1
+			default:
+				cur = op.p2
+			}
+		}
+		ops = append(ops, op)
 	}
 
-	// Do not use slices.DeleteFunc as sub-paths's slices should be reused.
-	var n int
-	for i := range p.subPaths {
-		if len(p.subPaths[i].ops) == 0 {
-			p.subPaths[i].reset()
-			continue
-		}
-		p.subPaths[n] = p.subPaths[i]
-		n++
-	}
-	p.subPaths = p.subPaths[:n]
+	dst.ops = ops
+	dst.start = src.start
+	dst.closed = src.closed
+	dst.cachedValid = false
+	dst.isCachedValidValid = false
 }
 
 func floor(x float32) int {
@@ -717,18 +765,22 @@ func ceil(x float32) int {
 }
 
 // Bounds returns the minimum bounding rectangle of the path.
+// The rectangle can have a zero width or height when the path is degenerate in an axis, like a horizontal line.
+// Bounds returns the zero rectangle when the path has no drawing operations.
 func (p *Path) Bounds() image.Rectangle {
 	// Note that (image.Rectangle).Union doesn't work well with empty rectangles.
 	totalMinX := math.MaxInt
 	totalMinY := math.MaxInt
 	totalMaxX := math.MinInt
 	totalMaxY := math.MinInt
+	var found bool
 
 	for i := range p.subPaths {
 		subPath := &p.subPaths[i]
-		if !subPath.isValid() {
+		if !subPath.isValid() || len(subPath.ops) == 0 {
 			continue
 		}
+		found = true
 
 		minX := math.MaxInt
 		minY := math.MaxInt
@@ -784,7 +836,7 @@ func (p *Path) Bounds() image.Rectangle {
 		totalMaxX = max(totalMaxX, maxX)
 		totalMaxY = max(totalMaxY, maxY)
 	}
-	if totalMinX >= totalMaxX || totalMinY >= totalMaxY {
+	if !found {
 		return image.Rectangle{}
 	}
 	return image.Rect(totalMinX, totalMinY, totalMaxX, totalMaxY)

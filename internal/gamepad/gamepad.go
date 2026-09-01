@@ -291,6 +291,15 @@ func (g *Gamepad) update(gamepads *gamepads) error {
 	return g.native.update(gamepads)
 }
 
+// withNative calls f with g's native state while holding g's lock. T must be the concrete native type
+// of the backend that owns g.
+func withNative[T nativeGamepad](g *Gamepad, f func(n T)) {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	f(g.native.(T))
+}
+
 // Name is concurrent-safe.
 func (g *Gamepad) Name() string {
 	// This is immutable and doesn't have to be protected by a mutex.

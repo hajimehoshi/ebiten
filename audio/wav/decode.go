@@ -223,6 +223,17 @@ chunks:
 		}
 	}
 
+	if bitsPerSample == 0 {
+		return nil, fmt.Errorf("wav: invalid header: 'fmt ' not found before 'data'")
+	}
+
+	// A partial frame at the tail of the data chunk cannot be decoded. Discard it.
+	bytesPerFrame := int64(bitsPerSample / 8)
+	if !mono {
+		bytesPerFrame *= 2
+	}
+	dataSize = dataSize / bytesPerFrame * bytesPerFrame
+
 	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
 
 	if mono || bitsPerSample != 16 {

@@ -282,6 +282,11 @@ func (u *UserInterface) RefreshRate() int {
 	return int(u.refreshRate.Load())
 }
 
+// IsRunning reports whether the game is running, which is when the graphics driver exists.
+func (u *UserInterface) IsRunning() bool {
+	return u.isRunning()
+}
+
 func (u *UserInterface) isRunning() bool {
 	// TODO: Replace the running state with the existence of a published backend
 	// for all the platforms, like the desktop build (see setRunningBackend in

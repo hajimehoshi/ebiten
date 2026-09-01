@@ -27,6 +27,14 @@ type (
 		playing bool
 		volume  float64
 
+		// eof is whether the source has been exhausted by playing through. Like the real players,
+		// a player which has finished its source refuses to play until Seek resets this state.
+		eof bool
+
+		// drained is whether the simulated device has output the data it had buffered when the
+		// source was exhausted. See BufferedSize.
+		drained bool
+
 		// readGen is incremented by PauseAndStopReading to stop the goroutine reading r.
 		readGen int
 
@@ -65,9 +73,13 @@ func (p *dummyPlayer) Pause() {
 
 func (p *dummyPlayer) Play() {
 	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.eof {
+		return
+	}
 	p.playing = true
 	gen := p.readGen
-	p.mu.Unlock()
 	go func() {
 		var buf [4096]byte
 		for {
@@ -84,8 +96,12 @@ func (p *dummyPlayer) Play() {
 			time.Sleep(time.Millisecond)
 		}
 		p.mu.Lock()
-		p.playing = false
-		p.mu.Unlock()
+		defer p.mu.Unlock()
+		// The source is exhausted only when it was played through. A paused player would still
+		// have unplayed data in its buffer in a real player.
+		if p.playing {
+			p.eof = true
+		}
 	}()
 }
 
@@ -124,7 +140,23 @@ func (p *dummyPlayer) SetVolume(volume float64) {
 	p.volume = volume
 }
 
+// BufferedSize always reports an empty buffer, as the simulated device consumes the data as soon as
+// it is read.
+//
+// The context calls this exactly once per tick, before it reads the position and checks IsPlaying.
+// The player keeps playing for one more tick after its source is exhausted, so that the position
+// reaches its final value while the player is still playing, as a real player which still has
+// buffered data to output.
 func (p *dummyPlayer) BufferedSize() int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.eof {
+		if p.drained {
+			p.playing = false
+		}
+		p.drained = true
+	}
 	return 0
 }
 
@@ -136,6 +168,12 @@ func (p *dummyPlayer) SetBufferSize(bufferSize int) {
 }
 
 func (p *dummyPlayer) Seek(offset int64, whence int) (int64, error) {
+	// Seeking discards the buffered data and resets the finished state as real players do, so
+	// that the source can be played again.
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.eof = false
+	p.drained = false
 	return 0, nil
 }
 

@@ -54,7 +54,7 @@ func (t *textInputImpl) markIMEDiscardNeeded() {
 func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textInputState, func()) {
 	t.registerOnce.Do(func() {
 		ebiten.RunOnMainThread(func() {
-			ui.Get().SetX11TextInputHandlersOnMainThread(t.sendComposition, t.sendCommit)
+			ui.Get().SetX11TextInputHandlersOnMainThread(t.sendComposition, t.sendCommit, t.events.isOpen)
 		})
 		t.seedFromInputChars()
 	})

@@ -292,6 +292,78 @@ func TestDecodeSeekInvalidWhence(t *testing.T) {
 	}
 }
 
+func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
+	const size = 8000
+	const headerFill = 0x5a
+	data := make([]byte, size)
+	for i := range data {
+		data[i] = byte(i)
+	}
+	// A large chunk before 'fmt ' pushes the data chunk far from the file
+	// start, so that a small negative offset resolves inside the header.
+	header := bytes.Repeat([]byte{headerFill}, 200)
+	buf := wavFile(testSampleRate, []chunk{{id: "LIST", data: string(header)}}, nil, data)
+
+	const pos = 4
+	for _, tc := range []struct {
+		name   string
+		offset int64
+		whence int
+	}{
+		{
+			name:   "SeekStartNegative",
+			offset: -100,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekStartPastEnd",
+			offset: size + 4,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekCurrentNegative",
+			offset: -100,
+			whence: io.SeekCurrent,
+		},
+		{
+			name:   "SeekEndBeforeStart",
+			offset: -(size + 100),
+			whence: io.SeekEnd,
+		},
+		{
+			name:   "SeekEndPastEnd",
+			offset: 100,
+			whence: io.SeekEnd,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := wav.DecodeWithoutResampling(bytes.NewReader(buf))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.Seek(pos, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := s.Seek(tc.offset, tc.whence); err == nil {
+				t.Errorf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
+			}
+
+			b := make([]byte, 8)
+			n, err := s.Read(b)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if n != len(b) {
+				t.Errorf("Read: got %d bytes, want %d", n, len(b))
+			}
+			if want := data[pos : pos+len(b)]; !bytes.Equal(b, want) {
+				t.Errorf("Read after a failed Seek: got %#x, want %#x", b, want)
+			}
+		})
+	}
+}
+
 func TestDecodeInvalidSampleRate(t *testing.T) {
 	testCases := []struct {
 		name       string
@@ -321,6 +393,228 @@ func TestDecodeInvalidSampleRate(t *testing.T) {
 			}
 			if _, err := wav.DecodeF32(bytes.NewReader(data)); (err != nil) != tc.wantErr {
 				t.Errorf("wav.DecodeF32: err %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}
+
+// pcmWavFile returns a linear PCM WAV file with the given channel count and bit depth
+// whose 'data' chunk holds data.
+func pcmWavFile(channelCount, bitsPerSample int, data []byte) []byte {
+	blockAlign := channelCount * bitsPerSample / 8
+
+	var fmtData []byte
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, 1) // Format tag (linear PCM)
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, uint16(channelCount))
+	fmtData = binary.LittleEndian.AppendUint32(fmtData, testSampleRate)
+	fmtData = binary.LittleEndian.AppendUint32(fmtData, testSampleRate*uint32(blockAlign))
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, uint16(blockAlign))
+	fmtData = binary.LittleEndian.AppendUint16(fmtData, uint16(bitsPerSample))
+
+	var body []byte
+	body = appendChunk(body, "fmt ", fmtData)
+	body = appendChunk(body, "data", data)
+
+	var buf []byte
+	buf = append(buf, "RIFF"...)
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(body)+4))
+	buf = append(buf, "WAVE"...)
+	return append(buf, body...)
+}
+
+func TestDecodePartialFrame(t *testing.T) {
+	const dataSize = 65
+
+	testCases := []struct {
+		name          string
+		channelCount  int
+		bitsPerSample int
+		wantFrames    int64
+	}{
+		{
+			name:          "MonoU8",
+			channelCount:  1,
+			bitsPerSample: 8,
+			wantFrames:    65,
+		},
+		{
+			name:          "MonoS16",
+			channelCount:  1,
+			bitsPerSample: 16,
+			wantFrames:    32,
+		},
+		{
+			name:          "StereoU8",
+			channelCount:  2,
+			bitsPerSample: 8,
+			wantFrames:    32,
+		},
+		{
+			name:          "StereoS16",
+			channelCount:  2,
+			bitsPerSample: 16,
+			wantFrames:    16,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			data := make([]byte, dataSize)
+			for i := range data {
+				data[i] = byte(i + 1)
+			}
+			src := pcmWavFile(tc.channelCount, tc.bitsPerSample, data)
+
+			for _, d := range []struct {
+				name          string
+				decode        func(src io.Reader) (*wav.Stream, error)
+				bytesPerFrame int64
+			}{
+				{
+					name:          "DecodeWithoutResampling",
+					decode:        wav.DecodeWithoutResampling,
+					bytesPerFrame: 4,
+				},
+				{
+					name:          "DecodeF32",
+					decode:        wav.DecodeF32,
+					bytesPerFrame: 8,
+				},
+			} {
+				t.Run(d.name, func(t *testing.T) {
+					s, err := d.decode(bytes.NewReader(src))
+					if err != nil {
+						t.Fatal(err)
+					}
+					want := tc.wantFrames * d.bytesPerFrame
+					if got := s.Length(); got != want {
+						t.Errorf("Length(): got: %d, want: %d", got, want)
+					}
+					bs, err := io.ReadAll(s)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if got := int64(len(bs)); got != want {
+						t.Errorf("len(io.ReadAll(s)): got: %d, want: %d", got, want)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestDecodeDataChunkBeforeFmtChunk(t *testing.T) {
+	var body []byte
+	body = appendChunk(body, "data", []byte{1, 2, 3, 4})
+	body = appendChunk(body, "fmt ", stereoI16FmtChunkData(testSampleRate))
+
+	buf := []byte("RIFF")
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(body)+4))
+	buf = append(buf, "WAVE"...)
+	buf = append(buf, body...)
+
+	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(buf)); err == nil {
+		t.Errorf("DecodeWithoutResampling: got no error, want an error")
+	}
+}
+
+// shortReader is an io.Reader that returns at most maxN bytes for each Read.
+type shortReader struct {
+	r    *bytes.Reader
+	maxN int
+}
+
+func (s *shortReader) Read(buf []byte) (int, error) {
+	if len(buf) > s.maxN {
+		buf = buf[:s.maxN]
+	}
+	return s.r.Read(buf)
+}
+
+// TestDecodeF32ShortReads tests a source returning fewer bytes than one sample at a time.
+func TestDecodeF32ShortReads(t *testing.T) {
+	data := []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08}
+	s, err := wav.DecodeF32(&shortReader{r: bytes.NewReader(wavFile(testSampleRate, nil, nil, data)), maxN: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var got int
+	for {
+		var buf [64]byte
+		n, err := s.Read(buf[:])
+		if n == 0 && err == nil {
+			t.Fatal("Read: got (0, <nil>), want a non-zero byte count or an error")
+		}
+		got += n
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	if want := len(data) * 2; got != want {
+		t.Errorf("read %d bytes, want %d", got, want)
+	}
+}
+
+func TestDecodeSeekSmallNegativePosition(t *testing.T) {
+	data := make([]byte, 8000)
+	for i := range data {
+		data[i] = byte(i)
+	}
+
+	for _, tc := range []struct {
+		name   string
+		decode func(src io.Reader) (*wav.Stream, error)
+		src    []byte
+	}{
+		{
+			name:   "Stereo",
+			decode: wav.DecodeWithoutResampling,
+			src:    pcmWavFile(2, 16, data),
+		},
+		{
+			name:   "Mono",
+			decode: wav.DecodeWithoutResampling,
+			src:    pcmWavFile(1, 16, data),
+		},
+		{
+			name:   "StereoF32",
+			decode: wav.DecodeF32,
+			src:    pcmWavFile(2, 16, data),
+		},
+		{
+			name:   "MonoF32",
+			decode: wav.DecodeF32,
+			src:    pcmWavFile(1, 16, data),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, err := tc.decode(bytes.NewReader(tc.src))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// An offset in (-4, 0) is rounded toward the frame boundary before it reaches the
+			// decoder, so the requested position must be resolved and checked before the
+			// rounding, whichever whence it comes from.
+			for _, offset := range []int64{-1, -2, -3, -4} {
+				if _, err := s.Seek(offset, io.SeekStart); err == nil {
+					t.Errorf("Seek(%d, io.SeekStart): got no error, want an error", offset)
+				}
+				if _, err := s.Seek(offset, io.SeekCurrent); err == nil {
+					t.Errorf("Seek(%d, io.SeekCurrent) at 0: got no error, want an error", offset)
+				}
+				if _, err := s.Seek(-s.Length()+offset, io.SeekEnd); err == nil {
+					t.Errorf("Seek(-Length()%+d, io.SeekEnd): got no error, want an error", offset)
+				}
+			}
+
+			// The stream must not be broken by the rejected seeks.
+			b := make([]byte, 8)
+			if _, err := io.ReadFull(s, b); err != nil {
+				t.Fatal(err)
 			}
 		})
 	}

@@ -113,7 +113,7 @@ type i16Stream struct {
 
 func (s *i16Stream) Read(b []byte) (int, error) {
 	if s.i16Reader == nil {
-		s.i16Reader = newInt16BytesReaderFromFloat32Reader(s.vorbisReader)
+		s.i16Reader = newInt16BytesReaderFromFloat32Reader(s.vorbisReader, s.vorbisReader.Channels())
 	}
 
 	l := int64(len(b))

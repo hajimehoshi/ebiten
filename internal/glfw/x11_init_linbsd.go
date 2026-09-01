@@ -1072,6 +1072,7 @@ func platformInit() error {
 			style, ok := usableInputMethodStyle()
 			if ok {
 				_glfw.platformWindow.imStyle = style
+				setInputMethodDestroyCallback()
 			} else {
 				xCloseIM(_glfw.platformWindow.im)
 				_glfw.platformWindow.im = 0

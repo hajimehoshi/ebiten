@@ -454,6 +454,16 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 		if err := g.dec.DecodeGuestMessage(&gm); err != nil {
 			return err
 		}
+		// Serving these needs the host's graphics driver, which exists only while the host's game runs.
+		switch gm.Kind {
+		case vmprotocol.GuestMessageKindGraphicsCommands,
+			vmprotocol.GuestMessageKindQueryReadPixels,
+			vmprotocol.GuestMessageKindQueryMaxImageSize,
+			vmprotocol.GuestMessageKindQueryColorSpace:
+			if !ui.Get().IsRunning() {
+				return errors.New("vmhost: the host's game must be running before the guest can render or query it")
+			}
+		}
 		switch gm.Kind {
 		case vmprotocol.GuestMessageKindGraphicsCommands:
 			if err := g.renderer.render(gm.GraphicsCommands); err != nil {
@@ -508,15 +518,17 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 		case vmprotocol.GuestMessageKindTextInputEnd:
 			g.handleTextInputEnd(&gm)
 			continue
+		case vmprotocol.GuestMessageKindDone:
+			if gm.Terminated {
+				return ebiten.Termination
+			}
+			if gm.Err != "" {
+				return errors.New(gm.Err)
+			}
+			return nil
+		default:
+			return fmt.Errorf("vmhost: unknown guest message kind %d", gm.Kind)
 		}
-		// GuestMessageKindDone.
-		if gm.Terminated {
-			return ebiten.Termination
-		}
-		if gm.Err != "" {
-			return errors.New(gm.Err)
-		}
-		return nil
 	}
 }
 
@@ -526,13 +538,39 @@ func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
 	answer := vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindAnswerReadPixels,
 	}
+	if err := g.readQueriedPixels(query); err != nil {
+		answer.Err = err.Error()
+	} else {
+		answer.Pixels = g.pixelsListBuf
+	}
+	return g.enc.EncodeHostMessage(&answer)
+}
+
+// readQueriedPixels reads the query's regions back into the session's reused buffers, leaving one
+// subslice per region in g.pixelsListBuf. A region the host cannot read back fails with an error
+// before a buffer is sized from it.
+func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
+	bounds, ok := g.renderer.imageBounds(query.ReadImageID)
+	if !ok {
+		return fmt.Errorf("vmhost: ReadPixels references unknown image %d", query.ReadImageID)
+	}
 	// One flat reused buffer backs all the regions; the total is computed first so that growing the
 	// buffer cannot move the per-region subslices.
-	var total int
+	var total int64
 	for _, r := range query.ReadRegions {
-		total += 4 * r.Dx() * r.Dy()
+		if r.Empty() || !r.In(bounds) {
+			return fmt.Errorf("vmhost: ReadPixels region %v is not within image %d's bounds %v", r, query.ReadImageID, bounds)
+		}
+		total += 4 * int64(r.Dx()) * int64(r.Dy())
 	}
-	g.pixelsBuf = slices.Grow(g.pixelsBuf[:0], total)[:total]
+	// A read-back cannot need more than the image holds, which bounds the buffer a guest can make the
+	// host allocate.
+	if maxTotal := 4 * int64(bounds.Dx()) * int64(bounds.Dy()); total > maxTotal {
+		return fmt.Errorf("vmhost: ReadPixels asks for %d bytes from image %d, which holds %d",
+			total, query.ReadImageID, maxTotal)
+	}
+	n := int(total)
+	g.pixelsBuf = slices.Grow(g.pixelsBuf[:0], n)[:n]
 	g.pixelsListBuf = g.pixelsListBuf[:0]
 	var off int
 	for _, r := range query.ReadRegions {
@@ -540,12 +578,7 @@ func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
 		g.pixelsListBuf = append(g.pixelsListBuf, g.pixelsBuf[off:off+n])
 		off += n
 	}
-	if err := g.renderer.readPixels(g.pixelsListBuf, query.ReadImageID, query.ReadRegions); err != nil {
-		answer.Err = err.Error()
-	} else {
-		answer.Pixels = g.pixelsListBuf
-	}
-	return g.enc.EncodeHostMessage(&answer)
+	return g.renderer.readPixels(g.pixelsListBuf, query.ReadImageID, query.ReadRegions)
 }
 
 // answerMaxImageSize answers with the host graphics driver's maximum image size.

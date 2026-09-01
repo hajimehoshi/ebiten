@@ -1378,7 +1378,8 @@ func (u *glfwBackend) updateGame() error {
 		if err != nil {
 			return
 		}
-		m, err := u.currentMonitor()
+		var m *Monitor
+		m, err = u.currentMonitor()
 		if err != nil {
 			return
 		}

@@ -161,6 +161,10 @@ var (
 	// above.
 	xCreateICPreedit func(im uintptr, k1 string, v1 _XIMStyle, k2 string, v2 _XID, k3 string, v3 _XID, k4 string, v4 uintptr, term uintptr) uintptr
 
+	// Variadic in C; bound with the argument shape used by this package
+	// (XNDestroyCallback, NULL).
+	xSetIMValues func(im uintptr, k1 string, v1 *_XIMCallback, term uintptr) uintptr
+
 	// Variadic in C; bound with the four preedit callbacks the on-the-spot
 	// input style registers. The names and values are passed by pointer
 	// because the returned list refers to them.
@@ -288,6 +292,7 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xSetClassHint, lib, "XSetClassHint")
 	purego.RegisterLibFunc(&xSetErrorHandler, lib, "XSetErrorHandler")
 	purego.RegisterLibFunc(&xSetICFocus, lib, "XSetICFocus")
+	purego.RegisterLibFunc(&xSetIMValues, lib, "XSetIMValues")
 	purego.RegisterLibFunc(&xSetInputFocus, lib, "XSetInputFocus")
 	purego.RegisterLibFunc(&xSetLocaleModifiers, lib, "XSetLocaleModifiers")
 	purego.RegisterLibFunc(&xSetScreenSaver, lib, "XSetScreenSaver")

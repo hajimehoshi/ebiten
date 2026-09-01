@@ -33,7 +33,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
-	"github.com/hajimehoshi/ebiten/v2/audio/opus"
 	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 	raudio "github.com/hajimehoshi/ebiten/v2/examples/resources/audio"
@@ -136,7 +135,6 @@ type musicType int
 const (
 	typeOgg musicType = iota
 	typeMP3
-	typeOpus
 )
 
 func (t musicType) String() string {
@@ -145,8 +143,6 @@ func (t musicType) String() string {
 		return "Ogg"
 	case typeMP3:
 		return "MP3"
-	case typeOpus:
-		return "Opus"
 	default:
 		panic("not reached")
 	}
@@ -203,12 +199,6 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 	case typeMP3:
 		var err error
 		s, err = mp3.DecodeF32(bytes.NewReader(raudio.Ragtime_mp3))
-		if err != nil {
-			return nil, err
-		}
-	case typeOpus:
-		var err error
-		s, err = opus.DecodeF32(bytes.NewReader(raudio.Ragtime_opus))
 		if err != nil {
 			return nil, err
 		}
@@ -500,8 +490,6 @@ func (g *Game) Update() error {
 					case typeOgg:
 						t = typeMP3
 					case typeMP3:
-						t = typeOpus
-					case typeOpus:
 						t = typeOgg
 					default:
 						panic("not reached")

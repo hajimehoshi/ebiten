@@ -37,9 +37,11 @@ type platformWindowState struct {
 	discardedText string
 
 	// Callbacks for the text the input method produces: composition updates
-	// and committed text.
-	preeditCallback   PreeditCallback
-	textInputCallback TextInputCallback
+	// and committed text, plus the one asking whether the application is
+	// taking text input.
+	preeditCallback         PreeditCallback
+	textInputCallback       TextInputCallback
+	textInputActiveCallback TextInputActiveCallback
 
 	overrideRedirect bool
 	iconified        bool

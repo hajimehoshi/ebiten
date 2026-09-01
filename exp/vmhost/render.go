@@ -47,6 +47,9 @@ type frameRenderer struct {
 	// outside screen: a frame is drawn through many commands, and the outside screen must advance from
 	// one completed frame to the next (at CompositeFrame), never showing a partially drawn state.
 	screen *hostImage
+
+	// maxImageSize is the host graphics driver's maximum image size, 0 before it is first needed.
+	maxImageSize int
 }
 
 type hostImage struct {
@@ -57,6 +60,10 @@ type hostImage struct {
 
 type hostShader struct {
 	shader *ui.Shader
+
+	// uniformDwordCount is the number of uniform dwords the shader takes, including the preserved
+	// prefix. A draw carrying a different number cannot be replayed.
+	uniformDwordCount int
 }
 
 // newFrameRenderer returns an empty renderer.
@@ -81,7 +88,19 @@ func (f *frameRenderer) dispose() {
 	f.screen = nil
 }
 
+// hostMaxImageSize returns the host graphics driver's maximum image size. It must not be called
+// before the host's game starts.
+func (f *frameRenderer) hostMaxImageSize() int {
+	if f.maxImageSize == 0 {
+		f.maxImageSize = ui.Get().GraphicsMaxImageSize()
+	}
+	return f.maxImageSize
+}
+
 // render replays the given commands. Image and shader identities persist across calls.
+//
+// A command no guest can have produced (a size, a count, or an index the host cannot replay) fails
+// with an error: the host's rendering stack panics on such input rather than rejecting it.
 func (f *frameRenderer) render(cmds []vmprotocol.GraphicsCommand) error {
 	for _, c := range cmds {
 		if err := f.renderOne(c); err != nil {
@@ -104,6 +123,17 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		return nil
 
 	case vmprotocol.GraphicsCommandKindNewImage, vmprotocol.GraphicsCommandKindNewScreenFramebufferImage:
+		if c.Width <= 0 || c.Height <= 0 {
+			return fmt.Errorf("vmhost: %s needs a positive size but got %dx%d", c.Kind, c.Width, c.Height)
+		}
+		if maxSize := f.hostMaxImageSize(); c.Width > maxSize || c.Height > maxSize {
+			return fmt.Errorf("vmhost: %s of %dx%d exceeds the host's maximum image size %d", c.Kind, c.Width, c.Height, maxSize)
+		}
+		// The guest assigns each image a fresh ID, so a live one being reused would silently orphan the
+		// mirror it names.
+		if _, ok := f.images[c.ImageID]; ok {
+			return fmt.Errorf("vmhost: %s reuses the live image %d", c.Kind, c.ImageID)
+		}
 		// Mirror each guest backing image (a logical image or an atlas page) as an unmanaged host image
 		// of the same size, so the host adds no atlas offset of its own and the recorded coordinates
 		// (already relative to this backing image) replay 1:1.
@@ -126,12 +156,20 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		if err != nil {
 			return fmt.Errorf("vmhost: recompiling forwarded shader %d failed: %w", c.ShaderID, err)
 		}
+		var uniformDwordCount int
+		for _, u := range ir.Uniforms {
+			uniformDwordCount += u.DwordCount()
+		}
 		f.shaders[c.ShaderID] = &hostShader{
-			shader: ui.NewShader(ir, ""),
+			shader:            ui.NewShader(ir, ""),
+			uniformDwordCount: uniformDwordCount,
 		}
 		return nil
 
 	case vmprotocol.GraphicsCommandKindSetVertices:
+		if len(c.Vertices)%graphics.VertexFloatCount != 0 {
+			return fmt.Errorf("vmhost: SetVertices got %d floats, which is not a multiple of %d", len(c.Vertices), graphics.VertexFloatCount)
+		}
 		f.vertices = c.Vertices
 		f.indices = c.Indices
 		return nil
@@ -145,11 +183,18 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		if !ok {
 			return fmt.Errorf("vmhost: DrawTriangles references unknown shader %d", c.ShaderID)
 		}
+		if len(c.Uniforms) != shader.uniformDwordCount {
+			return fmt.Errorf("vmhost: DrawTriangles carries %d uniform dwords for shader %d, which takes %d",
+				len(c.Uniforms), c.ShaderID, shader.uniformDwordCount)
+		}
 
 		var srcs [graphics.ShaderSrcImageCount]*ui.Image
 		var srcRegions [graphics.ShaderSrcImageCount]image.Rectangle
 		for i, s := range c.Srcs {
 			if s != graphicsdriver.InvalidImageID {
+				if s == c.Dst {
+					return fmt.Errorf("vmhost: DrawTriangles uses image %d as both its dst and a src", s)
+				}
 				src, ok := f.images[s]
 				if !ok {
 					return fmt.Errorf("vmhost: DrawTriangles references unknown src image %d", s)
@@ -179,7 +224,16 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		// per draw would make that queue grow quadratically. Forward only the vertices each draw references,
 		// rebased to a zero origin.
 		offset := c.IndexOffset
+		if offset < 0 || offset > len(f.indices) {
+			return fmt.Errorf("vmhost: DrawTriangles starts at index %d, outside the %d indices set", offset, len(f.indices))
+		}
+		vertexCount := len(f.vertices) / graphics.VertexFloatCount
 		for _, dr := range c.DstRegions {
+			// Comparing against what remains keeps offset+IndexCount from overflowing.
+			if dr.IndexCount < 0 || dr.IndexCount > len(f.indices)-offset {
+				return fmt.Errorf("vmhost: DrawTriangles takes %d indices from index %d, outside the %d indices set",
+					dr.IndexCount, offset, len(f.indices))
+			}
 			idx := f.indices[offset : offset+dr.IndexCount]
 			offset += dr.IndexCount
 			if len(idx) == 0 {
@@ -190,6 +244,11 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 			for _, i := range idx[1:] {
 				lo = min(lo, i)
 				hi = max(hi, i)
+			}
+			// The comparison is 64-bit because an index is a uint32, which an int cannot hold on a 32-bit
+			// host.
+			if uint64(hi) >= uint64(vertexCount) {
+				return fmt.Errorf("vmhost: DrawTriangles references vertex %d, outside the %d vertices set", hi, vertexCount)
 			}
 
 			f.vtxBuf = append(f.vtxBuf[:0], f.vertices[int(lo)*graphics.VertexFloatCount:(int(hi)+1)*graphics.VertexFloatCount]...)
@@ -208,6 +267,21 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		if !ok {
 			return fmt.Errorf("vmhost: WritePixels references unknown image %d", c.ImageID)
 		}
+		if len(c.Pixels) != len(c.Regions) {
+			return fmt.Errorf("vmhost: WritePixels carries %d pixel buffers for %d regions", len(c.Pixels), len(c.Regions))
+		}
+		// The whole batch is checked before any of it is written, so a rejected command leaves the mirror
+		// untouched.
+		bounds := image.Rect(0, 0, hi.width, hi.height)
+		for i, r := range c.Regions {
+			if r.Empty() || !r.In(bounds) {
+				return fmt.Errorf("vmhost: WritePixels region %v is not within image %d's bounds %v", r, c.ImageID, bounds)
+			}
+			if l := 4 * r.Dx() * r.Dy(); len(c.Pixels[i]) != l {
+				return fmt.Errorf("vmhost: WritePixels carries %d pixel bytes for region %v, which takes %d",
+					len(c.Pixels[i]), r, l)
+			}
+		}
 		for i := range c.Regions {
 			hi.img.WritePixels(c.Pixels[i], c.Regions[i])
 		}
@@ -217,6 +291,9 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		if hi, ok := f.images[c.ImageID]; ok {
 			hi.img.Deallocate()
 			delete(f.images, c.ImageID)
+			if f.screen == hi {
+				f.screen = nil
+			}
 		}
 		return nil
 
@@ -246,6 +323,16 @@ func srcRegionFromUniforms(uniforms []uint32, i int) (image.Rectangle, bool) {
 	sw := math.Float32frombits(uniforms[graphics.SourceImageRegionSizeUniformDwordIndex+2*i])
 	sh := math.Float32frombits(uniforms[graphics.SourceImageRegionSizeUniformDwordIndex+2*i+1])
 	return image.Rect(int(ox), int(oy), int(ox+sw), int(oy+sh)), true
+}
+
+// imageBounds returns the bounds of the mirror of the guest image identified by its recorded ID. It
+// returns false if no such image exists.
+func (f *frameRenderer) imageBounds(id graphicsdriver.ImageID) (image.Rectangle, bool) {
+	hi, ok := f.images[id]
+	if !ok {
+		return image.Rectangle{}, false
+	}
+	return image.Rect(0, 0, hi.width, hi.height), true
 }
 
 // readPixels reads back the given regions of a guest image, identified by its recorded ID, into the

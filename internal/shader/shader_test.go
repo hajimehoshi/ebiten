@@ -15,6 +15,7 @@
 package shader_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -272,11 +273,19 @@ func Fragment(position vec4, texCoord vec3, color vec4) vec4 {
 	if err == nil {
 		t.Fatalf("Compile must return an error for a mismatched fragment argument, but got nil")
 	}
-	if strings.HasPrefix(err.Error(), "1:1:") {
-		t.Errorf("the error position must point at the fragment entry point, but got %q", err.Error())
+	var perr *shader.ParseError
+	if !errors.As(err, &perr) {
+		t.Fatalf("Compile must return a *shader.ParseError, but got %v", err)
 	}
-	if !strings.Contains(err.Error(), "7:") {
-		t.Errorf("the error position must be around the fragment entry point (line 7), but got %q", err.Error())
+	positions := perr.Positions()
+	if len(positions) == 0 {
+		t.Fatalf("Compile must report at least one error position, but got none")
+	}
+	// The errors must point at the fragment entry point, not at the beginning of the source.
+	for _, p := range positions {
+		if got, want := p.Line, 7; got != want {
+			t.Errorf("the error line: got: %d, want: %d (%v)", got, want, err)
+		}
 	}
 }
 

@@ -266,8 +266,8 @@ func init() {
 // adopted. Even if the argument image is mutated after this call, the drawing
 // result is never affected.
 //
-// When the image i is disposed, DrawImage does nothing.
 // When the given image img is disposed, DrawImage panics.
+// When the image i is disposed and img is not, DrawImage does nothing.
 //
 // When the given image is as same as i, DrawImage panics.
 //
@@ -524,7 +524,7 @@ type DrawTrianglesOptions struct {
 	// AntiAlias increases internal draw calls and might affect performance.
 	// Use the build tag `ebitenginedebug` to check the number of draw calls if you care.
 	//
-	// The default (zero) value is false.//
+	// The default (zero) value is false.
 	//
 	// Deprecated: as of v2.9. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	AntiAlias bool
@@ -578,7 +578,7 @@ const MaxVertexCount = graphicscommand.MaxVertexCount
 //
 // When the given image is disposed, DrawTriangles panics.
 //
-// When the image i is disposed, DrawTriangles does nothing.
+// When the image i is disposed and the given image is not, DrawTriangles does nothing.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
 	is := i.ensureTmpIndices(len(indices))
 	for i := range is {
@@ -608,13 +608,8 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 //
 // When the given image is disposed, DrawTriangles32 panics.
 //
-// When the image i is disposed, DrawTriangles32 does nothing.
+// When the image i is disposed and the given image is not, DrawTriangles32 does nothing.
 func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions) {
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
-		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
-		return
-	}
-
 	i.copyCheck()
 
 	if img != nil && img.isDisposed() {
@@ -625,6 +620,11 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	}
 
 	if len(indices) == 0 {
+		return
+	}
+
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
 		return
 	}
 
@@ -642,7 +642,7 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
 	for i, idx := range indices {
-		if int(idx) >= len(vertices) {
+		if idx >= uint32(len(vertices)) {
 			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
 		}
 	}
@@ -781,8 +781,9 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
-// If the shader unit is texels, one of the specified image is non-nil and its size is different from (width, height),
-// DrawTrianglesShader panics.
+// If the shader unit is texels, DrawTrianglesShader panics when a non-nil image's size is different from
+// the size of the image at index 0 of the specified images.
+// If the image at index 0 is nil, its size is treated as (0, 0) for this comparison.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
@@ -791,6 +792,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 //
 // If a value in indices is out of range of vertices, or not less than MaxVertexCount, DrawTrianglesShader panics.
 //
+// When the given shader is disposed, DrawTrianglesShader panics.
+//
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader panics.
@@ -798,7 +801,7 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 // Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
 // the value is kept and is not clamped.
 //
-// When the image i is disposed, DrawTrianglesShader does nothing.
+// When the image i is disposed and no disposed shader or image is given, DrawTrianglesShader does nothing.
 func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader *Shader, options *DrawTrianglesShaderOptions) {
 	is := i.ensureTmpIndices(len(indices))
 	for i := range is {
@@ -814,8 +817,9 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
-// If the shader unit is texels, one of the specified image is non-nil and its size is different from (width, height),
-// DrawTrianglesShader32 panics.
+// If the shader unit is texels, DrawTrianglesShader32 panics when a non-nil image's size is different from
+// the size of the image at index 0 of the specified images.
+// If the image at index 0 is nil, its size is treated as (0, 0) for this comparison.
 // If one of the specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
 //
 // If len(vertices) is more than MaxVertexCount, the exceeding part is ignored.
@@ -824,6 +828,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 //
 // If a value in indices is out of range of vertices, or not less than MaxVertexCount, DrawTrianglesShader32 panics.
 //
+// When the given shader is disposed, DrawTrianglesShader32 panics.
+//
 // When a specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader32 panics.
@@ -831,24 +837,35 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 // Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
 // the value is kept and is not clamped.
 //
-// When the image i is disposed, DrawTrianglesShader32 does nothing.
+// When the image i is disposed and no disposed shader or image is given, DrawTrianglesShader32 does nothing.
 func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shader *Shader, options *DrawTrianglesShaderOptions) {
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
-		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
-		return
-	}
-
 	i.copyCheck()
-
-	if i.isDisposed() {
-		return
-	}
 
 	if shader.isDisposed() {
 		panic("ebiten: the given shader to DrawTrianglesShader must not be disposed")
 	}
 
+	if options != nil {
+		for _, img := range options.Images {
+			if img == nil {
+				continue
+			}
+			if img.isDisposed() {
+				panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
+			}
+		}
+	}
+
+	if i.isDisposed() {
+		return
+	}
+
 	if len(indices) == 0 {
+		return
+	}
+
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
 		return
 	}
 
@@ -880,7 +897,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		panic("ebiten: len(indices) % 3 must be 0")
 	}
 	for i, idx := range indices {
-		if int(idx) >= len(vertices) {
+		if idx >= uint32(len(vertices)) {
 			panic(fmt.Sprintf("ebiten: indices[%d] must be less than len(vertices) (%d) but was %d", i, len(vertices), idx))
 		}
 	}
@@ -928,16 +945,13 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		if img == nil {
 			continue
 		}
-		if img.isDisposed() {
-			panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
-		}
 		if shader.unitIsTexels() {
 			if i == 0 {
 				imgSize = img.Bounds().Size()
 			} else {
 				// TODO: Check imgw > 0 && imgh > 0
 				if img.Bounds().Size() != imgSize {
-					panic("ebiten: all the source images must be the same size with the rectangle")
+					panic("ebiten: all the source images must be the same size")
 				}
 			}
 		}
@@ -1002,6 +1016,7 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderSrcImageCo
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
+// When the given shader is disposed, DrawRectShader panics.
 // When one of the specified image is non-nil and its size is different from (width, height), DrawRectShader panics.
 // When one of the specified image is non-nil and is disposed, DrawRectShader panics.
 //
@@ -1020,16 +1035,27 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderSrcImageCo
 // Even if a result is an invalid color as a premultiplied-alpha color, i.e. an alpha value exceeds other color values,
 // the value is kept and is not clamped.
 //
-// When the image i is disposed, DrawRectShader does nothing.
+// When the image i is disposed and no disposed shader or image is given, DrawRectShader does nothing.
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
 	i.copyCheck()
 
-	if i.isDisposed() {
-		return
-	}
-
 	if shader.isDisposed() {
 		panic("ebiten: the given shader to DrawRectShader must not be disposed")
+	}
+
+	if options != nil {
+		for _, img := range options.Images {
+			if img == nil {
+				continue
+			}
+			if img.isDisposed() {
+				panic("ebiten: the given image to DrawRectShader must not be disposed")
+			}
+		}
+	}
+
+	if i.isDisposed() {
+		return
 	}
 
 	if options != nil {
@@ -1067,9 +1093,6 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 	for i, img := range options.Images {
 		if img == nil {
 			continue
-		}
-		if img.isDisposed() {
-			panic("ebiten: the given image to DrawRectShader must not be disposed")
 		}
 		if img.Bounds().Size() != image.Pt(width, height) {
 			panic("ebiten: all the source images must be the same size with the rectangle")
@@ -1474,7 +1497,8 @@ func MaxImageSize() int {
 
 // NewImage returns an empty image.
 //
-// If width or height is less than 1 or more than [MaxImageSize], NewImage panics.
+// If width or height is less than 1, NewImage panics.
+// If width or height is more than [MaxImageSize], NewImage panics when the image is used.
 //
 // NewImage should be called only when necessary.
 // For example, you should avoid to call NewImage every Update or Draw call.
@@ -1498,7 +1522,8 @@ type NewImageOptions struct {
 
 // NewImageWithOptions returns an empty image with the given bounds and the options.
 //
-// If width or height is less than 1 or more than [MaxImageSize], NewImageWithOptions panics.
+// If width or height is less than 1, NewImageWithOptions panics.
+// If width or height is more than [MaxImageSize], NewImageWithOptions panics when the image is used.
 //
 // The rendering origin position is (0, 0) of the given bounds.
 // If DrawImage is called on a new image created by NewImageOptions,
@@ -1541,7 +1566,8 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 
 // NewImageFromImage creates a new image with the given image (source).
 //
-// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImage panics.
+// If source's width or height is less than 1, NewImageFromImage panics.
+// If source's width or height is more than [MaxImageSize], NewImageFromImage panics when the image is used.
 //
 // NewImageFromImage should be called only when necessary.
 // For example, you should avoid to call NewImageFromImage every Update or Draw call.
@@ -1571,7 +1597,8 @@ type NewImageFromImageOptions struct {
 
 // NewImageFromImageWithOptions creates a new image with the given image (source) with the given options.
 //
-// If source's width or height is less than 1 or more than [MaxImageSize], NewImageFromImageWithOptions panics.
+// If source's width or height is less than 1, NewImageFromImageWithOptions panics.
+// If source's width or height is more than [MaxImageSize], NewImageFromImageWithOptions panics when the image is used.
 //
 // If options is nil, the default setting is used.
 //
