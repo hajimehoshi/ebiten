@@ -385,10 +385,6 @@ func constantToNumberLiteral(v constant.Value) string {
 		return fmt.Sprintf("%d", x)
 	case constant.Float:
 		x, _ := constant.Float64Val(v)
-		// Only take the integer-literal shortcut when the value is finite and
-		// fits in int64. Every float >= 2^52 is integral, so without the range
-		// guard int64(i) overflows for |x| >= 2^63 and emits a wildly wrong
-		// literal (e.g. 1e19 became -9223372036854775808.0).
 		if i := math.Floor(x); i == x && math.Abs(x) < 1<<63 {
 			return fmt.Sprintf("%d.0", int64(i))
 		}

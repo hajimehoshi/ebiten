@@ -302,8 +302,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-// A large integral float constant must not be emitted as an int64 literal that
-// overflows. Before the fix, 1e19 was printed as -9223372036854775808.0.
 func TestCompileLargeFloatConstant(t *testing.T) {
 	src := []byte(`package main
 
