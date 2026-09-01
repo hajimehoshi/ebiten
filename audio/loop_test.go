@@ -642,3 +642,67 @@ func TestInfiniteLoopSeekAlignment(t *testing.T) {
 		})
 	}
 }
+
+func TestInfiniteLoopWithSourceEndingBeforeLoop(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		srcLength   int
+		introLength int64
+	}{
+		{
+			name:        "ShorterThanIntro",
+			srcLength:   64,
+			introLength: 256,
+		},
+		{
+			name:        "EmptySource",
+			srcLength:   0,
+			introLength: 0,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			l := audio.NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, tc.srcLength)), tc.introLength, 1024)
+
+			buf := make([]byte, 32)
+			var err error
+			for range 16 {
+				var n int
+				n, err = l.Read(buf)
+				if err != nil {
+					break
+				}
+				if n == 0 {
+					t.Fatal("Read returned (0, nil) for a source without data at the loop start, want an error")
+				}
+			}
+			if err == nil {
+				t.Error("got no error, want an error for a source without data at the loop start")
+			}
+		})
+	}
+}
+
+func TestInfiniteLoopWithSourceEndingInsideLoop(t *testing.T) {
+	src := make([]byte, 64)
+	for i := range src {
+		src[i] = byte(i + 1)
+	}
+	l := audio.NewInfiniteLoop(bytes.NewReader(src), 1024)
+
+	// The source ends before the specified length. The loop is shortened to end there, and Read
+	// never returns (0, nil).
+	buf := make([]byte, 32)
+	for i := range 8 {
+		n, err := l.Read(buf)
+		if err != nil {
+			t.Fatalf("Read: %v", err)
+		}
+		if n == 0 {
+			t.Fatal("Read returned (0, nil)")
+		}
+		pos := (i * len(buf)) % len(src)
+		if got, want := buf[:n], src[pos:pos+n]; !bytes.Equal(got, want) {
+			t.Errorf("Read %d: got: %v, want: %v", i, got, want)
+		}
+	}
+}

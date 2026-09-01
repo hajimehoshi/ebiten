@@ -150,6 +150,9 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 }
 
 // Read is implementation of ReadSeeker's Read.
+//
+// If the source ends before the loop, Read returns an error.
+// If the source ends inside the loop, the loop is shortened to end there.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
@@ -164,6 +167,29 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		return 0, err
 	}
 
+	n, looped, err := i.read(b)
+	if err != nil {
+		return 0, err
+	}
+	if n > 0 || !looped {
+		return n, nil
+	}
+
+	// The source ended with nothing to return. Read again from the loop start so that this doesn't
+	// return (0, nil).
+	n, looped, err = i.read(b)
+	if err != nil {
+		return 0, err
+	}
+	if n == 0 && looped {
+		return 0, fmt.Errorf("audio: the source is too short to loop: no data at the loop start position %d", i.lstart)
+	}
+	return n, nil
+}
+
+// read reads data at the current position, and reports whether the position reached the end of the
+// source or the loop end and was reset to the loop start.
+func (i *InfiniteLoop) read(b []byte) (int, bool, error) {
 	extralen := len(i.extra)
 	if i.pos+int64(len(b))-int64(extralen) > i.length() {
 		b = b[:i.length()-i.pos+int64(extralen)]
@@ -237,7 +263,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	}
 
 	if err != nil && err != io.EOF {
-		return 0, err
+		return 0, false, err
 	}
 
 	// Read the afterLoop part if necessary.
@@ -250,7 +276,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 			for pos < len(buf) {
 				n, err := i.src.Read(buf[pos:])
 				if err != nil && err != io.EOF {
-					return 0, err
+					return 0, false, err
 				}
 				pos += n
 				// Break on EOF, and also when no progress is made so that a
@@ -271,11 +297,12 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		// Ignore the new position returned by Seek since the source position might not be match with the position
 		// managed by this.
 		if _, err := i.src.Seek(i.lstart, io.SeekStart); err != nil {
-			return 0, err
+			return 0, false, err
 		}
 		i.pos = i.lstart
+		return n, true, nil
 	}
-	return n, nil
+	return n, false, nil
 }
 
 // Seek is implementation of ReadSeeker's Seek.
