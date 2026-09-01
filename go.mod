@@ -7,10 +7,10 @@ require (
 	github.com/ebitengine/gomobile v0.0.0-20260820040257-d11f821a26a6
 	github.com/ebitengine/hideconsole v1.0.0
 	github.com/ebitengine/oto/v3 v3.5.0-alpha.12
-	github.com/ebitengine/purego v0.11.0-alpha.11
+	github.com/ebitengine/purego v0.11.0
 	github.com/gen2brain/mpeg v0.6.2
 	github.com/go-text/typesetting v0.3.5-0.20260710134149-0bd3abe5ff89
-	github.com/hajimehoshi/bitmapfont/v4 v4.1.1
+	github.com/hajimehoshi/bitmapfont/v4 v4.2.0
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp/v2 v2.4.0
 	github.com/jfreymuth/oggvorbis v1.0.5
@@ -27,5 +27,5 @@ require (
 require (
 	github.com/jfreymuth/pulse v0.1.3 // indirect
 	github.com/jfreymuth/vorbis v1.0.2 // indirect
-	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pierrec/lz4/v4 v4.1.29 // indirect
 )
