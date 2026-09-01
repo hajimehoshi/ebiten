@@ -301,3 +301,55 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
 	}
 }
+
+// A multiple-value variable declaration whose right-hand side yields a number
+// of values different from the number of names must be a compile error, not a
+// panic from indexing the value types out of range.
+func TestCompileVarCountMismatch(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func f() (int, int) {
+	return 1, 2
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b, c = f()
+	return vec4(a + b + c)
+}`,
+		`package main
+
+func f() (int, int) {
+	return 1, 2
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b, c int = f()
+	return vec4(a + b + c)
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b = 1
+	return vec4(a + b)
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b int = 1
+	return vec4(a + b)
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic for a var count mismatch, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for a var count mismatch, but got nil")
+			}
+		}()
+	}
+}
