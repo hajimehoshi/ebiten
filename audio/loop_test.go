@@ -672,11 +672,11 @@ func TestInfiniteLoopWithSourceEndingBeforeLoop(t *testing.T) {
 					break
 				}
 				if n == 0 {
-					t.Fatal("Read returned (0, nil) for a source without data at the loop start, want an error")
+					t.Fatal("Read returned (0, nil) for a source ending before the loop, want io.EOF")
 				}
 			}
-			if err == nil {
-				t.Error("got no error, want an error for a source without data at the loop start")
+			if !errors.Is(err, io.EOF) {
+				t.Errorf("got: %v, want: %v", err, io.EOF)
 			}
 		})
 	}

@@ -20,7 +20,7 @@ import (
 	"math"
 )
 
-// InfiniteLoop represents a looped stream which never ends.
+// InfiniteLoop represents a looped stream which never ends as long as its source has data to loop.
 type InfiniteLoop struct {
 	src     io.ReadSeeker
 	lstart  int64
@@ -151,7 +151,7 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 
 // Read is implementation of ReadSeeker's Read.
 //
-// If the source ends before the loop, Read returns an error.
+// If the source ends before the loop, the loop has nothing to repeat and Read returns [io.EOF].
 // If the source ends inside the loop, the loop is shortened to end there.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	if len(b) == 0 {
@@ -182,7 +182,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		return 0, err
 	}
 	if n == 0 && looped {
-		return 0, fmt.Errorf("audio: the source is too short to loop: no data at the loop start position %d", i.lstart)
+		return 0, io.EOF
 	}
 	return n, nil
 }
