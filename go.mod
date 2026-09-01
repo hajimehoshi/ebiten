@@ -14,7 +14,6 @@ require (
 	github.com/hajimehoshi/go-mp3 v0.3.4
 	github.com/jakecoffman/cp/v2 v2.4.0
 	github.com/jfreymuth/oggvorbis v1.0.5
-	github.com/kazzmir/opus-go v1.3.0
 	github.com/kisielk/errcheck v1.20.0
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
 	golang.org/x/image v0.45.0

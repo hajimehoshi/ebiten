@@ -18,7 +18,7 @@ CC0
 ```
 
 
-## ragtime.ogg / ragtime.mp3 / ragtime.opus
+## ragtime.ogg / ragtime.mp3
 
 ```
 https://soundcloud.com/jacaranda-trilhas-sonoras/james-scott-01-frog-legs-rag
