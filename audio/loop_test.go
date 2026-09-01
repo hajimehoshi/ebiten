@@ -706,3 +706,43 @@ func TestInfiniteLoopWithSourceEndingInsideLoop(t *testing.T) {
 		}
 	}
 }
+
+func TestInfiniteLoopWithPartialValueAtLoopStart(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		srcLength int
+		newLoop   func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:      "int16",
+			srcLength: 1,
+			newLoop:   audio.NewInfiniteLoop,
+		},
+		{
+			name:      "float32",
+			srcLength: 3,
+			newLoop:   audio.NewInfiniteLoopF32,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// The source is shorter than one value, so a read at the loop start never completes a
+			// value by itself.
+			l := tc.newLoop(bytes.NewReader(make([]byte, tc.srcLength)), 1024)
+
+			buf := make([]byte, 32)
+			done := make(chan struct{})
+			go func() {
+				defer close(done)
+				if _, err := l.Read(buf); err != nil && !errors.Is(err, io.EOF) {
+					t.Error(err)
+				}
+			}()
+
+			select {
+			case <-done:
+			case <-time.After(5 * time.Second):
+				t.Fatal("Read hung: the retries at the loop start did not end")
+			}
+		})
+	}
+}
