@@ -302,8 +302,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-// Arithmetic on booleans is undefined and must be a compile error, not a panic
-// in constant folding nor invalid GLSL/HLSL/MSL.
 func TestCompileBoolArithmetic(t *testing.T) {
 	srcs := []string{
 		`package main
