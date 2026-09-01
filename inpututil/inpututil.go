@@ -563,6 +563,10 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
+// The touches are sampled once per tick, so a touch which was created and released between two
+// ticks is not reported at all, and neither is it reported when the platform gives the new touch
+// an ID which is already being tracked.
+//
 // AppendJustPressedTouchIDs must be called in a game's Update, not Draw.
 //
 // AppendJustPressedTouchIDs is concurrent safe.
@@ -595,6 +599,9 @@ func JustPressedTouchIDs() []ebiten.TouchID {
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
+// Like [AppendJustPressedTouchIDs], a touch which was created and released between two ticks is not
+// reported here either.
+//
 // AppendJustReleasedTouchIDs must be called in a game's Update, not Draw.
 //
 // AppendJustReleasedTouchIDs is concurrent safe.
@@ -621,6 +628,9 @@ func AppendJustReleasedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
 // IsTouchJustReleased returns a boolean value indicating
 // whether the given touch is released just in the current tick.
 //
+// A touch which was created and released between two ticks is not reported as released, and a new
+// touch which reused the ID of a released one is reported as a continuation of the previous touch.
+//
 // IsTouchJustReleased must be called in a game's Update, not Draw.
 //
 // IsTouchJustReleased is concurrent safe.
@@ -634,6 +644,9 @@ func IsTouchJustReleased(id ebiten.TouchID) bool {
 }
 
 // TouchPressDuration returns how long the touch remains in ticks (Update).
+//
+// The duration is counted per touch ID, not per touch: a new touch which reused the ID of a touch
+// released between two ticks continues the duration of the previous touch.
 //
 // TouchPressDuration must be called in a game's Update, not Draw.
 //

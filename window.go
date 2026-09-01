@@ -163,6 +163,8 @@ func SetWindowIcon(iconImages []image.Image) {
 // The unit is device-independent pixels.
 //
 // If the main loop does not start yet, WindowPosition returns the initial window position set by [SetWindowPosition].
+// When no initial position was set, WindowPosition returns (math.MinInt, math.MinInt) instead of the
+// position the window is going to get, which is decided when the window is created.
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //
@@ -207,7 +209,7 @@ func WindowSize() (int, int) {
 // SetWindowSize sets the window size on desktops.
 // The size is the content area size and doesn't include window decorations like a title bar.
 // The unit is device-independent pixels: the size in physical pixels is this size scaled by
-// [MonitorType.DeviceScaleFactor] and rounded down to whole pixels.
+// [MonitorType.DeviceScaleFactor] and rounded to the nearest whole pixel.
 // SetWindowSize does nothing on other environments.
 //
 // Even if the application is in fullscreen mode, SetWindowSize sets the original window size.

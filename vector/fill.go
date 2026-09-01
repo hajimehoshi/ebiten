@@ -30,10 +30,19 @@ type FillRule int
 const (
 	// FillRuleNonZero means that triangles are rendered based on the non-zero rule.
 	// If and only if the number of overlaps is not 0, the region is rendered.
+	//
+	// The overlaps are counted with a limited precision: a region covered by 17
+	// or more triangles of the same winding can be treated as uncovered, for the
+	// counter wraps around. Keep the triangles of a path less overlapping than
+	// that, or fill them with separate paths.
 	FillRuleNonZero FillRule = iota
 
 	// FillRuleEvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
+	//
+	// Like FillRuleNonZero, the overlaps are counted with a limited precision, so
+	// the parity of a region covered by 17 or more triangles of the same winding
+	// can be wrong.
 	FillRuleEvenOdd
 )
 
