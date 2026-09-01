@@ -301,3 +301,35 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
 	}
 }
+
+// The blank identifier _ has no value, so using it as a value (an argument or
+// an operand) must be a compile error, not a nil-pointer panic in constant
+// folding.
+func TestCompileBlankAsValue(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const x = min(_, 1)
+	return vec4(x)
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const x = 1 + _
+	return vec4(x)
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic when _ is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error when _ is used as a value, but got nil")
+			}
+		}()
+	}
+}
