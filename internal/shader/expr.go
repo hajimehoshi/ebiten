@@ -1420,17 +1420,19 @@ func arrayComparisonExpr(op shaderir.Op, t shaderir.Type, lhs, rhs shaderir.Expr
 		joinOp = shaderir.OrOr
 	}
 
-	// The initial value is the result for an empty array, which always equals another empty array.
-	expr := shaderir.Expr{
-		Type:  shaderir.NumberExpr,
-		Const: gconstant.MakeBool(op == shaderir.EqualOp),
-	}
+	// Build the per-element comparisons first, then combine them into a
+	// balanced tree. The backends render a binary node by recursively
+	// formatting and copying both operands, so a left-nested chain of depth n
+	// would make the whole compilation O(n^2) in the array length (and risk a
+	// deep recursion). A balanced tree keeps it O(n log n) with the same
+	// result, since && and || are associative.
+	elements := make([]shaderir.Expr, t.Length)
 	for i := range t.Length {
 		index := shaderir.Expr{
 			Type:  shaderir.NumberExpr,
 			Const: gconstant.MakeInt64(int64(i)),
 		}
-		e := shaderir.Expr{
+		elements[i] = shaderir.Expr{
 			Type: shaderir.Binary,
 			Op:   elementOp,
 			Exprs: []shaderir.Expr{
@@ -1444,15 +1446,30 @@ func arrayComparisonExpr(op shaderir.Op, t shaderir.Type, lhs, rhs shaderir.Expr
 				},
 			},
 		}
-		if i == 0 {
-			expr = e
-			continue
-		}
-		expr = shaderir.Expr{
-			Type:  shaderir.Binary,
-			Op:    joinOp,
-			Exprs: []shaderir.Expr{expr, e},
+	}
+
+	// The result for an empty array, which always equals another empty array.
+	if len(elements) == 0 {
+		return shaderir.Expr{
+			Type:  shaderir.NumberExpr,
+			Const: gconstant.MakeBool(op == shaderir.EqualOp),
 		}
 	}
-	return expr
+
+	for len(elements) > 1 {
+		next := make([]shaderir.Expr, 0, (len(elements)+1)/2)
+		for i := 0; i < len(elements); i += 2 {
+			if i+1 == len(elements) {
+				next = append(next, elements[i])
+				continue
+			}
+			next = append(next, shaderir.Expr{
+				Type:  shaderir.Binary,
+				Op:    joinOp,
+				Exprs: []shaderir.Expr{elements[i], elements[i+1]},
+			})
+		}
+		elements = next
+	}
+	return elements[0]
 }

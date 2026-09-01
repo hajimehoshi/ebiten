@@ -25,6 +25,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
@@ -299,5 +300,68 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
 	if err == nil {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
+	}
+}
+
+// Comparing large arrays must build a balanced tree of element comparisons, not
+// a left-nested chain. A chain makes the backends, which format each binary
+// node by copying its operands, take O(n^2) time and produces a nesting depth
+// proportional to n; a balanced tree keeps the depth logarithmic.
+func TestCompileArrayComparisonIsBalanced(t *testing.T) {
+	const n = 1000
+	src := []byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a [%d]int
+	var b [%d]int
+	if a == b {
+		return vec4(1)
+	}
+	return vec4(0)
+}`, n, n))
+	s, err := shader.Compile(src, "Vertex", "Fragment", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Max nesting depth of && / || binary nodes in the fragment function.
+	var joinDepth func(e shaderir.Expr) int
+	joinDepth = func(e shaderir.Expr) int {
+		d := 0
+		if e.Type == shaderir.Binary && (e.Op == shaderir.AndAnd || e.Op == shaderir.OrOr) {
+			d = 1
+		}
+		child := 0
+		for _, sub := range e.Exprs {
+			if c := joinDepth(sub); c > child {
+				child = c
+			}
+		}
+		return d + child
+	}
+	var blockDepth func(b *shaderir.Block) int
+	blockDepth = func(b *shaderir.Block) int {
+		m := 0
+		for _, st := range b.Stmts {
+			for _, e := range st.Exprs {
+				if d := joinDepth(e); d > m {
+					m = d
+				}
+			}
+			for _, sub := range st.Blocks {
+				if d := blockDepth(sub); d > m {
+					m = d
+				}
+			}
+		}
+		return m
+	}
+
+	depth := blockDepth(s.FragmentFunc.Block)
+	// A balanced tree over n leaves has depth ~log2(n); a left-nested chain has
+	// depth ~n. For n=1000 the balanced depth is ~10, so anything near n means
+	// the chain is left-nested again.
+	if depth > 64 {
+		t.Errorf("array comparison nesting depth = %d for n=%d; expected a balanced tree (logarithmic), got a left-nested chain", depth, n)
 	}
 }
