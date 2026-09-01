@@ -426,3 +426,48 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}()
 	}
 }
+
+func TestCompileBareReturnInVoidFunc(t *testing.T) {
+	src := []byte(`package main
+
+func empty() {
+}
+
+func f(x float) {
+	if x > 0.0 {
+		return
+	}
+	empty()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f(src0Pos.x)
+	return vec4(1)
+}`)
+	prog, err := shader.Compile(src, "Vertex", "Fragment", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, fs := glsl.Compile(prog, glsl.GLSLVersionDefault)
+	if !strings.Contains(fs, "return;") {
+		t.Errorf("GLSL fragment shader should contain a bare return, but got:\n%s", fs)
+	}
+}
+
+func TestCompileBareReturnInNonVoidFunc(t *testing.T) {
+	src := []byte(`package main
+
+func f(x float) float {
+	if x > 0.0 {
+		return
+	}
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(src0Pos.x))
+}`)
+	if _, err := shader.Compile(src, "Vertex", "Fragment", 0); err == nil {
+		t.Errorf("Compile must return an error for a bare return in a non-void function, but got nil")
+	}
+}
