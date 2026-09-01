@@ -1241,6 +1241,16 @@ func processEvent(event *_XEvent) error {
 			return nil
 		}
 
+		// The input method filters the key presses it may take and forwards
+		// back the ones it declines, which then arrive as an unfiltered copy.
+		// The decision is asynchronous, so while the application is taking
+		// text input a filtered key press waits for that copy: a key press the
+		// input method takes is already part of the text it commits, and
+		// acting on the key as well would apply it twice.
+		if filtered && window.textInputActive() {
+			return nil
+		}
+
 		// HACK: Do not report the key press events duplicated by XIM
 		//       Duplicate key releases are filtered out implicitly by
 		//       the GLFW key repeat logic in inputKey
