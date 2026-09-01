@@ -82,6 +82,20 @@ func ResolveUntypedConstsForBinaryOp(op Op, lhs, rhs constant.Value, lhst, rhst 
 }
 
 func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value) (Type, bool) {
+	// Arithmetic operations are not defined for booleans. Reject them before
+	// the untyped-constant handling so that neither constant folding (which
+	// panics on a bool operand) nor code generation (which would emit invalid
+	// GLSL/HLSL/MSL for a bool arithmetic expression) is ever reached.
+	switch op {
+	case Add, Sub, ComponentWiseMul, MatrixMul, Div:
+		if lhst.Main == Bool || rhst.Main == Bool {
+			return Type{}, false
+		}
+		if (lhsConst != nil && lhsConst.Kind() == constant.Bool) || (rhsConst != nil && rhsConst.Kind() == constant.Bool) {
+			return Type{}, false
+		}
+	}
+
 	// If both are untyped consts, compare the constants and try to truncate them if necessary.
 	if lhst.Main == None && rhst.Main == None {
 		// Assume that the constant types are already adjusted.
