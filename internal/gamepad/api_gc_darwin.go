@@ -591,7 +591,8 @@ func (g *gamepads) removeGCGamepad(controller uintptr) {
 			return false
 		}
 		if gc.controller == controller {
-			gc.close()
+			// Lock the gamepad so the close cannot race with a concurrent Vibrate using the motors.
+			gamepad.close()
 			return true
 		}
 		return false
