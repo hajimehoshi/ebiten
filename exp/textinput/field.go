@@ -83,14 +83,48 @@ func withFocusedField(fn func(f *Field)) bool {
 //
 // Deprecated: use [Composer] instead.
 type Field struct {
+	// mu guards text, selectionStartInBytes, selectionEndInBytes and state,
+	// which the platform's IME callbacks read on the platform thread while the
+	// game goroutine updates them.
+	//
+	// The lock order is theFocusedFieldM then mu: a goroutine holding mu must
+	// not take theFocusedFieldM.
+	mu                    sync.Mutex
 	text                  string
 	selectionStartInBytes int
 	selectionEndInBytes   int
+	state                 textInputState
 
-	ch    <-chan textInputState
-	end   func()
-	state textInputState
-	err   error
+	ch  <-chan textInputState
+	end func()
+	err error
+}
+
+func (f *Field) loadState() textInputState {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.state
+}
+
+func (f *Field) storeState(state textInputState) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.state = state
+}
+
+func (f *Field) setSelection(startInBytes, endInBytes int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.selectionStartInBytes = min(max(startInBytes, 0), len(f.text))
+	f.selectionEndInBytes = min(max(endInBytes, 0), len(f.text))
+}
+
+func (f *Field) setTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.text = text
+	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), len(f.text))
+	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), len(f.text))
 }
 
 // HandleInput updates the field state.
@@ -157,13 +191,13 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 						// below.
 						endedByUser = true
 					} else {
-						f.state = textInputState{}
+						f.storeState(textInputState{})
 					}
 					break readchar
 				}
 				if state.CommitKind.committed() && state.Text == "\x7f" {
 					// DEL should not modify the text (#3212).
-					f.state = textInputState{}
+					f.storeState(textInputState{})
 					continue
 				}
 				handled = true
@@ -171,7 +205,7 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 					f.commit(state)
 					continue
 				}
-				f.state = state
+				f.storeState(state)
 			default:
 				break readchar
 			}
@@ -182,15 +216,15 @@ func (f *Field) HandleInputWithBounds(bounds image.Rectangle) (handled bool, err
 			// keyboard. Commit what the user last saw, and unfocus instead of
 			// restarting: another session would show the virtual keyboard
 			// again.
-			if f.state.Text != "" {
+			if state := f.loadState(); state.Text != "" {
 				f.commit(textInputState{
-					Text:                    f.state.Text,
+					Text:                    state.Text,
 					ReplacementStartInBytes: noReplacement,
 					ReplacementEndInBytes:   noReplacement,
 					CommitKind:              commitRegular,
 				})
 			}
-			f.state = textInputState{}
+			f.storeState(textInputState{})
 			f.Blur()
 			return handled, nil
 		}
@@ -209,6 +243,10 @@ func (f *Field) commit(state textInputState) {
 	if !state.CommitKind.committed() {
 		panic("textinput: commit must be called with committed state")
 	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	replStart, replEnd := state.ReplacementStartInBytes, state.ReplacementEndInBytes
 	if state.ReplacementRelativeToCaret {
 		// A state queued for a session this field took over instead carries
@@ -263,7 +301,7 @@ func (f *Field) cleanUp() {
 			} else if ok && state.CommitKind.committed() {
 				f.commit(state)
 			} else {
-				f.state = state
+				f.storeState(state)
 			}
 		default:
 			break
@@ -276,7 +314,7 @@ func (f *Field) cleanUp() {
 		f.end()
 		f.ch = nil
 		f.end = nil
-		f.state = textInputState{}
+		f.storeState(textInputState{})
 	}
 
 	theTextInput.events.clearQueue()
@@ -284,6 +322,8 @@ func (f *Field) cleanUp() {
 
 // Selection returns the current selection range in bytes.
 func (f *Field) Selection() (startInBytes, endInBytes int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return f.selectionStartInBytes, f.selectionEndInBytes
 }
 
@@ -291,29 +331,40 @@ func (f *Field) Selection() (startInBytes, endInBytes int) {
 // If a text is not composited, this returns 0s and false.
 // The returned values indicate relative positions in bytes where the current composition text's start is 0.
 func (f *Field) CompositionSelection() (startInBytes, endInBytes int, ok bool) {
-	if f.IsFocused() && f.state.Text != "" {
-		return f.state.CompositionSelectionStartInBytes, f.state.CompositionSelectionEndInBytes, true
+	if !f.IsFocused() {
+		return 0, 0, false
 	}
-	return 0, 0, false
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if f.state.Text == "" {
+		return 0, 0, false
+	}
+	return f.state.CompositionSelectionStartInBytes, f.state.CompositionSelectionEndInBytes, true
 }
 
 // SetSelection sets the selection range.
 func (f *Field) SetSelection(startInBytes, endInBytes int) {
 	f.cleanUp()
-	f.selectionStartInBytes = min(max(startInBytes, 0), len(f.text))
-	f.selectionEndInBytes = min(max(endInBytes, 0), len(f.text))
+	f.setSelection(startInBytes, endInBytes)
 }
 
 // Text returns the current text.
 // The returned value doesn't include compositing texts.
 func (f *Field) Text() string {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return f.text
 }
 
 // TextForRendering returns the text for rendering.
 // The returned value includes compositing texts.
 func (f *Field) TextForRendering() string {
-	if f.IsFocused() && f.state.Text != "" {
+	focused := f.IsFocused()
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	if focused && f.state.Text != "" {
 		return f.text[:f.selectionStartInBytes] + f.state.Text + f.text[f.selectionEndInBytes:]
 	}
 	return f.text
@@ -323,16 +374,17 @@ func (f *Field) TextForRendering() string {
 // The uncommitted text range is from the selection start to the selection start + the uncommitted text length.
 // UncommittedTextLengthInBytes returns 0 otherwise.
 func (f *Field) UncommittedTextLengthInBytes() int {
-	if f.IsFocused() {
-		return len(f.state.Text)
+	if !f.IsFocused() {
+		return 0
 	}
-	return 0
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return len(f.state.Text)
 }
 
 // SetTextAndSelection sets the text and the selection range.
 func (f *Field) SetTextAndSelection(text string, selectionStartInBytes, selectionEndInBytes int) {
 	f.cleanUp()
-	f.text = text
-	f.selectionStartInBytes = min(max(selectionStartInBytes, 0), len(f.text))
-	f.selectionEndInBytes = min(max(selectionEndInBytes, 0), len(f.text))
+	f.setTextAndSelection(text, selectionStartInBytes, selectionEndInBytes)
 }
