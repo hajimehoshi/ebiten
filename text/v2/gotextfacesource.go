@@ -340,8 +340,11 @@ type GoTextFaceSource struct {
 	glyphImageCache glyphImageCaches
 	hasGlyphCache   runeToBoolMap
 
-	unscaledMetrics     Metrics
-	unscaledMetricsOnce sync.Once
+	// unscaledMetrics is in font units, for the default variation
+	// coordinates. It is computed in newGoTextFaceSource, before the
+	// source can be shared, so that reading it needs no lock even
+	// though shaping mutates the variation coordinates of f.
+	unscaledMetrics Metrics
 
 	addr *GoTextFaceSource
 
@@ -419,7 +422,26 @@ func newGoTextFaceSource(face *font.Face, loader *opentype.Loader) *GoTextFaceSo
 	s.chunkPlanCache = newCache[chunkPlanKey, []chunk.Chunk](512)
 	// 4 is an arbitrary number, which should not cause troubles.
 	s.shaper.SetFontCacheSize(4)
+	s.initUnscaledMetrics()
 	return s
+}
+
+// initUnscaledMetrics reads the metrics of g.f in font units.
+// g.f must be at its default variation coordinates.
+func (g *GoTextFaceSource) initUnscaledMetrics() {
+	um := &g.unscaledMetrics
+	if h, ok := g.f.FontHExtents(); ok {
+		um.HLineGap = float64(h.LineGap)
+		um.HAscent = float64(h.Ascender)
+		um.HDescent = float64(-h.Descender)
+	}
+	if v, ok := g.f.FontVExtents(); ok {
+		um.VLineGap = float64(v.LineGap)
+		um.VAscent = float64(v.Ascender)
+		um.VDescent = float64(-v.Descender)
+	}
+	um.XHeight = float64(g.f.LineMetric(font.XHeight))
+	um.CapHeight = float64(g.f.LineMetric(font.CapHeight))
 }
 
 // NewGoTextFaceSource parses an OpenType or TrueType font and returns a GoTextFaceSource object.
@@ -1303,22 +1325,6 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 }
 
 func (g *GoTextFaceSource) metrics(size float64) Metrics {
-	g.unscaledMetricsOnce.Do(func() {
-		um := &g.unscaledMetrics
-		if h, ok := g.f.FontHExtents(); ok {
-			um.HLineGap = float64(h.LineGap)
-			um.HAscent = float64(h.Ascender)
-			um.HDescent = float64(-h.Descender)
-		}
-		if v, ok := g.f.FontVExtents(); ok {
-			um.VLineGap = float64(v.LineGap)
-			um.VAscent = float64(v.Ascender)
-			um.VDescent = float64(-v.Descender)
-		}
-		um.XHeight = float64(g.f.LineMetric(font.XHeight))
-		um.CapHeight = float64(g.f.LineMetric(font.CapHeight))
-	})
-
 	um := g.unscaledMetrics
 	scale := g.scale(size)
 	return Metrics{

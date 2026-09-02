@@ -16,6 +16,8 @@ package text_test
 
 import (
 	"bytes"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 
@@ -92,5 +94,67 @@ func TestGlyphImageCacheSizeEviction(t *testing.T) {
 	}
 	if staleSize := 1000.0; text.HasGlyphImageCache(src, staleSize) {
 		t.Errorf("the cache for the size %v must be dropped", staleSize)
+	}
+}
+
+// variableFontData returns the bytes of a font with variation axes.
+func variableFontData(t *testing.T) []byte {
+	t.Helper()
+	data, err := os.ReadFile(filepath.Join("testdata", "RobotoFlex.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func newGoTextFaceSourceForTest(t *testing.T, data []byte) *text.GoTextFaceSource {
+	t.Helper()
+	src, err := text.NewGoTextFaceSource(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return src
+}
+
+func TestGoTextFaceSourceMetricsWithVariations(t *testing.T) {
+	data := variableFontData(t)
+	const size = 16
+
+	want := (&text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: size}).Metrics()
+
+	wght := text.MustParseTag("wght")
+	for _, weight := range []float32{100, 400, 900} {
+		src := newGoTextFaceSourceForTest(t, data)
+		varied := &text.GoTextFace{Source: src, Size: size}
+		varied.SetVariation(wght, weight)
+		text.Measure("Hello, world!", varied, 0)
+
+		if got := (&text.GoTextFace{Source: src, Size: size}).Metrics(); got != want {
+			t.Errorf("Metrics() after shaping with wght=%v: got: %v, want: %v", weight, got, want)
+		}
+	}
+}
+
+func TestGoTextFaceSourceMetricsConcurrentWithShaping(t *testing.T) {
+	data := variableFontData(t)
+	wght := text.MustParseTag("wght")
+
+	// A source reads its metrics only once, so a fresh source is needed on
+	// every iteration.
+	const iterations = 50
+	for i := range iterations {
+		src := newGoTextFaceSourceForTest(t, data)
+		varied := &text.GoTextFace{Source: src, Size: 16}
+		varied.SetVariation(wght, float32(100+i*10))
+		plain := &text.GoTextFace{Source: src, Size: 16}
+
+		var wg sync.WaitGroup
+		wg.Go(func() {
+			text.Measure("Hello, world!", varied, 0)
+		})
+		wg.Go(func() {
+			plain.Metrics()
+		})
+		wg.Wait()
 	}
 }
