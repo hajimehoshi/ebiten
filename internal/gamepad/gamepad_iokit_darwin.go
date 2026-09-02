@@ -109,6 +109,8 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 
 	g.hidManager = _IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone)
 	if _IOHIDManagerOpen(g.hidManager, kIOHIDOptionsTypeNone) != kIOReturnSuccess {
+		_CFRelease(_CFTypeRef(g.hidManager))
+		g.hidManager = 0
 		return errors.New("gamepad: IOHIDManagerOpen failed")
 	}
 
