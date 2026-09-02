@@ -30,6 +30,7 @@ const fakeWebGLContextSource = `(() => {
   const ctx = {
     state: state,
     createProgram: function () { return {}; },
+    isProgram: function (program) { return program !== null && program !== undefined; },
     getUniformLocation: function (program, name) {
       const location = {index: state.locationCount};
       state.locationCount++;
