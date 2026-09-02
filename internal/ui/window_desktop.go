@@ -138,12 +138,14 @@ func (w *desktopWindow) setInitWindowVisible(visible bool) {
 	w.initWindowVisible.Store(visible)
 }
 
-func (w *desktopWindow) getAndResetIconImages() []image.Image {
-	images := w.iconImages.Swap(nil)
-	if images == nil {
-		return nil
-	}
-	return *images
+func (w *desktopWindow) getIconImages() *[]image.Image {
+	return w.iconImages.Load()
+}
+
+// resetIconImages resets the pending icon images.
+// If new icon images are set after imgs is obtained, nothing happens.
+func (w *desktopWindow) resetIconImages(imgs *[]image.Image) {
+	w.iconImages.CompareAndSwap(imgs, nil)
 }
 
 func (w *desktopWindow) setIconImages(iconImages []image.Image) {

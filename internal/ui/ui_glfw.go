@@ -1440,16 +1440,7 @@ func (u *glfwBackend) updateGame() error {
 }
 
 func (u *glfwBackend) updateIconIfNeeded() error {
-	// In the fullscreen mode, SetIcon fails (#1578).
-	f, err := u.isFullscreen()
-	if err != nil {
-		return err
-	}
-	if f {
-		return nil
-	}
-
-	imgs := u.desktopWindow.getAndResetIconImages()
+	imgs := u.desktopWindow.getIconImages()
 	// A 0-size slice and nil are distinguished here.
 	// A 0-size slice means a user indicates to reset the icon.
 	// On the other hand, nil means a user didn't update the icon state.
@@ -1458,10 +1449,10 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 	}
 
 	var newImgs []image.Image
-	if len(imgs) > 0 {
-		newImgs = make([]image.Image, len(imgs))
+	if len(*imgs) > 0 {
+		newImgs = make([]image.Image, len(*imgs))
 	}
-	for i, img := range imgs {
+	for i, img := range *imgs {
 		// TODO: If img is not *ebiten.Image, this converting is not necessary.
 		// However, this package cannot refer *ebiten.Image due to the package
 		// dependencies.
@@ -1481,8 +1472,26 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 		return err
 	}
 
+	var err error
 	u.mainThread.Call(func() {
-		err = u.window.SetIcon(newImgs)
+		if u.isTerminated() {
+			return
+		}
+		// In the fullscreen mode, SetIcon fails (#1578).
+		// Keep the icon images pending and retry them later.
+		f, e := u.isFullscreen()
+		if e != nil {
+			err = e
+			return
+		}
+		if f {
+			return
+		}
+		if e := u.window.SetIcon(newImgs); e != nil {
+			err = e
+			return
+		}
+		u.desktopWindow.resetIconImages(imgs)
 	})
 	if err != nil {
 		return err
