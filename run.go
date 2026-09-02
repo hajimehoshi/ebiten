@@ -813,6 +813,8 @@ func Tick() int64 {
 //
 // If RunOnMainThread is called on the main thread, RunOnMainThread blocks forever.
 //
+// RunOnMainThread might not run the function e.g. before the game starts or after the game ends.
+//
 // RunOnMainThread is useful to access platform-specific APIs in a safe way.
 //
 // RunOnMainThread panics if the platform doesn't support it.
