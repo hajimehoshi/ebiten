@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"sync"
 	"syscall/js"
 	"time"
 )
@@ -89,13 +90,13 @@ func (f *FileEntryFS) Open(name string) (fs.File, error) {
 		})
 		defer cbFailure.Release()
 
-		chEntry = make(chan js.Value)
+		chEntry = make(chan js.Value, 1)
 		ent.Call("getFile", name, nil, cbSuccess, cbFailure)
 		if entry := <-chEntry; entry.Truthy() {
 			return &file{entry: entry}, nil
 		}
 
-		chEntry = make(chan js.Value)
+		chEntry = make(chan js.Value, 1)
 		ent.Call("getDirectory", name, nil, cbSuccess, cbFailure)
 		if entry := <-chEntry; entry.Truthy() {
 			return &dir{
@@ -283,6 +284,7 @@ type dir struct {
 	dirEntries  []js.Value
 	fileEntries []js.Value
 	offset      int
+	mu          sync.Mutex
 }
 
 func (d *dir) Stat() (fs.FileInfo, error) {
@@ -304,7 +306,13 @@ func (d *dir) Close() error {
 }
 
 func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.fileEntries == nil {
+		// The callbacks below run on another goroutine. fileEntries is published to d only after
+		// the channel is closed, so that d's fields are written by this goroutine alone.
+		var fileEntries []js.Value
 		names := map[string]struct{}{}
 		for _, dirEntry := range d.dirEntries {
 			ch := make(chan struct{})
@@ -329,7 +337,7 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 					if !ent.Get("isFile").Bool() && !ent.Get("isDirectory").Bool() {
 						continue
 					}
-					d.fileEntries = append(d.fileEntries, ent)
+					fileEntries = append(fileEntries, ent)
 					names[name] = struct{}{}
 				}
 				rec.Value.Call("call")
@@ -347,6 +355,7 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 			rec.Value.Call("call")
 			<-ch
 		}
+		d.fileEntries = fileEntries
 	}
 
 	n := len(d.fileEntries) - d.offset
