@@ -564,8 +564,9 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 // Giving a slice that already has enough capacity works efficiently.
 //
 // The touches are sampled once per tick, so a touch which was created and released between two
-// ticks is not reported at all, and neither is it reported when the platform gives the new touch
-// an ID which is already being tracked.
+// ticks is not reported at all.
+// A new touch which reuses an ID that is still being tracked is not reported either, as its ID is
+// not new.
 //
 // AppendJustPressedTouchIDs must be called in a game's Update, not Draw.
 //
@@ -599,8 +600,8 @@ func JustPressedTouchIDs() []ebiten.TouchID {
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
-// Like [AppendJustPressedTouchIDs], a touch which was created and released between two ticks is not
-// reported here either.
+// A touch which was created and released between two ticks is not reported as released, and a new
+// touch which reused the ID of a released one is reported as a continuation of the previous touch.
 //
 // AppendJustReleasedTouchIDs must be called in a game's Update, not Draw.
 //
@@ -660,6 +661,9 @@ func TouchPressDuration(id ebiten.TouchID) int {
 // TouchPositionInPreviousTick returns the position in the previous tick.
 // If the touch is a just-released touch, TouchPositionInPreviousTick returns the last position of the touch.
 //
+// The position is tracked per touch ID, not per touch: a new touch which reused the ID of a touch
+// released between two ticks continues the position of the previous touch.
+//
 // TouchPositionInPreviousTick must be called in a game's Update, not Draw.
 //
 // TouchPositionInPreviousTick is concurrent safe.
@@ -670,6 +674,9 @@ func TouchPositionInPreviousTick(id ebiten.TouchID) (int, int) {
 
 // TouchPositionFInPreviousTick returns the high-precision position in the previous tick.
 // If the touch is a just-released touch, TouchPositionFInPreviousTick returns the last position of the touch.
+//
+// The position is tracked per touch ID, not per touch: a new touch which reused the ID of a touch
+// released between two ticks continues the position of the previous touch.
 //
 // TouchPositionFInPreviousTick must be called in a game's Update, not Draw.
 //

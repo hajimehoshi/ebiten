@@ -354,10 +354,8 @@ type Player struct {
 //
 // Note that the given src can't be shared with other Player objects.
 //
-// NewPlayer does not read src: the current position of src is asked from it when
-// the player starts to use it, on [Player.Play] or [Player.SetPosition]. An error
-// of that Seek is returned by SetPosition, or reported as the Context error when
-// it happens while starting to play.
+// NewPlayer does not touch src. The player asks src for its current position when it
+// first uses src, at [Player.Play] or [Player.SetPosition].
 //
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
@@ -391,10 +389,8 @@ func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 //
 // Note that the given src can't be shared with other Player objects.
 //
-// NewPlayerF32 does not read src: the current position of src is asked from it
-// when the player starts to use it, on [Player.Play] or [Player.SetPosition]. An
-// error of that Seek is returned by SetPosition, or reported as the Context error
-// when it happens while starting to play.
+// NewPlayerF32 does not touch src. The player asks src for its current position when it
+// first uses src, at [Player.Play] or [Player.SetPosition].
 //
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.

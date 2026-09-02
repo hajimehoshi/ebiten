@@ -163,8 +163,6 @@ func SetWindowIcon(iconImages []image.Image) {
 // The unit is device-independent pixels.
 //
 // If the main loop does not start yet, WindowPosition returns the initial window position set by [SetWindowPosition].
-// When no initial position was set, WindowPosition returns (math.MinInt, math.MinInt) instead of the
-// position the window is going to get, which is decided when the window is created.
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //
