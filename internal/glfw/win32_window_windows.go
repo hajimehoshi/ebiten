@@ -1644,6 +1644,7 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		}
 		smallIcon, err = createIcon(smallImage, 0, 0, false)
 		if err != nil {
+			_ = _DestroyIcon(bigIcon)
 			return err
 		}
 	} else {
@@ -1662,17 +1663,8 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_BIG, _LPARAM(bigIcon))
 	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_SMALL, _LPARAM(smallIcon))
 
-	if w.platform.bigIcon != 0 {
-		if err := _DestroyIcon(w.platform.bigIcon); err != nil {
-			return err
-		}
-	}
-
-	if w.platform.smallIcon != 0 {
-		if err := _DestroyIcon(w.platform.smallIcon); err != nil {
-			return err
-		}
-	}
+	oldBigIcon := w.platform.bigIcon
+	oldSmallIcon := w.platform.smallIcon
 
 	if len(images) > 0 {
 		w.platform.bigIcon = bigIcon
@@ -1681,7 +1673,15 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		w.platform.bigIcon = 0
 		w.platform.smallIcon = 0
 	}
-	return nil
+
+	var err error
+	if oldBigIcon != 0 {
+		err = errors.Join(err, _DestroyIcon(oldBigIcon))
+	}
+	if oldSmallIcon != 0 {
+		err = errors.Join(err, _DestroyIcon(oldSmallIcon))
+	}
+	return err
 }
 
 func (w *Window) platformGetWindowPos() (xpos, ypos int, err error) {
