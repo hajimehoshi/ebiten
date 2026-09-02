@@ -417,10 +417,6 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 
 func (c *context) deleteProgram(p program) {
 	c.locationCache.deleteProgram(p)
-
-	if !c.ctx.IsProgram(uint32(p)) {
-		return
-	}
 	c.ctx.DeleteProgram(uint32(p))
 }
 

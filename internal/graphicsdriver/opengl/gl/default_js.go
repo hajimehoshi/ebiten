@@ -67,7 +67,9 @@ type defaultContext struct {
 	fnGetShaderInfoLog         js.Value
 	fnGetShaderParameter       js.Value
 	fnGetUniformLocation       js.Value
+	fnIsBuffer                 js.Value
 	fnIsProgram                js.Value
+	fnIsVertexArray            js.Value
 	fnLinkProgram              js.Value
 	fnPixelStorei              js.Value
 	fnReadPixels               js.Value
@@ -196,7 +198,9 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnGetShaderInfoLog:         v.Get("getShaderInfoLog").Call("bind", v),
 		fnGetShaderParameter:       v.Get("getShaderParameter").Call("bind", v),
 		fnGetUniformLocation:       v.Get("getUniformLocation").Call("bind", v),
+		fnIsBuffer:                 v.Get("isBuffer").Call("bind", v),
 		fnIsProgram:                v.Get("isProgram").Call("bind", v),
+		fnIsVertexArray:            v.Get("isVertexArray").Call("bind", v),
 		fnLinkProgram:              v.Get("linkProgram").Call("bind", v),
 		fnPixelStorei:              v.Get("pixelStorei").Call("bind", v),
 		fnReadPixels:               v.Get("readPixels").Call("bind", v),
@@ -337,7 +341,11 @@ func (c *defaultContext) CreateVertexArray() uint32 {
 }
 
 func (c *defaultContext) DeleteBuffer(buffer uint32) {
-	c.fnDeleteBuffer.Invoke(c.buffers.get(buffer))
+	// A buffer is already detached from the context after a context loss (at least on Chrome) and
+	// must not be deleted, but its ID must be released anyway.
+	if v := c.buffers.get(buffer); c.fnIsBuffer.Invoke(v).Bool() {
+		c.fnDeleteBuffer.Invoke(v)
+	}
 	c.buffers.delete(buffer)
 }
 
@@ -347,7 +355,11 @@ func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
 }
 
 func (c *defaultContext) DeleteProgram(program uint32) {
-	c.fnDeleteProgram.Invoke(c.programs.get(program))
+	// A program is no longer valid after a context loss and must not be deleted, but its ID and
+	// the IDs of its uniform locations must be released anyway.
+	if v := c.programs.get(program); c.fnIsProgram.Invoke(v).Bool() {
+		c.fnDeleteProgram.Invoke(v)
+	}
 	c.programs.delete(program)
 	for _, id := range c.programUniformLocations[program] {
 		delete(c.uniformLocations, id)
@@ -371,7 +383,11 @@ func (c *defaultContext) DeleteTexture(texture uint32) {
 }
 
 func (c *defaultContext) DeleteVertexArray(array uint32) {
-	c.fnDeleteVertexArray.Invoke(c.vertexArrays.get(array))
+	// A vertex array is already detached from the context after a context loss and must not be
+	// deleted, but its ID must be released anyway.
+	if v := c.vertexArrays.get(array); c.fnIsVertexArray.Invoke(v).Bool() {
+		c.fnDeleteVertexArray.Invoke(v)
+	}
 	c.vertexArrays.delete(array)
 }
 

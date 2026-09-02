@@ -19,7 +19,6 @@ package opengl
 import (
 	"fmt"
 	"math"
-	"runtime"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -159,18 +158,14 @@ func (s *openGLState) reset(context *context) error {
 		delete(s.lastUniforms, key)
 	}
 
-	// On browsers (at least Chrome), buffers are already detached from the context
-	// and must not be deleted by DeleteBuffer.
-	if runtime.GOOS != "js" {
-		if s.arrayBuffer != 0 {
-			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
-		}
-		if s.elementArrayBuffer != 0 {
-			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
-		}
-		if s.vertexArray != 0 {
-			context.ctx.DeleteVertexArray(s.vertexArray)
-		}
+	if s.arrayBuffer != 0 {
+		context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
+	}
+	if s.elementArrayBuffer != 0 {
+		context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
+	}
+	if s.vertexArray != 0 {
+		context.ctx.DeleteVertexArray(s.vertexArray)
 	}
 
 	s.arrayBuffer = 0
