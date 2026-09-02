@@ -503,8 +503,18 @@ func (c *context) updateVirtualKeyboardOffsetY() {
 	c.virtualKeyboardOffsetY = visibleBottom - caretBottom
 }
 
+// monitorDeviceScaleFactor returns the current monitor's device scale factor, or 1 when no monitor
+// is available.
+func (u *UserInterface) monitorDeviceScaleFactor() float64 {
+	m := u.Monitor()
+	if m == nil {
+		return 1
+	}
+	return m.DeviceScaleFactor()
+}
+
 func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float64) (float64, float64) {
-	s := u.Monitor().DeviceScaleFactor()
+	s := u.monitorDeviceScaleFactor()
 	x, y = u.context.logicalPositionToClientPosition(x, y, s)
 	x = dipToNativePixels(x, s)
 	y = dipToNativePixels(y, s)
@@ -514,7 +524,7 @@ func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float
 // LogicalPositionToClientPositionInDIPs converts a logical position to a client-area position in
 // device-independent pixels, which mean the same lengths on every platform (unlike native pixels).
 func (u *UserInterface) LogicalPositionToClientPositionInDIPs(x, y float64) (float64, float64) {
-	return u.context.logicalPositionToClientPosition(x, y, u.Monitor().DeviceScaleFactor())
+	return u.context.logicalPositionToClientPosition(x, y, u.monitorDeviceScaleFactor())
 }
 
 func (c *context) runInFrame(f func()) {

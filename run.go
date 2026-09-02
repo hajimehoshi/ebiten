@@ -537,7 +537,11 @@ func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 //
 // Deprecated: as of v2.6. Use Monitor().DeviceScaleFactor() instead.
 func DeviceScaleFactor() float64 {
-	return Monitor().DeviceScaleFactor()
+	m := Monitor()
+	if m == nil {
+		return 1
+	}
+	return m.DeviceScaleFactor()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether
