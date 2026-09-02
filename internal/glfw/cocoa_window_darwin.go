@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -1748,6 +1749,12 @@ func platformWaitEventsTimeout(timeout float64) error {
 }
 
 func platformPostEmptyEvent() error {
+	// Unlike most of the platform functions, this can be called from any goroutine.
+	// An autorelease pool belongs to the OS thread that created it, so the goroutine must not
+	// migrate to another thread between creating and releasing the pool.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
