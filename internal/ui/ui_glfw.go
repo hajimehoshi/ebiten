@@ -465,30 +465,27 @@ func (u *glfwBackend) ScheduleFrame() {
 }
 
 func (u *glfwBackend) CursorMode() CursorMode {
-	var mode int
+	var v CursorMode
 	u.mainThread.Call(func() {
 		if u.isTerminated() {
 			return
 		}
-		m, err := u.window.GetInputMode(glfw.CursorMode)
+		mode, err := u.window.GetInputMode(glfw.CursorMode)
 		if err != nil {
 			u.setError(err)
 			return
 		}
-		mode = m
+		switch mode {
+		case glfw.CursorNormal:
+			v = CursorModeVisible
+		case glfw.CursorHidden:
+			v = CursorModeHidden
+		case glfw.CursorDisabled:
+			v = CursorModeCaptured
+		default:
+			panic(fmt.Sprintf("ui: invalid GLFW cursor mode: %d", mode))
+		}
 	})
-
-	var v CursorMode
-	switch mode {
-	case glfw.CursorNormal:
-		v = CursorModeVisible
-	case glfw.CursorHidden:
-		v = CursorModeHidden
-	case glfw.CursorDisabled:
-		v = CursorModeCaptured
-	default:
-		panic(fmt.Sprintf("ui: invalid GLFW cursor mode: %d", mode))
-	}
 	return v
 }
 
