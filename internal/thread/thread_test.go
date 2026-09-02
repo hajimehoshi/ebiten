@@ -18,6 +18,7 @@ import (
 	"context"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -53,5 +54,65 @@ func TestNestedLoop(t *testing.T) {
 
 	if got, want := values, []int{1, 2, 3, 4}; !slices.Equal(got, want) {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestCallAfterLoopAndStop(t *testing.T) {
+	th := thread.NewOSThread()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	loopEnded := make(chan struct{})
+	go func() {
+		defer close(loopEnded)
+		_ = th.LoopAndStop(ctx)
+	}()
+
+	// Make sure that the loop is running.
+	th.Call(func() {})
+
+	cancel()
+	<-loopEnded
+
+	var called bool
+	returned := make(chan struct{})
+	go func() {
+		defer close(returned)
+		th.Call(func() {
+			called = true
+		})
+		th.CallAsync(func() {
+			called = true
+		})
+	}()
+
+	select {
+	case <-returned:
+	case <-time.After(5 * time.Second):
+		t.Fatal("Call after LoopAndStop must return")
+	}
+
+	if called {
+		t.Error("the function must not be called after LoopAndStop")
+	}
+}
+
+func TestLoopAndStopUnblocksCall(t *testing.T) {
+	th := thread.NewOSThread()
+
+	// No loop is running, so this Call blocks until the thread stops.
+	returned := make(chan struct{})
+	go func() {
+		defer close(returned)
+		th.Call(func() {})
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_ = th.LoopAndStop(ctx)
+
+	select {
+	case <-returned:
+	case <-time.After(5 * time.Second):
+		t.Fatal("LoopAndStop must unblock a blocking Call")
 	}
 }
