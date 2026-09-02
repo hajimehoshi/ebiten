@@ -136,7 +136,7 @@ func (b *fbdevBackend) initOnMainThread(options *RunOptions) error {
 
 	b.graphicsDriver = g
 	b.setGraphicsLibrary(lib)
-	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, g)
+	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 
 	b.setRunningBackend(b)
 
@@ -254,7 +254,7 @@ func (b *fbdevBackend) applyCursorShape() {
 
 func (b *fbdevBackend) applyFPSMode() {
 	b.RunOnMainThread(func() {
-		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, b.graphicsDriver)
+		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 	})
 }
 
