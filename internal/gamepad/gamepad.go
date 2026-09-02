@@ -140,7 +140,12 @@ func (g *gamepads) update(nativeWindow uintptr, virtualGamepads []VirtualGamepad
 	// recognized as gamepads by OSes. In this case, the number of the 'buttons' can exceed the
 	// maximum. Skip such devices as a tentative solution (#1173, #2039).
 	g.remove(func(gamepad *Gamepad) bool {
-		return gamepad.ButtonCount() > ButtonCount
+		if gamepad.ButtonCount() <= ButtonCount {
+			return false
+		}
+		// The gamepad is never updated again, so release its native resources as a disconnection does.
+		gamepad.close()
+		return true
 	})
 
 	for _, gp := range g.gamepads {
@@ -289,6 +294,16 @@ func (g *Gamepad) update(gamepads *gamepads) error {
 	defer g.m.Unlock()
 
 	return g.native.update(gamepads)
+}
+
+// close releases g's native resources. It does nothing for a backend whose gamepads own none.
+func (g *Gamepad) close() {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	if n, ok := g.native.(interface{ close() }); ok {
+		n.close()
+	}
 }
 
 // withNative calls f with g's native state while holding g's lock. T must be the concrete native type

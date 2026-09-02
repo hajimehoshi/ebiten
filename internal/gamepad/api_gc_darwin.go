@@ -591,8 +591,7 @@ func (g *gamepads) removeGCGamepad(controller uintptr) {
 			return false
 		}
 		if gc.controller == controller {
-			releaseGCRumbleMotor(gc.leftMotor)
-			releaseGCRumbleMotor(gc.rightMotor)
+			gc.close()
 			return true
 		}
 		return false
