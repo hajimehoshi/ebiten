@@ -67,37 +67,49 @@ func (s *Shader) Dispose() {
 	s.graphics.removeShader(s)
 }
 
-func (s *Shader) init(device mtl.Device) error {
+func (s *Shader) init(device mtl.Device) (err error) {
 	var src string
+	var lib mtl.Library
 	if libBin, ok := shaderprecomp.MetalLibrary(s.ir.SourceID, metalLibraryPlatform()); ok {
-		lib, err := device.NewLibraryWithData(libBin)
+		lib, err = device.NewLibraryWithData(libBin)
 		if err != nil {
 			return err
 		}
-		s.lib = lib
 	} else {
 		src = msl.Compile(s.ir)
-		lib, err := device.NewLibraryWithSource(src, mtl.CompileOptions{})
+		lib, err = device.NewLibraryWithSource(src, mtl.CompileOptions{})
 		if err != nil {
 			return fmt.Errorf("metal: device.MakeLibrary failed: %w, source: %s", err, src)
 		}
-		s.lib = lib
 	}
+	defer func() {
+		if err != nil {
+			lib.Release()
+		}
+	}()
 
-	vs, err := s.lib.NewFunctionWithName(msl.VertexName)
+	vs, err := lib.NewFunctionWithName(msl.VertexName)
 	if err != nil {
 		if src != "" {
 			return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w, source: %s", err, src)
 		}
 		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w", err)
 	}
-	fs, err := s.lib.NewFunctionWithName(msl.FragmentName)
+	defer func() {
+		if err != nil {
+			vs.Release()
+		}
+	}()
+
+	fs, err := lib.NewFunctionWithName(msl.FragmentName)
 	if err != nil {
 		if src != "" {
 			return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w, source: %s", err, src)
 		}
 		return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w", err)
 	}
+
+	s.lib = lib
 	s.fs = fs
 	s.vs = vs
 	return nil
