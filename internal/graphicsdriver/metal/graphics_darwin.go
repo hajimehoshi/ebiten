@@ -143,6 +143,8 @@ func (g *Graphics) End(present bool) error {
 	if present {
 		g.frame++
 	}
+	// Reclaim the resources for the past frames here, as a drawable is not always obtained in a frame.
+	g.gcBuffers()
 	return nil
 }
 
@@ -179,23 +181,23 @@ func pow2(x uintptr) uintptr {
 
 func (g *Graphics) gcBuffers() {
 loop:
-	for frame, bs := range g.buffers {
+	for frame, cbs := range g.frameToCB {
 		if frame == g.frame {
 			continue
 		}
 
 		// Check if all command buffers for the frame are completed.
-		for _, cb := range g.frameToCB[frame] {
+		for _, cb := range cbs {
 			if cb.Status() != mtl.CommandBufferStatusCompleted {
 				continue loop
 			}
 		}
-		for _, cb := range g.frameToCB[frame] {
+		for _, cb := range cbs {
 			cb.Release()
 		}
 		delete(g.frameToCB, frame)
 
-		for _, b := range bs {
+		for _, b := range g.buffers[frame] {
 			if g.unusedBuffers == nil {
 				g.unusedBuffers = map[mtl.Buffer]struct{}{}
 			}
