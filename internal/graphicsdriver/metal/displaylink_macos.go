@@ -174,11 +174,13 @@ func (v *view) updateMetalDisplayLink() {
 		}
 
 		done := make(chan struct{})
-		v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
+		b := objc.NewBlock(func(block objc.Block) {
 			dl.Invalidate()
 			dl.Release()
 			close(done)
-		}))
+		})
+		defer b.Release()
+		v.metalDisplayLinkRunLoop.PerformBlock(b)
 
 		// A delegate callback might be blocked to send a drawable, preventing the run loop from executing
 		// the block above. Receive drawables until the display link is invalidated.
@@ -206,14 +208,16 @@ func (v *view) updateMetalDisplayLink() {
 	}
 
 	ch := make(chan uintptr)
-	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
+	b := objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
 		dl.SetDelegate(v.metalDisplayLinkDelegate)
 		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
 		dl.SetPaused(false)
 		ch <- uintptr(dl.ID)
 		close(ch)
-	}))
+	})
+	defer b.Release()
+	v.metalDisplayLinkRunLoop.PerformBlock(b)
 	v.metalDisplayLink = <-ch
 }
 
