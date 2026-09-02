@@ -95,7 +95,7 @@ package vibrate
 //
 //       [player startAtTime:0 error:&error];
 //       if (error) {
-//         NSLog(@"3, %@", [error localizedDescription]);
+//         NSLog(@"CHHapticPatternPlayer::startAtTime failed: %@", [error localizedDescription]);
 //         return;
 //       }
 //     }
