@@ -623,10 +623,11 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 // Deallocate deallocates the internal state.
 // Even after this call, the image is still available as a new cleared image.
 func (i *Image) Deallocate() {
-	i.cleanup.Stop()
-
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	// i.cleanup is rewritten under backendsM e.g. at moveTo.
+	i.cleanup.Stop()
 
 	if !inFrame {
 		appendDeferred(func() {
