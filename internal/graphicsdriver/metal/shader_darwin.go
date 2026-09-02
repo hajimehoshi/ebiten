@@ -37,8 +37,6 @@ type Shader struct {
 	fs   mtl.Function
 	vs   mtl.Function
 	rpss map[shaderRpsKey]mtl.RenderPipelineState
-
-	libraryPrecompiled bool
 }
 
 func newShader(device mtl.Device, id graphicsdriver.ShaderID, program *shaderir.Program) (*Shader, error) {
@@ -63,10 +61,7 @@ func (s *Shader) Dispose() {
 	}
 	s.vs.Release()
 	s.fs.Release()
-	// Do not release s.lib if this is precompiled. This is a shared precompiled library.
-	if !s.libraryPrecompiled {
-		s.lib.Release()
-	}
+	s.lib.Release()
 }
 
 func (s *Shader) init(device mtl.Device) error {
