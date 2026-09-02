@@ -72,9 +72,15 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 		}
 		defer _CFRelease(_CFTypeRef(usageRef))
 
+		usagePageKey := _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsagePageKey, kCFStringEncodingUTF8)
+		defer _CFRelease(_CFTypeRef(usagePageKey))
+
+		usageKey := _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsageKey, kCFStringEncodingUTF8)
+		defer _CFRelease(_CFTypeRef(usageKey))
+
 		keys := []_CFStringRef{
-			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsagePageKey, kCFStringEncodingUTF8),
-			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsageKey, kCFStringEncodingUTF8),
+			usagePageKey,
+			usageKey,
 		}
 		values := []_CFNumberRef{
 			pageRef,
@@ -150,6 +156,17 @@ func (g *nativeGamepadsIOKit) update(gamepads *gamepads) error {
 	return nil
 }
 
+// hidDeviceProperty returns the device's property for the given null-terminated key name.
+// The returned value is owned by the device and must not be released.
+func hidDeviceProperty(device _IOHIDDeviceRef, key []byte) _CFTypeRef {
+	keyRef := _CFStringCreateWithCString(kCFAllocatorDefault, key, kCFStringEncodingUTF8)
+	if keyRef == 0 {
+		return 0
+	}
+	defer _CFRelease(_CFTypeRef(keyRef))
+	return _IOHIDDeviceGetProperty(device, keyRef)
+}
+
 func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepads) {
 	// Let the GameController backend own the controllers it supports; IOKit handles
 	// only the devices GameController does not enumerate.
@@ -173,24 +190,24 @@ func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepa
 	defer _CFRelease(_CFTypeRef(elements))
 
 	name := "Unknown"
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDProductKey); prop != 0 {
 		var cstr [256]byte
 		_CFStringGetCString(_CFStringRef(prop), cstr[:], kCFStringEncodingUTF8)
 		name = strings.TrimRight(string(cstr[:]), "\x00")
 	}
 
 	var vendor uint32
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVendorIDKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDVendorIDKey); prop != 0 {
 		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&vendor))
 	}
 
 	var product uint32
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductIDKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDProductIDKey); prop != 0 {
 		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&product))
 	}
 
 	var version uint32
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVersionNumberKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDVersionNumberKey); prop != 0 {
 		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&version))
 	}
 
