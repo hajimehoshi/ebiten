@@ -369,6 +369,20 @@ func (p *playerImpl) isPlaying() bool {
 	return p.player.IsPlaying()
 }
 
+// removeFromContextIfNotPlaying removes the player from the context's playing players unless the
+// player is still playing. The check and the removal are atomic with respect to Play, so that a
+// player restarted concurrently stays tracked by the context.
+// removeFromContextIfNotPlaying must not be called with p.m locked.
+func (p *playerImpl) removeFromContextIfNotPlaying() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if !p.closed && p.isPlaying() {
+		return
+	}
+	p.context.removePlayingPlayer(p)
+}
+
 func (p *playerImpl) Volume() float64 {
 	p.m.Lock()
 	defer p.m.Unlock()

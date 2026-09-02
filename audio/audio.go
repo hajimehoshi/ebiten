@@ -289,8 +289,6 @@ func (c *Context) updatePlayers() error {
 	}
 	c.m.Unlock()
 
-	var playersToRemove []*playerImpl
-
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
 	// Underlying playering can be the pause state after fishing its playing,
 	// but there is no way to notify this to players so far.
@@ -304,16 +302,10 @@ func (c *Context) updatePlayers() error {
 			return err
 		}
 		p.updatePosition()
-		if !p.IsPlaying() {
-			playersToRemove = append(playersToRemove, p)
-		}
+		// The player itself decides whether it is removed, so that a player restarted between
+		// the check and the removal is not dropped from the context.
+		p.removeFromContextIfNotPlaying()
 	}
-
-	c.m.Lock()
-	for _, p := range playersToRemove {
-		delete(c.playingPlayers, p)
-	}
-	c.m.Unlock()
 
 	return nil
 }
@@ -455,6 +447,12 @@ func NewPlayerFromBytes(context *Context, src []byte) *Player {
 	return context.NewPlayerFromBytes(src)
 }
 
+// finalize closes the player when its Player wrapper is no longer reachable.
+//
+// A Player becomes unreachable as early as the moment one of its methods reads the playerImpl out
+// of it, so finalize can run while that method is still in flight. Every Player method keeps its
+// receiver alive with runtime.KeepAlive until the delegated call returns, so that finalize does
+// not close the player under it.
 func (p *playerImpl) finalize() {
 	if !p.IsPlaying() {
 		_ = p.Close()
@@ -470,16 +468,19 @@ func (p *playerImpl) finalize() {
 //
 // Deprecated: as of v2.10. Use [Player.PauseAndStopReading] instead.
 func (p *Player) Close() error {
+	defer runtime.KeepAlive(p)
 	return p.p.Close()
 }
 
 // Play plays the stream.
 func (p *Player) Play() {
+	defer runtime.KeepAlive(p)
 	p.p.Play()
 }
 
 // IsPlaying returns boolean indicating whether the player is playing.
 func (p *Player) IsPlaying() bool {
+	defer runtime.KeepAlive(p)
 	return p.p.IsPlaying()
 }
 
@@ -489,6 +490,7 @@ func (p *Player) IsPlaying() bool {
 //
 // Rewind returns error when seeking the source stream returns error.
 func (p *Player) Rewind() error {
+	defer runtime.KeepAlive(p)
 	return p.p.Rewind()
 }
 
@@ -498,6 +500,7 @@ func (p *Player) Rewind() error {
 //
 // SetPosition returns error when seeking the source stream returns an error.
 func (p *Player) SetPosition(offset time.Duration) error {
+	defer runtime.KeepAlive(p)
 	return p.p.SetPosition(offset)
 }
 
@@ -510,6 +513,7 @@ func (p *Player) Seek(offset time.Duration) error {
 
 // Pause pauses the playing.
 func (p *Player) Pause() {
+	defer runtime.KeepAlive(p)
 	p.p.Pause()
 }
 
@@ -519,6 +523,7 @@ func (p *Player) Pause() {
 // The buffered data is kept, and [Player.Play] resumes the playing without a gap.
 // PauseAndStopReading blocks until an ongoing read from the source finishes, if any.
 func (p *Player) PauseAndStopReading() {
+	defer runtime.KeepAlive(p)
 	p.p.PauseAndStopReading()
 }
 
@@ -527,6 +532,7 @@ func (p *Player) PauseAndStopReading() {
 // As long as the player continues to play, Position's returning value is increased monotonically,
 // even though the source stream loops and its position goes back.
 func (p *Player) Position() time.Duration {
+	defer runtime.KeepAlive(p)
 	return p.p.Position()
 }
 
@@ -539,6 +545,7 @@ func (p *Player) Current() time.Duration {
 
 // Volume returns the current volume of this player, which is 0 or larger.
 func (p *Player) Volume() float64 {
+	defer runtime.KeepAlive(p)
 	return p.p.Volume()
 }
 
@@ -546,6 +553,7 @@ func (p *Player) Volume() float64 {
 // A volume larger than 1 amplifies the sound and might cause clipping.
 // A value out of the range, including NaN, is treated as 0.
 func (p *Player) SetVolume(volume float64) {
+	defer runtime.KeepAlive(p)
 	p.p.SetVolume(volume)
 }
 
@@ -554,6 +562,7 @@ func (p *Player) SetVolume(volume float64) {
 // A small buffer size is useful if you want to play a real-time PCM for example.
 // Note that the audio quality might be affected if you modify the buffer size.
 func (p *Player) SetBufferSize(bufferSize time.Duration) {
+	defer runtime.KeepAlive(p)
 	p.p.SetBufferSize(bufferSize)
 }
 

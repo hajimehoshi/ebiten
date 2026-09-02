@@ -216,6 +216,29 @@ func PlayersCountForTesting() int {
 	return n
 }
 
+// PlayingButUntrackedForTesting reports whether the player is playing but is not tracked by its
+// context as a playing player. This must never be true: an untracked playing player is not
+// updated by the context and is not guarded from being garbage-collected.
+//
+// The player's lock is held across both checks, so that a player which is being started or
+// stopped concurrently is not reported.
+func PlayingButUntrackedForTesting(p *Player) bool {
+	pi := p.p
+
+	pi.m.Lock()
+	defer pi.m.Unlock()
+
+	if pi.closed || !pi.isPlaying() {
+		return false
+	}
+
+	c := pi.context
+	c.m.Lock()
+	defer c.m.Unlock()
+	_, ok := c.playingPlayers[pi]
+	return !ok
+}
+
 // ContextCreatedForTesting reports whether the underlying audio device has been created.
 func ContextCreatedForTesting() bool {
 	c := CurrentContext()
