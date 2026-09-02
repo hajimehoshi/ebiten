@@ -274,6 +274,15 @@ func (g *Graphics) textureVariableName(idx int) string {
 	return name
 }
 
+func (g *Graphics) deleteProgram(p program) {
+	// A name of a deleted program can be reused for a new program.
+	// Reset lastProgram so that useProgram doesn't skip the state updates for such a new program.
+	if g.state.lastProgram == p {
+		g.state.lastProgram = 0
+	}
+	g.context.deleteProgram(p)
+}
+
 // useProgram uses the program (programTexture).
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderSrcImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
