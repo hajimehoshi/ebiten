@@ -91,7 +91,7 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 }
 
 // start must be called from the main thread.
-func (t *textInputImpl) start(bounds image.Rectangle) error {
+func (t *textInputImpl) start(bounds image.Rectangle) (err error) {
 	if t.err != nil {
 		return t.err
 	}
@@ -116,7 +116,6 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 
 	// By default, IME was disabled by setting 0 as the IMM context.
 	// Restore the context once.
-	var err error
 	t.initOnce.Do(func() {
 		err = ui.Get().RestoreIMMContextOnMainThread()
 	})
@@ -131,6 +130,12 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 		t.immContext = 0
 	}
 	h := _ImmGetContext(t.window)
+	defer func() {
+		if winErr := _ImmReleaseContext(t.window, h); winErr != nil {
+			err = errors.Join(err, winErr)
+		}
+	}()
+
 	// CFS_EXCLUDE takes ptCurrentPos as the caret's top left corner and rcArea as
 	// the region the candidate window must not cover, so the input method places
 	// the window right below the caret, or above it when there is no room.
@@ -148,9 +153,6 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 			bottom: int32(bounds.Max.Y),
 		},
 	}); err != nil {
-		return err
-	}
-	if err := _ImmReleaseContext(t.window, h); err != nil {
 		return err
 	}
 	return nil
