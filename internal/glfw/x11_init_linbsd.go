@@ -1139,6 +1139,11 @@ func platformTerminate() error {
 		_glfw.platformWindow.xi.handle = 0
 	}
 
+	if _glfw.platformWindow.xshape.handle != 0 {
+		_ = purego.Dlclose(_glfw.platformWindow.xshape.handle)
+		_glfw.platformWindow.xshape.handle = 0
+	}
+
 	// NOTE: These need to be unloaded after XCloseDisplay, as they register
 	//       cleanup callbacks that get called by that function
 	terminateEGL()
