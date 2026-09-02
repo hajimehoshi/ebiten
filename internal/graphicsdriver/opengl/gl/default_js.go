@@ -96,14 +96,21 @@ type defaultContext struct {
 	fnVertexAttribPointer      js.Value
 	fnViewport                 js.Value
 
-	buffers          values
-	framebuffers     values
-	programs         values
-	renderbuffers    values
-	shaders          values
-	textures         values
-	vertexArrays     values
-	uniformLocations map[uint32]*values
+	buffers       values
+	framebuffers  values
+	programs      values
+	renderbuffers values
+	shaders       values
+	textures      values
+	vertexArrays  values
+
+	// uniformLocations maps a location ID to a WebGLUniformLocation.
+	uniformLocations map[int32]js.Value
+
+	// programUniformLocations maps a program ID to the location IDs the program owns.
+	programUniformLocations map[uint32][]int32
+
+	lastUniformLocationID int32
 }
 
 type values struct {
@@ -132,14 +139,6 @@ func (v *values) getID(value js.Value) (uint32, bool) {
 		}
 	}
 	return 0, false
-}
-
-func (v *values) getOrCreate(value js.Value) uint32 {
-	id, ok := v.getID(value)
-	if ok {
-		return id
-	}
-	return v.create(value)
 }
 
 func (v *values) delete(id uint32) {
@@ -231,8 +230,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 }
 
 func (c *defaultContext) getUniformLocation(location int32) js.Value {
-	program := uint32(location) >> 5
-	return c.uniformLocations[program].get(uint32(location) & ((1 << 5) - 1))
+	return c.uniformLocations[location]
 }
 
 func (c *defaultContext) LoadFunctions() error {
@@ -351,7 +349,10 @@ func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
 func (c *defaultContext) DeleteProgram(program uint32) {
 	c.fnDeleteProgram.Invoke(c.programs.get(program))
 	c.programs.delete(program)
-	delete(c.uniformLocations, program)
+	for _, id := range c.programUniformLocations[program] {
+		delete(c.uniformLocations, id)
+	}
+	delete(c.programUniformLocations, program)
 }
 
 func (c *defaultContext) DeleteRenderbuffer(renderbuffer uint32) {
@@ -479,16 +480,21 @@ func (c *defaultContext) GetShaderi(shader uint32, pname uint32) int {
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
 	location := c.fnGetUniformLocation.Invoke(c.programs.get(program), name)
+
+	// A location ID must be unique in the whole context, not only in the program, as Uniform*
+	// functions take a location ID without a program.
+	c.lastUniformLocationID++
+	id := c.lastUniformLocationID
+
 	if c.uniformLocations == nil {
-		c.uniformLocations = map[uint32]*values{}
+		c.uniformLocations = map[int32]js.Value{}
 	}
-	vs, ok := c.uniformLocations[program]
-	if !ok {
-		vs = &values{}
-		c.uniformLocations[program] = vs
+	c.uniformLocations[id] = location
+	if c.programUniformLocations == nil {
+		c.programUniformLocations = map[uint32][]int32{}
 	}
-	idx := vs.getOrCreate(location)
-	return int32((program << 5) | idx)
+	c.programUniformLocations[program] = append(c.programUniformLocations[program], id)
+	return id
 }
 
 func (c *defaultContext) IsProgram(program uint32) bool {
