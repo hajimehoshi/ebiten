@@ -523,6 +523,20 @@ func (g *graphics12) updateSwapChain(width, height int) error {
 	}
 
 	if microsoftgdk.IsXbox() {
+		// Release the current render targets before creating new ones. The GPU might still be using
+		// them, so make it idle first.
+		if g.renderTargets[0] != nil {
+			if err := g.flushCommandList(g.copyCommandList); err != nil {
+				return err
+			}
+			if err := g.flushCommandList(g.drawCommandList); err != nil {
+				return err
+			}
+			if err := g.waitForCommandQueue(); err != nil {
+				return err
+			}
+			g.releaseRenderTargets()
+		}
 		if err := g.initSwapChainXbox(width, height); err != nil {
 			return err
 		}
@@ -651,9 +665,7 @@ func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
 	}
 	g.releaseResources(g.frameIndex)
 
-	for _, r := range g.renderTargets {
-		r.Release()
-	}
+	g.releaseRenderTargets()
 
 	if err := g.graphicsInfra.resizeSwapChain(width, height); err != nil {
 		return err
@@ -689,6 +701,18 @@ func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
 	}
 
 	return nil
+}
+
+// releaseRenderTargets releases the current render targets. The caller must make sure that the GPU
+// no longer uses them.
+func (g *graphics12) releaseRenderTargets() {
+	for i, r := range g.renderTargets {
+		if r == nil {
+			continue
+		}
+		r.Release()
+		g.renderTargets[i] = nil
+	}
 }
 
 func (g *graphics12) createRenderTargetViewsDesktop() (ferr error) {
