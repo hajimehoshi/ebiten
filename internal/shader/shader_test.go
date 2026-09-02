@@ -302,9 +302,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-// A multiple-value variable declaration whose right-hand side yields a number
-// of values different from the number of names must be a compile error, not a
-// panic from indexing the value types out of range.
 func TestCompileVarCountMismatch(t *testing.T) {
 	srcs := []string{
 		`package main

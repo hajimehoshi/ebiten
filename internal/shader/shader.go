@@ -630,11 +630,6 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					}
 				}
 
-				// The number of values on the right must match the number of
-				// names on the left, whether or not an explicit type is given.
-				// Abort the whole declaration here: the previous code used
-				// `continue`, which only skipped the first iteration and let a
-				// later iteration index inittypes/initexprs out of range.
 				if len(initexprs) != len(vs.Names) || len(inittypes) != len(vs.Names) {
 					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
 					return nil, nil, nil, false
