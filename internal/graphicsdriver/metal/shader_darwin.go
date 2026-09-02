@@ -30,7 +30,8 @@ type shaderRpsKey struct {
 }
 
 type Shader struct {
-	id graphicsdriver.ShaderID
+	id       graphicsdriver.ShaderID
+	graphics *Graphics
 
 	ir   *shaderir.Program
 	lib  mtl.Library
@@ -39,11 +40,12 @@ type Shader struct {
 	rpss map[shaderRpsKey]mtl.RenderPipelineState
 }
 
-func newShader(device mtl.Device, id graphicsdriver.ShaderID, program *shaderir.Program) (*Shader, error) {
+func newShader(id graphicsdriver.ShaderID, graphics *Graphics, device mtl.Device, program *shaderir.Program) (*Shader, error) {
 	s := &Shader{
-		id:   id,
-		ir:   program,
-		rpss: map[shaderRpsKey]mtl.RenderPipelineState{},
+		id:       id,
+		graphics: graphics,
+		ir:       program,
+		rpss:     map[shaderRpsKey]mtl.RenderPipelineState{},
 	}
 	if err := s.init(device); err != nil {
 		return nil, err
@@ -62,6 +64,7 @@ func (s *Shader) Dispose() {
 	s.vs.Release()
 	s.fs.Release()
 	s.lib.Release()
+	s.graphics.removeShader(s)
 }
 
 func (s *Shader) init(device mtl.Device) error {

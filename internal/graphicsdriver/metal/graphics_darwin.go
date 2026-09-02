@@ -629,7 +629,7 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	s, err := newShader(g.view.getMTLDevice(), g.genNextShaderID(), program)
+	s, err := newShader(g.genNextShaderID(), g, g.view.getMTLDevice(), program)
 	if err != nil {
 		return nil, err
 	}
