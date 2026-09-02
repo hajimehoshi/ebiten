@@ -51,6 +51,9 @@ type VibrateOptions struct {
 //
 // Vibrate is concurrent-safe.
 func Vibrate(options *VibrateOptions) {
+	if options == nil {
+		options = &VibrateOptions{}
+	}
 	vibrate.Vibrate(options.Duration, options.Magnitude)
 }
 
@@ -86,6 +89,9 @@ type VibrateGamepadOptions struct {
 //
 // VibrateGamepad is concurrent-safe.
 func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
+	if options == nil {
+		options = &VibrateGamepadOptions{}
+	}
 	g := gamepad.Get(gamepadID)
 	if g == nil {
 		return
