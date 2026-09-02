@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
@@ -135,10 +136,8 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 
 	// A pipelined driver (DirectX 12) may not finish a forced frame before control returns to the
 	// OS's window-resize loop, showing stale content. Wait for it to finish if supported (#3477).
-	if f, ok := graphicsDriver.(interface{ FinishForcedFrame() error }); ok {
-		if err := f.FinishForcedFrame(); err != nil {
-			return err
-		}
+	if err := graphicscommand.FinishForcedFrame(graphicsDriver); err != nil {
+		return err
 	}
 	return nil
 }

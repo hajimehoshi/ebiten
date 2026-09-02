@@ -417,3 +417,20 @@ func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
 	}, true)
 	return size
 }
+
+// FinishForcedFrame waits for a frame forced while the game loop is blocked to finish.
+// If the graphics driver doesn't have an API to wait, FinishForcedFrame does nothing.
+func FinishForcedFrame(graphicsDriver graphicsdriver.Graphics) error {
+	f, ok := graphicsDriver.(interface{ FinishForcedFrame() error })
+	if !ok {
+		return nil
+	}
+
+	// Run this on the render thread so that it is ordered after the frame's flush, which can be
+	// asynchronous.
+	var err error
+	runOnRenderThread(func() {
+		err = f.FinishForcedFrame()
+	}, true)
+	return err
+}
