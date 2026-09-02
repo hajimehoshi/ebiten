@@ -163,16 +163,13 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	}
 
 	// Comparing matrices are forbidden (#2187).
-	// As in Go, an array is comparable only when its element type is comparable. Then, an array of
-	// matrices is forbidden as well (#3535).
+	// Comparing arrays is forbidden as well, as most of the shading languages don't have the
+	// operation (#3535).
 	if op == EqualOp || op == NotEqualOp {
 		if lhst.IsMatrix() || rhst.IsMatrix() {
 			return Type{}, false
 		}
-		if lhst.Main == Array && lhst.Sub[0].IsMatrix() {
-			return Type{}, false
-		}
-		if rhst.Main == Array && rhst.Sub[0].IsMatrix() {
+		if lhst.Main == Array || rhst.Main == Array {
 			return Type{}, false
 		}
 		if lhst.Equal(&rhst) {
