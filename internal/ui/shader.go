@@ -33,10 +33,16 @@ type Shader struct {
 }
 
 func NewShader(ir *shaderir.Program, name string) *Shader {
+	uniformTypes := ir.Uniforms[graphics.PreservedUniformVariablesCount:]
+	var uniformDwordCount int
+	for _, typ := range uniformTypes {
+		uniformDwordCount += typ.DwordCount()
+	}
 	return &Shader{
-		shader:       atlas.NewShader(ir, name),
-		uniformNames: ir.UniformNames[graphics.PreservedUniformVariablesCount:],
-		uniformTypes: ir.Uniforms[graphics.PreservedUniformVariablesCount:],
+		shader:            atlas.NewShader(ir, name),
+		uniformNames:      ir.UniformNames[graphics.PreservedUniformVariablesCount:],
+		uniformTypes:      uniformTypes,
+		uniformDwordCount: uniformDwordCount,
 	}
 }
 
@@ -45,12 +51,6 @@ func (s *Shader) Deallocate() {
 }
 
 func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 {
-	if s.uniformDwordCount == 0 {
-		for _, typ := range s.uniformTypes {
-			s.uniformDwordCount += typ.DwordCount()
-		}
-	}
-
 	origLen := len(dst)
 	if cap(dst)-len(dst) >= s.uniformDwordCount {
 		dst = dst[:len(dst)+s.uniformDwordCount]

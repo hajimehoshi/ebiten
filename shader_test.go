@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -3227,4 +3228,43 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			}
 		}
 	}
+}
+
+func TestShaderConcurrentDrawWithUniforms(t *testing.T) {
+	const w, h = 16, 16
+
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+var Color vec4
+var Offset vec2
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return Color + vec4(Offset, 0, 0)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const n = 8
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for range n {
+		wg.Go(func() {
+			dst := ebiten.NewImage(w, h)
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Uniforms = map[string]any{
+				"Color":  []float32{1, 0, 0, 1},
+				"Offset": []float32{0, 0},
+			}
+			<-start
+			for range 16 {
+				dst.DrawRectShader(w, h, s, op)
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
 }
