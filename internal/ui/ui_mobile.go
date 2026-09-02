@@ -111,7 +111,7 @@ type userInterfaceImpl struct {
 	touches    []TouchForInput
 
 	fpsMode  atomic.Int32
-	renderer Renderer
+	renderer atomic.Pointer[rendererHolder]
 
 	// uiView is used only on iOS.
 	uiView atomic.Uintptr
@@ -272,10 +272,11 @@ func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 }
 
 func (u *UserInterface) updateExplicitRenderingModeIfNeeded(fpsMode FPSModeType) {
-	if u.renderer == nil {
+	r := u.currentRenderer()
+	if r == nil {
 		return
 	}
-	u.renderer.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
+	r.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
@@ -380,7 +381,11 @@ func (u *UserInterface) Monitor() *Monitor {
 func (u *UserInterface) UpdateInput(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
 	u.updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes, runes, touches, capsLock, numLock)
 	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
-		u.renderer.RequestRenderIfNeeded()
+		// The renderer might not be set yet. In this case, the rendering request can be dropped
+		// as the first rendering happens when the renderer is set.
+		if r := u.currentRenderer(); r != nil {
+			r.RequestRenderIfNeeded()
+		}
 	}
 }
 
@@ -389,14 +394,31 @@ type Renderer interface {
 	RequestRenderIfNeeded()
 }
 
+// rendererHolder holds a Renderer so that the renderer can be stored in an atomic pointer
+// regardless of its concrete type.
+type rendererHolder struct {
+	renderer Renderer
+}
+
 func (u *UserInterface) SetRenderer(renderer Renderer) {
-	u.renderer = renderer
+	u.renderer.Store(&rendererHolder{renderer: renderer})
 	u.updateExplicitRenderingModeIfNeeded(FPSModeType(u.fpsMode.Load()))
 }
 
+func (u *UserInterface) currentRenderer() Renderer {
+	h := u.renderer.Load()
+	if h == nil {
+		return nil
+	}
+	return h.renderer
+}
+
 func (u *UserInterface) ScheduleFrame() {
-	if u.renderer != nil && FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
-		u.renderer.RequestRenderIfNeeded()
+	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum {
+		return
+	}
+	if r := u.currentRenderer(); r != nil {
+		r.RequestRenderIfNeeded()
 	}
 }
 
