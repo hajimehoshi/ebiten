@@ -8,6 +8,7 @@
 package glfw
 
 import (
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -140,6 +141,11 @@ type Window struct {
 	videoMode        VidMode
 	monitor          *Monitor
 	cursor           *Cursor
+
+	// hasMonitor mirrors whether monitor is not nil.
+	// monitor is accessible only from the main thread,
+	// while hasMonitor is accessible from any thread.
+	hasMonitor atomic.Bool
 
 	minwidth  int
 	minheight int

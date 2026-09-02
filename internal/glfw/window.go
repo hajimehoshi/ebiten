@@ -88,6 +88,7 @@ func (w *Window) inputWindowCloseRequest() {
 
 func (w *Window) inputWindowMonitor(monitor *Monitor) {
 	w.monitor = monitor
+	w.hasMonitor.Store(monitor != nil)
 }
 
 func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (window *Window, ferr error) {
@@ -122,7 +123,6 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 			RefreshRate: _glfw.hints.refreshRate,
 		},
 
-		monitor:          monitor,
 		resizable:        wndconfig.resizable,
 		decorated:        wndconfig.decorated,
 		autoIconify:      wndconfig.autoIconify,
@@ -140,6 +140,7 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 		numer:     DontCare,
 		denom:     DontCare,
 	}
+	window.inputWindowMonitor(monitor)
 	defer func() {
 		if ferr != nil {
 			_ = window.Destroy()

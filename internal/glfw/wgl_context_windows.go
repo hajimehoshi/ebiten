@@ -257,7 +257,7 @@ func makeContextCurrentWGL(window *Window) error {
 }
 
 func swapBuffersWGL(window *Window) error {
-	if window.monitor == nil && winver.IsWindowsVistaOrGreater() {
+	if !window.hasMonitor.Load() && winver.IsWindowsVistaOrGreater() {
 		// DWM Composition is always enabled on Win8+
 		enabled := winver.IsWindows8OrGreater()
 
@@ -287,7 +287,7 @@ func swapBuffersWGL(window *Window) error {
 func swapIntervalWGL(window *Window, interval int) error {
 	window.context.platform.interval = interval
 
-	if window.monitor == nil && winver.IsWindowsVistaOrGreater() {
+	if !window.hasMonitor.Load() && winver.IsWindowsVistaOrGreater() {
 		// DWM Composition is always enabled on Win8+
 		enabled := winver.IsWindows8OrGreater()
 
