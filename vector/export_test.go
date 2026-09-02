@@ -71,3 +71,15 @@ func PathOperationsString(path *Path) string {
 	}
 	return sb.String()
 }
+
+func FillPathsStateCount() int {
+	theFillPathM.Lock()
+	defer theFillPathM.Unlock()
+	return len(theFillPathsStates)
+}
+
+func CallbackTokenCount() int {
+	theFillPathM.Lock()
+	defer theFillPathM.Unlock()
+	return len(theCallbackTokens)
+}
