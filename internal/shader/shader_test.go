@@ -303,10 +303,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-// Comparing large arrays must build a balanced tree of element comparisons, not
-// a left-nested chain. A chain makes the backends, which format each binary
-// node by copying its operands, take O(n^2) time and produces a nesting depth
-// proportional to n; a balanced tree keeps the depth logarithmic.
 func TestCompileArrayComparisonIsBalanced(t *testing.T) {
 	const n = 1000
 	src := []byte(fmt.Sprintf(`package main
@@ -327,11 +323,11 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	// Max nesting depth of && / || binary nodes in the fragment function.
 	var joinDepth func(e shaderir.Expr) int
 	joinDepth = func(e shaderir.Expr) int {
-		d := 0
+		var d int
 		if e.Type == shaderir.Binary && (e.Op == shaderir.AndAnd || e.Op == shaderir.OrOr) {
 			d = 1
 		}
-		child := 0
+		var child int
 		for _, sub := range e.Exprs {
 			if c := joinDepth(sub); c > child {
 				child = c
@@ -341,7 +337,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 	var blockDepth func(b *shaderir.Block) int
 	blockDepth = func(b *shaderir.Block) int {
-		m := 0
+		var m int
 		for _, st := range b.Stmts {
 			for _, e := range st.Exprs {
 				if d := joinDepth(e); d > m {
