@@ -277,10 +277,11 @@ var (
 // ObjC selectors.
 var (
 	// General
-	sel_alloc   = objc.RegisterName("alloc")
-	sel_init    = objc.RegisterName("init")
-	sel_release = objc.RegisterName("release")
-	sel_retain  = objc.RegisterName("retain")
+	sel_alloc       = objc.RegisterName("alloc")
+	sel_init        = objc.RegisterName("init")
+	sel_release     = objc.RegisterName("release")
+	sel_retain      = objc.RegisterName("retain")
+	sel_autorelease = objc.RegisterName("autorelease")
 
 	// NSApplication
 	sel_sharedApplication                              = objc.RegisterName("sharedApplication")

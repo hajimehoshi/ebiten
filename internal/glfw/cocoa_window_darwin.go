@@ -1935,7 +1935,10 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 				hotyKey := cocoa.NSString_alloc().InitWithUTF8String("hoty")
 				hoty := objc.Send[float64](info.Send(sel_valueForKey, hotyKey.ID), sel_doubleValue)
 				hotyKey.ID.Send(sel_release)
+				// alloc/init returns an owned object. Autorelease it so that the retain
+				// below leaves exactly one owned reference.
 				cursor = objc.ID(class_NSCursor).Send(sel_alloc).Send(sel_initWithImage_hotSpot, image, cocoa.NSPoint{X: hotx, Y: hoty})
+				cursor.Send(sel_autorelease)
 			}
 			if image != 0 {
 				image.Send(sel_release)
