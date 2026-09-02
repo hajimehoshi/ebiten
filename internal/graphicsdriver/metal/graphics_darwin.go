@@ -163,8 +163,10 @@ func (g *Graphics) SetMainThreadRunner(f func(func())) {
 	g.view.runOnMainThread = f
 }
 
+// SetUIView sets the UIView the game is rendered into.
+//
+// SetUIView is concurrent safe.
 func (g *Graphics) SetUIView(uiview uintptr) {
-	// TODO: Should this be called on the main thread?
 	g.view.setUIView(uiview)
 }
 
