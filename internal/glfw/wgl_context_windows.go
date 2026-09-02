@@ -552,12 +552,18 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 		if err != nil {
 			return err
 		}
+
+		// Set the destroy function as soon as the context exists so that an
+		// error in the remaining steps still releases it.
+		w.context.destroy = destroyContextWGL
 	} else {
 		var err error
 		w.context.platform.handle, err = wglCreateContext(w.context.platform.dc)
 		if err != nil {
 			return err
 		}
+
+		w.context.destroy = destroyContextWGL
 
 		if share != 0 {
 			if err := wglShareLists(share, w.context.platform.handle); err != nil {
@@ -571,7 +577,6 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 	w.context.swapInterval = swapIntervalWGL
 	w.context.extensionSupported = extensionSupportedWGL
 	w.context.getProcAddress = getProcAddressWGL
-	w.context.destroy = destroyContextWGL
 
 	return nil
 }
