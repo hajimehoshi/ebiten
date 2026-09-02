@@ -99,6 +99,7 @@ func (s *Shader) compile() error {
 		programInfo := s.graphics.context.ctx.GetProgramInfoLog(uint32(p))
 		vertexShaderInfo := s.graphics.context.ctx.GetShaderInfoLog(uint32(vs))
 		fragmentShaderInfo := s.graphics.context.ctx.GetShaderInfoLog(uint32(fs))
+		s.graphics.context.deleteProgram(p)
 		return fmt.Errorf("opengl: program error: %s\nvertex shader error: %s\nvertex shader source: %s\nfragment shader error: %s\nfragment shader source: %s",
 			programInfo, vertexShaderInfo, vssrc, fragmentShaderInfo, fssrc)
 	}
