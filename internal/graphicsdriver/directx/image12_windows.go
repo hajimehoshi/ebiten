@@ -47,6 +47,7 @@ func (i *image12) Dispose() {
 }
 
 func (i *image12) disposeImpl() {
+	i.releaseUploadingStagingBuffers()
 	if i.rtvDescriptorHeap != nil {
 		i.rtvDescriptorHeap.Release()
 		i.rtvDescriptorHeap = nil
