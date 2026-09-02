@@ -22,21 +22,30 @@ package metal
 //
 // #import <UIKit/UIKit.h>
 //
+// // Core Animation allows mutation off the main thread only for a layer that is not
+// // associated with a view. The CAMetalLayer joins a UIView's layer tree at addSublayer,
+// // so both the attachment and the frame updates run on the main queue.
+//
 // #cgo noescape addSublayer
 // #cgo nocallback addSublayer
 // static void addSublayer(void* view, void* sublayer) {
-//   CALayer* layer = ((UIView*)view).layer;
-//   [layer addSublayer:(CALayer*)sublayer];
+//   // The layer was created and configured on this thread, and that state is still in
+//   // this thread's implicit transaction. Commit it first, or the layer joins the tree
+//   // unconfigured and renders nothing.
+//   [CATransaction flush];
+//   dispatch_sync(dispatch_get_main_queue(), ^{
+//     CALayer* layer = ((UIView*)view).layer;
+//     [layer addSublayer:(CALayer*)sublayer];
+//   });
 // }
 //
 // #cgo noescape setFrame
 // #cgo nocallback setFrame
 // static void setFrame(void* cametal, void* uiview) {
-//   __block CGSize size;
 //   dispatch_sync(dispatch_get_main_queue(), ^{
-//     size = ((UIView*)uiview).frame.size;
+//     CGSize size = ((UIView*)uiview).frame.size;
+//     ((CALayer*)cametal).frame = CGRectMake(0, 0, size.width, size.height);
 //   });
-//   ((CALayer*)cametal).frame = CGRectMake(0, 0, size.width, size.height);
 // }
 import "C"
 
