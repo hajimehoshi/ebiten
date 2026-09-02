@@ -37,7 +37,8 @@ const (
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
 
-func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) {
+func compileShader(program *shaderir.Program) (_, _ *_ID3DBlob, ferr error) {
+	var vsh, psh *_ID3DBlob
 	defer func() {
 		if ferr == nil {
 			return
