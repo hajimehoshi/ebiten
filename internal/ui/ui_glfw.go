@@ -449,6 +449,13 @@ func (u *glfwBackend) applyFPSMode() {
 }
 
 func (u *glfwBackend) ScheduleFrame() {
+	// This check can slip past a termination running on the main thread, and then
+	// PostEmptyEvent touches GLFW's state after glfw.Terminate. PostEmptyEvent must stay
+	// harmless in that case.
+	if u.isTerminated() {
+		return
+	}
+
 	// As the main thread can be blocked, do not check the current FPS mode.
 	// PostEmptyEvent is concurrent safe.
 	if err := glfw.PostEmptyEvent(); err != nil {
@@ -1306,10 +1313,12 @@ func (u *glfwBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
 		u.mainThread.Call(func() {
+			// Mark the termination before terminating GLFW so that a concurrent-safe API
+			// like ScheduleFrame stops touching GLFW's state before it is destroyed.
+			u.setTerminated()
 			if glfwErr := glfw.Terminate(); glfwErr != nil {
 				err = errors.Join(err, glfwErr)
 			}
-			u.setTerminated()
 		})
 	}()
 
