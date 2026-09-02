@@ -200,8 +200,20 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 		return nil, err
 	}
 	g.device = (*_ID3D11Device)(d)
+	defer func() {
+		if ferr != nil {
+			g.device.Release()
+			g.device = nil
+		}
+	}()
 	g.featureLevel = fl
 	g.deviceContext = (*_ID3D11DeviceContext)(ctx)
+	defer func() {
+		if ferr != nil {
+			g.deviceContext.Release()
+			g.deviceContext = nil
+		}
+	}()
 
 	// Get IDXGIFactory from the current device and use it, instead of CreateDXGIFactory.
 	// Or, MakeWindowAssociation doesn't work well (#2661).
@@ -256,6 +268,12 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 			return nil, err
 		}
 		g.rasterizerState = rs
+		defer func() {
+			if ferr != nil {
+				g.rasterizerState.Release()
+				g.rasterizerState = nil
+			}
+		}()
 	}
 	g.deviceContext.RSSetState(g.rasterizerState)
 

@@ -166,13 +166,21 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	p.shaderDescriptorHeap = shaderH
 	defer func() {
 		if ferr != nil {
-			p.shaderDescriptorHeap.Release()
-			p.shaderDescriptorHeap = nil
+			p.release()
 		}
 	}()
 	p.shaderDescriptorSize = device.GetDescriptorHandleIncrementSize(_D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 
 	return nil
+}
+
+// release releases the objects created by initialize.
+func (p *pipelineStates) release() {
+	if p.shaderDescriptorHeap != nil {
+		p.shaderDescriptorHeap.Release()
+		p.shaderDescriptorHeap = nil
+	}
+	p.shaderDescriptorSize = 0
 }
 
 func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderSrcImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int) error {

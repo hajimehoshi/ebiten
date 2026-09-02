@@ -1658,6 +1658,11 @@ func (i *_ID3D12Device) QueryInterface(riid *windows.GUID) (unsafe.Pointer, erro
 	return v, nil
 }
 
+func (i *_ID3D12Device) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
 func (i *_ID3D12Device) WaitFrameEventX(typ _D3D12XBOX_FRAME_EVENT_TYPE, timeOutInMs uint32, pAncillaryWaitList *_D3D12XBOX_WAIT_FRAME_OBJECT_LIST, flags _D3D12XBOX_WAIT_FRAME_EVENT_FLAGS, pToken *_D3D12XBOX_FRAME_PIPELINE_TOKEN) error {
 	r, _, _ := syscall.Syscall6(i.vtbl.WaitFrameEventX, 6, uintptr(unsafe.Pointer(i)), uintptr(typ), uintptr(timeOutInMs), uintptr(unsafe.Pointer(pAncillaryWaitList)), uintptr(flags), uintptr(unsafe.Pointer(pToken)))
 	runtime.KeepAlive(pAncillaryWaitList)
