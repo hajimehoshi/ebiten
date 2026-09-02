@@ -21,6 +21,7 @@ import (
 
 	"golang.org/x/image/font/gofont/goregular"
 
+	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
@@ -48,4 +49,48 @@ func TestGlyphImageCacheConcurrent(t *testing.T) {
 		})
 	}
 	wg.Wait()
+}
+
+func TestGlyphImageCacheSizeEviction(t *testing.T) {
+	src, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	dst := ebiten.NewImage(64, 64)
+
+	// Draw with many distinct sizes, like a game animating its font size.
+	const drawnSizeCount = 100
+	for i := range drawnSizeCount {
+		face := &text.GoTextFace{Source: src, Size: 12 + float64(i)/4}
+		text.Draw(dst, "Hello", face, nil)
+	}
+	if got := text.GlyphImageCacheCount(src); got == 0 {
+		t.Fatal("no glyph image cache was created")
+	}
+
+	// A tick doesn't advance in a test, so pass explicit ticks to simulate frames.
+	// Each frame uses a new size, and one size is kept in use all the time.
+	const (
+		firstTick = 1000
+		tickCount = 300
+		hotSize   = 12
+		// A cache is dropped after it is unused for 60 ticks. 128 is an arbitrary bound above that.
+		maxCacheCount = 128
+	)
+	for i := range tickCount {
+		tick := int64(firstTick + i)
+		text.TouchGlyphImageCache(&text.GoTextFace{Source: src, Size: hotSize}, tick)
+		text.TouchGlyphImageCache(&text.GoTextFace{Source: src, Size: 1000 + float64(i)}, tick)
+		if got := text.GlyphImageCacheCount(src); got > maxCacheCount {
+			t.Fatalf("the number of the glyph image caches must be <= %d but was %d at tick %d", maxCacheCount, got, tick)
+		}
+	}
+
+	if !text.HasGlyphImageCache(src, hotSize) {
+		t.Errorf("the cache for the size %v must not be dropped", float64(hotSize))
+	}
+	if staleSize := 1000.0; text.HasGlyphImageCache(src, staleSize) {
+		t.Errorf("the cache for the size %v must be dropped", staleSize)
+	}
 }
