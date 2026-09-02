@@ -68,6 +68,11 @@ func (v *view) initializeOS() error {
 	return nil
 }
 
+// release releases the resources created at initialize.
+func (v *view) release() {
+	v.releaseDisplayLink()
+}
+
 func (v *view) waitForDisplayLinkOutputCallback() {
 	if v.caDisplayLink == 0 {
 		return

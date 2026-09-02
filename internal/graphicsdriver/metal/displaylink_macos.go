@@ -63,6 +63,8 @@ var (
 	cvDisplayLinkCreateWithActiveCGDisplays func(displayLinkOut *uintptr) int32
 	cvDisplayLinkSetOutputCallback          func(displayLink uintptr, callback uintptr, userInfo uintptr) int32
 	cvDisplayLinkStart                      func(displayLink uintptr) int32
+	cvDisplayLinkStop                       func(displayLink uintptr) int32
+	cvDisplayLinkRelease                    func(displayLink uintptr)
 )
 
 func init() {
@@ -79,6 +81,8 @@ func init() {
 	purego.RegisterLibFunc(&cvDisplayLinkCreateWithActiveCGDisplays, coreVideo, "CVDisplayLinkCreateWithActiveCGDisplays")
 	purego.RegisterLibFunc(&cvDisplayLinkSetOutputCallback, coreVideo, "CVDisplayLinkSetOutputCallback")
 	purego.RegisterLibFunc(&cvDisplayLinkStart, coreVideo, "CVDisplayLinkStart")
+	purego.RegisterLibFunc(&cvDisplayLinkStop, coreVideo, "CVDisplayLinkStop")
+	purego.RegisterLibFunc(&cvDisplayLinkRelease, coreVideo, "CVDisplayLinkRelease")
 }
 
 func isCAMetalDisplayLinkAvailable() bool {
@@ -263,6 +267,22 @@ func (v *view) initCADisplayLink() error {
 
 	v.caDisplayLink = displayLinkRef
 	return nil
+}
+
+// releaseDisplayLink releases the display link created at initCADisplayLink.
+func (v *view) releaseDisplayLink() {
+	if v.caDisplayLink == 0 {
+		return
+	}
+
+	// CVDisplayLinkStop returns after the output callback finishes, so the view handle is no
+	// longer used by the callback after this.
+	cvDisplayLinkStop(v.caDisplayLink)
+	cvDisplayLinkRelease(v.caDisplayLink)
+	v.caDisplayLink = 0
+
+	deleteViewHandle(v.handleToSelf)
+	v.handleToSelf = 0
 }
 
 // displayLinkOutputCallback is the callback function for CVDisplayLink.

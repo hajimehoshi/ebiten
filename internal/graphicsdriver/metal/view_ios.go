@@ -112,3 +112,8 @@ func (v *view) initializeOS() error {
 	// Do nothing.
 	return nil
 }
+
+// release releases the resources created at initialize.
+func (v *view) release() {
+	// Do nothing.
+}

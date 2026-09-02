@@ -177,6 +177,12 @@ func newViewHandle(v *view) viewHandle {
 	return h
 }
 
+func deleteViewHandle(h viewHandle) {
+	viewHandleMu.Lock()
+	defer viewHandleMu.Unlock()
+	delete(viewHandleMap, h)
+}
+
 func (h viewHandle) Value() *view {
 	viewHandleMu.Lock()
 	defer viewHandleMu.Unlock()
