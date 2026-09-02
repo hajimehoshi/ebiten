@@ -46,6 +46,7 @@ func (v *view) initDisplayLink() error {
 var (
 	sel_processInfo            = objc.RegisterName("processInfo")
 	sel_operatingSystemVersion = objc.RegisterName("operatingSystemVersion")
+	sel_release                = objc.RegisterName("release")
 
 	class_NSProcessInfo = objc.GetClass("NSProcessInfo")
 )
@@ -88,7 +89,9 @@ func init() {
 func isCAMetalDisplayLinkAvailable() bool {
 	version := objc.Send[nsOperatingSystemVersion](objc.ID(class_NSProcessInfo).Send(sel_processInfo), sel_operatingSystemVersion)
 	if version.majorVersion >= 14 {
-		return nsClassFromString(cocoa.NSString_alloc().InitWithUTF8String("CAMetalDisplayLink")) != 0
+		s := cocoa.NSString_alloc().InitWithUTF8String("CAMetalDisplayLink")
+		defer s.ID.Send(sel_release)
+		return nsClassFromString(s) != 0
 	}
 	return false
 }
