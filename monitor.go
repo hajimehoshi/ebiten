@@ -51,6 +51,8 @@ func (m *MonitorType) Size() (int, int) {
 }
 
 // Monitor returns the current monitor.
+//
+// Monitor can return nil when no monitor is available.
 func Monitor() *MonitorType {
 	m := ui.Get().Monitor()
 	if m == nil {
@@ -65,7 +67,8 @@ func SetMonitor(monitor *MonitorType) {
 }
 
 // AppendMonitors returns the monitors reported by the system.
-// On desktop platforms, there will always be at least one monitor appended and the first monitor in the slice will be the primary monitor.
+// On desktop platforms, the first monitor in the slice will be the primary monitor.
+// Nothing is appended when no monitor is available.
 // Any monitors added or removed will show up with subsequent calls to this function.
 func AppendMonitors(monitors []*MonitorType) []*MonitorType {
 	// TODO: This is not an efficient operation. It would be best if we could directly pass monitors directly into `ui.AppendMonitors`.

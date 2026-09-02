@@ -27,6 +27,9 @@ import (
 )
 
 // FillRule is the rule whether an overlapped region is rendered or not.
+//
+// The number of overlaps is counted with a limited precision, so a region with too many
+// overlapping triangles can be rendered incorrectly.
 type FillRule int
 
 const (

@@ -146,7 +146,7 @@ type GamepadID = gamepad.ID
 // GamepadSDLID returns a string with the GUID generated in the same way as SDL.
 // To detect devices, see also the community project of gamepad devices database: https://github.com/gabomdq/SDL_GameControllerDB
 //
-// GamepadSDLID always returns an empty string on browsers and mobiles.
+// GamepadSDLID returns an empty string on consoles, where no such GUID exists.
 //
 // GamepadSDLID returns an empty string before the game starts.
 //

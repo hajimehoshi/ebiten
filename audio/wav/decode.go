@@ -67,7 +67,7 @@ func (s *Stream) SampleRate() int {
 // DecodeF32 decodes WAV (RIFF) data to playable stream in 32bit float, little endian, 2 channels (stereo) format.
 //
 // The src format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
-// The src format is converted into 2 channels and 16bit.
+// The src format is converted into 2 channels and 32bit float.
 //
 // DecodeF32 returns error when decoding fails or IO error happens.
 //
