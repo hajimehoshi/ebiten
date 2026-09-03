@@ -66,6 +66,10 @@ type GuestSession struct {
 	// conn is safe for concurrent use: the session goroutine reads and writes through the codecs while
 	// Close pokes its deadline and closes it.
 	conn net.Conn
+	// idleConn is the idle-timeout wrapper the codecs read and write through, or nil when no timeout is
+	// set. Close marks it closing so that its per-call deadline refreshes cannot outlive the close poke.
+	// It is set at construction and never modified, so it is read without a lock.
+	idleConn *idleTimeoutConn
 
 	// The following fields are owned by the session goroutine; no lock guards them.
 	enc *vmprotocol.Encoder
@@ -284,12 +288,14 @@ type NewGuestSessionOptions struct {
 // protocol handshake and returns an error if the guest's protocol version does not match the host's.
 // options can be nil, which means the default options.
 func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSession, error) {
+	var idleConn *idleTimeoutConn
 	var rw io.ReadWriter = conn
 	if options != nil && options.IdleTimeout > 0 {
-		rw = &idleTimeoutConn{
+		idleConn = &idleTimeoutConn{
 			conn:        conn,
 			idleTimeout: options.IdleTimeout,
 		}
+		rw = idleConn
 	}
 	// The handshake runs before the connection is wrapped in gob codecs (the host is the initiator).
 	if err := vmprotocol.PerformHandshake(rw, true); err != nil {
@@ -297,6 +303,7 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 	}
 	g := &GuestSession{
 		conn:         conn,
+		idleConn:     idleConn,
 		enc:          vmprotocol.NewEncoder(rw),
 		dec:          vmprotocol.NewDecoder(rw),
 		renderer:     newFrameRenderer(),
@@ -323,20 +330,59 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 type idleTimeoutConn struct {
 	conn        net.Conn
 	idleTimeout time.Duration
+
+	// mu guards closing and serializes the refreshes against markClosing, so a refresh either completes
+	// before the close poke or observes that the connection is closing.
+	mu      sync.Mutex
+	closing bool
 }
 
 func (c *idleTimeoutConn) Read(p []byte) (int, error) {
-	if err := c.conn.SetReadDeadline(time.Now().Add(c.idleTimeout)); err != nil {
+	if err := c.refreshReadDeadline(); err != nil {
 		return 0, err
 	}
 	return c.conn.Read(p)
 }
 
 func (c *idleTimeoutConn) Write(p []byte) (int, error) {
-	if err := c.conn.SetWriteDeadline(time.Now().Add(c.idleTimeout)); err != nil {
+	if err := c.refreshWriteDeadline(); err != nil {
 		return 0, err
 	}
 	return c.conn.Write(p)
+}
+
+// refreshReadDeadline sets the deadline for the read about to run.
+func (c *idleTimeoutConn) refreshReadDeadline() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.SetReadDeadline(c.nextDeadlineLocked())
+}
+
+// refreshWriteDeadline sets the deadline for the write about to run.
+func (c *idleTimeoutConn) refreshWriteDeadline() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.SetWriteDeadline(c.nextDeadlineLocked())
+}
+
+// nextDeadlineLocked returns the deadline the operation about to run gets: its idle timeout, or an
+// expired one once the connection is closing, so that the operation fails at once. c.mu must be held,
+// and the deadline must be set under that same lock, so that a refresh and the close poke cannot
+// interleave.
+func (c *idleTimeoutConn) nextDeadlineLocked() time.Time {
+	if c.closing {
+		return time.Now()
+	}
+	return time.Now().Add(c.idleTimeout)
+}
+
+// markClosing expires the connection's deadlines for good: an in-flight Read or Write fails at once,
+// and no later one waits.
+func (c *idleTimeoutConn) markClosing() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closing = true
+	return c.conn.SetDeadline(time.Now())
 }
 
 // sessionLoop owns the connection: it repeatedly takes the next task, runs it without the lock, and
@@ -1425,13 +1471,23 @@ func (g *GuestSession) Close() error {
 		g.requestClose()
 		// Unblock the session goroutine if it is mid-read on a wedged guest. When it is idle this is a
 		// harmless no-op: it wakes from the broadcast and exits without touching the connection again.
-		_ = g.conn.SetDeadline(time.Now())
+		_ = g.markConnClosing()
 		<-g.done
 
 		g.renderer.dispose()
 		g.closeErr = g.conn.Close()
 	})
 	return g.closeErr
+}
+
+// markConnClosing stops the connection for good: a Read or Write already in flight on a wedged guest
+// fails at once, and so does every later one.
+func (g *GuestSession) markConnClosing() error {
+	if g.idleConn != nil {
+		return g.idleConn.markClosing()
+	}
+	// With no wrapper nothing refreshes the deadline, so expiring it once is enough.
+	return g.conn.SetDeadline(time.Now())
 }
 
 // requestClose marks the session closed and wakes the session goroutine.
