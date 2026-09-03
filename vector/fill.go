@@ -321,6 +321,7 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 	for i, subPath := range path.subPaths {
 		dst.subPaths[i].start = subPath.start
 		dst.subPaths[i].closed = subPath.closed
+		dst.subPaths[i].invalid = subPath.invalid
 		dst.subPaths[i].ops = slices.Grow(dst.subPaths[i].ops, len(subPath.ops))[:len(subPath.ops)]
 		copy(dst.subPaths[i].ops, subPath.ops)
 	}

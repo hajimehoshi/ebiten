@@ -31,6 +31,8 @@ import (
 // The returned vertices and indices should be rendered with a solid (non-transparent) color with the default Blend (source-over).
 // Otherwise, there is no guarantee about the rendering result.
 //
+// AppendVerticesAndIndicesForFilling must not be called for one path from multiple goroutines simultaneously.
+//
 // Deprecated: as of v2.9. Use [FillPath] instead.
 func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
 	base := uint16(len(vertices))

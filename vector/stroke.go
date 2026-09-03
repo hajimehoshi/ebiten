@@ -156,6 +156,7 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 					p.subPaths[origN+i].ops[j].p2 = point{x: float32(x2), y: float32(y2)}
 				}
 			}
+			p.subPaths[origN+i].updateValidity()
 		}
 	}
 }
