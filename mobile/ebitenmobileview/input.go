@@ -28,6 +28,15 @@ type position struct {
 }
 
 var (
+	// inputMu protects the input state of the package: the members below and
+	// ptrToID in input_ios.go. Every platform entry point (the touch and key
+	// callbacks in input_android.go and input_ios.go) holds it across its mutation
+	// and the updateInput copy.
+	//
+	// The entry points are expected to run on the platform UI thread only, so this
+	// mutex is normally uncontended and enforces the convention.
+	inputMu sync.Mutex
+
 	keyPressedTimes  [ui.KeyMax + 1]ui.InputTime
 	keyReleasedTimes [ui.KeyMax + 1]ui.InputTime
 	touches          = map[ui.TouchID]position{}
@@ -41,10 +50,10 @@ var (
 	touchSlice []ui.TouchForInput
 )
 
-var inputM sync.Mutex
-
 // setKeyReleased records a key release. The release of a key that is not down
 // is ignored: the game never saw the key pressed.
+//
+// setKeyReleased must be called with inputMu held.
 func setKeyReleased(key ui.Key) {
 	if keyPressedTimes[key] <= keyReleasedTimes[key] {
 		return
@@ -52,6 +61,9 @@ func setKeyReleased(key ui.Key) {
 	keyReleasedTimes[key] = ui.Get().InputTime()
 }
 
+// updateInput copies the guarded state to the platform input state.
+//
+// updateInput must be called with inputMu held.
 func updateInput(runes []rune) {
 	touchSlice = touchSlice[:0]
 	for id, position := range touches {

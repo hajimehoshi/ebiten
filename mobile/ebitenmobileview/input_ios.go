@@ -35,8 +35,8 @@ func init() {
 // dispatchKeyPress records a key press, and its release, for a key the platform
 // text editor received instead of the game's view.
 func dispatchKeyPress(key ui.Key) {
-	inputM.Lock()
-	defer inputM.Unlock()
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	keyPressedTimes[key] = ui.Get().InputTime()
 	setKeyReleased(key)
 	updateInput(nil)
@@ -45,8 +45,8 @@ func dispatchKeyPress(key ui.Key) {
 // dispatchKeyDown records a key press for a key the platform text editor
 // received instead of the game's view.
 func dispatchKeyDown(key ui.Key) {
-	inputM.Lock()
-	defer inputM.Unlock()
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	keyPressedTimes[key] = ui.Get().InputTime()
 	updateInput(nil)
 }
@@ -54,8 +54,8 @@ func dispatchKeyDown(key ui.Key) {
 // dispatchKeyUp records a key release for a key the platform text editor
 // received instead of the game's view.
 func dispatchKeyUp(key ui.Key) {
-	inputM.Lock()
-	defer inputM.Unlock()
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	setKeyReleased(key)
 	updateInput(nil)
 }
@@ -76,8 +76,8 @@ func getIDFromPtr(ptr int64) int {
 }
 
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y float64) {
-	inputM.Lock()
-	defer inputM.Unlock()
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)
@@ -94,8 +94,8 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y float64) {
 }
 
 func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags int) {
-	inputM.Lock()
-	defer inputM.Unlock()
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	// TODO: If a key is kept pressed, ignore the repeated key events.
 	// There seems no way to check whether a key event is a repeated event or not so far.
 	updateLockKeys(modifierFlags)

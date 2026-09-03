@@ -132,8 +132,8 @@ var androidKeyToSDL = map[int]int{
 }
 
 func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
-	inputM.Lock()
-	defer inputM.Unlock()
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	switch action {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
 		touches[ui.TouchID(id)] = position{x, y}
@@ -145,6 +145,8 @@ func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
 }
 
 func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int, metaState int) {
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
@@ -154,8 +156,6 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int, 
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard, source == sourceUnknown && deviceID == virtualKeyboard:
-		inputM.Lock()
-		defer inputM.Unlock()
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			keyPressedTimes[key] = ui.Get().InputTime()
 		}
@@ -169,6 +169,8 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int, 
 }
 
 func OnKeyUpOnAndroid(keyCode int, source int, deviceID int, metaState int) {
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	switch {
 	case source&sourceGamepad == sourceGamepad:
 		// A gamepad can be detected as a keyboard. Detect the device as a gamepad first.
@@ -178,8 +180,6 @@ func OnKeyUpOnAndroid(keyCode int, source int, deviceID int, metaState int) {
 	case source&sourceJoystick == sourceJoystick:
 		// DPAD keys can come here, but they are also treated as an axis at a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard, source == sourceUnknown && deviceID == virtualKeyboard:
-		inputM.Lock()
-		defer inputM.Unlock()
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
 			setKeyReleased(key)
 		}
