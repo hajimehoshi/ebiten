@@ -315,6 +315,29 @@ func withNative[T nativeGamepad](g *Gamepad, f func(n T)) {
 	f(g.native.(T))
 }
 
+// gamepadUnderLock gives gamepaddb a gamepad's raw state without taking the gamepad's lock, so that
+// a whole standard-layout query is evaluated in one critical section and reads a single hardware
+// report. The gamepad's lock must be held while its methods are called.
+type gamepadUnderLock struct {
+	gamepad *Gamepad
+}
+
+func (g gamepadUnderLock) IsAxisReady(index int) bool {
+	return g.gamepad.native.isAxisReady(index)
+}
+
+func (g gamepadUnderLock) Axis(index int) float64 {
+	return g.gamepad.native.axisValue(index)
+}
+
+func (g gamepadUnderLock) Button(index int) bool {
+	return g.gamepad.native.isButtonPressed(index)
+}
+
+func (g gamepadUnderLock) Hat(index int) int {
+	return g.gamepad.native.hatState(index)
+}
+
 // Name is concurrent-safe.
 func (g *Gamepad) Name() string {
 	// This is immutable and doesn't have to be protected by a mutex.
@@ -416,83 +439,108 @@ func (g *Gamepad) IsButtonPressedWithHats(button int) bool {
 	return false
 }
 
+// standardAxisMapping returns the mapping of the standard axis in the gamepad database. The mapping
+// is empty for a virtual gamepad, which serves the standard layout its driver gives it.
+//
+// standardAxisMapping must be called without g's lock, as the database takes its own lock.
+func (g *Gamepad) standardAxisMapping(axis gamepaddb.StandardAxis) gamepaddb.Mapping {
+	if g.virtual {
+		return gamepaddb.Mapping{}
+	}
+	return gamepaddb.StandardAxisMapping(g.sdlID, axis)
+}
+
+// standardButtonMapping returns the mapping of the standard button in the gamepad database. The
+// mapping is empty for a virtual gamepad, which serves the standard layout its driver gives it.
+//
+// standardButtonMapping must be called without g's lock, as the database takes its own lock.
+func (g *Gamepad) standardButtonMapping(button gamepaddb.StandardButton) gamepaddb.Mapping {
+	if g.virtual {
+		return gamepaddb.Mapping{}
+	}
+	return gamepaddb.StandardButtonMapping(g.sdlID, button)
+}
+
 // IsStandardLayoutAvailable is concurrent-safe.
 func (g *Gamepad) IsStandardLayoutAvailable() bool {
-	g.m.Lock()
-	defer g.m.Unlock()
-
 	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
 		return true
 	}
+
+	g.m.Lock()
+	defer g.m.Unlock()
+
 	return g.native.hasOwnStandardLayoutMapping()
 }
 
 // IsStandardAxisAvailable is concurrent safe.
 func (g *Gamepad) IsStandardAxisAvailable(axis gamepaddb.StandardAxis) bool {
+	if m := g.standardAxisMapping(axis); m.HasStandardLayout() {
+		return m.IsMapped()
+	}
+
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		return gamepaddb.HasStandardAxis(g.sdlID, axis)
-	}
 	return g.native.standardAxisInOwnMapping(axis) != nil
 }
 
 // IsStandardButtonAvailable is concurrent safe.
 func (g *Gamepad) IsStandardButtonAvailable(button gamepaddb.StandardButton) bool {
+	if m := g.standardButtonMapping(button); m.HasStandardLayout() {
+		return m.IsMapped()
+	}
+
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		return gamepaddb.HasStandardButton(g.sdlID, button)
-	}
 	return g.native.standardButtonInOwnMapping(button) != nil
 }
 
 // StandardAxisValue is concurrent-safe.
 func (g *Gamepad) StandardAxisValue(axis gamepaddb.StandardAxis) float64 {
-	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		// StandardAxisValue invokes g.Axis, g.Button, or g.Hat so this cannot be locked.
-		return gamepaddb.StandardAxisValue(g.sdlID, axis, g)
-	}
+	m := g.standardAxisMapping(axis)
 
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if m := g.native.standardAxisInOwnMapping(axis); m != nil {
-		return m.Value()*2 - 1
+	if m.HasStandardLayout() {
+		return m.AxisValue(gamepadUnderLock{g})
+	}
+	if mi := g.native.standardAxisInOwnMapping(axis); mi != nil {
+		return mi.Value()*2 - 1
 	}
 	return 0
 }
 
 // StandardButtonValue is concurrent-safe.
 func (g *Gamepad) StandardButtonValue(button gamepaddb.StandardButton) float64 {
-	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		// StandardButtonValue invokes g.Axis, g.Button, or g.Hat so this cannot be locked.
-		return gamepaddb.StandardButtonValue(g.sdlID, button, g)
-	}
+	m := g.standardButtonMapping(button)
 
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if m := g.native.standardButtonInOwnMapping(button); m != nil {
-		return m.Value()
+	if m.HasStandardLayout() {
+		return m.ButtonValue(gamepadUnderLock{g})
+	}
+	if mi := g.native.standardButtonInOwnMapping(button); mi != nil {
+		return mi.Value()
 	}
 	return 0
 }
 
 // IsStandardButtonPressed is concurrent-safe.
 func (g *Gamepad) IsStandardButtonPressed(button gamepaddb.StandardButton) bool {
-	if !g.virtual && gamepaddb.HasStandardLayoutMapping(g.sdlID) {
-		// IsStandardButtonPressed invokes g.Axis, g.Button, or g.Hat so this cannot be locked.
-		return gamepaddb.IsStandardButtonPressed(g.sdlID, button, g)
-	}
+	m := g.standardButtonMapping(button)
 
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	if m := g.native.standardButtonInOwnMapping(button); m != nil {
-		return m.Pressed()
+	if m.HasStandardLayout() {
+		return m.IsButtonPressed(gamepadUnderLock{g})
+	}
+	if mi := g.native.standardButtonInOwnMapping(button); mi != nil {
+		return mi.Pressed()
 	}
 	return false
 }

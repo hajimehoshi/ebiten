@@ -16,7 +16,9 @@ package gamepad_test
 
 import (
 	"math"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -65,6 +67,42 @@ func TestMotorMagnitude(t *testing.T) {
 			t.Errorf("gamepad.MotorMagnitude(%v): got: %#x, want: %#x", test.in, got, test.want)
 		}
 	}
+}
+
+func TestStandardLayoutQueryReadsOneReport(t *testing.T) {
+	const sdlID = "00000000000000000000000000009301"
+	if err := gamepaddb.Update([]byte(sdlID + ",Report Pad,leftx:+a0,lefttrigger:a1,\n")); err != nil {
+		t.Fatal(err)
+	}
+
+	g := gamepad.NewGamepadForTest(sdlID)
+
+	fullReport := []float64{1, 1}
+	var emptyReport []float64
+	g.SetReportForTest(fullReport, nil, nil)
+
+	deadline := time.Now().Add(200 * time.Millisecond)
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for time.Now().Before(deadline) {
+			g.SetReportForTest(fullReport, nil, nil)
+			g.SetReportForTest(emptyReport, nil, nil)
+		}
+	})
+	wg.Go(func() {
+		for time.Now().Before(deadline) {
+			if got := g.StandardAxisValue(gamepaddb.StandardAxisLeftStickHorizontal); got != 1 && got != 0 {
+				t.Errorf("StandardAxisValue(LeftStickHorizontal) = %v; want 1 or 0 (the value mixes two reports)", got)
+				return
+			}
+			if got := g.StandardButtonValue(gamepaddb.StandardButtonFrontBottomLeft); got != 1 && got != 0 {
+				t.Errorf("StandardButtonValue(FrontBottomLeft) = %v; want 1 or 0 (the value mixes two reports)", got)
+				return
+			}
+		}
+	})
+	wg.Wait()
 }
 
 func TestButtonsWithHats(t *testing.T) {
