@@ -451,22 +451,6 @@ func Name(id string) string {
 	return gamepadNames[id]
 }
 
-func HasStandardAxis(id string, axis StandardAxis) bool {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
-
-	mappings := axisMappings(id)
-	if mappings == nil {
-		return false
-	}
-	_, ok := mappings[axis]
-	return ok
-}
-
-func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64 {
-	return StandardAxisMapping(id, axis).AxisValue(state)
-}
-
 // standardAxisValue calculates the value for the given mapping, which is passed by value.
 func standardAxisValue(mapping mapping, state GamepadState) float64 {
 	switch mapping.Type {
@@ -496,22 +480,6 @@ func standardAxisValue(mapping mapping, state GamepadState) float64 {
 	}
 
 	return 0
-}
-
-func HasStandardButton(id string, button StandardButton) bool {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
-
-	mappings := buttonMappings(id)
-	if mappings == nil {
-		return false
-	}
-	_, ok := mappings[button]
-	return ok
-}
-
-func StandardButtonValue(id string, button StandardButton, state GamepadState) float64 {
-	return StandardButtonMapping(id, button).ButtonValue(state)
 }
 
 // standardButtonValue calculates the value for the given mapping, which is passed by value.
@@ -549,10 +517,6 @@ func standardButtonValue(mapping mapping, state GamepadState) float64 {
 // See https://source.chromium.org/chromium/chromium/src/+/main:device/gamepad/public/cpp/gamepad.h;l=22-23;drc=6997f8a177359bb99598988ed5e900841984d242
 // Note: should be used with >, not >=, comparisons.
 const ButtonPressedThreshold = 30.0 / 255.0
-
-func IsStandardButtonPressed(id string, button StandardButton, state GamepadState) bool {
-	return StandardButtonMapping(id, button).IsButtonPressed(state)
-}
 
 // isStandardButtonPressed reports whether the button is pressed for the given mapping, which is
 // passed by value.
