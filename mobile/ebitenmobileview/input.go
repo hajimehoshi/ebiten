@@ -28,13 +28,9 @@ type position struct {
 }
 
 var (
-	// inputMu protects the input state of the package: the members below and
-	// ptrToID in input_ios.go. Every platform entry point (the touch and key
-	// callbacks in input_android.go and input_ios.go) holds it across its mutation
-	// and the updateInput copy.
-	//
-	// The entry points are expected to run on the platform UI thread only, so this
-	// mutex is normally uncontended and enforces the convention.
+	// inputMu protects the variables below and ptrToID in input_ios.go.
+	// The platform entry points are expected to run on the UI thread only;
+	// inputMu makes that confinement explicit.
 	inputMu sync.Mutex
 
 	keyPressedTimes  [ui.KeyMax + 1]ui.InputTime
@@ -44,9 +40,7 @@ var (
 	// capsLock and numLock stay unknown until a physical keyboard reports them.
 	capsLock ui.LockKeyState
 	numLock  ui.LockKeyState
-)
 
-var (
 	touchSlice []ui.TouchForInput
 )
 
