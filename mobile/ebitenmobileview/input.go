@@ -17,6 +17,8 @@
 package ebitenmobileview
 
 import (
+	"sync"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -38,6 +40,8 @@ var (
 var (
 	touchSlice []ui.TouchForInput
 )
+
+var inputM sync.Mutex
 
 // setKeyReleased records a key release. The release of a key that is not down
 // is ignored: the game never saw the key pressed.
