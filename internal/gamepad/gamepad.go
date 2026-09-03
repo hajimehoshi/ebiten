@@ -386,6 +386,36 @@ func (g *Gamepad) Hat(hat int) int {
 	return g.native.hatState(hat)
 }
 
+// ButtonCountWithHats returns the number of the buttons, counting each hat as the four buttons that
+// follow the real ones.
+//
+// ButtonCountWithHats is concurrent-safe.
+func (g *Gamepad) ButtonCountWithHats() int {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	return g.native.buttonCount() + g.native.hatCount()*4
+}
+
+// IsButtonPressedWithHats reports whether the button is pressed, where button indices at and above
+// the number of the real buttons are the hats' directions.
+//
+// IsButtonPressedWithHats is concurrent-safe.
+func (g *Gamepad) IsButtonPressedWithHats(button int) bool {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	buttonCount := g.native.buttonCount()
+	if button < buttonCount {
+		return g.native.isButtonPressed(button)
+	}
+	if hat := (button - buttonCount) / 4; hat < g.native.hatCount() {
+		dir := (button - buttonCount) % 4
+		return g.native.hatState(hat)&(1<<dir) != 0
+	}
+	return false
+}
+
 // IsStandardLayoutAvailable is concurrent-safe.
 func (g *Gamepad) IsStandardLayoutAvailable() bool {
 	g.m.Lock()

@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 func TestMotorMagnitude(t *testing.T) {
@@ -62,6 +63,38 @@ func TestMotorMagnitude(t *testing.T) {
 	for _, test := range tests {
 		if got := gamepad.MotorMagnitude(test.in); got != test.want {
 			t.Errorf("gamepad.MotorMagnitude(%v): got: %#x, want: %#x", test.in, got, test.want)
+		}
+	}
+}
+
+func TestButtonsWithHats(t *testing.T) {
+	g := gamepad.NewGamepadForTest("00000000000000000000000000009302")
+	g.SetReportForTest(nil, []bool{true, false}, []int{gamepaddb.HatUp | gamepaddb.HatRight, 0})
+
+	if got, want := g.ButtonCountWithHats(), 2+2*4; got != want {
+		t.Errorf("ButtonCountWithHats() = %d; want %d", got, want)
+	}
+
+	tests := []struct {
+		button int
+		want   bool
+	}{
+		{button: -1, want: false},
+		{button: 0, want: true},
+		{button: 1, want: false},
+		{button: 2, want: true},
+		{button: 3, want: true},
+		{button: 4, want: false},
+		{button: 5, want: false},
+		{button: 6, want: false},
+		{button: 7, want: false},
+		{button: 8, want: false},
+		{button: 9, want: false},
+		{button: 10, want: false},
+	}
+	for _, test := range tests {
+		if got := g.IsButtonPressedWithHats(test.button); got != test.want {
+			t.Errorf("IsButtonPressedWithHats(%d) = %t; want %t", test.button, got, test.want)
 		}
 	}
 }
