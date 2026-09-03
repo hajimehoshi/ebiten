@@ -32,8 +32,9 @@ var _ Face = (*MultiFace)(nil)
 //
 // There is another known issue: the chunk decomposition of a text is memoized, and a face's glyph
 // availability can change even after the face's creation (e.g. by [LimitedFace.AddUnicodeRange] or
-// by an assignment to [GoTextFace.Source]), so such a change after a MultiFace's creation might not
-// be reflected for the texts whose chunks are already memoized.
+// by an assignment to [GoTextFace.Source]), so such a change after a MultiFace's creation is not
+// reflected for the texts whose chunks are already memoized: a memoized entry used every tick never
+// ages out of the cache.
 // Configure all the faces before creating a MultiFace to avoid this issue.
 type MultiFace struct {
 	faces []Face
