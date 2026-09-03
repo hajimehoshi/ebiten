@@ -813,7 +813,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}
 				case shaderir.Abs, shaderir.Sign:
 					if argts[0].Main != shaderir.Float && !argts[0].IsFloatVector() && argts[0].Main != shaderir.Int && !argts[0].IsIntVector() {
-						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivenN value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivecN value in argument to %s", argts[0].String(), callee.BuiltinFunc))
 						return nil, nil, nil, false
 					}
 				default:

@@ -39,7 +39,7 @@ func (m *MonitorType) DeviceScaleFactor() float64 {
 
 // Size returns the size of the monitor in device-independent pixels.
 // This is the same as the screen size in fullscreen mode.
-// The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.
+// The returned value can be given to SetWindowSize function if the perfectly fit fullscreen is needed.
 //
 // On mobiles, Size returns (0, 0) before the game starts e.g. in init functions.
 //
