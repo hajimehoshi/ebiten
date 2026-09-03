@@ -324,31 +324,3 @@ func srcRegionFromUniforms(uniforms []uint32, i int) (image.Rectangle, bool) {
 	sh := math.Float32frombits(uniforms[graphics.SourceImageRegionSizeUniformDwordIndex+2*i+1])
 	return image.Rect(int(ox), int(oy), int(ox+sw), int(oy+sh)), true
 }
-
-// imageBounds returns the bounds of the mirror of the guest image identified by its recorded ID. It
-// returns false if no such image exists.
-func (f *frameRenderer) imageBounds(id graphicsdriver.ImageID) (image.Rectangle, bool) {
-	hi, ok := f.images[id]
-	if !ok {
-		return image.Rectangle{}, false
-	}
-	return image.Rect(0, 0, hi.width, hi.height), true
-}
-
-// readPixels reads back the given regions of a guest image, identified by its recorded ID, into the
-// caller-prepared buffers: one premultiplied-alpha RGBA buffer per region, each sized 4*Dx*Dy of its
-// region. It must be called within the host's frame.
-func (f *frameRenderer) readPixels(pixels [][]byte, id graphicsdriver.ImageID, regions []image.Rectangle) error {
-	if len(pixels) != len(regions) {
-		return fmt.Errorf("vmhost: the number of pixel buffers (%d) does not match the number of regions (%d)",
-			len(pixels), len(regions))
-	}
-	hi, ok := f.images[id]
-	if !ok {
-		return fmt.Errorf("vmhost: ReadPixels references unknown image %d", id)
-	}
-	for i, r := range regions {
-		hi.img.ReadPixels(pixels[i], r)
-	}
-	return nil
-}

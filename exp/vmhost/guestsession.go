@@ -58,6 +58,10 @@ import (
 // host's screen and [GuestSession.Close] releases the images it composites; these two must be called
 // from within the host's frame (its Update or Draw), and not concurrently with one another. The other
 // methods may be called from any goroutine.
+//
+// A guest reading one of its own images back needs the host's frame, so the read is performed by
+// whichever of CompositeFrame, [GuestSession.WaitTicks], and [GuestSession.WaitFrame] the host calls
+// next: the guest's tick does not complete until one of them does.
 type GuestSession struct {
 	// conn is safe for concurrent use: the session goroutine reads and writes through the codecs while
 	// Close pokes its deadline and closes it.
@@ -96,6 +100,9 @@ type GuestSession struct {
 	// ops is the ordered request queue (ticks coalesced into a count, plus input and size messages),
 	// drained by the session goroutine in submission order.
 	ops []op
+	// pendingReadPixels is the guest read-back the session goroutine is parked on, waiting for a host
+	// call within the host's frame to perform it; nil when none is in flight.
+	pendingReadPixels *readPixelsRequest
 	// submittedTicks and consumedTicks count ticks requested and processed; their difference is the
 	// backlog. They only increase. submittedTicks is touched only by the host goroutine, but it lives
 	// here because WaitTicks compares it against consumedTicks, which the session writes.
@@ -192,6 +199,17 @@ type op struct {
 	audioID            int64
 	audioMaxLenInBytes int
 	audioResp          chan audioReadResult
+}
+
+// readPixelsRequest is one guest read-back the session goroutine has prepared and handed to the host,
+// which performs it into pixels from within the host's frame.
+type readPixelsRequest struct {
+	img     *ui.Image
+	pixels  [][]byte
+	regions []image.Rectangle
+
+	// done reports that the host has filled pixels. It is guarded by GuestSession.mu.
+	done bool
 }
 
 // guestEventKind discriminates a guest event queued for handler delivery.
@@ -550,10 +568,11 @@ func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
 // subslice per region in g.pixelsListBuf. A region the host cannot read back fails with an error
 // before a buffer is sized from it.
 func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
-	bounds, ok := g.renderer.imageBounds(query.ReadImageID)
+	mirror, ok := g.renderer.images[query.ReadImageID]
 	if !ok {
 		return fmt.Errorf("vmhost: ReadPixels references unknown image %d", query.ReadImageID)
 	}
+	bounds := image.Rect(0, 0, mirror.width, mirror.height)
 	// One flat reused buffer backs all the regions; the total is computed first so that growing the
 	// buffer cannot move the per-region subslices.
 	var total int64
@@ -578,7 +597,70 @@ func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
 		g.pixelsListBuf = append(g.pixelsListBuf, g.pixelsBuf[off:off+n])
 		off += n
 	}
-	return g.renderer.readPixels(g.pixelsListBuf, query.ReadImageID, query.ReadRegions)
+	return g.readPixelsInHostFrame(mirror.img, g.pixelsListBuf, query.ReadRegions)
+}
+
+// errReadPixelsAbandoned ends a guest read-back no host will ever perform because the session is over.
+var errReadPixelsAbandoned = errors.New("vmhost: the session ended before the guest's read-back")
+
+// readPixelsInHostFrame hands the read-back to the host and blocks until a host call performs it. The
+// session goroutine must not read back itself: called in between two host frames the read defers to
+// the host's next frame, which a host blocked on this very tick never reaches.
+func (g *GuestSession) readPixelsInHostFrame(img *ui.Image, pixels [][]byte, regions []image.Rectangle) error {
+	req := readPixelsRequest{
+		img:     img,
+		pixels:  pixels,
+		regions: regions,
+	}
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return errReadPixelsAbandoned
+	}
+	g.pendingReadPixels = &req
+	g.cond.Broadcast()
+	for !req.done {
+		// A request no host has taken yet is dropped once the session ends, so a close never waits on a
+		// read-back. A taken one is being filled right now and is waited out.
+		if (g.closed || g.err != nil) && g.pendingReadPixels == &req {
+			g.pendingReadPixels = nil
+			return errReadPixelsAbandoned
+		}
+		g.cond.Wait()
+	}
+	return nil
+}
+
+// servePendingReadPixels performs the read-back the session goroutine is parked on, if any, and wakes
+// it. It must be called from within the host's frame.
+func (g *GuestSession) servePendingReadPixels() {
+	req := g.takePendingReadPixels()
+	if req == nil {
+		return
+	}
+	for i, r := range req.regions {
+		req.img.ReadPixels(req.pixels[i], r)
+	}
+	g.finishReadPixels(req)
+}
+
+// takePendingReadPixels claims the pending read-back for the caller to perform, or returns nil when
+// there is none. The session goroutine stays parked on a claimed request until it is finished.
+func (g *GuestSession) takePendingReadPixels() *readPixelsRequest {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	req := g.pendingReadPixels
+	g.pendingReadPixels = nil
+	return req
+}
+
+// finishReadPixels reports that req's buffers are filled and wakes the session goroutine waiting on it.
+func (g *GuestSession) finishReadPixels(req *readPixelsRequest) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	req.done = true
+	g.cond.Broadcast()
 }
 
 // answerMaxImageSize answers with the host graphics driver's maximum image size.
@@ -736,32 +818,58 @@ func (g *GuestSession) AdvanceFrame() {
 // when no frame was requested (no preceding AdvanceFrame) or the session has ended (see
 // [GuestSession.Err]). It must not be called concurrently with [GuestSession.CompositeFrame].
 func (g *GuestSession) WaitFrame() bool {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	if g.closed || g.err != nil {
-		return false
-	}
-	// Wait for the latest request as of now; requests arriving later do not move this target.
-	want := g.requestedFrameSeq
-	// Nothing is on the way: the wanted frame has already been rendered and composited, and no newer one
-	// is owed.
-	if want <= g.renderedFrameSeq && g.framePhase == framePhaseRenderable {
+	want, wait := g.frameWaitTarget()
+	if !wait {
 		return false
 	}
 	for {
+		done, ok := g.waitFrameStep(want)
+		if done {
+			return ok
+		}
+		g.servePendingReadPixels()
+	}
+}
+
+// frameWaitTarget returns the frame request a wait resolves against, and whether waiting is needed at
+// all. Requests arriving afterward do not move the target.
+func (g *GuestSession) frameWaitTarget() (want int64, wait bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return 0, false
+	}
+	want = g.requestedFrameSeq
+	// Nothing is on the way: the wanted frame has already been rendered and composited, and no newer one
+	// is owed.
+	if want <= g.renderedFrameSeq && g.framePhase == framePhaseRenderable {
+		return 0, false
+	}
+	return want, true
+}
+
+// waitFrameStep blocks until the frame labeled want has been rendered, the session ends, or the guest
+// asks for a read-back. done is false only in the last case, which the caller resolves by performing it.
+func (g *GuestSession) waitFrameStep(want int64) (done, ok bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for {
 		if g.closed || g.err != nil {
-			return false
+			return true, false
 		}
 		if g.framePhase == framePhaseCompositable {
 			// The completed frame satisfies the request once it is at least as new as the wanted one.
 			if g.renderedFrameSeq >= want {
-				return true
+				return true, true
 			}
 			// The completed frame predates the request and occupies the single mirror, blocking the session
 			// from rendering the request. Drop it (it was never composited) so the request can render. The
 			// next render carries a seq >= want, so the wait then resolves without chasing later requests.
 			g.framePhase = framePhaseRenderable
 			g.cond.Broadcast()
+		}
+		if g.pendingReadPixels != nil {
+			return false, false
 		}
 		g.cond.Wait()
 	}
@@ -776,6 +884,10 @@ func (g *GuestSession) WaitFrame() bool {
 // The frame replaces the outside screen's content rather than blending over it, so the outside screen
 // carries the guest screen's alpha.
 func (g *GuestSession) CompositeFrame() bool {
+	// A host that never waits for a tick or a frame still calls this every frame, so a guest read-back is
+	// picked up here at the latest.
+	g.servePendingReadPixels()
+
 	frame := g.takeFrame()
 	if frame.img == nil {
 		return false
@@ -840,18 +952,42 @@ func (g *GuestSession) WaitTicks() bool {
 }
 
 // waitTicks blocks until the guest has processed every tick requested so far, or the session ends
-// first.
+// first. It performs the guest's read-backs while it waits, as they need the host's frame this call
+// occupies.
 func (g *GuestSession) waitTicks() bool {
+	target := g.submittedTickTarget()
+	for {
+		done, ok := g.waitTicksStep(target)
+		if done {
+			return ok
+		}
+		g.servePendingReadPixels()
+	}
+}
+
+// submittedTickTarget returns the number of ticks requested so far: the target a wait resolves against,
+// which ticks requested afterward do not move.
+func (g *GuestSession) submittedTickTarget() int64 {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	st := g.submittedTicks
-	for g.consumedTicks < st {
+	return g.submittedTicks
+}
+
+// waitTicksStep blocks until the guest has processed target ticks, the session ends, or the guest asks
+// for a read-back. done is false only in the last case, which the caller resolves by performing it.
+func (g *GuestSession) waitTicksStep(target int64) (done, ok bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for g.consumedTicks < target {
 		if g.closed || g.err != nil {
-			return false
+			return true, false
+		}
+		if g.pendingReadPixels != nil {
+			return false, false
 		}
 		g.cond.Wait()
 	}
-	return true
+	return true, true
 }
 
 // PendingTicks returns the number of ticks requested but not yet processed by the guest.
