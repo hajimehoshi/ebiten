@@ -282,16 +282,6 @@ func (g *GoTextFace) hasGlyph(r rune) bool {
 	return g.Source.hasGlyph(r)
 }
 
-// glyphRevision implements Face.
-func (g *GoTextFace) glyphRevision() uint64 {
-	// A GoTextFaceSource's glyph coverage never changes once it is created,
-	// so only the source itself, which can be reassigned, matters here.
-	if g.Source == nil {
-		return 0
-	}
-	return g.Source.glyphRevision()
-}
-
 // appendLazyGlyphsForLine implements Face.
 func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
 	origin := fixed.Point26_6{

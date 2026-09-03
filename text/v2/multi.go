@@ -16,7 +16,6 @@ package text
 
 import (
 	"errors"
-	"slices"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
@@ -30,19 +29,21 @@ var _ Face = (*MultiFace)(nil)
 //
 // There is a known issue: if the writing directions of the faces don't agree, the rendering result might be messed up.
 // [NewMultiFace] rejects such faces, but a face's direction can be changed after the creation (e.g. [GoTextFace.Direction]).
+//
+// There is another known issue: the chunk decomposition of a text is memoized, and a face's glyph
+// availability can change even after the face's creation (e.g. by [LimitedFace.AddUnicodeRange] or
+// by an assignment to [GoTextFace.Source]), so such a change after a MultiFace's creation might not
+// be reflected for the texts whose chunks are already memoized.
+// Configure all the faces before creating a MultiFace to avoid this issue.
 type MultiFace struct {
 	faces []Face
 
-	// splitTextCache memoizes per-text chunk decomposition. The decomposition depends only on
-	// the faces' hasGlyph results, which can change even after the faces' creation
-	// (e.g. by [LimitedFace.AddUnicodeRange] or by an assignment to [GoTextFace.Source]),
-	// so the faces' glyph revision is a part of the cache key.
-	splitTextCache *cache[splitTextCacheKey, []textChunk]
-}
-
-type splitTextCacheKey struct {
-	text     string
-	revision uint64
+	// splitTextCache memoizes per-text chunk decomposition. The decomposition
+	// depends on the faces' hasGlyph results. The results can change even after
+	// the faces' creation (e.g. by [LimitedFace.AddUnicodeRange] or by an
+	// assignment to [GoTextFace.Source]), so a cached entry can be stale.
+	// See the MultiFace doc for the workaround.
+	splitTextCache *cache[string, []textChunk]
 }
 
 // NewMultiFace creates a new MultiFace from the given faces.
@@ -60,10 +61,12 @@ func NewMultiFace(faces ...Face) (*MultiFace, error) {
 		}
 	}
 
-	return &MultiFace{
-		faces:          slices.Clone(faces),
-		splitTextCache: newCache[splitTextCacheKey, []textChunk](32),
-	}, nil
+	m := &MultiFace{
+		splitTextCache: newCache[string, []textChunk](32),
+	}
+	m.faces = make([]Face, len(faces))
+	copy(m.faces, faces)
+	return m, nil
 }
 
 // Metrics implements Face.
@@ -174,28 +177,10 @@ type textChunk struct {
 	faceIndex      int
 }
 
-// splitText splits the text into chunks, each of which is rendered by one face.
-//
-// A face's glyph availability can change even after the face's creation
-// (e.g. by [LimitedFace.AddUnicodeRange] or by an assignment to [GoTextFace.Source]),
-// so the chunks are cached with the faces' glyph revision.
 func (m *MultiFace) splitText(text string) []textChunk {
-	key := splitTextCacheKey{
-		text:     text,
-		revision: m.glyphRevision(),
-	}
-	return m.splitTextCache.getOrCreate(key, func() ([]textChunk, bool) {
-		return m.doSplitText(key.text), true
+	return m.splitTextCache.getOrCreate(text, func() ([]textChunk, bool) {
+		return m.doSplitText(text), true
 	})
-}
-
-// glyphRevision implements Face.
-func (m *MultiFace) glyphRevision() uint64 {
-	var r uint64
-	for _, f := range m.faces {
-		r = combineGlyphRevisions(r, f.glyphRevision())
-	}
-	return r
 }
 
 func (m *MultiFace) doSplitText(text string) []textChunk {
