@@ -10,6 +10,7 @@ import (
 	"image"
 	"math"
 	"runtime"
+	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -658,7 +659,7 @@ func registerGLFWClasses() error {
 						window.platform.markedText.Send(sel_release)
 						window.platform.markedText = 0
 					}
-					delete(theGoWindows, self)
+					deleteGoWindow(self)
 					self.SendSuper(objc.RegisterName("dealloc"))
 				},
 			},
@@ -929,16 +930,29 @@ func registerGLFWClasses() error {
 }
 
 // theGoWindows associates ObjC delegate and content-view instances with their Go Windows.
-var theGoWindows = map[objc.ID]*Window{}
+var (
+	theGoWindows  = map[objc.ID]*Window{}
+	theGoWindowsM sync.RWMutex
+)
 
 // getGoWindow returns the Go Window associated with an ObjC instance, or nil if there is none.
 func getGoWindow(id objc.ID) *Window {
+	theGoWindowsM.RLock()
+	defer theGoWindowsM.RUnlock()
 	return theGoWindows[id]
 }
 
 // setGoWindow associates an ObjC instance with a Go Window.
 func setGoWindow(id objc.ID, window *Window) {
+	theGoWindowsM.Lock()
+	defer theGoWindowsM.Unlock()
 	theGoWindows[id] = window
+}
+
+func deleteGoWindow(id objc.ID) {
+	theGoWindowsM.Lock()
+	defer theGoWindowsM.Unlock()
+	delete(theGoWindows, id)
 }
 
 // handleMouseMoved processes mouse movement events.
@@ -1210,7 +1224,7 @@ func (w *Window) platformDestroyWindow() error {
 
 	if w.platform.delegate != 0 {
 		w.platform.object.Send(sel_setDelegate, 0)
-		delete(theGoWindows, w.platform.delegate)
+		deleteGoWindow(w.platform.delegate)
 		w.platform.delegate.Send(sel_release)
 		w.platform.delegate = 0
 	}
