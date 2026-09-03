@@ -1241,6 +1241,13 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 var windowProcPtr = windows.NewCallbackCDecl(windowProc)
 
+// handleToWindow is accessed only from the OS thread that created the windows: it is written when
+// a window is created or destroyed, and it is read in windowProc and in platformPollEvents. Win32
+// delivers a window's messages only to the thread that created the window, even when a message is
+// sent from another thread, and internal/ui calls glfw functions on the main thread, which is
+// locked with runtime.LockOSThread. The only exception, PostEmptyEvent, merely posts a message to
+// the helper window, which is dispatched on the main thread as well.
+// Thus, no synchronization is needed here.
 var handleToWindow = map[windows.HWND]*Window{}
 
 func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) error {
