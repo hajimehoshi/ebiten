@@ -127,15 +127,15 @@ func (i *Image) InternalSize() (int, int) {
 //	5: Color G
 //	6: Color B
 //	7: Color A
-//	8: Custom X
-//	9: Custom Y
-//	10: Custom Z
-//	11: Custom W
+//	8: Custom0
+//	9: Custom1
+//	10: Custom2
+//	11: Custom3
 //
-// The elements that index is in between 2 and 7 are used for the source images.
+// The elements whose indices are 2 and 3 are used for the source image position.
 //
 // If the source image is not specified, i.e., the first element of srcs is nil, the
-// elements for the source image are not used.
+// elements for the source image position are passed as they are.
 func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
 	for _, src := range srcs {
 		if src == nil {

@@ -25,6 +25,7 @@ import (
 	"math"
 	"slices"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-text/typesetting/bidi"
 	"github.com/go-text/typesetting/di"
@@ -348,6 +349,11 @@ type GoTextFaceSource struct {
 
 	addr *GoTextFaceSource
 
+	// id identifies this source itself. The glyph coverage of a source never changes,
+	// so a face that depends on this source can detect that the source is replaced
+	// by comparing this id.
+	id uint64
+
 	shaper shaping.HarfbuzzShaper
 	seg    shaping.Segmenter
 	// bidiPara runs the Unicode Bidirectional Algorithm to obtain
@@ -411,11 +417,15 @@ func toFontResource(source io.Reader) (font.Resource, error) {
 	return bytes.NewReader(bs), nil
 }
 
+// theGoTextFaceSourceIDCount assigns an ID to each GoTextFaceSource.
+var theGoTextFaceSourceIDCount atomic.Uint64
+
 func newGoTextFaceSource(face *font.Face, loader *opentype.Loader) *GoTextFaceSource {
 	s := &GoTextFaceSource{
 		f: face,
 	}
 	s.addr = s
+	s.id = theGoTextFaceSourceIDCount.Add(1)
 	s.metadata = metadataFromFace(face)
 	s.variationAxes = variationAxesFromLoader(loader)
 	s.outputCache = newCache[goTextOutputCacheKey, *goTextOutputCacheValue](512)
@@ -1346,6 +1356,13 @@ func (g *GoTextFaceSource) hasGlyph(r rune) bool {
 	_, ok := g.f.Cmap.Lookup(r)
 	g.hasGlyphCache.set(r, ok)
 	return ok
+}
+
+// glyphRevision returns a number identifying this source.
+// The glyph coverage of a source never changes once it is created,
+// so the number never changes either.
+func (g *GoTextFaceSource) glyphRevision() uint64 {
+	return g.id
 }
 
 // chunkPlanKey keys the memo so a Source shared by faces of different

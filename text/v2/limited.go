@@ -29,6 +29,10 @@ var _ Face = (*LimitedFace)(nil)
 type LimitedFace struct {
 	face          Face
 	unicodeRanges textutil.UnicodeRanges
+
+	// revision changes whenever the allowed unicode ranges change,
+	// so that a result cached with the hasGlyph results can be invalidated.
+	revision uint64
 }
 
 // NewLimitedFace creates a new LimitedFace from the given face.
@@ -44,6 +48,7 @@ func NewLimitedFace(face Face) *LimitedFace {
 // A range is inclusive, which means that a range contains the specified rune end.
 func (l *LimitedFace) AddUnicodeRange(start, end rune) {
 	l.unicodeRanges.Add(start, end)
+	l.revision = theGlyphRevisionCount.Add(1)
 }
 
 // Metrics implements Face.
@@ -85,6 +90,11 @@ func (l *LimitedFace) advanceAt(text string, indexInBytes int) float64 {
 // hasGlyph implements Face.
 func (l *LimitedFace) hasGlyph(r rune) bool {
 	return l.unicodeRanges.Contains(r) && l.face.hasGlyph(r)
+}
+
+// glyphRevision implements Face.
+func (l *LimitedFace) glyphRevision() uint64 {
+	return combineGlyphRevisions(l.face.glyphRevision(), l.revision)
 }
 
 // appendLazyGlyphsForLine implements Face.

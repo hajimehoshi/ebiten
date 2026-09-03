@@ -17,6 +17,8 @@ package text_test
 import (
 	"bytes"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hajimehoshi/bitmapfont/v4"
@@ -125,5 +127,44 @@ func TestMultiFaceAfterFaceUpdate(t *testing.T) {
 	}
 	if before == got {
 		t.Errorf("the advance before and after a face update must differ: %f", got)
+	}
+}
+
+func TestMultiFaceAfterGoTextFaceSourceUpdate(t *testing.T) {
+	goregularSource, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mplusData, err := os.ReadFile(filepath.Join("testdata", "MPLUS1p-Regular.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	mplusSource, err := text.NewGoTextFaceSource(bytes.NewReader(mplusData))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// goTextFace has a glyph for 'a' but not for 'あ', so the bitmap font is used for 'あ'.
+	goTextFace := &text.GoTextFace{
+		Source: goregularSource,
+		Size:   10,
+	}
+	m, err := text.NewMultiFace(goTextFace, text.NewGoXFace(bitmapfont.Face))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const str = "aあ"
+	before := text.Advance(str, m)
+
+	// The source of a GoTextFace can be changed even after a MultiFace creation,
+	// and the change must be reflected.
+	goTextFace.Source = mplusSource
+	got := text.Advance(str, m)
+	if want := text.Advance(str, goTextFace); got != want {
+		t.Errorf("got: %f, want: %f", got, want)
+	}
+	if before == got {
+		t.Errorf("the advance before and after a source update must differ: %f", got)
 	}
 }

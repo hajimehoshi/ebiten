@@ -182,6 +182,12 @@ func (g *GoXFace) hasGlyph(r rune) bool {
 	return ok
 }
 
+// glyphRevision implements Face.
+func (g *GoXFace) glyphRevision() uint64 {
+	// The glyph coverage of the given font.Face is assumed not to change.
+	return 0
+}
+
 // appendLazyGlyphsForLine implements Face.
 func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
 	g.copyCheck()

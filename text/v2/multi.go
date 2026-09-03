@@ -16,6 +16,7 @@ package text
 
 import (
 	"errors"
+	"slices"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
@@ -31,6 +32,17 @@ var _ Face = (*MultiFace)(nil)
 // [NewMultiFace] rejects such faces, but a face's direction can be changed after the creation (e.g. [GoTextFace.Direction]).
 type MultiFace struct {
 	faces []Face
+
+	// splitTextCache memoizes per-text chunk decomposition. The decomposition depends only on
+	// the faces' hasGlyph results, which can change even after the faces' creation
+	// (e.g. by [LimitedFace.AddUnicodeRange] or by an assignment to [GoTextFace.Source]),
+	// so the faces' glyph revision is a part of the cache key.
+	splitTextCache *cache[splitTextCacheKey, []textChunk]
+}
+
+type splitTextCacheKey struct {
+	text     string
+	revision uint64
 }
 
 // NewMultiFace creates a new MultiFace from the given faces.
@@ -48,10 +60,10 @@ func NewMultiFace(faces ...Face) (*MultiFace, error) {
 		}
 	}
 
-	m := &MultiFace{}
-	m.faces = make([]Face, len(faces))
-	copy(m.faces, faces)
-	return m, nil
+	return &MultiFace{
+		faces:          slices.Clone(faces),
+		splitTextCache: newCache[splitTextCacheKey, []textChunk](32),
+	}, nil
 }
 
 // Metrics implements Face.
@@ -164,10 +176,29 @@ type textChunk struct {
 
 // splitText splits the text into chunks, each of which is rendered by one face.
 //
-// The result is not memoized on purpose: a face's hasGlyph result can change after the face's
-// creation (e.g. [LimitedFace.AddUnicodeRange] or an assignment to [GoTextFace.Source]),
-// so a memoized chunk decomposition could be stale.
+// A face's glyph availability can change even after the face's creation
+// (e.g. by [LimitedFace.AddUnicodeRange] or by an assignment to [GoTextFace.Source]),
+// so the chunks are cached with the faces' glyph revision.
 func (m *MultiFace) splitText(text string) []textChunk {
+	key := splitTextCacheKey{
+		text:     text,
+		revision: m.glyphRevision(),
+	}
+	return m.splitTextCache.getOrCreate(key, func() ([]textChunk, bool) {
+		return m.doSplitText(key.text), true
+	})
+}
+
+// glyphRevision implements Face.
+func (m *MultiFace) glyphRevision() uint64 {
+	var r uint64
+	for _, f := range m.faces {
+		r = combineGlyphRevisions(r, f.glyphRevision())
+	}
+	return r
+}
+
+func (m *MultiFace) doSplitText(text string) []textChunk {
 	var chunks []textChunk
 	var chunk textChunk
 	for i, r := range text {

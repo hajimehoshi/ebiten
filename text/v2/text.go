@@ -20,6 +20,7 @@ package text
 import (
 	"fmt"
 	"image"
+	"sync/atomic"
 
 	"golang.org/x/image/math/fixed"
 
@@ -42,6 +43,10 @@ type Face interface {
 
 	hasGlyph(r rune) bool
 
+	// glyphRevision returns a number that changes whenever the face's hasGlyph result can change.
+	// A face whose hasGlyph result never changes returns a constant.
+	glyphRevision() uint64
+
 	// appendLazyGlyphsForLine appends a LazyGlyph for each glyph in line
 	// to glyphs and returns the extended slice. If keepGlyph is non-nil,
 	// glyphs for which it returns false are skipped (the origin still
@@ -53,6 +58,17 @@ type Face interface {
 
 	// private is an unexported function preventing being implemented by other packages.
 	private()
+}
+
+// theGlyphRevisionCount counts the changes of glyph availability that cannot be detected
+// by a face itself, such as (*LimitedFace).AddUnicodeRange.
+var theGlyphRevisionCount atomic.Uint64
+
+// combineGlyphRevisions returns a revision combined from the base revision base and the revision rev.
+// The result depends on the order of the given revisions.
+func combineGlyphRevisions(base, rev uint64) uint64 {
+	// 0x9e3779b97f4a7c15 is the golden ratio scaled to 64 bits, which is an arbitrary odd number.
+	return base*0x9e3779b97f4a7c15 + rev
 }
 
 // Metrics holds the metrics for a Face.
