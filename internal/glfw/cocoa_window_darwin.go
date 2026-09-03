@@ -10,7 +10,6 @@ import (
 	"image"
 	"math"
 	"runtime"
-	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -659,7 +658,7 @@ func registerGLFWClasses() error {
 						window.platform.markedText.Send(sel_release)
 						window.platform.markedText = 0
 					}
-					deleteGoWindow(self)
+					delete(theGoWindows, self)
 					self.SendSuper(objc.RegisterName("dealloc"))
 				},
 			},
@@ -930,29 +929,27 @@ func registerGLFWClasses() error {
 }
 
 // theGoWindows associates ObjC delegate and content-view instances with their Go Windows.
-var (
-	theGoWindows  = map[objc.ID]*Window{}
-	theGoWindowsM sync.RWMutex
-)
+//
+// Every access to this map must be on the main thread, like the rest of the glfw package:
+// the entries are written by createNativeWindow and are removed by platformDestroyWindow or by
+// the dealloc callback, and they are read only from the ObjC callbacks registered by
+// registerGLFWClasses, which AppKit invokes on the main thread as it delivers the events to
+// platformPollEvents.
+// Thus no synchronization is needed here.
+var theGoWindows = map[objc.ID]*Window{}
 
 // getGoWindow returns the Go Window associated with an ObjC instance, or nil if there is none.
+//
+// getGoWindow must be called on the main thread.
 func getGoWindow(id objc.ID) *Window {
-	theGoWindowsM.RLock()
-	defer theGoWindowsM.RUnlock()
 	return theGoWindows[id]
 }
 
 // setGoWindow associates an ObjC instance with a Go Window.
+//
+// setGoWindow must be called on the main thread.
 func setGoWindow(id objc.ID, window *Window) {
-	theGoWindowsM.Lock()
-	defer theGoWindowsM.Unlock()
 	theGoWindows[id] = window
-}
-
-func deleteGoWindow(id objc.ID) {
-	theGoWindowsM.Lock()
-	defer theGoWindowsM.Unlock()
-	delete(theGoWindows, id)
 }
 
 // handleMouseMoved processes mouse movement events.
@@ -1224,7 +1221,7 @@ func (w *Window) platformDestroyWindow() error {
 
 	if w.platform.delegate != 0 {
 		w.platform.object.Send(sel_setDelegate, 0)
-		deleteGoWindow(w.platform.delegate)
+		delete(theGoWindows, w.platform.delegate)
 		w.platform.delegate.Send(sel_release)
 		w.platform.delegate = 0
 	}
