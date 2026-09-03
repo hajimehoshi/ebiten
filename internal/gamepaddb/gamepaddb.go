@@ -316,7 +316,7 @@ func toStandardGamepadAxis(str string) (StandardAxis, bool) {
 // buttonMappings returns the button mappings for the given id.
 // The caller must hold mappingsM, as this can add the Android default mappings.
 func buttonMappings(id string) map[StandardButton]mapping {
-	if m, ok := gamepadButtonMappings[id]; ok {
+	if m := gamepadButtonMappings[id]; m != nil {
 		return m
 	}
 	if currentPlatform() == platformAndroid {
@@ -330,7 +330,7 @@ func buttonMappings(id string) map[StandardButton]mapping {
 // axisMappings returns the axis mappings for the given id.
 // The caller must hold mappingsM, as this can add the Android default mappings.
 func axisMappings(id string) map[StandardAxis]mapping {
-	if m, ok := gamepadAxisMappings[id]; ok {
+	if m := gamepadAxisMappings[id]; m != nil {
 		return m
 	}
 	if currentPlatform() == platformAndroid {
@@ -552,6 +552,11 @@ func Update(mappingData []byte) error {
 	}
 
 	for _, l := range lines {
+		// A line that maps neither a button nor an axis defines no mapping. Registering it would make
+		// a mapping exist with no content, and would drop an existing mapping for the same ID.
+		if l.buttons == nil && l.axes == nil {
+			continue
+		}
 		gamepadNames[l.id] = l.name
 		gamepadButtonMappings[l.id] = l.buttons
 		gamepadAxisMappings[l.id] = l.axes

@@ -92,6 +92,41 @@ func TestGLFWGamepadMappings(t *testing.T) {
 	}
 }
 
+func TestUpdateMappingWithoutContent(t *testing.T) {
+	for _, line := range []string{
+		"platform:,",
+		"misc1:b5,",
+	} {
+		const id = "00000000000000000000000000009401"
+		if err := gamepaddb.Update([]byte(id + ",Empty Pad," + line + "\n")); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := gamepaddb.HasStandardLayoutMapping(id), false; got != want {
+			t.Errorf("HasStandardLayoutMapping(%q) after %q = %t; want %t", id, line, got, want)
+		}
+		if got, want := gamepaddb.Name(id), ""; got != want {
+			t.Errorf("Name(%q) after %q = %q; want %q", id, line, got, want)
+		}
+	}
+
+	const id = "00000000000000000000000000009402"
+	if err := gamepaddb.Update([]byte(id + ",Test Pad,a:b0,leftx:a0,\n")); err != nil {
+		t.Fatal(err)
+	}
+	if err := gamepaddb.Update([]byte(id + ",Test Pad,platform:,\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := gamepaddb.HasStandardLayoutMapping(id), true; got != want {
+		t.Errorf("HasStandardLayoutMapping(%q) = %t; want %t (a line without content must not drop a mapping)", id, got, want)
+	}
+	if got, want := gamepaddb.HasStandardButton(id, gamepaddb.StandardButtonRightBottom), true; got != want {
+		t.Errorf("HasStandardButton(%q, RightBottom) = %t; want %t", id, got, want)
+	}
+	if got, want := gamepaddb.HasStandardAxis(id, gamepaddb.StandardAxisLeftStickHorizontal), true; got != want {
+		t.Errorf("HasStandardAxis(%q, LeftStickHorizontal) = %t; want %t", id, got, want)
+	}
+}
+
 // mockGamepad mimics internal/gamepad.Gamepad:
 // every state query takes the gamepad's own mutex.
 type mockGamepad struct {
