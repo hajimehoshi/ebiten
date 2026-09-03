@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"slices"
 	"sync"
 	"time"
 	"unsafe"
@@ -64,14 +65,19 @@ func standardButtonToGamepadInputGamepadButton(b gamepaddb.StandardButton) (_Gam
 	return 0, false
 }
 
+// xboxDeviceEvent is a device connection or disconnection reported by GameInput.
+type xboxDeviceEvent struct {
+	device    *_IGameInputDevice
+	connected bool
+}
+
 type nativeGamepadsXbox struct {
 	gameInput         *_IGameInput
 	deviceCallbackPtr uintptr
 	token             _GameInputCallbackToken
 
-	devicesToAdd    []*_IGameInputDevice
-	devicesToRemove []*_IGameInputDevice
-	devicesMu       sync.Mutex
+	deviceEvents []xboxDeviceEvent
+	devicesMu    sync.Mutex
 }
 
 func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
@@ -101,36 +107,37 @@ func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
 	n.devicesMu.Lock()
 	defer n.devicesMu.Unlock()
 
-	for _, device := range n.devicesToAdd {
-		// TODO: Give a good name and a SDL ID.
-		gp := gamepads.add("", "00000000000000000000000000000000")
-		gp.native = &nativeGamepadXbox{
-			gameInputDevice: device,
+	// GameInput reports the same device pointer for the same physical device. Apply the events in
+	// their arrival order, so that a disconnection and a reconnection between two updates leave the
+	// device connected.
+	for _, e := range n.deviceEvents {
+		if e.connected {
+			// TODO: Give a good name and a SDL ID.
+			gp := gamepads.add("", "00000000000000000000000000000000")
+			gp.native = &nativeGamepadXbox{
+				gameInputDevice: e.device,
+			}
+			continue
 		}
-	}
-	for _, device := range n.devicesToRemove {
 		gamepads.remove(func(gamepad *Gamepad) bool {
-			return gamepad.native.(*nativeGamepadXbox).gameInputDevice == device
+			return gamepad.native.(*nativeGamepadXbox).gameInputDevice == e.device
 		})
 	}
-	n.devicesToAdd = n.devicesToAdd[:0]
-	n.devicesToRemove = n.devicesToRemove[:0]
+	n.deviceEvents = slices.Delete(n.deviceEvents, 0, len(n.deviceEvents))
 	return nil
 }
 
-// deviceCallback queues the device for update to pick up. The initial enumeration calls this
+// deviceCallback queues the device event for update to pick up. The initial enumeration calls this
 // synchronously from init with the gamepads' lock held, while later connections and disconnections
 // arrive on a GameInput worker thread without it, so the gamepad list must not be touched here.
 func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus _GameInputDeviceStatus, previousStatus _GameInputDeviceStatus) uintptr {
 	n.devicesMu.Lock()
 	defer n.devicesMu.Unlock()
 
-	if currentStatus&_GameInputDeviceConnected != 0 {
-		n.devicesToAdd = append(n.devicesToAdd, device)
-		return 0
-	}
-
-	n.devicesToRemove = append(n.devicesToRemove, device)
+	n.deviceEvents = append(n.deviceEvents, xboxDeviceEvent{
+		device:    device,
+		connected: currentStatus&_GameInputDeviceConnected != 0,
+	})
 	return 0
 }
 
