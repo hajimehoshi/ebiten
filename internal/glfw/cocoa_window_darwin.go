@@ -929,14 +929,23 @@ func registerGLFWClasses() error {
 }
 
 // theGoWindows associates ObjC delegate and content-view instances with their Go Windows.
+//
+// theGoWindows must be accessed only from the main thread, like the rest of this package:
+// the entries are written and removed while a window is created or destroyed, and read
+// from the ObjC callbacks, which AppKit invokes on the thread that triggers them.
+// Thus no synchronization is needed here.
 var theGoWindows = map[objc.ID]*Window{}
 
 // getGoWindow returns the Go Window associated with an ObjC instance, or nil if there is none.
+//
+// getGoWindow must be called from the main thread.
 func getGoWindow(id objc.ID) *Window {
 	return theGoWindows[id]
 }
 
 // setGoWindow associates an ObjC instance with a Go Window.
+//
+// setGoWindow must be called from the main thread.
 func setGoWindow(id objc.ID, window *Window) {
 	theGoWindows[id] = window
 }
