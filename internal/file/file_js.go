@@ -172,6 +172,7 @@ type file struct {
 	file       js.Value
 	offset     int64
 	uint8Array js.Value
+	mu         sync.Mutex
 }
 
 func getFile(entry js.Value) js.Value {
@@ -187,6 +188,12 @@ func getFile(entry js.Value) js.Value {
 }
 
 func (f *file) ensureFile() js.Value {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.ensureFileLocked()
+}
+
+func (f *file) ensureFileLocked() js.Value {
 	if f.file.Truthy() {
 		return f.file
 	}
@@ -196,13 +203,21 @@ func (f *file) ensureFile() js.Value {
 }
 
 func (f *file) Stat() (fs.FileInfo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
 	return &fileInfo{
 		name: f.entry.Get("name").String(),
-		file: f.ensureFile(),
+		file: f.ensureFileLocked(),
 	}, nil
 }
 
 func (f *file) ensureUint8Array() (js.Value, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.ensureUint8ArrayLocked()
+}
+
+func (f *file) ensureUint8ArrayLocked() (js.Value, error) {
 	if f.uint8Array.Truthy() {
 		return f.uint8Array, nil
 	}
@@ -221,7 +236,7 @@ func (f *file) ensureUint8Array() (js.Value, error) {
 	})
 	defer cbCatch.Release()
 
-	f.ensureFile().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
+	f.ensureFileLocked().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
 	select {
 	case ab := <-chArrayBuffer:
 		f.uint8Array = js.Global().Get("Uint8Array").New(ab)
@@ -233,7 +248,10 @@ func (f *file) ensureUint8Array() (js.Value, error) {
 }
 
 func (f *file) Read(buf []byte) (int, error) {
-	uint8Array, err := f.ensureUint8Array()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	uint8Array, err := f.ensureUint8ArrayLocked()
 	if err != nil {
 		return 0, err
 	}
@@ -258,7 +276,10 @@ func (f *file) Read(buf []byte) (int, error) {
 }
 
 func (f *file) readAll() ([]byte, error) {
-	uint8Array, err := f.ensureUint8Array()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	uint8Array, err := f.ensureUint8ArrayLocked()
 	if err != nil {
 		return nil, err
 	}
