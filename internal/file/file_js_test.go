@@ -220,12 +220,10 @@ func TestFileReadConcurrently(t *testing.T) {
 	errs := make([]error, goroutines)
 	var wg sync.WaitGroup
 	for i := range goroutines {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			bufs[i] = make([]byte, len(content)/goroutines)
 			ns[i], errs[i] = f.Read(bufs[i])
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -260,21 +258,18 @@ func TestFileStatAndReadConcurrently(t *testing.T) {
 	var size int64
 	var statErr, readErr error
 	var wg sync.WaitGroup
-	wg.Add(2)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		fi, err := f.Stat()
 		if err != nil {
 			statErr = err
 			return
 		}
 		size = fi.Size()
-	}()
-	go func() {
-		defer wg.Done()
+	})
+	wg.Go(func() {
 		buf := make([]byte, len(content))
 		_, readErr = f.Read(buf)
-	}()
+	})
 	wg.Wait()
 
 	if statErr != nil {
