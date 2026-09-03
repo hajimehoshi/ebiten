@@ -404,7 +404,7 @@ func ScreenSize() (int, int) {
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
-// The returned value can be given to SetWindowSize function if the perfectly fit fullscreen is needed.
+// The returned value can be given to [SetWindowSize] if the perfectly fit fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size.
 // ScreenSizeInFullscreen's returning value is different from the actual screen size and this is a known issue (#2145).
