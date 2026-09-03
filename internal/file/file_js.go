@@ -172,7 +172,12 @@ type file struct {
 	file       js.Value
 	offset     int64
 	uint8Array js.Value
-	mu         sync.Mutex
+
+	// mu guards the lazily fetched values and the offset. It is held even while a helper waits for
+	// a JavaScript callback: the callbacks run on the syscall/js callback goroutine and never take
+	// mu, so waiting under it cannot deadlock, and it is what makes a concurrent caller reuse the
+	// fetched value instead of fetching it again.
+	mu sync.Mutex
 }
 
 func getFile(entry js.Value) js.Value {
@@ -187,17 +192,13 @@ func getFile(entry js.Value) js.Value {
 	return <-ch
 }
 
-// ensureFileLocked returns the JS File of the entry, fetching it if it has not been fetched yet.
+// ensureFileLocked returns the JS File of the entry.
 //
 // The caller must hold f.mu.
 func (f *file) ensureFileLocked() js.Value {
 	if f.file.Truthy() {
 		return f.file
 	}
-
-	// The lock is held even while getFile waits for its callback. The callback runs on the syscall/js
-	// callback goroutine and never takes the lock, so this cannot deadlock. Holding the lock across
-	// the wait is what makes a concurrent caller reuse this file instead of fetching it once more.
 	f.file = getFile(f.entry)
 	return f.file
 }
@@ -212,8 +213,7 @@ func (f *file) Stat() (fs.FileInfo, error) {
 	}, nil
 }
 
-// ensureUint8ArrayLocked returns the contents of the file as a Uint8Array, loading them if they
-// have not been loaded yet.
+// ensureUint8ArrayLocked returns the contents of the file as a Uint8Array.
 //
 // The caller must hold f.mu.
 func (f *file) ensureUint8ArrayLocked() (js.Value, error) {
@@ -236,10 +236,6 @@ func (f *file) ensureUint8ArrayLocked() (js.Value, error) {
 	defer cbCatch.Release()
 
 	f.ensureFileLocked().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
-	// The lock is held even during this wait. The promise callbacks run on the syscall/js callback
-	// goroutine and never take the lock, so this cannot deadlock. Holding the lock across the wait is
-	// what makes a concurrent caller reuse these contents instead of fetching and buffering the file
-	// once more.
 	select {
 	case ab := <-chArrayBuffer:
 		f.uint8Array = js.Global().Get("Uint8Array").New(ab)
