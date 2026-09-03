@@ -258,7 +258,7 @@ func SetWindowFloating(float bool) {
 
 // MaximizeWindow maximizes the window.
 //
-// MaximizeWindow does nothing when the window is not resizable (WindowResizingModeDisabled).
+// MaximizeWindow does nothing when the window is not resizable ([WindowResizingModeDisabled]).
 //
 // MaximizeWindow does nothing if the platform is not a desktop.
 //
@@ -269,7 +269,7 @@ func MaximizeWindow() {
 
 // IsWindowMaximized reports whether the window is maximized or not.
 //
-// IsWindowMaximized returns false when the window is not resizable (WindowResizingModeDisabled).
+// IsWindowMaximized returns false when the window is not resizable ([WindowResizingModeDisabled]).
 //
 // IsWindowMaximized always returns false if the platform is not a desktop.
 //

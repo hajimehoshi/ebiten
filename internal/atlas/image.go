@@ -410,7 +410,7 @@ func (i *imageImpl) regionWithPadding() image.Rectangle {
 //	4: Color R [0.0-1.0]
 //	5: Color G
 //	6: Color B
-//	7: Color Y
+//	7: Color A
 func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
 	backendsM.Lock()
 	defer backendsM.Unlock()

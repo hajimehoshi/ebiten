@@ -31,7 +31,7 @@ const (
 	maxCatchUpTicks = 5
 
 	// minCatchUpTime is the lower limit of the real time that one frame can catch up with.
-	// This limit matters when TPS is so big that maxCatchUpTicks ticks are shorter than minCatchUpTime (#1444).
+	// This limit matters when TPS is so big that maxCatchUpTicks ticks are shorter than one frame (#1444).
 	minCatchUpTime = 5 * time.Second / 60
 )
 

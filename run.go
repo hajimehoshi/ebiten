@@ -97,8 +97,8 @@ type LayoutFer interface {
 	//
 	// LayoutF accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
-	// scale from the screen to the final screen size. For 1), the actual screen size is a rounded up from the
-	// logical size.
+	// scale from the screen to the final screen size. For 1), the actual screen size is the logical size
+	// rounded up.
 	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 

@@ -93,3 +93,37 @@ func TestMultiFaceAdvance(t *testing.T) {
 		})
 	}
 }
+
+func TestMultiFaceAfterFaceUpdate(t *testing.T) {
+	enFaceSource, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	high := text.NewLimitedFace(text.NewGoXFace(bitmapfont.Face))
+	high.AddUnicodeRange('a', 'a')
+	low := text.NewLimitedFace(&text.GoTextFace{
+		Source: enFaceSource,
+		Size:   10,
+	})
+	low.AddUnicodeRange('a', 'z')
+
+	m, err := text.NewMultiFace(high, low)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const str = "ab"
+	// 'a' is rendered by high and 'b' is rendered by low here.
+	before := text.Advance(str, m)
+
+	// A face's glyphs can change even after a MultiFace creation, and the change must be reflected.
+	high.AddUnicodeRange('b', 'b')
+	got := text.Advance(str, m)
+	if want := text.Advance(str, high); got != want {
+		t.Errorf("got: %f, want: %f", got, want)
+	}
+	if before == got {
+		t.Errorf("the advance before and after a face update must differ: %f", got)
+	}
+}

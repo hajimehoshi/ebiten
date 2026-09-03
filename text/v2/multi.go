@@ -31,14 +31,6 @@ var _ Face = (*MultiFace)(nil)
 // [NewMultiFace] rejects such faces, but a face's direction can be changed after the creation (e.g. [GoTextFace.Direction]).
 type MultiFace struct {
 	faces []Face
-
-	// splitTextCache memoizes per-text chunk decomposition. The decomposition
-	// depends only on the faces' hasGlyph results, which are stable for the
-	// lifetime of a face, so cached entries never need invalidation.
-	// NOTE: This assumes that faces' hasGlyph results do not change after
-	// creation. For example, [LimitedFace.AddUnicodeRange] can change the
-	// results, so you must configure all ranges before creating a [MultiFace].
-	splitTextCache *cache[string, []textChunk]
 }
 
 // NewMultiFace creates a new MultiFace from the given faces.
@@ -56,9 +48,7 @@ func NewMultiFace(faces ...Face) (*MultiFace, error) {
 		}
 	}
 
-	m := &MultiFace{
-		splitTextCache: newCache[string, []textChunk](32),
-	}
+	m := &MultiFace{}
 	m.faces = make([]Face, len(faces))
 	copy(m.faces, faces)
 	return m, nil
@@ -172,13 +162,12 @@ type textChunk struct {
 	faceIndex      int
 }
 
+// splitText splits the text into chunks, each of which is rendered by one face.
+//
+// The result is not memoized on purpose: a face's hasGlyph result can change after the face's
+// creation (e.g. [LimitedFace.AddUnicodeRange] or an assignment to [GoTextFace.Source]),
+// so a memoized chunk decomposition could be stale.
 func (m *MultiFace) splitText(text string) []textChunk {
-	return m.splitTextCache.getOrCreate(text, func() ([]textChunk, bool) {
-		return m.doSplitText(text), true
-	})
-}
-
-func (m *MultiFace) doSplitText(text string) []textChunk {
 	var chunks []textChunk
 	var chunk textChunk
 	for i, r := range text {
