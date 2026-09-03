@@ -12,6 +12,7 @@ import (
 	"log/slog"
 	"math"
 	"runtime"
+	"sync"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -583,7 +584,7 @@ func (w *Window) maximizeWindowManually() error {
 }
 
 func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) uintptr /*_LRESULT*/ {
-	window := handleToWindow[hWnd]
+	window := lookupWindow(hWnd)
 	if window == nil {
 		// This is the message handling for the hidden helper window
 		// and for a regular window during its initial creation
@@ -1241,7 +1242,28 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 var windowProcPtr = windows.NewCallbackCDecl(windowProc)
 
-var handleToWindow = map[windows.HWND]*Window{}
+var (
+	handleToWindow  = map[windows.HWND]*Window{}
+	handleToWindowM sync.RWMutex
+)
+
+func lookupWindow(hWnd windows.HWND) *Window {
+	handleToWindowM.RLock()
+	defer handleToWindowM.RUnlock()
+	return handleToWindow[hWnd]
+}
+
+func registerWindow(hWnd windows.HWND, w *Window) {
+	handleToWindowM.Lock()
+	defer handleToWindowM.Unlock()
+	handleToWindow[hWnd] = w
+}
+
+func unregisterWindow(hWnd windows.HWND) {
+	handleToWindowM.Lock()
+	defer handleToWindowM.Unlock()
+	delete(handleToWindow, hWnd)
+}
 
 func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) error {
 	style := w.getWindowStyle()
@@ -1287,7 +1309,7 @@ func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) er
 	}
 	w.platform.handle = h
 
-	handleToWindow[w.platform.handle] = w
+	registerWindow(w.platform.handle, w)
 
 	if !microsoftgdk.IsXbox() && winver.IsWindows7OrGreater() {
 		if err := _ChangeWindowMessageFilterEx(w.platform.handle, _WM_DROPFILES, _MSGFLT_ALLOW, nil); err != nil {
@@ -1588,7 +1610,7 @@ func (w *Window) platformDestroyWindow() error {
 				return err
 			}
 		}
-		delete(handleToWindow, w.platform.handle)
+		unregisterWindow(w.platform.handle)
 		w.platform.handle = 0
 	}
 
@@ -2247,7 +2269,7 @@ func platformPollEvents() error {
 	//       because they change the input focus
 	// NOTE: The other half of this is in the WM_*KEY* handler in windowProc
 	if handle != 0 {
-		if window := handleToWindow[handle]; window != nil {
+		if window := lookupWindow(handle); window != nil {
 			keys := [...]struct {
 				VK  int
 				Key Key
