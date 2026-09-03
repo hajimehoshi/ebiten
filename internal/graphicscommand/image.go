@@ -126,13 +126,9 @@ func (i *Image) InternalSize() (int, int) {
 //	4: Color R [0.0-1.0]
 //	5: Color G
 //	6: Color B
-//	7: Color Y
-//
-// src and shader are exclusive and only either is non-nil.
+//	7: Color A
 //
 // The elements that index is in between 2 and 7 are used for the source images.
-// The source image is 1) src argument if non-nil, or 2) an image value in the uniform variables if it exists.
-// If there are multiple images in the uniform variables, the smallest ID's value is adopted.
 //
 // If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
 // elements for the source image are not used.

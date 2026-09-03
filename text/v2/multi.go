@@ -35,6 +35,9 @@ type MultiFace struct {
 	// splitTextCache memoizes per-text chunk decomposition. The decomposition
 	// depends only on the faces' hasGlyph results, which are stable for the
 	// lifetime of a face, so cached entries never need invalidation.
+	// NOTE: This assumes that faces' hasGlyph results do not change after
+	// creation. For example, [LimitedFace.AddUnicodeRange] can change the
+	// results, so you must configure all ranges before creating a [MultiFace].
 	splitTextCache *cache[string, []textChunk]
 }
 
