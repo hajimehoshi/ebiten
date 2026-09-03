@@ -132,18 +132,16 @@ func (p *dummyPlayer) IsPlaying() bool {
 	return p.playing
 }
 
-// Volume returns the volume.
-//
-// The volume is not shared with the goroutine Play spawns, but the mutex is held so that the test
-// double is uniformly safe like the real player it stands in for.
 func (p *dummyPlayer) Volume() float64 {
+	// The volume is not shared with the goroutine Play spawns, but the mutex is held so that the
+	// test double is uniformly safe like the real player it stands in for.
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	return p.volume
 }
 
-// SetVolume sets the volume. See Volume for why the mutex is held.
 func (p *dummyPlayer) SetVolume(volume float64) {
+	// See Volume for why the mutex is held.
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.volume = volume
