@@ -53,6 +53,11 @@ func (m *MonitorType) Size() (int, int) {
 // Monitor returns the current monitor.
 //
 // Monitor can return nil when no monitor is available.
+//
+// Monitor must be called on the main thread before ebiten.RunGame, and is concurrent-safe after ebiten.RunGame.
+//
+// Monitor can return the current machine's monitor even when the game is a virtualization guest,
+// especially before the game starts, and this is a known issue (#3632).
 func Monitor() *MonitorType {
 	m := ui.Get().Monitor()
 	if m == nil {
@@ -70,6 +75,12 @@ func SetMonitor(monitor *MonitorType) {
 // On desktop platforms, the first monitor in the slice will be the primary monitor.
 // Nothing is appended when no monitor is available.
 // Any monitors added or removed will show up with subsequent calls to this function.
+//
+// AppendMonitors must be called on the main thread before ebiten.RunGame, and is concurrent-safe after
+// ebiten.RunGame.
+//
+// AppendMonitors can append the current machine's monitors even when the game is a virtualization guest,
+// especially before the game starts, and this is a known issue (#3632).
 func AppendMonitors(monitors []*MonitorType) []*MonitorType {
 	// TODO: This is not an efficient operation. It would be best if we could directly pass monitors directly into `ui.AppendMonitors`.
 	for _, m := range ui.Get().AppendMonitors(nil) {
