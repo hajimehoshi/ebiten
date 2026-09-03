@@ -133,10 +133,14 @@ func (p *dummyPlayer) IsPlaying() bool {
 }
 
 func (p *dummyPlayer) Volume() float64 {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.volume
 }
 
 func (p *dummyPlayer) SetVolume(volume float64) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.volume = volume
 }
 
