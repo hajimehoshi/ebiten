@@ -417,7 +417,7 @@ func lineForTwoPoints(p0, p1 point) (a, b, c float32) {
 	return
 }
 
-// isPointCloseToSegment detects the distance between a point (x, y) and the line passing through p0 and p1 is less than allow.
+// isPointCloseToSegment detects the distance between the point p and the line passing through p0 and p1 is less than allow.
 // If p0 and p1 are the same, isPointCloseToSegment returns true when the distance between p0 and p is less than allow.
 func isPointCloseToSegment(p, p0, p1 point, allow float32) bool {
 	if p0 == p1 {
