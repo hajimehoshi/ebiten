@@ -172,6 +172,12 @@ type file struct {
 	file       js.Value
 	offset     int64
 	uint8Array js.Value
+
+	// mu guards the lazily fetched values and the offset. It is held even while a helper waits for
+	// a JavaScript callback: the callbacks run on the syscall/js callback goroutine and never take
+	// mu, so waiting under it cannot deadlock, and it is what makes a concurrent caller reuse the
+	// fetched value instead of fetching it again.
+	mu sync.Mutex
 }
 
 func getFile(entry js.Value) js.Value {
@@ -186,23 +192,31 @@ func getFile(entry js.Value) js.Value {
 	return <-ch
 }
 
-func (f *file) ensureFile() js.Value {
+// ensureFileLocked returns the JS File of the entry.
+//
+// The caller must hold f.mu.
+func (f *file) ensureFileLocked() js.Value {
 	if f.file.Truthy() {
 		return f.file
 	}
-
 	f.file = getFile(f.entry)
 	return f.file
 }
 
 func (f *file) Stat() (fs.FileInfo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
 	return &fileInfo{
 		name: f.entry.Get("name").String(),
-		file: f.ensureFile(),
+		file: f.ensureFileLocked(),
 	}, nil
 }
 
-func (f *file) ensureUint8Array() (js.Value, error) {
+// ensureUint8ArrayLocked returns the contents of the file as a Uint8Array.
+//
+// The caller must hold f.mu.
+func (f *file) ensureUint8ArrayLocked() (js.Value, error) {
 	if f.uint8Array.Truthy() {
 		return f.uint8Array, nil
 	}
@@ -221,7 +235,7 @@ func (f *file) ensureUint8Array() (js.Value, error) {
 	})
 	defer cbCatch.Release()
 
-	f.ensureFile().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
+	f.ensureFileLocked().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
 	select {
 	case ab := <-chArrayBuffer:
 		f.uint8Array = js.Global().Get("Uint8Array").New(ab)
@@ -233,7 +247,10 @@ func (f *file) ensureUint8Array() (js.Value, error) {
 }
 
 func (f *file) Read(buf []byte) (int, error) {
-	uint8Array, err := f.ensureUint8Array()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	uint8Array, err := f.ensureUint8ArrayLocked()
 	if err != nil {
 		return 0, err
 	}
@@ -258,7 +275,10 @@ func (f *file) Read(buf []byte) (int, error) {
 }
 
 func (f *file) readAll() ([]byte, error) {
-	uint8Array, err := f.ensureUint8Array()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	uint8Array, err := f.ensureUint8ArrayLocked()
 	if err != nil {
 		return nil, err
 	}
