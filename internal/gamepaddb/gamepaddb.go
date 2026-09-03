@@ -436,9 +436,7 @@ func HasStandardLayoutMapping(id string) bool {
 
 // GamepadState represents a gamepad state given by a gamepad driver.
 //
-// The methods must not be called while mappingsM is held. A gamepad implementation can
-// take its own lock in these methods, and a holder of that lock can call this package at
-// the same time, which would deadlock.
+// The methods must not be called while mappingsM is held.
 type GamepadState interface {
 	IsAxisReady(index int) bool
 	Axis(index int) float64
