@@ -23,7 +23,7 @@ import (
 // AppendVerticesAndIndicesForFilling works in a similar way to the built-in append function.
 // If the arguments are nils, AppendVerticesAndIndicesForFilling returns new slices.
 //
-// The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
+// The returned vertices' SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with FillRuleNonZero or FillRuleEvenOdd
 // in order to render a complex polygon like a concave polygon, a polygon with holes, or a self-intersecting polygon.
@@ -65,7 +65,7 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 // AppendVerticesAndIndicesForStroke works in a similar way to the built-in append function.
 // If the arguments are nils, AppendVerticesAndIndicesForStroke returns new slices.
 //
-// The returned vertice's SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
+// The returned vertices' SrcX and SrcY are 0, and ColorR, ColorG, ColorB, and ColorA are 1.
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with a solid (non-transparent) color
 // with FillRuleFillAll or FillRuleNonZero, not FillRuleEvenOdd.

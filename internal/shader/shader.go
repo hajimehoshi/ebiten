@@ -353,7 +353,7 @@ func (cs *compileState) parse(f *ast.File) {
 		return
 	}
 
-	// Set attribute and varying veraibles.
+	// Set attribute and varying variables.
 	for _, p := range vertexInParams {
 		cs.ir.Attributes = append(cs.ir.Attributes, p.typ)
 	}

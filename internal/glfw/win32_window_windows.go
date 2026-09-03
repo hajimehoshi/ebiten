@@ -2420,7 +2420,7 @@ func (w *Window) platformSetCursorMode(mode int) error {
 
 func platformGetScancodeName(scancode int) (string, error) {
 	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) {
-		return "", fmt.Errorf("glwfwin: invalid scancode %d: %w", scancode, InvalidValue)
+		return "", fmt.Errorf("glfw: invalid scancode %d: %w", scancode, InvalidValue)
 	}
 	key := _glfw.platformWindow.keycodes[scancode]
 	if key == KeyUnknown {
