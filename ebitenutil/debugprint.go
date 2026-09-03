@@ -28,10 +28,7 @@ import (
 //go:embed text.png
 var text_png []byte
 
-var (
-	debugPrintTextImage     *ebiten.Image
-	debugPrintTextSubImages = map[rune]*ebiten.Image{}
-)
+var debugPrintTextImage *ebiten.Image
 
 func init() {
 	img, _, err := image.Decode(bytes.NewReader(text_png))
@@ -74,14 +71,10 @@ func drawDebugText(rt *ebiten.Image, str string, ox, oy int) {
 			x += cw
 			continue
 		}
-		s, ok := debugPrintTextSubImages[c]
-		if !ok {
-			n := w / cw
-			sx := (int(c) % n) * cw
-			sy := (int(c) / n) * ch
-			s = debugPrintTextImage.SubImage(image.Rect(sx, sy, sx+cw, sy+ch)).(*ebiten.Image)
-			debugPrintTextSubImages[c] = s
-		}
+		n := w / cw
+		sx := (int(c) % n) * cw
+		sy := (int(c) / n) * ch
+		s := debugPrintTextImage.SubImage(image.Rect(sx, sy, sx+cw, sy+ch)).(*ebiten.Image)
 		op.GeoM.Reset()
 		op.GeoM.Translate(float64(x), float64(y))
 		op.GeoM.Translate(float64(ox+1), float64(oy))
