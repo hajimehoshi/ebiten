@@ -735,9 +735,7 @@ func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, o
 		return err
 	}
 
-	c.game.UpdateInputState(func(inputState *InputState) {
-		ui.readInputState(inputState)
-	})
+	c.readInputStateForTick(ui)
 
 	if err := hook.RunBeforeUpdateHooks(); err != nil {
 		return err

@@ -312,7 +312,15 @@ func (u *UserInterface) Tick() int64 {
 
 func (u *UserInterface) incrementTick() {
 	u.tick.Add(1)
-	u.inputTime.Store(int64(NewInputTimeFromTick(u.tick.Load())))
+}
+
+// advanceInputTimeToNextTick stamps the input events recorded from now on with the next tick.
+//
+// This must be called right after a tick's input snapshot is taken. An event can be recorded in the
+// middle of a tick, as a main-thread operation like resizing the window pumps the event queue there,
+// and the next tick is the first one that can report its edge.
+func (u *UserInterface) advanceInputTimeToNextTick() {
+	u.inputTime.Store(int64(NewInputTimeFromTick(u.tick.Load() + 1)))
 }
 
 func (u *UserInterface) InputTime() InputTime {

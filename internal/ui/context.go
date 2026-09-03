@@ -204,10 +204,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Update the game.
 	for range updateCount {
-		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
-		c.game.UpdateInputState(func(inputState *InputState) {
-			ui.readInputState(inputState)
-		})
+		c.readInputStateForTick(ui)
 
 		if err := hook.RunBeforeUpdateHooks(); err != nil {
 			return false, err
@@ -237,6 +234,16 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Draw the game.
 	return c.drawGame(graphicsDriver, ui, forceDraw)
+}
+
+// readInputStateForTick takes the input snapshot for the tick that is about to run.
+func (c *context) readInputStateForTick(ui *UserInterface) {
+	// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
+	c.game.UpdateInputState(func(inputState *InputState) {
+		ui.readInputState(inputState)
+	})
+	// The snapshot for this tick is taken, so an event recorded from now on belongs to the next tick.
+	ui.advanceInputTimeToNextTick()
 }
 
 func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {
