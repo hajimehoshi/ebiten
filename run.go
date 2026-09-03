@@ -97,8 +97,8 @@ type LayoutFer interface {
 	//
 	// LayoutF accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
-	// scale from the screen to the final screen size. For 1), the actual screen size is a rounded up of the
-	// logical size.
+	// scale from the screen to the final screen size. For 1), the actual screen size is the logical size
+	// rounded up.
 	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 
@@ -142,7 +142,7 @@ const DefaultTPS = clock.DefaultTPS
 // how many swapping buffer happens per second.
 //
 // On some environments, ActualFPS doesn't return a reliable value since vsync doesn't work well there.
-// If you want to measure the application's speed, Use ActualTPS.
+// If you want to measure the application's speed, use ActualTPS.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
@@ -281,7 +281,7 @@ type RunGameOptions struct {
 
 	// DisableHiDPI indicates whether the rendering for HiDPI is disabled or not.
 	// If HiDPI is disabled, the device scale factor is always 1 i.e. Monitor's DeviceScaleFactor always returns 1.
-	// This is useful to get a better performance on HiDPI displays, in the expense of rendering quality.
+	// This is useful to get a better performance on HiDPI displays, at the expense of rendering quality.
 	//
 	// DisableHiDPI is available only on browsers.
 	//
@@ -488,8 +488,6 @@ func SetFullscreen(fullscreen bool) {
 
 // IsFocused returns a boolean value indicating whether
 // the game is in focus or in the foreground.
-//
-// IsFocused will only return true if IsRunnableOnUnfocused is false.
 //
 // IsFocused is concurrent-safe.
 func IsFocused() bool {

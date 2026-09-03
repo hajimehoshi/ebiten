@@ -149,7 +149,7 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	}
 
 	if op == VectorEqualOp || op == VectorNotEqualOp {
-		if (lhst.IsFloatVector() || lhst.IsIntVector()) && (rhst.IsFloatVector() || lhst.IsIntVector()) && lhst.Equal(&rhst) {
+		if (lhst.IsFloatVector() || lhst.IsIntVector()) && (rhst.IsFloatVector() || rhst.IsIntVector()) && lhst.Equal(&rhst) {
 			return Type{Main: Bool}, true
 		}
 		return Type{}, false

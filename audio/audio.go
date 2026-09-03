@@ -354,7 +354,7 @@ type Player struct {
 //
 // For new code, NewPlayerF32 is preferrable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
 //
-// A Player for 16bit integer must be used with 16bit integer version of audio APIs, like vorbis.DecodeWithoutResampling or audio.NewInfiniteLoop, not or vorbis.DecodeF32 or audio.NewInfiniteLoopF32.
+// A Player for 16bit integer must be used with 16bit integer version of audio APIs, like vorbis.DecodeWithoutResampling or audio.NewInfiniteLoop, not vorbis.DecodeF32 or audio.NewInfiniteLoopF32.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 	_, seekable := src.(io.Seeker)
 	f32Src := convert.NewFloat32BytesReaderFromInt16BytesReader(src)
@@ -435,7 +435,7 @@ func (c *Context) NewPlayerF32FromBytes(src []byte) *Player {
 	p, err := c.NewPlayerF32(bytes.NewReader(src))
 	if err != nil {
 		// Errors should never happen.
-		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytesF32", err))
+		panic(fmt.Sprintf("audio: %v at NewPlayerF32FromBytes", err))
 	}
 	return p
 }
@@ -595,7 +595,7 @@ func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool
 	hook.AppendHookOnBeforeUpdateWithVMGuestInfo(f)
 }
 
-// ResampleReader converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.
+// ResampleReader converts the sample rate of the given signed 16bit integer, little-endian, 2 channels (stereo) stream.
 // length is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
@@ -633,7 +633,7 @@ func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
 	return convert.NewResampling(source, length, from, to, bitDepthInBytesFloat32)
 }
 
-// Resample converts the sample rate of the given singed 16bit integer, little-endian, 2 channels (stereo) stream.
+// Resample converts the sample rate of the given signed 16bit integer, little-endian, 2 channels (stereo) stream.
 // length is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
