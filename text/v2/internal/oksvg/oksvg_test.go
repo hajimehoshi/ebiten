@@ -24,9 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/oksvg"
 )
 
-// TestDrawTransformedUserSpaceGradient checks that a gradient with
-// gradientUnits="userSpaceOnUse" is evaluated with the drawing transform
-// applied (#2649).
+// Issue #2649
 func TestDrawTransformedUserSpaceGradient(t *testing.T) {
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg">
 <defs><radialGradient id="g" cx="500" cy="500" r="500" gradientUnits="userSpaceOnUse">
@@ -57,6 +55,7 @@ func TestDrawTransformedUserSpaceGradient(t *testing.T) {
 	}
 }
 
+// Issue #3662
 func TestScaleWithOneArgument(t *testing.T) {
 	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
 <g transform="scale(0.5)"><rect x="0" y="0" width="100" height="100" fill="#FF0000"/></g>
