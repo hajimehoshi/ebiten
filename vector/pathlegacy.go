@@ -126,8 +126,8 @@ func (f *flatPath) close() {
 }
 
 func (p *Path) resetFlatPaths() {
-	for _, fp := range p.flatPaths {
-		fp.reset()
+	for i := range p.flatPaths {
+		p.flatPaths[i].reset()
 	}
 	p.flatPaths = p.flatPaths[:0]
 }
