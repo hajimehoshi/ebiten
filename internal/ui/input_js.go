@@ -74,7 +74,7 @@ func eventToKeys(e js.Value) (key0, key1 Key) {
 	// With a virtual keyboard on mobile devices, e.code is empty. Use a 'key' property instead (#2898).
 	key := e.Get("key")
 
-	// The key property doesn't distinghlish between left and right modifier keys.
+	// The key property doesn't distinguish between left and right modifier keys.
 	// Let's assume both keys are pressed.
 	switch {
 	case key.Equal(stringAlt):

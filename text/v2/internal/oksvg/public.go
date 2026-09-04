@@ -143,7 +143,7 @@ func ReadIcon(iconFile string, errMode ...ErrorMode) (*SvgIcon, error) {
 	return ReadIconStream(fin, errMode...)
 }
 
-// ParseSVGColorNum reads the SFG color string e.g. #FBD9BD
+// ParseSVGColorNum reads the SVG color string e.g. #FBD9BD
 func ParseSVGColorNum(colorStr string) (r, g, b uint8, err error) {
 	colorStr = strings.TrimPrefix(colorStr, "#")
 	var t uint64

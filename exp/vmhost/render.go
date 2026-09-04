@@ -29,7 +29,7 @@ import (
 // frameRenderer replays a guest's recorded graphics commands onto the host GPU by re-issuing them at
 // the internal ui.Image layer, through the host's ordinary ebiten rendering stack.
 //
-// The methods must be called within the host's frame.
+// render is called from the session goroutine, while dispose must be called within the host's frame.
 type frameRenderer struct {
 	images  map[graphicsdriver.ImageID]*hostImage
 	shaders map[graphicsdriver.ShaderID]*hostShader

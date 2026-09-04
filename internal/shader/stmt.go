@@ -510,7 +510,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 		var localVariablIndicesToAssignLater []int
 		var leftExprsToAssignLater []shaderir.Expr
 		for i, e := range lhs {
-			// Prase RHS first for the order of the statements.
+			// Parse RHS first for the order of the statements.
 			r, rts, ss, ok := cs.parseExpr(block, fname, rhs[i], true)
 			if !ok {
 				return nil, false

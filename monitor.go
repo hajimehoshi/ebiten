@@ -66,7 +66,7 @@ func Monitor() *MonitorType {
 	return (*MonitorType)(m)
 }
 
-// SetMonitor sets the monitor that the window should be on. This can be called before or after Run.
+// SetMonitor sets the monitor that the window should be on. This can be called before or after RunGame.
 func SetMonitor(monitor *MonitorType) {
 	ui.Get().Window().SetMonitor((*ui.Monitor)(monitor))
 }
