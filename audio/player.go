@@ -523,13 +523,25 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 		return
 	}
 
-	bufferSizeInBytes := int(bufferSize * time.Duration(p.bytesPerSample) * time.Duration(p.factory.sampleRate) / time.Second)
-	bufferSizeInBytes = bufferSizeInBytes / p.bytesPerSample * p.bytesPerSample
+	sizeInBytes := bufferSizeInBytes(bufferSize, p.bytesPerSample, p.factory.sampleRate)
 	if p.player == nil {
-		p.initBufferSize = bufferSizeInBytes
+		p.initBufferSize = sizeInBytes
 		return
 	}
-	p.player.SetBufferSize(bufferSizeInBytes)
+	p.player.SetBufferSize(sizeInBytes)
+}
+
+func bufferSizeInBytes(bufferSize time.Duration, bytesPerSample, sampleRate int) int {
+	if bufferSize <= 0 {
+		return 0
+	}
+
+	size := mulDiv(int64(bufferSize), int64(bytesPerSample)*int64(sampleRate), int64(time.Second))
+	if size > int64(math.MaxInt) {
+		return 0
+	}
+	size = size / int64(bytesPerSample) * int64(bytesPerSample)
+	return int(size)
 }
 
 func (p *playerImpl) sourceIdent() any {
