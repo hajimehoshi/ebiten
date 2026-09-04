@@ -94,24 +94,31 @@ type Resampling struct {
 	bitDepthInBytes int
 	pos             int64
 	srcBlock        int64
-	srcBufL         map[int64][]float64
-	srcBufR         map[int64][]float64
-	lruSrcBlocks    []int64
-	eof             bool
-	eofBufIndex     int64
+	// lastReadSrcBlock is the last block read completely or through EOF.
+	// It is -1 before the first block is read. Its value is ignored when
+	// lastReadSrcBlockValid is false.
+	lastReadSrcBlock      int64
+	lastReadSrcBlockValid bool
+	srcBufL               map[int64][]float64
+	srcBufR               map[int64][]float64
+	lruSrcBlocks          []int64
+	eof                   bool
+	eofBufIndex           int64
 }
 
 func NewResampling(source io.Reader, length int64, from, to int, bitDepthInBytes int) *Resampling {
 	r := &Resampling{
-		source:            source,
-		declaredSrcLength: length,
-		from:              from,
-		bitDepthInBytes:   bitDepthInBytes,
-		to:                to,
-		srcBlock:          -1,
-		srcBufL:           map[int64][]float64{},
-		srcBufR:           map[int64][]float64{},
-		eofBufIndex:       -1,
+		source:                source,
+		declaredSrcLength:     length,
+		from:                  from,
+		bitDepthInBytes:       bitDepthInBytes,
+		to:                    to,
+		srcBlock:              -1,
+		lastReadSrcBlock:      -1,
+		lastReadSrcBlockValid: true,
+		srcBufL:               map[int64][]float64{},
+		srcBufR:               map[int64][]float64{},
+		eofBufIndex:           -1,
 	}
 	return r
 }
@@ -148,7 +155,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 	sizePerSample := int64(r.bytesPerSample())
 	nextPos := int64(i) / resamplingBufferSize
 	if _, ok := r.srcBufL[nextPos]; !ok {
-		if r.srcBlock+1 != nextPos {
+		if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != nextPos {
 			seeker, ok := r.source.(io.Seeker)
 			if !ok {
 				return 0, 0, fmt.Errorf("convert: source must be io.Seeker")
@@ -169,14 +176,22 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 						r.derivedSrcLength = nextPos*resamplingBufferSize*sizePerSample + int64(c)
 					}
 					r.eofBufIndex = nextPos
+					r.lastReadSrcBlock = nextPos
+					r.lastReadSrcBlockValid = true
 					break
 				}
+				r.lastReadSrcBlockValid = false
 				return 0, 0, err
 			}
 			// A source making no progress must not spin here.
 			if n == 0 {
+				r.lastReadSrcBlockValid = false
 				break
 			}
+		}
+		if c == len(buf) {
+			r.lastReadSrcBlock = nextPos
+			r.lastReadSrcBlockValid = true
 		}
 		buf = buf[:c]
 		sl := make([]float64, resamplingBufferSize)
