@@ -15,6 +15,7 @@
 package wav
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -52,11 +53,11 @@ func (s *sectionReader) Read(p []byte) (int, error) {
 
 // Seek is implementation of io.Seeker's Seek.
 //
-// If the underlying source is not an io.Seeker, Seek panics.
+// If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 	seeker, ok := s.src.(io.Seeker)
 	if !ok {
-		panic("wav: s.src must be io.Seeker but not")
+		return 0, fmt.Errorf("wav: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
 	var pos int64

@@ -49,7 +49,7 @@ func (s *Stream) Read(p []byte) (int, error) {
 //
 // Note that Seek can take long since decoding is a relatively heavy task.
 //
-// If the underlying source is not an io.Seeker, Seek panics.
+// If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.inner.Seek(offset, whence)
 }
@@ -71,7 +71,7 @@ func (s *Stream) SampleRate() int {
 //
 // DecodeF32 returns error when decoding fails or IO error happens.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
@@ -90,7 +90,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 //
 // DecodeWithoutResampling returns error when decoding fails or IO error happens.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
@@ -111,7 +111,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 //
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
@@ -277,7 +277,7 @@ chunks:
 //
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
