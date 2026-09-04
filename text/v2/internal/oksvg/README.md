@@ -18,6 +18,11 @@ included.
   which ignores the transform. Without this, gradients with
   `gradientUnits="userSpaceOnUse"` were evaluated against untransformed
   geometry and rendered incorrectly when a transform was applied.
+- `<use>` expansion is bounded by a maximum number of expanded elements.
+  Without it, a document whose `<use>` element refers to itself, directly
+  or through another definition, recurses until the process dies with an
+  unrecoverable stack overflow, and nested `<use>` elements expand a small
+  document into an unbounded number of paths.
 - The `golang.org/x/net/html/charset` dependency is removed:
   `ReadIconStream` no longer sets `decoder.CharsetReader`. Consumers of
   this fork feed it OpenType SVG documents, which are UTF-8 by

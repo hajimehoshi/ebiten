@@ -345,6 +345,13 @@ var (
 		if !ok {
 			return errors.New("href ID in use statement was not found in saved defs")
 		}
+		// Bound the expansion: a cyclic reference recurses until the stack
+		// overflows, and nested use tags can expand exponentially.
+		const maxUseExpansions = 10000
+		c.useExpansions += len(defs)
+		if c.useExpansions > maxUseExpansions {
+			return errors.New("too many elements expanded by use tags")
+		}
 		for _, def := range defs {
 			if def.Tag == "endg" {
 				// pop style

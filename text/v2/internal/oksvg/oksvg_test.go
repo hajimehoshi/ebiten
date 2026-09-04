@@ -15,6 +15,7 @@
 package oksvg_test
 
 import (
+	"fmt"
 	"image"
 	"strings"
 	"testing"
@@ -86,5 +87,76 @@ func TestScaleWithOneArgument(t *testing.T) {
 		if got, want := a > 0, tc.alpha; got != want {
 			t.Errorf("pixel at (%d, %d): opaque = %t, want %t", tc.x, tc.y, got, want)
 		}
+	}
+}
+
+// Issue #3659
+func TestReadIconStreamCyclicUse(t *testing.T) {
+	testCases := []struct {
+		name string
+		svg  string
+	}{
+		{
+			name: "self",
+			svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+<defs><g id="a"><use href="#a"/></g></defs>
+<use href="#a"/>
+</svg>`,
+		},
+		{
+			name: "mutual",
+			svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+<defs><g id="a"><use href="#b"/></g><g id="b"><use href="#a"/></g></defs>
+<use href="#a"/>
+</svg>`,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			icon, err := oksvg.ReadIconStream(strings.NewReader(tc.svg))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := len(icon.SVGPaths), 0; got != want {
+				t.Errorf("len(icon.SVGPaths): got: %d, want: %d", got, want)
+			}
+		})
+	}
+}
+
+// Issue #3659
+func TestReadIconStreamNestedUse(t *testing.T) {
+	var svg strings.Builder
+	svg.WriteString(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><defs>`)
+	svg.WriteString(`<g id="g0"><path d="M0 0 L10 0 L10 10 Z"/></g>`)
+	// Each definition uses the previous one twice, so #g20 covers 2^20 paths.
+	const n = 20
+	for i := 1; i <= n; i++ {
+		fmt.Fprintf(&svg, `<g id="g%d"><use href="#g%d"/><use href="#g%d"/></g>`, i, i-1, i-1)
+	}
+	fmt.Fprintf(&svg, `</defs><use href="#g%d"/></svg>`, n)
+
+	icon, err := oksvg.ReadIconStream(strings.NewReader(svg.String()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(icon.SVGPaths), 1<<n; got >= want {
+		t.Errorf("len(icon.SVGPaths): got: %d, want: < %d", got, want)
+	}
+}
+
+func TestReadIconStreamUse(t *testing.T) {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">
+<defs><g id="a"><path d="M0 0 L10 0 L10 10 Z"/></g></defs>
+<use href="#a"/>
+<use href="#a" x="1" y="2"/>
+</svg>`
+
+	icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(icon.SVGPaths), 2; got != want {
+		t.Errorf("len(icon.SVGPaths): got: %d, want: %d", got, want)
 	}
 }

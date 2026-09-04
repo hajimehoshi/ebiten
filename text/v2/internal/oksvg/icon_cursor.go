@@ -24,6 +24,7 @@ type IconCursor struct {
 	grad                                                 *rasterx.Gradient
 	inTitleText, inDescText, inGrad, inDefs, inDefsStyle bool
 	currentDef                                           []definition
+	useExpansions                                        int
 }
 
 // ReadGradURL reads an SVG format gradient url
