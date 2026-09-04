@@ -334,7 +334,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 		for i := range n / size {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
-				return 0, err
+				return size * i, err
 			}
 			// EOF from the at method indicates that the source reaches the end, and doesn't indicate the resampled data ends.
 			// The length check below is the terminator of the resampled data, except when the length is still unknown:
@@ -361,7 +361,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 		for i := range n / size {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
-				return 0, err
+				return size * i, err
 			}
 			if err == io.EOF && r.srcLength() < 0 {
 				n = size * i
