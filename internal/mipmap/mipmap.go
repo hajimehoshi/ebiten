@@ -139,6 +139,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 					vertices[i+2] /= s
 					vertices[i+3] /= s
 				}
+				srcRegions[i] = image.Rect(0, 0, sizeForLevel(src.width, level), sizeForLevel(src.height, level))
 				imgs[i] = img
 				continue
 			}
