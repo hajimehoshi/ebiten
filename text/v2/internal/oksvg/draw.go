@@ -227,7 +227,7 @@ var (
 			switch attr.Name.Local {
 			case "id":
 				id := attr.Value
-				if len(id) >= 0 {
+				if len(id) > 0 {
 					c.icon.Grads[id] = c.grad
 				} else {
 					return errZeroLengthID
@@ -259,7 +259,7 @@ var (
 			switch attr.Name.Local {
 			case "id":
 				id := attr.Value
-				if len(id) >= 0 {
+				if len(id) > 0 {
 					c.icon.Grads[id] = c.grad
 				} else {
 					return errZeroLengthID
