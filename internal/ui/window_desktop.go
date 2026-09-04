@@ -51,7 +51,7 @@ type desktopWindow struct {
 
 	initWindowDecorated        atomic.Bool
 	initWindowVisible          atomic.Bool
-	initWindowPositionInDIP    atomic.Value
+	initWindowPositionInDIP    atomic.Pointer[image.Point]
 	initWindowSizeInDIP        atomic.Value
 	initWindowFloating         atomic.Bool
 	initWindowMaximized        atomic.Bool
@@ -70,7 +70,6 @@ func (w *desktopWindow) init() {
 	})
 	w.initWindowDecorated.Store(true)
 	w.initWindowVisible.Store(true)
-	w.initWindowPositionInDIP.Store(image.Pt(invalidPos, invalidPos))
 	w.initWindowSizeInDIP.Store(image.Pt(640, 480))
 }
 
@@ -162,11 +161,11 @@ func (w *desktopWindow) getInitWindowPositionInDIP() (int, int) {
 		return 0, 0
 	}
 
-	pt := w.initWindowPositionInDIP.Load().(image.Point)
-	if pt.X != invalidPos && pt.Y != invalidPos {
-		return pt.X, pt.Y
+	pt := w.initWindowPositionInDIP.Load()
+	if pt == nil {
+		return invalidPos, invalidPos
 	}
-	return invalidPos, invalidPos
+	return pt.X, pt.Y
 }
 
 func (w *desktopWindow) setInitWindowPositionInDIP(x, y int) {
@@ -175,7 +174,8 @@ func (w *desktopWindow) setInitWindowPositionInDIP(x, y int) {
 	}
 
 	// TODO: Update initMonitor if necessary (#1575).
-	w.initWindowPositionInDIP.Store(image.Pt(x, y))
+	pt := image.Pt(x, y)
+	w.initWindowPositionInDIP.Store(&pt)
 }
 
 func (w *desktopWindow) getInitWindowSizeInDIP() (int, int) {
@@ -412,7 +412,13 @@ func (w *desktopWindow) Position() (int, int) {
 	}
 	b := w.ui.runningBackend()
 	if b == nil {
-		return w.getInitWindowPositionInDIP()
+		// The default position depends on the monitor, and getting a monitor initializes GLFW,
+		// which must not happen here. Only an explicitly set position is available.
+		pt := w.initWindowPositionInDIP.Load()
+		if pt == nil {
+			return 0, 0
+		}
+		return pt.X, pt.Y
 	}
 	return b.Window().Position()
 }
