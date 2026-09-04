@@ -17,6 +17,7 @@ package oksvg_test
 import (
 	"fmt"
 	"image"
+	"image/color"
 	"strings"
 	"testing"
 
@@ -158,5 +159,43 @@ func TestReadIconStreamUse(t *testing.T) {
 	}
 	if got, want := len(icon.SVGPaths), 2; got != want {
 		t.Errorf("len(icon.SVGPaths): got: %d, want: %d", got, want)
+	}
+}
+
+func TestParseSVGColor(t *testing.T) {
+	for _, tc := range []struct {
+		colorStr string
+		want     color.Color
+	}{
+		{colorStr: "hsl(0,100%,50%)", want: color.NRGBA{0xff, 0, 0, 0xff}},
+		{colorStr: "hsl(120, 100%, 50%)", want: color.NRGBA{0, 0xff, 0, 0xff}},
+		{colorStr: "rgb(50%,0,0)", want: color.NRGBA{0x7f, 0, 0, 0xff}},
+	} {
+		got, err := oksvg.ParseSVGColor(tc.colorStr)
+		if err != nil {
+			t.Errorf("ParseSVGColor(%q): %v", tc.colorStr, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("ParseSVGColor(%q): got: %v, want: %v", tc.colorStr, got, tc.want)
+		}
+	}
+}
+
+// Issue #3665
+func TestParseSVGColorEmptyComponent(t *testing.T) {
+	// A color with an empty component must be rejected instead of crashing.
+	for _, colorStr := range []string{
+		"hsl(,,)",
+		"hsl(0,,)",
+		"hsl(0,50%,)",
+		"hsl(0,,50%)",
+		"rgb(,,)",
+		"rgb(0,,0)",
+		"rgb(0,0,)",
+	} {
+		if _, err := oksvg.ParseSVGColor(colorStr); err == nil {
+			t.Errorf("ParseSVGColor(%q) must return an error but did not", colorStr)
+		}
 	}
 }

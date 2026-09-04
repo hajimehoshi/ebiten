@@ -225,13 +225,13 @@ func ParseSVGColor(colorStr string) (color.Color, error) {
 			return color.NRGBA{}, fmt.Errorf("invalid hue in hsl: '%s' (%s)", vals[0], err)
 		}
 
-		S, err := strconv.ParseFloat(strings.TrimSpace(vals[1][:len(vals[1])-1]), 64)
+		S, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(vals[1]), "%"), 64)
 		if err != nil {
 			return color.NRGBA{}, fmt.Errorf("invalid saturation in hsl: '%s' (%s)", vals[1], err)
 		}
 		S = S / 100
 
-		L, err := strconv.ParseFloat(strings.TrimSpace(vals[2][:len(vals[2])-1]), 64)
+		L, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(vals[2]), "%"), 64)
 		if err != nil {
 			return color.NRGBA{}, fmt.Errorf("invalid lightness in hsl: '%s' (%s)", vals[2], err)
 		}

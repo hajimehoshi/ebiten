@@ -19,8 +19,8 @@ import (
 var unitSuffixes = []string{"cm", "mm", "px", "pt"}
 
 func parseColorValue(v string) (uint8, error) {
-	if v[len(v)-1] == '%' {
-		n, err := strconv.Atoi(strings.TrimSpace(v[:len(v)-1]))
+	if before, ok := strings.CutSuffix(v, "%"); ok {
+		n, err := strconv.Atoi(strings.TrimSpace(before))
 		if err != nil {
 			return 0, err
 		}

@@ -31,6 +31,12 @@ included.
   the SVG specification defines. The original scaled the Y axis by zero,
   which collapsed the element and everything under it onto a horizontal
   line.
+- `hsl()` and `rgb()` color components strip a trailing `%` by trimming
+  the suffix instead of slicing off the last byte. The original indexed
+  the byte before checking that the component was non-empty, so a color
+  such as `hsl(0,,)` or `rgb(0,,0)` panicked with an out-of-range index
+  instead of failing to parse. Slicing also dropped the last digit of a
+  component written without a `%`.
 - Mechanical modernizations applied by `go fix` (e.g. `interface{}` to
   `any`).
 - The original license headers are replaced with SPDX-style headers
