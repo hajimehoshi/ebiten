@@ -56,3 +56,36 @@ func TestDrawTransformedUserSpaceGradient(t *testing.T) {
 		t.Errorf("edge pixel is not near-black: got R=0x%02x, want < 0x40", r>>8)
 	}
 }
+
+func TestScaleWithOneArgument(t *testing.T) {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+<g transform="scale(0.5)"><rect x="0" y="0" width="100" height="100" fill="#FF0000"/></g>
+</svg>`
+
+	icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const w, h = 100, 100
+	img := image.NewRGBA(image.Rect(0, 0, w, h))
+	scanner := rasterx.NewScannerGV(w, h, img, img.Bounds())
+	dasher := rasterx.NewDasher(w, h, scanner)
+	icon.Draw(dasher, 1)
+
+	// The rectangle covers (0, 0)-(50, 50) after the scale.
+	for _, tc := range []struct {
+		x, y  int
+		alpha bool
+	}{
+		{x: 10, y: 10, alpha: true},
+		{x: 60, y: 10, alpha: false},
+		{x: 10, y: 60, alpha: false},
+		{x: 60, y: 60, alpha: false},
+	} {
+		_, _, _, a := img.At(tc.x, tc.y).RGBA()
+		if got, want := a > 0, tc.alpha; got != want {
+			t.Errorf("pixel at (%d, %d): opaque = %t, want %t", tc.x, tc.y, got, want)
+		}
+	}
+}

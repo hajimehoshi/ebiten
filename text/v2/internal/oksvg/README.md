@@ -22,6 +22,10 @@ included.
   `ReadIconStream` no longer sets `decoder.CharsetReader`. Consumers of
   this fork feed it OpenType SVG documents, which are UTF-8 by
   specification, and encoding/xml handles UTF-8 natively.
+- `transform="scale(s)"` with one argument is treated as `scale(s, s)`, as
+  the SVG specification defines. The original scaled the Y axis by zero,
+  which collapsed the element and everything under it onto a horizontal
+  line.
 - Mechanical modernizations applied by `go fix` (e.g. `interface{}` to
   `any`).
 - The original license headers are replaced with SPDX-style headers
