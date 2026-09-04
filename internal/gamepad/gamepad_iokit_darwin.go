@@ -358,14 +358,11 @@ func (g *nativeGamepadHID) update(gamepads *gamepads) error {
 	}
 	g.hatValues = g.hatValues[:len(g.hats)]
 
-	for i, a := range g.axes {
-		raw := g.elementValue(&a)
-		if raw < a.minimum {
-			a.minimum = raw
-		}
-		if raw > a.maximum {
-			a.maximum = raw
-		}
+	for i := range g.axes {
+		a := &g.axes[i]
+		raw := g.elementValue(a)
+		a.minimum = min(a.minimum, raw)
+		a.maximum = max(a.maximum, raw)
 		var value float64
 		if size := a.maximum - a.minimum; size != 0 {
 			value = 2*float64(raw-a.minimum)/float64(size) - 1
