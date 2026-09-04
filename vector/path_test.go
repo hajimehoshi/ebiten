@@ -297,6 +297,81 @@ func TestArcAndGeoM(t *testing.T) {
 	}
 }
 
+// Issue #3666
+func TestArcHugeAngle(t *testing.T) {
+	// For an angle this big, the float32 spacing is bigger than the angle by which an arc is split.
+	// Splitting such an arc must still terminate.
+	testCases := []struct {
+		name       string
+		startAngle float32
+		sweep      float32
+		dir        vector.Direction
+	}{
+		{
+			name:       "clockwise",
+			startAngle: 2e7,
+			sweep:      2,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, small sweep",
+			startAngle: 1 << 24,
+			sweep:      1.6,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, full circle",
+			startAngle: 1 << 24,
+			sweep:      2 * math.Pi,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, negative angle",
+			startAngle: -(1 << 25),
+			sweep:      4,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, wider spacing",
+			startAngle: 1 << 26,
+			sweep:      8,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "counterclockwise",
+			startAngle: 2e7,
+			sweep:      -2,
+			dir:        vector.CounterClockwise,
+		},
+		{
+			name:       "counterclockwise, negative angle",
+			startAngle: -(1 << 25),
+			sweep:      -4,
+			dir:        vector.CounterClockwise,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			const (
+				cx     = 100
+				cy     = 100
+				radius = 5
+			)
+			var p vector.Path
+			p.Arc(cx, cy, radius, tc.startAngle, tc.startAngle+tc.sweep, tc.dir)
+
+			// The angles are degenerate, so the shape is not specified, but it must be finite.
+			// The control points of the approximated Bézier curves can reach out this far.
+			const allow = 32 * radius
+			bounds := p.Bounds()
+			if want := image.Rect(cx-allow, cy-allow, cx+allow, cy+allow); !bounds.In(want) {
+				t.Errorf("bounds: got: %v, want: a rectangle in %v", bounds, want)
+			}
+		})
+	}
+}
+
 // Issue #3330
 func TestFillPathSubImage(t *testing.T) {
 	dst := ebiten.NewImage(16, 16)

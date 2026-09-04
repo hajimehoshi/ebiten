@@ -580,13 +580,13 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 		}
 	}
 
-	// If the angle is big, splict this into multiple Arc calls.
+	// If the angle is big, split this into multiple arcs.
 	if da > math.Pi/2 {
 		const delta = math.Pi / 3
 		a := float64(startAngle)
 		if dir == Clockwise {
 			for {
-				p.Arc(x, y, radius, float32(a), float32(min(a+delta, float64(endAngle))), dir)
+				p.arc(x, y, radius, float32(a), float32(min(a+delta, float64(endAngle))), dir)
 				if a+delta >= float64(endAngle) {
 					break
 				}
@@ -594,7 +594,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 			}
 		} else {
 			for {
-				p.Arc(x, y, radius, float32(a), float32(max(a-delta, float64(endAngle))), dir)
+				p.arc(x, y, radius, float32(a), float32(max(a-delta, float64(endAngle))), dir)
 				if a-delta <= float64(endAngle) {
 					break
 				}
@@ -602,6 +602,19 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 			}
 		}
 		return
+	}
+
+	p.arc(x, y, radius, startAngle, endAngle, dir)
+}
+
+// arc adds an arc to the path without splitting it.
+// startAngle and endAngle must be already adjusted so that the arc sweeps from startAngle to endAngle in the direction dir.
+func (p *Path) arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
+	var da float64
+	if dir == Clockwise {
+		da = float64(endAngle - startAngle)
+	} else {
+		da = float64(startAngle - endAngle)
 	}
 
 	sin0, cos0 := math.Sincos(float64(startAngle))
