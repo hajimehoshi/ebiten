@@ -302,9 +302,6 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	}
 }
 
-// The blank identifier _ has no value, so using it as a value (an argument or
-// an operand) must be a compile error, not a nil-pointer panic in constant
-// folding.
 func TestCompileBlankAsValue(t *testing.T) {
 	srcs := []string{
 		`package main
