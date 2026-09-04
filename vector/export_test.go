@@ -83,3 +83,7 @@ func CallbackTokenCount() int {
 	defer theFillPathM.Unlock()
 	return len(theCallbackTokens)
 }
+
+func CircleVertexCount(radius float32) int {
+	return circleVertexCount(radius)
+}
