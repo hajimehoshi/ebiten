@@ -270,7 +270,7 @@ type RunGameOptions struct {
 	// SingleThread indicates whether the single thread mode is used explicitly or not.
 	// The single thread mode disables Ebitengine's thread safety to unlock maximum performance.
 	// If you use this you will have to manage threads yourself.
-	// Functions like `SetWindowSize` will no longer be concurrent-safe with this option.
+	// Functions like `SetWindowSize` will no longer be concurrent-safe in the single thread mode.
 	// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
 	//
 	// SingleThread works only with desktops and consoles.

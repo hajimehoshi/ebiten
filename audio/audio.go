@@ -294,7 +294,7 @@ func (c *Context) updatePlayers() error {
 	c.m.Unlock()
 
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
-	// An underlying player can be in the pause state after finishing its playing,
+	// The underlying player can become paused after finishing playback,
 	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
 	for _, p := range players {
