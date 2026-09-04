@@ -15,12 +15,37 @@
 package vibrate_test
 
 import (
+	"math"
 	"slices"
 	"testing"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/vibrate"
 )
+
+func TestAndroidVibrationAmplitude(t *testing.T) {
+	tests := []struct {
+		magnitude float64
+		want      int
+	}{
+		{magnitude: math.Inf(-1), want: 0},
+		{magnitude: -1, want: 0},
+		{magnitude: 0, want: 0},
+		{magnitude: math.NaN(), want: 0},
+		{magnitude: math.SmallestNonzeroFloat64, want: 1},
+		{magnitude: 0.001, want: 1},
+		{magnitude: 0.25, want: 63},
+		{magnitude: 0.5, want: 127},
+		{magnitude: 1, want: 255},
+		{magnitude: 2, want: 255},
+		{magnitude: math.Inf(1), want: 255},
+	}
+	for _, test := range tests {
+		if got := vibrate.AndroidVibrationAmplitudeForTesting(test.magnitude); got != test.want {
+			t.Errorf("android vibration amplitude for %v = %d; want %d", test.magnitude, got, test.want)
+		}
+	}
+}
 
 func TestRecording(t *testing.T) {
 	// A device has no vibration platform in tests, so Vibrate only records once recording is enabled.

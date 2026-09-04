@@ -36,7 +36,7 @@ import (
 //       v = (Vibrator)getSystemService(Context.VIBRATOR_SERVICE);
 //     }
 //     if (Build.VERSION.SDK_INT >= 26) {
-//       VibrationEffect effect = VibrationEffect.createOneShot(milliseconds, magnitude * 255);
+//       VibrationEffect effect = VibrationEffect.createOneShot(milliseconds, amplitude);
 //       if (Build.VERSION.SDK_INT >= 33) {
 //         VibrationAttributes attrs = new VibrationAttributes.Builder()
 //           .setUsage(VibrationAttributes.USAGE_MEDIA)
@@ -58,7 +58,7 @@ import (
 //
 #cgo noescape vibrateOneShot
 #cgo nocallback vibrateOneShot
-static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, int64_t milliseconds, double magnitude) {
+static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, int64_t milliseconds, int amplitude) {
   JavaVM* vm = (JavaVM*)java_vm;
   JNIEnv* env = (JNIEnv*)jni_env;
   jobject context = (jobject)ctx;
@@ -72,6 +72,11 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
         (*env)->GetStaticFieldID(env, android_os_Build_VERSION, "SDK_INT", "I"));
 
     (*env)->DeleteLocalRef(env, android_os_Build_VERSION);
+  }
+
+  // API level 26 and newer reject a zero vibration amplitude. Earlier versions ignore amplitude.
+  if (apiLevel >= 26 && amplitude == 0) {
+    return;
   }
 
   const jclass android_content_Context = (*env)->FindClass(env, "android/content/Context");
@@ -122,7 +127,15 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
         (*env)->CallStaticObjectMethod(
             env, android_os_VibrationEffect,
             (*env)->GetStaticMethodID(env, android_os_VibrationEffect, "createOneShot", "(JI)Landroid/os/VibrationEffect;"),
-            milliseconds, (int)(magnitude * 255));
+            milliseconds, amplitude);
+
+    if ((*env)->ExceptionCheck(env)) {
+      (*env)->DeleteLocalRef(env, android_os_VibrationEffect);
+      (*env)->DeleteLocalRef(env, vibrator);
+      (*env)->DeleteLocalRef(env, android_content_Context);
+      (*env)->DeleteLocalRef(env, android_os_Vibrator);
+      return;
+    }
 
     if (apiLevel >= 33) {
       const jclass android_os_VibrationAttributes = (*env)->FindClass(env, "android/os/VibrationAttributes");
@@ -204,10 +217,15 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
 import "C"
 
 func vibrate(duration time.Duration, magnitude float64) {
+	milliseconds := duration / time.Millisecond
+	if milliseconds <= 0 {
+		return
+	}
+	amplitude := androidVibrationAmplitude(magnitude)
 	go func() {
 		_ = app.RunOnJVM(func(vm, env, ctx uintptr) error {
 			// TODO: This might be crash when this is called from init(). How can we detect this?
-			C.vibrateOneShot(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx), C.int64_t(duration/time.Millisecond), C.double(magnitude))
+			C.vibrateOneShot(C.uintptr_t(vm), C.uintptr_t(env), C.uintptr_t(ctx), C.int64_t(milliseconds), C.int(amplitude))
 			return nil
 		})
 	}()
