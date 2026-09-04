@@ -62,15 +62,44 @@ func checkGSettings() ColorMode {
 	}
 }
 
+// checkGTKSettingsFile returns the color mode the GTK settings file at path specifies.
+// checkGTKSettingsFile returns Unknown if the file is unavailable or specifies nothing.
 func checkGTKSettingsFile(path string) ColorMode {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return Unknown
 	}
 
-	content := strings.ToLower(string(data))
-	if strings.Contains(content, "gtk-application-prefer-dark-theme=true") {
-		return Dark
+	// The file is a GLib key file: a comment starts with '#', a key belongs to the group
+	// opened by the last '[...]' line, spaces around '=' are insignificant, and a later
+	// key overrides an earlier one.
+	mode := Unknown
+	var group string
+	for line := range strings.Lines(string(data)) {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			group = line[1 : len(line)-1]
+			continue
+		}
+		if group != "Settings" {
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		if strings.TrimSpace(key) != "gtk-application-prefer-dark-theme" {
+			continue
+		}
+		switch strings.TrimSpace(value) {
+		case "true", "1":
+			mode = Dark
+		case "false", "0":
+			mode = Light
+		}
 	}
-	return Light
+	return mode
 }
