@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// NewImageFromFileSystem create an image from the specified file system.
+// NewImageFromFileSystem creates an image from the specified file system.
 //
 // Image decoders must be imported when using NewImageFromFileSystem. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.

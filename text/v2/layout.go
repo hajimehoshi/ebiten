@@ -377,7 +377,7 @@ var theAppendGlyphsLazyBufPool = sync.Pool{
 	},
 }
 
-// forEachLine interates lines.
+// forEachLine iterates lines.
 func forEachLine(text string, face Face, options *LayoutOptions, f func(text string, indexOffset int, originX, originY float64)) {
 	if text == "" {
 		return

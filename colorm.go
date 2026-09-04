@@ -122,7 +122,7 @@ func (c *ColorM) RotateHue(theta float64) {
 // saturationScale is a value to scale saturation.
 // valueScale is a value to scale value (a.k.a. brightness).
 //
-// This conversion uses RGB to/from YCrCb conversion.
+// This conversion uses RGB to/from YCbCr conversion.
 //
 // Deprecated: as of v2.5. Use the colorm package instead.
 func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale float64) {

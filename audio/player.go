@@ -646,7 +646,7 @@ func newTimeStream(r io.Reader, seekable bool, sampleRate int, bitDepthInBytes i
 			if !errors.Is(err, errors.ErrUnsupported) {
 				return nil, err
 			}
-			// Ignore the error, as the undelrying source might not support Seek (#3192).
+			// Ignore the error, as the underlying source might not support Seek (#3192).
 			// This happens when vorbis.Decode* is used, as vorbis.Stream is io.Seeker whichever the underlying source is.
 			pos = 0
 		}

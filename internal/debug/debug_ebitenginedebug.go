@@ -34,7 +34,7 @@ var flushM sync.Mutex
 
 // FrameLogf calls the current global logger's FrameLogf.
 // FrameLogf buffers the arguments and doesn't dump the log immediately.
-// You can dump logs by calling SwitchLogger and Flush.
+// You can dump logs by calling SwitchFrameLogger and Flush.
 //
 // FrameLogf is concurrent-safe.
 func FrameLogf(format string, args ...any) {

@@ -294,7 +294,7 @@ func (c *Context) updatePlayers() error {
 	c.m.Unlock()
 
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
-	// Underlying playering can be the pause state after fishing its playing,
+	// The underlying player can become paused after finishing playback,
 	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
 	for _, p := range players {
@@ -341,7 +341,7 @@ type Player struct {
 
 // NewPlayer creates a new player with the given stream.
 //
-// src's format must be linear PCM (signed 16bits little endian, 2 channel stereo)
+// src's format must be linear PCM (signed 16-bit little endian, 2 channel stereo)
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
