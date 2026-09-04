@@ -22,6 +22,105 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+func TestImageDrawTrianglesWithStencilBufferOnEmptyDestination(t *testing.T) {
+	src := ebiten.NewImage(1, 1)
+	src.Fill(color.White)
+
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	vs := []ebiten.Vertex{{DstX: 0, DstY: 0}, {DstX: 1, DstY: 0}, {DstX: 0, DstY: 1}}
+	is := []uint32{0, 1, 2}
+
+	for _, tc := range []struct {
+		name string
+		draw func(dst *ebiten.Image)
+	}{
+		{
+			name: "FillRule",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTriangles32(vs, is, src, &ebiten.DrawTrianglesOptions{FillRule: ebiten.FillRuleNonZero})
+			},
+		},
+		{
+			name: "AntiAlias",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTriangles32(vs, is, src, &ebiten.DrawTrianglesOptions{AntiAlias: true})
+			},
+		},
+		{
+			name: "ShaderFillRule",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTrianglesShader32(vs, is, shader, &ebiten.DrawTrianglesShaderOptions{FillRule: ebiten.FillRuleNonZero})
+			},
+		},
+		{
+			name: "ShaderAntiAlias",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTrianglesShader32(vs, is, shader, &ebiten.DrawTrianglesShaderOptions{AntiAlias: true})
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			ebiten.ResetStencilBufferImagesForTesting()
+			dst := ebiten.NewImage(1, 1).SubImage(image.Rectangle{}).(*ebiten.Image)
+			tc.draw(dst)
+		})
+	}
+}
+
+func TestImageDrawTrianglesWithStencilBufferOnEmptyDestinationValidatesIndices(t *testing.T) {
+	src := ebiten.NewImage(1, 1)
+	shader, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name string
+		draw func(dst *ebiten.Image)
+	}{
+		{
+			name: "DrawTriangles",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTriangles32(nil, []uint32{0}, src, &ebiten.DrawTrianglesOptions{AntiAlias: true})
+			},
+		},
+		{
+			name: "DrawTrianglesShader",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawTrianglesShader32(nil, []uint32{0}, shader, &ebiten.DrawTrianglesShaderOptions{AntiAlias: true})
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dst := ebiten.NewImage(1, 1).SubImage(image.Rectangle{}).(*ebiten.Image)
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("a draw with an invalid index count must panic")
+				}
+			}()
+			tc.draw(dst)
+		})
+	}
+}
+
 func TestImageDrawTrianglesWithStencilBufferOnSubImage(t *testing.T) {
 	whiteImage := ebiten.NewImage(3, 3)
 	whiteImage.Fill(color.White)
