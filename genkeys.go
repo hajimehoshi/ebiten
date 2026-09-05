@@ -719,7 +719,7 @@ func keyNamesCmp(k0, k1 string) int {
 	if f0 != -1 && f1 != -1 {
 		return cmp.Compare(f0, f1)
 	}
-	return strings.Compare(k0, k1)
+	return cmp.Compare(k0, k1)
 }
 
 const license = `// Copyright 2013 The Ebitengine Authors
