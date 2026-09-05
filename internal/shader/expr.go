@@ -1080,6 +1080,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected unary operator: %s", e.X))
 			return nil, nil, nil, false
 		}
+		if exprs[0].Type == shaderir.Blank {
+			cs.addError(e.Pos(), "cannot use _ as value")
+			return nil, nil, nil, false
+		}
 
 		if exprs[0].Const != nil {
 			// go/constant.UnaryOp panics when the operator is not defined on the constant's kind.
