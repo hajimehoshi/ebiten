@@ -98,6 +98,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		rhst := ts[0]
 
+		if lhs[0].Type == shaderir.Blank || rhs[0].Type == shaderir.Blank {
+			cs.addError(e.Pos(), "cannot use _ as value")
+			return nil, nil, nil, false
+		}
+
 		op := e.Op
 		// https://pkg.go.dev/go/constant/#BinaryOp
 		// "To force integer division of Int operands, use op == token.QUO_ASSIGN instead of
@@ -221,6 +226,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			for _, expr := range es {
 				if expr.Type == shaderir.FunctionExpr || expr.Type == shaderir.BuiltinFuncExpr {
 					cs.addError(e.Pos(), fmt.Sprintf("function name cannot be an argument: %s", e.Fun))
+					return nil, nil, nil, false
+				}
+				if expr.Type == shaderir.Blank {
+					cs.addError(e.Pos(), "cannot use _ as value")
 					return nil, nil, nil, false
 				}
 			}
@@ -1069,6 +1078,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		if len(ts) == 0 {
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected unary operator: %s", e.X))
+			return nil, nil, nil, false
+		}
+		if exprs[0].Type == shaderir.Blank {
+			cs.addError(e.Pos(), "cannot use _ as value")
 			return nil, nil, nil, false
 		}
 
