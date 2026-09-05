@@ -1,11 +1,11 @@
-github.com/ebitengine/debugui v0.3.0-alpha.0.20260715042159-d40b6a8e2b00 h1:JAh2Ia9KdW5qTfhHaZ7s3cDkCS3wxJp5SZn2/n+pppE=
-github.com/ebitengine/debugui v0.3.0-alpha.0.20260715042159-d40b6a8e2b00/go.mod h1:z2yGKzmYSuAaoDwLG0ZZdV+27P+Wf+dfv+706bVzGuk=
+github.com/ebitengine/debugui v0.3.0-rc.1 h1:IZUwvr8NNHikENZNomGgswWxIfd5fTjg9C7nySS5vtg=
+github.com/ebitengine/debugui v0.3.0-rc.1/go.mod h1:V1LXUzv2Y3A8JyZ9dyi/4IXfF8EFnkggcMLDk2a6mGs=
 github.com/ebitengine/gomobile v0.0.0-20260820040257-d11f821a26a6 h1:Tnc3YtzxhgsvNdNrER9wWkGJbyjOwyUuzjUY5rZK72k=
 github.com/ebitengine/gomobile v0.0.0-20260820040257-d11f821a26a6/go.mod h1:gwnFEwdzWZpNehgwkeK4756Ez58f58bXz6bgEAq+xqk=
 github.com/ebitengine/hideconsole v1.0.0 h1:5J4U0kXF+pv/DhiXt5/lTz0eO5ogJ1iXb8Yj1yReDqE=
 github.com/ebitengine/hideconsole v1.0.0/go.mod h1:hTTBTvVYWKBuxPr7peweneWdkUwEuHuB3C1R/ielR1A=
-github.com/ebitengine/oto/v3 v3.5.0-alpha.13.0.20260905054706-7f9ccb8be811 h1:mh7fiiMTh+pXi83PonQQsEORvUAkGV1yX1Kng3T5kj4=
-github.com/ebitengine/oto/v3 v3.5.0-alpha.13.0.20260905054706-7f9ccb8be811/go.mod h1:Elkm7yzTRns3w2efvibzVOoQ65YOwmec9a76dCiK10o=
+github.com/ebitengine/oto/v3 v3.5.0 h1:8ZDhKP3Hhslyb9NL3g4HWvhRQqwI+hKOHAXAqD6GPXs=
+github.com/ebitengine/oto/v3 v3.5.0/go.mod h1:Elkm7yzTRns3w2efvibzVOoQ65YOwmec9a76dCiK10o=
 github.com/ebitengine/purego v0.11.0 h1:jhp/D+Nyv7UUW8HAcmcjt2N2rYrYi9m3SL21k0Ua/NI=
 github.com/ebitengine/purego v0.11.0/go.mod h1:DCHPP08djqhNSoTfImcnHYQRZmd0qhakvrozqaEYhGQ=
 github.com/gen2brain/mpeg v0.6.2 h1:XLg2NTICP2YtJ7csuJgDG0B4mzc+thcgczGGfbqcEBY=
