@@ -85,8 +85,12 @@ var (
 // Usual numbers are 44100 or 48000. One context has only one sample rate. You cannot play multiple audio
 // sources with different sample rates at the same time.
 //
-// NewContext panics when an audio context is already created.
+// NewContext panics when sampleRate is not positive or an audio context is already created.
 func NewContext(sampleRate int) *Context {
+	if sampleRate <= 0 {
+		panic(fmt.Sprintf("audio: sample rate must be positive but was %d", sampleRate))
+	}
+
 	theContextLock.Lock()
 	defer theContextLock.Unlock()
 
@@ -290,7 +294,7 @@ func (c *Context) updatePlayers() error {
 	c.m.Unlock()
 
 	// Now reader players cannot call removePlayers from themselves in the current implementation.
-	// Underlying playering can be the pause state after fishing its playing,
+	// The underlying player can become paused after finishing playback,
 	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
 	for _, p := range players {
@@ -337,7 +341,7 @@ type Player struct {
 
 // NewPlayer creates a new player with the given stream.
 //
-// src's format must be linear PCM (signed 16bits little endian, 2 channel stereo)
+// src's format must be linear PCM (signed 16-bit little endian, 2 channel stereo)
 // without a header (e.g. RIFF header).
 // The sample rate must be same as that of the audio context.
 //
@@ -558,7 +562,7 @@ func (p *Player) SetVolume(volume float64) {
 }
 
 // SetBufferSize adjusts the buffer size of the player.
-// If 0 is specified, the default buffer size is used.
+// If a nonpositive value or a value too large to represent is specified, the default buffer size is used.
 // A small buffer size is useful if you want to play a real-time PCM for example.
 // Note that the audio quality might be affected if you modify the buffer size.
 func (p *Player) SetBufferSize(bufferSize time.Duration) {
@@ -599,6 +603,7 @@ func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool
 // length is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
+// ResampleReader panics if from or to is not positive.
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
@@ -608,6 +613,7 @@ func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool
 // The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
 // there is no guarantee that the Seek function works correctly.
 func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
+	validateResamplingSampleRates(from, to)
 	if from == to {
 		return source
 	}
@@ -618,6 +624,7 @@ func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
 // length is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
+// ResampleReaderF32 panics if from or to is not positive.
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
@@ -627,6 +634,7 @@ func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
 // The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
 // there is no guarantee that the Seek function works correctly.
 func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
+	validateResamplingSampleRates(from, to)
 	if from == to {
 		return source
 	}
@@ -637,6 +645,7 @@ func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
 // length is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
+// Resample panics if from or to is not positive.
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
@@ -644,6 +653,7 @@ func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
 //
 // Deprecated: as of v2.9. Use ResampleReader instead.
 func Resample(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
+	validateResamplingSampleRates(from, to)
 	if from == to {
 		return source
 	}
@@ -654,6 +664,7 @@ func Resample(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
 // length is the length of the source stream in bytes. 0 indicates the length is unknown.
 // from is the original sample rate.
 // to is the target sample rate.
+// ResampleF32 panics if from or to is not positive.
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
@@ -661,8 +672,18 @@ func Resample(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
 //
 // Deprecated: as of v2.9. Use ResampleReaderF32 instead.
 func ResampleF32(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
+	validateResamplingSampleRates(from, to)
 	if from == to {
 		return source
 	}
 	return convert.NewResampling(source, length, from, to, bitDepthInBytesFloat32)
+}
+
+func validateResamplingSampleRates(from, to int) {
+	if from <= 0 {
+		panic(fmt.Sprintf("audio: original sample rate must be positive but was %d", from))
+	}
+	if to <= 0 {
+		panic(fmt.Sprintf("audio: target sample rate must be positive but was %d", to))
+	}
 }

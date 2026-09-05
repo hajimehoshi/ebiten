@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest that exercises the virtualization ReadPixels round-trip. During
 // Update it fills an offscreen image with a known color and reads it back; because the guest has no

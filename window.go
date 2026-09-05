@@ -111,7 +111,7 @@ func IsWindowResizable() bool {
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
 // On the other environments, SetWindowResizable does nothing.
 //
-// Deprecated: as of v2.3, Use SetWindowResizingMode instead.
+// Deprecated: as of v2.3. Use SetWindowResizingMode instead.
 func SetWindowResizable(resizable bool) {
 	mode := ui.WindowResizingModeDisabled
 	if resizable {
@@ -162,7 +162,8 @@ func SetWindowIcon(iconImages []image.Image) {
 // The origin position is the upper-left corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// If the main loop does not start yet, WindowPosition returns the initial window position set by [SetWindowPosition].
+// If the main loop does not start yet, WindowPosition returns the initial window position set by
+// [SetWindowPosition], or (0, 0) if no initial position is set.
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //
@@ -312,7 +313,7 @@ func RestoreWindow() {
 
 // IsWindowBeingClosed returns true when the user is trying to close the window on desktops.
 // As the window is closed immediately by default,
-// you might want to call SetWindowClosingHandled(true) to prevent the window is automatically closed.
+// you might want to call SetWindowClosingHandled(true) to prevent the window from being automatically closed.
 //
 // IsWindowBeingClosed always returns false if the platform is not a desktop.
 //

@@ -301,7 +301,11 @@ func (u *glfwBackend) afterWindowCreation() error {
 // RestoreIMMContextOnMainThread is called from the main thread.
 // The textinput package invokes RestoreIMMContextOnMainThread to enable IME inputting.
 func (u *UserInterface) RestoreIMMContextOnMainThread() error {
-	return u.runningBackend().(*glfwBackend).RestoreIMMContextOnMainThread()
+	b, ok := u.runningBackend().(*glfwBackend)
+	if !ok {
+		return nil
+	}
+	return b.RestoreIMMContextOnMainThread()
 }
 
 // RestoreIMMContextOnMainThread is called from the main thread.

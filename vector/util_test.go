@@ -17,6 +17,7 @@ package vector_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -95,6 +96,56 @@ func TestFillCircleSubImage(t *testing.T) {
 	}
 	if got, want := dst3.At(5, 5), (color.RGBA{0x00, 0x00, 0x00, 0xff}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestCircleVertexCount(t *testing.T) {
+	tests := []struct {
+		name   string
+		radius float32
+		want   int
+	}{
+		{
+			name:   "negative",
+			radius: -1,
+		},
+		{
+			name: "zero",
+		},
+		{
+			name:   "small",
+			radius: 0.5,
+			want:   2,
+		},
+		{
+			name:   "ordinary",
+			radius: 100,
+			want:   315,
+		},
+		{
+			name:   "huge",
+			radius: 1e9,
+			want:   8192,
+		},
+		{
+			name:   "positive infinity",
+			radius: float32(math.Inf(1)),
+		},
+		{
+			name:   "negative infinity",
+			radius: float32(math.Inf(-1)),
+		},
+		{
+			name:   "NaN",
+			radius: float32(math.NaN()),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := vector.CircleVertexCount(test.radius); got != test.want {
+				t.Errorf("CircleVertexCount(%v): got %d, want %d", test.radius, got, test.want)
+			}
+		})
 	}
 }
 

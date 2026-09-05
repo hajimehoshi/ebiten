@@ -8,7 +8,8 @@
 package glfw
 
 import (
-	"sort"
+	"cmp"
+	"slices"
 )
 
 func abs(x int) uint {
@@ -47,23 +48,21 @@ func (m *Monitor) refreshVideoModes() error {
 	if err != nil {
 		return err
 	}
-	sort.Slice(modes, func(i, j int) bool {
-		a := modes[i]
-		b := modes[j]
+	slices.SortFunc(modes, func(a, b *VidMode) int {
 		abpp := a.RedBits + a.GreenBits + a.BlueBits
 		bbpp := b.RedBits + b.GreenBits + b.BlueBits
-		if abpp != bbpp {
-			return abpp < bbpp
+		if c := cmp.Compare(abpp, bbpp); c != 0 {
+			return c
 		}
 		aarea := a.Width * a.Height
 		barea := b.Width * b.Height
-		if aarea != barea {
-			return aarea < barea
+		if c := cmp.Compare(aarea, barea); c != 0 {
+			return c
 		}
-		if a.Width != b.Width {
-			return a.Width < b.Width
+		if c := cmp.Compare(a.Width, b.Width); c != 0 {
+			return c
 		}
-		return a.RefreshRate < b.RefreshRate
+		return cmp.Compare(a.RefreshRate, b.RefreshRate)
 	})
 	m.modes = modes
 	return nil

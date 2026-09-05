@@ -245,9 +245,7 @@ func (m *Mipmap) Deallocate() {
 		}
 		img.img.Deallocate()
 	}
-	for k := range m.imgs {
-		delete(m.imgs, k)
-	}
+	clear(m.imgs)
 	m.orig.Deallocate()
 }
 

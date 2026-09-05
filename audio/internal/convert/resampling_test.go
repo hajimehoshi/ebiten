@@ -68,6 +68,32 @@ func newSoundBytes(sampleRate int, bitDepthInBytes int) []byte {
 	return b
 }
 
+func newSoundBytesForFrames(sampleRate int, frameCount int, bitDepthInBytes int) []byte {
+	b := make([]byte, frameCount*bitDepthInBytes*2)
+	for i := range frameCount {
+		v := soundAt(float64(i) / float64(sampleRate))
+		switch bitDepthInBytes {
+		case 2:
+			v16 := int16(v * (1<<15 - 1))
+			b[4*i] = byte(v16)
+			b[4*i+1] = byte(v16 >> 8)
+			b[4*i+2] = byte(v16)
+			b[4*i+3] = byte(v16 >> 8)
+		case 4:
+			v32 := math.Float32bits(float32(v))
+			b[8*i] = byte(v32)
+			b[8*i+1] = byte(v32 >> 8)
+			b[8*i+2] = byte(v32 >> 16)
+			b[8*i+3] = byte(v32 >> 24)
+			b[8*i+4] = byte(v32)
+			b[8*i+5] = byte(v32 >> 8)
+			b[8*i+6] = byte(v32 >> 16)
+			b[8*i+7] = byte(v32 >> 24)
+		}
+	}
+	return b
+}
+
 type reader struct {
 	r io.Reader
 }
@@ -656,6 +682,113 @@ func TestResamplingZeroReadSource(t *testing.T) {
 			}
 			if !bytes.Equal(gotB, wantB) {
 				t.Errorf("io.ReadAll returned %d bytes, want the same %d bytes as a source reporting io.EOF", len(gotB), len(wantB))
+			}
+		})
+	}
+}
+
+func TestResamplingSeekAfterCachedBlock(t *testing.T) {
+	const (
+		from = 44100
+		to   = 48000
+	)
+
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			const blockFrames = 4096
+			blockBytes := blockFrames * bitDepthInBytes * 2
+			inB := newSoundBytesForFrames(from, 10*blockFrames, bitDepthInBytes)
+			newResampling := func() *convert.Resampling {
+				return convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes)
+			}
+			outPos := func(pos int64) int64 {
+				return pos * to / from
+			}
+
+			wantReader := newResampling()
+			if _, err := wantReader.Seek(outPos(int64(2*blockBytes+blockBytes/2))+4096, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			want := make([]byte, 3*blockBytes)
+			if _, err := io.ReadFull(wantReader, want); err != nil {
+				t.Fatal(err)
+			}
+
+			gotReader := newResampling()
+			read := func(pos int64, length int) []byte {
+				t.Helper()
+				if pos >= 0 {
+					if _, err := gotReader.Seek(outPos(pos), io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+				}
+				buf := make([]byte, length)
+				if _, err := io.ReadFull(gotReader, buf); err != nil {
+					t.Fatal(err)
+				}
+				return buf
+			}
+			read(int64(2*blockBytes+blockBytes/2), 4096)
+			read(int64(9*blockBytes+blockBytes/2), 4096)
+			read(int64(2*blockBytes+blockBytes/2), 4096)
+			got := read(-1, 3*blockBytes)
+
+			if !bytes.Equal(got, want) {
+				t.Error("resampled data differs from a fresh reader after seeking through a cached block")
+			}
+		})
+	}
+}
+
+type midStreamStallingReadSeeker struct {
+	src       io.ReadSeeker
+	readCount int
+}
+
+func (s *midStreamStallingReadSeeker) Read(buf []byte) (int, error) {
+	switch s.readCount {
+	case 0:
+		s.readCount++
+		buf = buf[:len(buf)/2]
+		return s.src.Read(buf)
+	case 1:
+		s.readCount++
+		return 0, nil
+	default:
+		return s.src.Read(buf)
+	}
+}
+
+func (s *midStreamStallingReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return s.src.Seek(offset, whence)
+}
+
+func TestResamplingZeroReadInMiddle(t *testing.T) {
+	const (
+		from = 44100
+		to   = 48000
+	)
+
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			const blockFrames = 4096
+			blockBytes := blockFrames * bitDepthInBytes * 2
+			inB := newSoundBytesForFrames(from, 5*blockFrames, bitDepthInBytes)
+
+			want, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			src := &midStreamStallingReadSeeker{src: bytes.NewReader(inB)}
+			got, err := io.ReadAll(convert.NewResampling(src, int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			start := int64(blockBytes)*to/from + 128
+			if !bytes.Equal(got[start:], want[start:]) {
+				t.Error("resampled data remains misaligned after a stalled source block")
 			}
 		})
 	}

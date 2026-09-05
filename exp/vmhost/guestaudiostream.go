@@ -18,6 +18,8 @@ import (
 	"io"
 	"sync"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // GuestAudioStream is one guest audio player observed from the host: a single stream the host reads and
@@ -110,7 +112,7 @@ func (p *GuestAudioStream) Position() time.Duration {
 		return 0
 	}
 	samples := p.readBytes / 8
-	return time.Duration(samples) * time.Second / time.Duration(p.rate)
+	return time.Duration(mathutil.MulDiv(samples, int64(time.Second), int64(p.rate)))
 }
 
 // StartTick returns the guest's [ebiten.Tick] during the tick the stream started, i.e. the guest's

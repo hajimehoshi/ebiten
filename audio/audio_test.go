@@ -19,6 +19,7 @@ import (
 	"io"
 	"math"
 	"runtime"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -534,6 +535,39 @@ func TestSetVolumeInvalidValue(t *testing.T) {
 		p.SetVolume(v.in)
 		if got, want := p.Volume(), v.want; got != want {
 			t.Errorf("Volume() after SetVolume(%v) after the device creation: got: %v, want: %v", v.in, got, want)
+		}
+	}
+}
+
+// Issue #3655
+func TestSetBufferSize(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(&infiniteReader{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var largeBufferSize int
+	if strconv.IntSize == 64 {
+		largeBufferSize64 := int64(19_051_200_000)
+		largeBufferSize = int(largeBufferSize64)
+	}
+	tests := []struct {
+		in   time.Duration
+		want int
+	}{
+		{in: -time.Second, want: 0},
+		{in: 0, want: 0},
+		{in: 50 * time.Millisecond, want: 17640},
+		{in: 15 * time.Hour, want: largeBufferSize},
+	}
+
+	for _, test := range tests {
+		p.SetBufferSize(test.in)
+		if got := audio.BufferSizeForTesting(p); got != test.want {
+			t.Errorf("buffer size for %v: got: %d, want: %d", test.in, got, test.want)
 		}
 	}
 }

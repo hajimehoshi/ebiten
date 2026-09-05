@@ -223,6 +223,12 @@ func PlayersCountForTesting() int {
 	return n
 }
 
+func BufferSizeForTesting(p *Player) int {
+	p.p.m.Lock()
+	defer p.p.m.Unlock()
+	return p.p.initBufferSize
+}
+
 // PlayingButUntrackedForTesting reports whether the player is playing but is not tracked by its
 // context as a playing player. This must never be true: an untracked playing player is not
 // updated by the context and is not guarded from being garbage-collected.

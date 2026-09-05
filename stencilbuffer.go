@@ -213,7 +213,7 @@ var (
 	tmpVerticesForStencilBuffer []Vertex
 )
 
-// doDrawTrianglesWithAntialias draw triangles with antialiasing.
+// doDrawTrianglesWithAntialias draws triangles with antialiasing.
 //
 // doDrawTrianglesWithAntialias doesn't batch draw calls, so this might not be efficient.
 // This is different from Ebitengine v2.9's behavior.
@@ -288,7 +288,7 @@ func doDrawTrianglesWithAntialias(dst *Image, vertices []Vertex, indices []uint3
 	dst.DrawImage(os1, op)
 }
 
-// doDrawTrianglesShaderWithStencilBuffer draw triangles with stencil buffer.
+// doDrawTrianglesShaderWithStencilBuffer draws triangles with stencil buffer.
 //
 // doDrawTrianglesShaderWithStencilBuffer doesn't batch draw calls, so this might not be efficient.
 // This is different from Ebitengine v2.9's behavior.

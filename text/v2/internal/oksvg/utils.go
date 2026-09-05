@@ -19,8 +19,8 @@ import (
 var unitSuffixes = []string{"cm", "mm", "px", "pt"}
 
 func parseColorValue(v string) (uint8, error) {
-	if v[len(v)-1] == '%' {
-		n, err := strconv.Atoi(strings.TrimSpace(v[:len(v)-1]))
+	if before, ok := strings.CutSuffix(v, "%"); ok {
+		n, err := strconv.Atoi(strings.TrimSpace(before))
 		if err != nil {
 			return 0, err
 		}
@@ -67,12 +67,10 @@ func parseClasses(data string) (map[string]styleAttribute, error) {
 		if v == "" {
 			continue
 		}
-		valueIndex := strings.Index(v, "{")
-		if valueIndex == -1 || valueIndex == len(v)-1 {
+		classesStr, attrStr, ok := strings.Cut(v, "{")
+		if !ok || attrStr == "" {
 			return res, errors.New(v + "}: invalid map format in class definitions")
 		}
-		classesStr := v[:valueIndex]
-		attrStr := v[valueIndex+1:]
 		attrMap, err := parseAttrs(attrStr)
 		if err != nil {
 			return res, err

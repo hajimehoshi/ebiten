@@ -33,10 +33,26 @@ import (
 //
 // AppendVerticesAndIndicesForFilling must not be called for one path from multiple goroutines simultaneously.
 //
+// AppendVerticesAndIndicesForFilling panics if appending this path would make the vertex count exceed 1 << 16.
+//
 // Deprecated: as of v2.9. Use [FillPath] instead.
 func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indices []uint16) ([]ebiten.Vertex, []uint16) {
+	const maxVertexCountFor16BitIndices = 1 << 16
+
+	flatPaths := p.ensureFlatPaths()
+	vertexCount := len(vertices)
+	for _, flatPath := range flatPaths {
+		if flatPath.pointCount() < 3 {
+			continue
+		}
+		if vertexCount > maxVertexCountFor16BitIndices || flatPath.pointCount() > maxVertexCountFor16BitIndices-vertexCount {
+			panic("vector: too many vertices")
+		}
+		vertexCount += flatPath.pointCount()
+	}
+
 	base := uint16(len(vertices))
-	for _, flatPath := range p.ensureFlatPaths() {
+	for _, flatPath := range flatPaths {
 		if flatPath.pointCount() < 3 {
 			continue
 		}
@@ -69,6 +85,8 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 //
 // The returned values are intended to be passed to DrawTriangles or DrawTrianglesShader with a solid (non-transparent) color
 // with FillRuleFillAll or FillRuleNonZero, not FillRuleEvenOdd.
+//
+// AppendVerticesAndIndicesForStroke panics if appending this stroke would make the vertex count exceed 1 << 16.
 //
 // Deprecated: as of v2.9. Use [StrokePath] or [Path.AddStroke] instead.
 func (p *Path) AppendVerticesAndIndicesForStroke(vertices []ebiten.Vertex, indices []uint16, op *StrokeOptions) ([]ebiten.Vertex, []uint16) {
@@ -126,8 +144,8 @@ func (f *flatPath) close() {
 }
 
 func (p *Path) resetFlatPaths() {
-	for _, fp := range p.flatPaths {
-		fp.reset()
+	for i := range p.flatPaths {
+		p.flatPaths[i].reset()
 	}
 	p.flatPaths = p.flatPaths[:0]
 }

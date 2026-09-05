@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest that requests a device vibration during each Update, with a fixed magnitude and
 // duration, so the host can verify the guest→host device-vibration channel. It is launched by a host;

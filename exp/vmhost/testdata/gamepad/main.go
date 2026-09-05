@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest that verifies the gamepad state the host forwards. During Update it reads the
 // gamepad through the public ebiten API and compares it against the fixed expectation the host

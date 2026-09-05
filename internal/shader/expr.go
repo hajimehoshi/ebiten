@@ -67,7 +67,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 	case *ast.BinaryExpr:
 		var stmts []shaderir.Stmt
 
-		// Prase LHS first for the order of the statements.
+		// Parse LHS first for the order of the statements.
 		lhs, ts, ss, ok := cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false

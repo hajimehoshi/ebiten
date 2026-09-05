@@ -95,6 +95,8 @@ type LayoutFer interface {
 	//
 	// If the game implements this interface, Layout is never called and LayoutF is called instead.
 	//
+	// If LayoutF returns non-positive numbers, the caller may panic.
+	//
 	// LayoutF accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
 	// scale from the screen to the final screen size. For 1), the actual screen size is the logical size
@@ -268,7 +270,7 @@ type RunGameOptions struct {
 	// SingleThread indicates whether the single thread mode is used explicitly or not.
 	// The single thread mode disables Ebitengine's thread safety to unlock maximum performance.
 	// If you use this you will have to manage threads yourself.
-	// Functions like `SetWindowSize` will no longer be concurrent-safe with this build tag.
+	// Functions like `SetWindowSize` will no longer be concurrent-safe in the single thread mode.
 	// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
 	//
 	// SingleThread works only with desktops and consoles.
@@ -316,7 +318,7 @@ type RunGameOptions struct {
 	// VMGuestEndpoint is the endpoint URL of a virtualization host, like unix:///path/to/socket or
 	// tcp://host:port. If it is not empty, the game runs as a virtualization guest of that host
 	// instead of opening a window. When VMGuestEndpoint is empty and the binary is built with the
-	// `ebitenginevm` build tag, the environment variable EBITENGINE_VM_ENDPOINT is used instead.
+	// `ebitenginevmguest` build tag, the environment variable EBITENGINE_VM_ENDPOINT is used instead.
 	//
 	// When the game runs as a virtualization guest, GraphicsLibrary is ignored, and the graphics
 	// library is always GraphicsLibraryRemote. ColorSpace is also ignored: the color space is
@@ -446,7 +448,7 @@ func CursorMode() CursorModeType {
 //
 // On browsers, capturing a cursor requires a user gesture, otherwise SetCursorMode does nothing but leave an error message in console.
 // This behavior varies across browser implementations.
-// Check for user interaction before calling capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
+// Check for user interaction before capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
 //
 // SetCursorMode does nothing on mobiles.
 //
