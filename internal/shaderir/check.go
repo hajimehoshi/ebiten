@@ -182,6 +182,9 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		if lhst.Main == Array || rhst.Main == Array {
 			return Type{}, false
 		}
+		if lhst.Main == Texture || rhst.Main == Texture {
+			return Type{}, false
+		}
 		if lhst.Equal(&rhst) {
 			return Type{Main: Bool}, true
 		}
