@@ -301,3 +301,48 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
 	}
 }
+
+func TestCompileBoolArithmetic(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true + true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true - true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true * true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true / true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := true
+	b := true
+	c := a + b
+	return vec4(float(c))
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic for bool arithmetic, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for bool arithmetic, but got nil")
+			}
+		}()
+	}
+}
