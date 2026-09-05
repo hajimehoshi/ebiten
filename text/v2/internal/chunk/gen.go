@@ -22,11 +22,10 @@ package main
 
 import (
 	"bufio"
-	"cmp"
 	"fmt"
 	"net/http"
 	"os"
-	"slices"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -166,8 +165,8 @@ func cleanName(single bool, s string) string {
 }
 
 func writeFile(filename, funcName, propName string, entries []entry) error {
-	slices.SortFunc(entries, func(a, b entry) int {
-		return cmp.Compare(a.start, b.start)
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].start < entries[j].start
 	})
 	var ranges, singles []entry
 	for _, e := range entries {
