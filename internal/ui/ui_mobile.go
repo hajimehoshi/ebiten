@@ -180,9 +180,6 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 // outsideSize must be called on the same goroutine as update().
 func (u *UserInterface) outsideSize() (float64, float64) {
 	s := u.userInterfaceImpl.outsideSize.Load()
-	if s == nil {
-		return 0, 0
-	}
 	return s.x, s.y
 }
 

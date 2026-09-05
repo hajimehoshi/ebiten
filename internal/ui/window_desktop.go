@@ -80,9 +80,6 @@ func (w *desktopWindow) getWindowSizeLimitsInDIP() (minw, minh, maxw, maxh int) 
 	}
 
 	s := w.windowSizeLimit.Load()
-	if s == nil {
-		return glfw.DontCare, glfw.DontCare, glfw.DontCare, glfw.DontCare
-	}
 	return s.minWidthInDIP, s.minHeightInDIP, s.maxWidthInDIP, s.maxHeightInDIP
 }
 
@@ -189,9 +186,6 @@ func (w *desktopWindow) getInitWindowSizeInDIP() (int, int) {
 	}
 
 	pt := w.initWindowSizeInDIP.Load()
-	if pt == nil {
-		return 0, 0
-	}
 	return pt.X, pt.Y
 }
 

@@ -105,13 +105,9 @@ func fetchProps() (map[string][]entry, error) {
 			continue
 		}
 		cpField = strings.TrimSpace(cpField)
-		var prop, name string
-		if cutoff, after, ok := strings.Cut(rest, "#"); ok {
-			prop = strings.TrimSpace(cutoff)
-			name = strings.TrimSpace(after)
-		} else {
-			prop = strings.TrimSpace(rest)
-		}
+		prop, name, _ := strings.Cut(rest, "#")
+		prop = strings.TrimSpace(prop)
+		name = strings.TrimSpace(name)
 		start, end, err := parseCodepoints(cpField)
 		if err != nil {
 			return nil, fmt.Errorf("parse %q: %w", cpField, err)
@@ -128,16 +124,16 @@ func fetchProps() (map[string][]entry, error) {
 // parseCodepoints accepts "NNNN" or "NNNN..MMMM" and returns the
 // inclusive range; for a single codepoint, start == end.
 func parseCodepoints(s string) (rune, rune, error) {
-	if s, b, ok := strings.Cut(s, ".."); ok {
-		a, err := strconv.ParseInt(s, 16, 32)
+	if before, after, ok := strings.Cut(s, ".."); ok {
+		a, err := strconv.ParseInt(before, 16, 32)
 		if err != nil {
 			return 0, 0, err
 		}
-		bn, err := strconv.ParseInt(b, 16, 32)
+		b, err := strconv.ParseInt(after, 16, 32)
 		if err != nil {
 			return 0, 0, err
 		}
-		return rune(a), rune(bn), nil
+		return rune(a), rune(b), nil
 	}
 	v, err := strconv.ParseInt(s, 16, 32)
 	if err != nil {
