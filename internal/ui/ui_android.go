@@ -152,7 +152,7 @@ func (u *UserInterface) refreshDisplayInfo() {
 		// TODO: Fix gomobile to detect the error type for this case.
 		return
 	}
-	theDisplayInfo.Store(displayInfoValues{
+	theDisplayInfo.Store(&displayInfoValues{
 		width:  float64(cWidth),
 		height: float64(cHeight),
 		scale:  float64(cScale),

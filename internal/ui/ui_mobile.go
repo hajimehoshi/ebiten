@@ -46,7 +46,7 @@ func (u *UserInterface) init() error {
 		errCh:                 make(chan error),
 	}
 	// Give a default outside size so that the game can start without initializing them.
-	u.userInterfaceImpl.outsideSize.Store(pointF{x: 640, y: 480})
+	u.userInterfaceImpl.outsideSize.Store(&pointF{x: 640, y: 480})
 	u.foreground.Store(true)
 	return nil
 }
@@ -96,11 +96,11 @@ type userInterfaceImpl struct {
 	graphicsDriver        graphicsdriver.Graphics
 	graphicsLibraryInitCh chan struct{}
 
-	outsideSize atomic.Value
+	outsideSize atomic.Pointer[pointF]
 
 	// surfaceSize is the size of the rendering surface, in pixels, as the platform reports it. It is
 	// unset when the platform reports no size, and the size is then derived from the outside size.
-	surfaceSize atomic.Value
+	surfaceSize atomic.Pointer[pointI]
 
 	foreground atomic.Bool
 	errCh      chan error
@@ -179,7 +179,10 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 
 // outsideSize must be called on the same goroutine as update().
 func (u *UserInterface) outsideSize() (float64, float64) {
-	s := u.userInterfaceImpl.outsideSize.Load().(pointF)
+	s := u.userInterfaceImpl.outsideSize.Load()
+	if s == nil {
+		return 0, 0
+	}
 	return s.x, s.y
 }
 
@@ -202,7 +205,7 @@ func (u *UserInterface) update() error {
 //
 // screenSize must be called on the same goroutine as update().
 func (u *UserInterface) screenSize(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
-	if s, ok := u.userInterfaceImpl.surfaceSize.Load().(pointI); ok {
+	if s := u.userInterfaceImpl.surfaceSize.Load(); s != nil {
 		return s.x, s.y
 	}
 	// The platform reports no surface size, so derive it from the view's size in device-independent
@@ -215,14 +218,14 @@ func (u *UserInterface) screenSize(outsideWidth, outsideHeight float64, deviceSc
 //
 // SetSurfaceSize is concurrent safe.
 func (u *UserInterface) SetSurfaceSize(width, height int) {
-	u.userInterfaceImpl.surfaceSize.Store(pointI{x: width, y: height})
+	u.userInterfaceImpl.surfaceSize.Store(&pointI{x: width, y: height})
 }
 
 // SetOutsideSize is called from mobile/ebitenmobileview.
 //
 // SetOutsideSize is concurrent safe.
 func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
-	u.userInterfaceImpl.outsideSize.Store(pointF{x: outsideWidth, y: outsideHeight})
+	u.userInterfaceImpl.outsideSize.Store(&pointF{x: outsideWidth, y: outsideHeight})
 	u.refreshDisplayInfo()
 }
 
@@ -297,13 +300,13 @@ type displayInfoValues struct {
 	scale  float64
 }
 
-var theDisplayInfo atomic.Value
+var theDisplayInfo atomic.Pointer[displayInfoValues]
 
 func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	// Reading the display info here would require waiting for the main thread
 	// on iOS, which can deadlock.
-	v, ok := theDisplayInfo.Load().(displayInfoValues)
-	if !ok {
+	v := theDisplayInfo.Load()
+	if v == nil {
 		return 0, 0, 1, false
 	}
 	width := int(math.Round(dipFromNativePixels(v.width, v.scale)))

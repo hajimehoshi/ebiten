@@ -67,12 +67,10 @@ func parseClasses(data string) (map[string]styleAttribute, error) {
 		if v == "" {
 			continue
 		}
-		valueIndex := strings.Index(v, "{")
-		if valueIndex == -1 || valueIndex == len(v)-1 {
+		classesStr, attrStr, ok := strings.Cut(v, "{")
+		if !ok || attrStr == "" {
 			return res, errors.New(v + "}: invalid map format in class definitions")
 		}
-		classesStr := v[:valueIndex]
-		attrStr := v[valueIndex+1:]
 		attrMap, err := parseAttrs(attrStr)
 		if err != nil {
 			return res, err

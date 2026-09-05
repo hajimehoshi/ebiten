@@ -475,7 +475,10 @@ func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 }
 
 func (u *glfwBackend) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
-	s := u.desktopWindow.windowSizeLimit.Load().(windowSizeRange)
+	s := u.desktopWindow.windowSizeLimit.Load()
+	if s == nil {
+		return true
+	}
 	if s.maxWidthInDIP != glfw.DontCare || s.maxHeightInDIP != glfw.DontCare {
 		return false
 	}
