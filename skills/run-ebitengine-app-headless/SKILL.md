@@ -50,7 +50,7 @@ address as a URL, e.g. `unix:///path/to/socket` or `tcp://127.0.0.1:PORT`
 (the driver builds one from its listener with `vmhost.EndpointURLFromAddr`).
 The endpoint reaches the guest one of two ways:
 
-- Built with `-tags ebitenginevm`, the guest reads the
+- Built with `-tags ebitenginevmguest`, the guest reads the
   `EBITENGINE_VM_ENDPOINT` environment variable (no source change — this is
   what the driver uses).
 - With no build tag, the app's code sets `RunGameOptions.VMGuestEndpoint`.

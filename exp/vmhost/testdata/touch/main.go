@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest that verifies the touch events the host forwards. The host drives a fixed sequence
 // of press, move, and release events; during each tick this reads the current touches through the

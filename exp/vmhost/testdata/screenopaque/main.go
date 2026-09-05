@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest does not request a transparent screen, so the host's CompositeFrame composites its frame
 // over opaque black; see vmhost's screen-transparent test.

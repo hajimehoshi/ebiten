@@ -20,7 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// TestVMGuestEndpointOption runs a guest built WITHOUT the ebitenginevm build tag, activated through
+// TestVMGuestEndpointOption runs a guest built WITHOUT the ebitenginevmguest build tag, activated through
 // RunGameOptions.VMGuestEndpoint rather than EBITENGINE_VM_ENDPOINT.
 func TestVMGuestEndpointOption(t *testing.T) {
 	guest := startGuest(t, "./testdata/options", activateByOptions, "unix")
