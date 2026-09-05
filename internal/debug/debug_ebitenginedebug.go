@@ -19,37 +19,39 @@ package debug
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 )
 
 const IsDebug = true
 
-var theFrameLogger = &frameLogger{}
+var theFrameLogger atomic.Pointer[frameLogger]
+
+func init() {
+	theFrameLogger.Store(&frameLogger{})
+}
 
 var flushM sync.Mutex
 
 // FrameLogf calls the current global logger's FrameLogf.
 // FrameLogf buffers the arguments and doesn't dump the log immediately.
-// You can dump logs by calling SwitchLogger and Flush.
+// You can dump logs by calling SwitchFrameLogger and Flush.
 //
-// FrameLogf is not concurrent safe.
-// FrameLogf and SwitchFrameLogger must be called from the same goroutine.
+// FrameLogf is concurrent-safe.
 func FrameLogf(format string, args ...any) {
-	theFrameLogger.FrameLogf(format, args...)
+	theFrameLogger.Load().FrameLogf(format, args...)
 }
 
 // SwitchFrameLogger sets a new logger as the current logger and returns the original global logger.
 // The new global logger and the returned logger have separate statuses, so you can use them for different goroutines.
 //
-// SwitchFrameLogger and a returned Logger are not concurrent safe.
-// FrameLogf and SwitchFrameLogger must be called from the same goroutine.
+// SwitchFrameLogger is concurrent-safe.
 func SwitchFrameLogger() FrameLogger {
-	current := theFrameLogger
-	theFrameLogger = &frameLogger{}
-	return current
+	return theFrameLogger.Swap(&frameLogger{})
 }
 
 type frameLogger struct {
 	items []logItem
+	mu    sync.Mutex
 }
 
 type logItem struct {
@@ -58,6 +60,9 @@ type logItem struct {
 }
 
 func (l *frameLogger) FrameLogf(format string, args ...any) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	l.items = append(l.items, logItem{
 		format: format,
 		args:   args,
@@ -69,9 +74,17 @@ func (l *frameLogger) Flush() {
 	flushM.Lock()
 	defer flushM.Unlock()
 
-	for i, item := range l.items {
+	for _, item := range l.takeItems() {
 		fmt.Printf(item.format, item.args...)
-		l.items[i] = logItem{}
 	}
-	l.items = l.items[:0]
+}
+
+// takeItems removes the buffered log items and returns them.
+func (l *frameLogger) takeItems() []logItem {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	items := l.items
+	l.items = nil
+	return items
 }

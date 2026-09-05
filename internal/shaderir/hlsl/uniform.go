@@ -22,7 +22,7 @@ import (
 
 const UniformVariableBoundaryInDwords = 4
 
-// UniformVariableOffsetsInDwords returns the offsets of the uniform variables in DWROD units in the HLSL layout.
+// UniformVariableOffsetsInDwords returns the offsets of the uniform variables in DWORD units in the HLSL layout.
 func UniformVariableOffsetsInDwords(program *shaderir.Program) []int {
 	// https://docs.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-packing-rules
 	// https://github.com/microsoft/DirectXShaderCompiler/wiki/Buffer-Packing

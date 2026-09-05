@@ -3514,22 +3514,19 @@ func TestSyntaxEqualArray(t *testing.T) {
 		stmt string
 		err  bool
 	}{
-		{stmt: "var a [2]int; var b [2]int; _ = a == b", err: false},
-		{stmt: "var a [2]int; var b [2]int; _ = a != b", err: false},
-		{stmt: "var a [2]float; var b [2]float; _ = a == b", err: false},
-		{stmt: "var a [2]float; var b [2]float; _ = a != b", err: false},
-		{stmt: "var a [2]bool; var b [2]bool; _ = a == b", err: false},
-		{stmt: "var a [2]bool; var b [2]bool; _ = a != b", err: false},
-		{stmt: "var a [2]vec2; var b [2]vec2; _ = a == b", err: false},
-		{stmt: "var a [2]vec2; var b [2]vec2; _ = a != b", err: false},
-		{stmt: "var a [2]ivec3; var b [2]ivec3; _ = a == b", err: false},
-		{stmt: "var a [2]ivec3; var b [2]ivec3; _ = a != b", err: false},
-		{stmt: "_ = [2]int{1, 2} == [2]int{1, 3}", err: false},
-		{stmt: "_ = [2]int{1, 2} != [2]int{1, 3}", err: false},
-
-		// An array of matrices is not comparable as a matrix is not comparable.
+		// Comparing arrays is not allowed, as most of the shading languages don't have the operation.
+		{stmt: "var a [2]int; var b [2]int; _ = a == b", err: true},
+		{stmt: "var a [2]int; var b [2]int; _ = a != b", err: true},
+		{stmt: "var a [2]float; var b [2]float; _ = a == b", err: true},
+		{stmt: "var a [2]float; var b [2]float; _ = a != b", err: true},
+		{stmt: "var a [2]bool; var b [2]bool; _ = a == b", err: true},
+		{stmt: "var a [2]bool; var b [2]bool; _ = a != b", err: true},
+		{stmt: "var a [2]vec2; var b [2]vec2; _ = a == b", err: true},
+		{stmt: "var a [2]vec2; var b [2]vec2; _ = a != b", err: true},
 		{stmt: "var a [2]mat2; var b [2]mat2; _ = a == b", err: true},
 		{stmt: "var a [2]mat2; var b [2]mat2; _ = a != b", err: true},
+		{stmt: "_ = [2]int{1, 2} == [2]int{1, 3}", err: true},
+		{stmt: "_ = [2]int{1, 2} != [2]int{1, 3}", err: true},
 
 		{stmt: "var a [2]int; var b [3]int; _ = a == b", err: true},
 		{stmt: "var a [2]int; var b [3]int; _ = a != b", err: true},
@@ -3542,13 +3539,19 @@ func TestSyntaxEqualArray(t *testing.T) {
 		{stmt: "var a [2]int; var b [2]int; _ = a <= b", err: true},
 		{stmt: "var a [2]int; var b [2]int; _ = a > b", err: true},
 		{stmt: "var a [2]int; var b [2]int; _ = a >= b", err: true},
+
+		// Comparing elements is still allowed.
+		{stmt: "var a [2]int; var b [2]int; _ = a[0] == b[0]", err: false},
+		{stmt: "var a [2]int; var b [2]int; _ = a[0] != b[0]", err: false},
+		{stmt: "var a [2]vec2; var b [2]vec2; _ = a[0] == b[0]", err: false},
+		{stmt: "var a [2]vec2; var b [2]vec2; _ = a[0] != b[0]", err: false},
 	}
 
 	for _, c := range cases {
 		stmt := c.stmt
 		src := fmt.Sprintf(`package main
 
-func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	%s
 	return dstPos
 }`, stmt)

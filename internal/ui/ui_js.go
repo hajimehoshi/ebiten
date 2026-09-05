@@ -612,7 +612,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Keyboard
 	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
-		// Focus the canvas explicitly to activate tha game (#961).
+		// Focus the canvas explicitly to activate the game (#961).
 		v.Call("focus")
 
 		e := args[0]
@@ -635,7 +635,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Mouse
 	v.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) any {
-		// Focus the canvas explicitly to activate tha game (#961).
+		// Focus the canvas explicitly to activate the game (#961).
 		// Taking the focus from the text input element would dismiss a virtual keyboard.
 		if !u.isTextInputFocused() {
 			v.Call("focus")
@@ -679,7 +679,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Touch
 	v.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) any {
-		// Focus the canvas explicitly to activate tha game (#961).
+		// Focus the canvas explicitly to activate the game (#961).
 		// Taking the focus from the text input element would dismiss a virtual keyboard.
 		if !u.isTextInputFocused() {
 			v.Call("focus")

@@ -336,13 +336,16 @@ func (c *context) newFramebuffer(texture textureNative, width, height int) (*fra
 
 	if shouldCheckFramebufferStatus() {
 		if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
+			var err error
 			if s != 0 {
-				return nil, fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+				err = fmt.Errorf("opengl: creating framebuffer failed: %v", s)
+			} else if e := c.ctx.GetError(); e != gl.NO_ERROR {
+				err = fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
+			} else {
+				err = fmt.Errorf("opengl: creating framebuffer failed: unknown error")
 			}
-			if e := c.ctx.GetError(); e != gl.NO_ERROR {
-				return nil, fmt.Errorf("opengl: creating framebuffer failed: (glGetError) %d", e)
-			}
-			return nil, fmt.Errorf("opengl: creating framebuffer failed: unknown error")
+			c.deleteFramebuffer(framebufferNative(f))
+			return nil, err
 		}
 	}
 
@@ -414,10 +417,6 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 
 func (c *context) deleteProgram(p program) {
 	c.locationCache.deleteProgram(p)
-
-	if !c.ctx.IsProgram(uint32(p)) {
-		return
-	}
 	c.ctx.DeleteProgram(uint32(p))
 }
 

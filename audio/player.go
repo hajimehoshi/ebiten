@@ -22,6 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // player is almost the same as the interface oto.Player.
@@ -369,6 +371,20 @@ func (p *playerImpl) isPlaying() bool {
 	return p.player.IsPlaying()
 }
 
+// removeFromContextIfNotPlaying removes the player from the context's playing players unless the
+// player is still playing. The check and the removal are atomic with respect to Play, so that a
+// player restarted concurrently stays tracked by the context.
+// removeFromContextIfNotPlaying must not be called with p.m locked.
+func (p *playerImpl) removeFromContextIfNotPlaying() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if !p.closed && p.isPlaying() {
+		return
+	}
+	p.context.removePlayingPlayer(p)
+}
+
 func (p *playerImpl) Volume() float64 {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -509,13 +525,25 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 		return
 	}
 
-	bufferSizeInBytes := int(bufferSize * time.Duration(p.bytesPerSample) * time.Duration(p.factory.sampleRate) / time.Second)
-	bufferSizeInBytes = bufferSizeInBytes / p.bytesPerSample * p.bytesPerSample
+	sizeInBytes := bufferSizeInBytes(bufferSize, p.bytesPerSample, p.factory.sampleRate)
 	if p.player == nil {
-		p.initBufferSize = bufferSizeInBytes
+		p.initBufferSize = sizeInBytes
 		return
 	}
-	p.player.SetBufferSize(bufferSizeInBytes)
+	p.player.SetBufferSize(sizeInBytes)
+}
+
+func bufferSizeInBytes(bufferSize time.Duration, bytesPerSample, sampleRate int) int {
+	if bufferSize <= 0 {
+		return 0
+	}
+
+	size := mathutil.MulDiv(int64(bufferSize), int64(bytesPerSample)*int64(sampleRate), int64(time.Second))
+	if size > int64(math.MaxInt) {
+		return 0
+	}
+	size = size / int64(bytesPerSample) * int64(bytesPerSample)
+	return int(size)
 }
 
 func (p *playerImpl) sourceIdent() any {
@@ -585,13 +613,7 @@ func (p *playerImpl) updatePosition() {
 	}
 
 	// Update the adjusted position every tick. This is necessary to keep the position accurate.
-	p.adjustedPosition = mulDiv(samples, int64(time.Second), int64(p.factory.sampleRate)) + int64(adjustingTime)
-}
-
-// mulDiv returns x * mul / div, avoiding the overflow of the intermediate x * mul.
-// mul * div must fit in int64.
-func mulDiv(x, mul, div int64) int64 {
-	return x/div*mul + x%div*mul/div
+	p.adjustedPosition = mathutil.MulDiv(samples, int64(time.Second), int64(p.factory.sampleRate)) + int64(adjustingTime)
 }
 
 type timeStream struct {
@@ -620,7 +642,7 @@ func newTimeStream(r io.Reader, seekable bool, sampleRate int, bitDepthInBytes i
 			if !errors.Is(err, errors.ErrUnsupported) {
 				return nil, err
 			}
-			// Ignore the error, as the undelrying source might not support Seek (#3192).
+			// Ignore the error, as the underlying source might not support Seek (#3192).
 			// This happens when vorbis.Decode* is used, as vorbis.Stream is io.Seeker whichever the underlying source is.
 			pos = 0
 		}
@@ -657,7 +679,7 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 
 func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	bytesPerSecond := int64(s.bytesPerSample) * int64(s.sampleRate)
-	o := mulDiv(int64(offset), bytesPerSecond, int64(time.Second))
+	o := mathutil.MulDiv(int64(offset), bytesPerSecond, int64(time.Second))
 
 	// Align the byte position with the samples.
 	o -= o % int64(s.bytesPerSample)
@@ -672,5 +694,5 @@ func (s *timeStream) position() int64 {
 
 func (s *timeStream) positionInTimeDuration() time.Duration {
 	bytesPerSecond := int64(s.sampleRate) * int64(s.bytesPerSample)
-	return time.Duration(mulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond))
+	return time.Duration(mathutil.MulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond))
 }

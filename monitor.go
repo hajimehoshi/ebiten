@@ -39,7 +39,7 @@ func (m *MonitorType) DeviceScaleFactor() float64 {
 
 // Size returns the size of the monitor in device-independent pixels.
 // This is the same as the screen size in fullscreen mode.
-// The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.
+// The returned value can be given to [SetWindowSize] if the perfectly fit fullscreen is needed.
 //
 // On mobiles, Size returns (0, 0) before the game starts e.g. in init functions.
 //
@@ -51,6 +51,13 @@ func (m *MonitorType) Size() (int, int) {
 }
 
 // Monitor returns the current monitor.
+//
+// Monitor can return nil when no monitor is available.
+//
+// Monitor must be called on the main thread before ebiten.RunGame, and is concurrent-safe after ebiten.RunGame.
+//
+// Monitor can return the current machine's monitor even when the game is a virtualization guest,
+// especially before the game starts, and this is a known issue (#3632).
 func Monitor() *MonitorType {
 	m := ui.Get().Monitor()
 	if m == nil {
@@ -59,14 +66,21 @@ func Monitor() *MonitorType {
 	return (*MonitorType)(m)
 }
 
-// SetMonitor sets the monitor that the window should be on. This can be called before or after Run.
+// SetMonitor sets the monitor that the window should be on. This can be called before or after RunGame.
 func SetMonitor(monitor *MonitorType) {
 	ui.Get().Window().SetMonitor((*ui.Monitor)(monitor))
 }
 
 // AppendMonitors returns the monitors reported by the system.
-// On desktop platforms, there will always be at least one monitor appended and the first monitor in the slice will be the primary monitor.
+// On desktop platforms, the first monitor in the slice will be the primary monitor.
+// Nothing is appended when no monitor is available.
 // Any monitors added or removed will show up with subsequent calls to this function.
+//
+// AppendMonitors must be called on the main thread before ebiten.RunGame, and is concurrent-safe after
+// ebiten.RunGame.
+//
+// AppendMonitors can append the current machine's monitors even when the game is a virtualization guest,
+// especially before the game starts, and this is a known issue (#3632).
 func AppendMonitors(monitors []*MonitorType) []*MonitorType {
 	// TODO: This is not an efficient operation. It would be best if we could directly pass monitors directly into `ui.AppendMonitors`.
 	for _, m := range ui.Get().AppendMonitors(nil) {

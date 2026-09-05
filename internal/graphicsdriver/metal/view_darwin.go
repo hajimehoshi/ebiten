@@ -36,7 +36,11 @@ const maximumDrawableCount = 3
 
 type view struct {
 	window uintptr
-	uiview uintptr
+
+	// uiview is the UIView the game is rendered into.
+	// This is written on the UI thread and read on the rendering thread.
+	// This is always 0 on macOS.
+	uiview atomic.Uintptr
 
 	windowChanged bool
 
@@ -175,6 +179,12 @@ func newViewHandle(v *view) viewHandle {
 	h := viewHandleCounter
 	viewHandleMap[h] = v
 	return h
+}
+
+func deleteViewHandle(h viewHandle) {
+	viewHandleMu.Lock()
+	defer viewHandleMu.Unlock()
+	delete(viewHandleMap, h)
 }
 
 func (h viewHandle) Value() *view {

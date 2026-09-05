@@ -44,18 +44,53 @@ const (
 	maxVertexFloatCount = MaxVertexCount * graphics.VertexFloatCount
 )
 
-var vsyncEnabled atomic.Bool
+// The vsync state and whether the graphics driver has been updated for it.
+// The zero value means that vsync is enabled and the graphics driver has not been updated yet.
+const (
+	vsyncEnabledPending = iota
+	vsyncEnabledApplied
+	vsyncDisabledPending
+	vsyncDisabledApplied
+)
 
-func init() {
-	vsyncEnabled.Store(true)
+var vsyncState atomic.Int32
+
+// SetVsyncEnabled sets whether vsync is enabled.
+// The graphics driver is updated at the next flush.
+//
+// SetVsyncEnabled can be called from any goroutine.
+func SetVsyncEnabled(enabled bool) {
+	if enabled {
+		vsyncState.Store(vsyncEnabledPending)
+		return
+	}
+	vsyncState.Store(vsyncDisabledPending)
 }
 
-func SetVsyncEnabled(enabled bool, graphicsDriver graphicsdriver.Graphics) {
-	vsyncEnabled.Store(enabled)
+func isVsyncEnabled() bool {
+	s := vsyncState.Load()
+	return s == vsyncEnabledPending || s == vsyncEnabledApplied
+}
 
-	runOnRenderThread(func() {
-		graphicsDriver.SetVsyncEnabled(enabled)
-	}, true)
+// applyVsyncEnabledIfNeeded updates the graphics driver's vsync state when the driver has not been
+// updated for the current state yet.
+//
+// The main thread can call SetVsyncEnabled, and the main thread must never wait for the render
+// thread, which can be waiting for the main thread in the middle of a frame. The state is therefore
+// applied on the render thread at a flush.
+//
+// applyVsyncEnabledIfNeeded must be called on the render thread.
+func applyVsyncEnabledIfNeeded(graphicsDriver graphicsdriver.Graphics) {
+	// A state change during the call below makes the compare-and-swap fail, and then the state
+	// stays pending and the next flush applies it.
+	switch s := vsyncState.Load(); s {
+	case vsyncEnabledPending:
+		graphicsDriver.SetVsyncEnabled(true)
+		vsyncState.CompareAndSwap(s, vsyncEnabledApplied)
+	case vsyncDisabledPending:
+		graphicsDriver.SetVsyncEnabled(false)
+		vsyncState.CompareAndSwap(s, vsyncDisabledApplied)
+	}
 }
 
 // FlushCommands flushes the command queue and present the screen if needed.
@@ -193,7 +228,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 	var sync bool
 	// Disable asynchronous rendering when vsync is on, as this causes a rendering delay (#2822).
-	if endFrame && vsyncEnabled.Load() {
+	if endFrame && isVsyncEnabled() {
 		sync = true
 	}
 	if !sync {
@@ -210,6 +245,8 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	var flushErr error
 	runOnRenderThread(func() {
 		defer logger.Flush()
+
+		applyVsyncEnabledIfNeeded(graphicsDriver)
 
 		if err := q.flush(graphicsDriver, endFrame, logger); err != nil {
 			if sync {

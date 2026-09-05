@@ -246,9 +246,15 @@ type lineView struct {
 }
 
 func newLineView(f *Field) lineView {
-	lineStart, lineEnd := findLineBounds(f.text, f.selectionStartInBytes, f.selectionEndInBytes)
-	prefix := f.text[lineStart:f.selectionStartInBytes]
-	suffix := f.text[f.selectionEndInBytes:lineEnd]
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	text := f.text
+	selStart := min(max(f.selectionStartInBytes, 0), len(text))
+	selEnd := min(max(f.selectionEndInBytes, selStart), len(text))
+	lineStart, lineEnd := findLineBounds(text, selStart, selEnd)
+	prefix := text[lineStart:selStart]
+	suffix := text[selEnd:lineEnd]
 	marked := f.state.Text
 	return lineView{
 		prefix:                prefix,
@@ -258,8 +264,8 @@ func newLineView(f *Field) lineView {
 		markedLenInUTF16:      convertByteCountToUTF16Count(marked, len(marked)),
 		suffixLenInUTF16:      convertByteCountToUTF16Count(suffix, len(suffix)),
 		lineStartInBytes:      lineStart,
-		selectionStartInBytes: f.selectionStartInBytes,
-		selectionEndInBytes:   f.selectionEndInBytes,
+		selectionStartInBytes: selStart,
+		selectionEndInBytes:   selEnd,
 	}
 }
 
@@ -292,7 +298,8 @@ func newLineViewFromSession(s *session) lineView {
 //
 // Reads are race-free: getActiveSession takes activeSessionM, lineView is
 // built from immutable-after-publish session fields and the compositionM-
-// guarded composition snapshot. There is, however, a brief staleness window:
+// guarded composition snapshot, and the field path snapshots the field under
+// its own lock. There is, however, a brief staleness window:
 // when the platform forcibly tears down the channel (e.g. resignFirstResponder),
 // the Go-side activeSession pointer is cleared lazily, only when the user's
 // next Update observes the channel close. Between teardown and that Update,

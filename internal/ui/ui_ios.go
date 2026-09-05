@@ -137,7 +137,7 @@ func (u *UserInterface) refreshDisplayInfo() {
 
 	var cWidth, cHeight, cScale C.float
 	C.displayInfoOnMainThread(&cWidth, &cHeight, &cScale, C.uintptr_t(view))
-	theDisplayInfo.Store(displayInfoValues{
+	theDisplayInfo.Store(&displayInfoValues{
 		width:  float64(cWidth),
 		height: float64(cHeight),
 		scale:  float64(cScale),

@@ -95,10 +95,12 @@ type LayoutFer interface {
 	//
 	// If the game implements this interface, Layout is never called and LayoutF is called instead.
 	//
+	// If LayoutF returns non-positive numbers, the caller may panic.
+	//
 	// LayoutF accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
-	// scale from the screen to the final screen size. For 1), the actual screen size is a rounded up of the
-	// logical size.
+	// scale from the screen to the final screen size. For 1), the actual screen size is the logical size
+	// rounded up.
 	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 
@@ -142,7 +144,7 @@ const DefaultTPS = clock.DefaultTPS
 // how many swapping buffer happens per second.
 //
 // On some environments, ActualFPS doesn't return a reliable value since vsync doesn't work well there.
-// If you want to measure the application's speed, Use ActualTPS.
+// If you want to measure the application's speed, use ActualTPS.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
@@ -268,7 +270,7 @@ type RunGameOptions struct {
 	// SingleThread indicates whether the single thread mode is used explicitly or not.
 	// The single thread mode disables Ebitengine's thread safety to unlock maximum performance.
 	// If you use this you will have to manage threads yourself.
-	// Functions like `SetWindowSize` will no longer be concurrent-safe with this build tag.
+	// Functions like `SetWindowSize` will no longer be concurrent-safe in the single thread mode.
 	// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
 	//
 	// SingleThread works only with desktops and consoles.
@@ -281,7 +283,7 @@ type RunGameOptions struct {
 
 	// DisableHiDPI indicates whether the rendering for HiDPI is disabled or not.
 	// If HiDPI is disabled, the device scale factor is always 1 i.e. Monitor's DeviceScaleFactor always returns 1.
-	// This is useful to get a better performance on HiDPI displays, in the expense of rendering quality.
+	// This is useful to get a better performance on HiDPI displays, at the expense of rendering quality.
 	//
 	// DisableHiDPI is available only on browsers.
 	//
@@ -404,7 +406,7 @@ func ScreenSize() (int, int) {
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
-// The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.
+// The returned value can be given to [SetWindowSize] if the perfectly fit fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size.
 // ScreenSizeInFullscreen's returning value is different from the actual screen size and this is a known issue (#2145).
@@ -446,7 +448,7 @@ func CursorMode() CursorModeType {
 //
 // On browsers, capturing a cursor requires a user gesture, otherwise SetCursorMode does nothing but leave an error message in console.
 // This behavior varies across browser implementations.
-// Check for user interaction before calling capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
+// Check for user interaction before capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
 //
 // SetCursorMode does nothing on mobiles.
 //
@@ -488,8 +490,6 @@ func SetFullscreen(fullscreen bool) {
 
 // IsFocused returns a boolean value indicating whether
 // the game is in focus or in the foreground.
-//
-// IsFocused will only return true if IsRunnableOnUnfocused is false.
 //
 // IsFocused is concurrent-safe.
 func IsFocused() bool {
@@ -537,7 +537,11 @@ func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 //
 // Deprecated: as of v2.6. Use Monitor().DeviceScaleFactor() instead.
 func DeviceScaleFactor() float64 {
-	return Monitor().DeviceScaleFactor()
+	m := Monitor()
+	if m == nil {
+		return 1
+	}
+	return m.DeviceScaleFactor()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether
@@ -808,6 +812,8 @@ func Tick() int64 {
 // RunOnMainThread executes the function synchronously and returns after the function completes.
 //
 // If RunOnMainThread is called on the main thread, RunOnMainThread blocks forever.
+//
+// RunOnMainThread might not run the function e.g. before the game starts or after the game ends.
 //
 // RunOnMainThread is useful to access platform-specific APIs in a safe way.
 //

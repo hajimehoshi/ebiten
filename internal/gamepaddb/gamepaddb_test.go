@@ -92,6 +92,41 @@ func TestGLFWGamepadMappings(t *testing.T) {
 	}
 }
 
+func TestUpdateMappingWithoutContent(t *testing.T) {
+	for _, line := range []string{
+		"platform:,",
+		"misc1:b5,",
+	} {
+		const id = "00000000000000000000000000009401"
+		if err := gamepaddb.Update([]byte(id + ",Empty Pad," + line + "\n")); err != nil {
+			t.Fatal(err)
+		}
+		if got, want := gamepaddb.HasStandardLayoutMapping(id), false; got != want {
+			t.Errorf("HasStandardLayoutMapping(%q) after %q = %t; want %t", id, line, got, want)
+		}
+		if got, want := gamepaddb.Name(id), ""; got != want {
+			t.Errorf("Name(%q) after %q = %q; want %q", id, line, got, want)
+		}
+	}
+
+	const id = "00000000000000000000000000009402"
+	if err := gamepaddb.Update([]byte(id + ",Test Pad,a:b0,leftx:a0,\n")); err != nil {
+		t.Fatal(err)
+	}
+	if err := gamepaddb.Update([]byte(id + ",Test Pad,platform:,\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := gamepaddb.HasStandardLayoutMapping(id), true; got != want {
+		t.Errorf("HasStandardLayoutMapping(%q) = %t; want %t (a line without content must not drop a mapping)", id, got, want)
+	}
+	if got, want := gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonRightBottom).IsMapped(), true; got != want {
+		t.Errorf("StandardButtonMapping(%q, RightBottom).IsMapped() = %t; want %t", id, got, want)
+	}
+	if got, want := gamepaddb.StandardAxisMapping(id, gamepaddb.StandardAxisLeftStickHorizontal).IsMapped(), true; got != want {
+		t.Errorf("StandardAxisMapping(%q, LeftStickHorizontal).IsMapped() = %t; want %t", id, got, want)
+	}
+}
+
 // mockGamepad mimics internal/gamepad.Gamepad:
 // every state query takes the gamepad's own mutex.
 type mockGamepad struct {
@@ -103,15 +138,14 @@ func (g *mockGamepad) Axis(index int) float64     { g.mu.Lock(); defer g.mu.Unlo
 func (g *mockGamepad) Button(index int) bool      { g.mu.Lock(); defer g.mu.Unlock(); return false }
 func (g *mockGamepad) Hat(index int) int          { g.mu.Lock(); defer g.mu.Unlock(); return 0 }
 
-// queryWithGamepadLock calls this package while the gamepad's own lock is held,
-// like Gamepad.IsStandardAxisAvailable does.
+// queryWithGamepadLock calls this package while the gamepad's own lock is held.
 func queryWithGamepadLock(g *mockGamepad, id string) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
 	_ = gamepaddb.HasStandardLayoutMapping(id)
-	_ = gamepaddb.HasStandardAxis(id, gamepaddb.StandardAxisLeftStickHorizontal)
-	_ = gamepaddb.HasStandardButton(id, gamepaddb.StandardButtonRightBottom)
+	_ = gamepaddb.StandardAxisMapping(id, gamepaddb.StandardAxisLeftStickHorizontal)
+	_ = gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonRightBottom)
 	_ = gamepaddb.Name(id)
 }
 
@@ -142,9 +176,9 @@ func TestConcurrentAccess(t *testing.T) {
 
 		wg.Go(func() {
 			for time.Now().Before(deadline) {
-				_ = gamepaddb.StandardAxisValue(id, gamepaddb.StandardAxisLeftStickHorizontal, g)
-				_ = gamepaddb.StandardButtonValue(id, gamepaddb.StandardButtonRightBottom, g)
-				_ = gamepaddb.IsStandardButtonPressed(id, gamepaddb.StandardButtonRightBottom, g)
+				_ = gamepaddb.StandardAxisMapping(id, gamepaddb.StandardAxisLeftStickHorizontal).AxisValue(g)
+				_ = gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonRightBottom).ButtonValue(g)
+				_ = gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonRightBottom).IsButtonPressed(g)
 			}
 		})
 	}

@@ -229,7 +229,16 @@ func (g *graphicsInfraResources) releaseResources() {
 // Releasing them is the caller's responsibility.
 //
 // warpForDX12 is valid only for DirectX 12.
-func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) ([]*_IDXGIAdapter1, error) {
+func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) (_ []*_IDXGIAdapter1, ferr error) {
+	origLen := len(adapters)
+	defer func() {
+		if ferr != nil {
+			for _, a := range adapters[origLen:] {
+				a.Release()
+			}
+		}
+	}()
+
 	f, err := g.factory.QueryInterface(&_IID_IDXGIFactory4)
 	if err != nil {
 		return nil, err

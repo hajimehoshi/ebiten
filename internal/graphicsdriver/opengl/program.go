@@ -19,7 +19,6 @@ package opengl
 import (
 	"fmt"
 	"math"
-	"runtime"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -155,22 +154,16 @@ func (s *openGLState) reset(context *context) error {
 
 	s.lastProgram = 0
 	context.ctx.UseProgram(0)
-	for key := range s.lastUniforms {
-		delete(s.lastUniforms, key)
-	}
+	clear(s.lastUniforms)
 
-	// On browsers (at least Chrome), buffers are already detached from the context
-	// and must not be deleted by DeleteBuffer.
-	if runtime.GOOS != "js" {
-		if s.arrayBuffer != 0 {
-			context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
-		}
-		if s.elementArrayBuffer != 0 {
-			context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
-		}
-		if s.vertexArray != 0 {
-			context.ctx.DeleteVertexArray(s.vertexArray)
-		}
+	if s.arrayBuffer != 0 {
+		context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
+	}
+	if s.elementArrayBuffer != 0 {
+		context.ctx.DeleteBuffer(uint32(s.elementArrayBuffer))
+	}
+	if s.vertexArray != 0 {
+		context.ctx.DeleteVertexArray(s.vertexArray)
 	}
 
 	s.arrayBuffer = 0
@@ -233,9 +226,7 @@ func (s *openGLState) setVertices(context *context, vertices []float32, indices 
 }
 
 func (s *openGLState) resetLastUniforms() {
-	for k := range s.lastUniforms {
-		delete(s.lastUniforms, k)
-	}
+	clear(s.lastUniforms)
 }
 
 // areSameUint32Array returns a boolean indicating if a and b are deeply equal.
@@ -274,15 +265,22 @@ func (g *Graphics) textureVariableName(idx int) string {
 	return name
 }
 
+func (g *Graphics) deleteProgram(p program) {
+	// A name of a deleted program can be reused for a new program.
+	// Reset lastProgram so that useProgram doesn't skip the state updates for such a new program.
+	if g.state.lastProgram == p {
+		g.state.lastProgram = 0
+	}
+	g.context.deleteProgram(p)
+}
+
 // useProgram uses the program (programTexture).
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderSrcImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
 		g.context.ctx.UseProgram(uint32(program))
 
 		g.state.lastProgram = program
-		for k := range g.state.lastUniforms {
-			delete(g.state.lastUniforms, k)
-		}
+		clear(g.state.lastUniforms)
 		g.state.lastActiveTexture = 0
 		g.context.ctx.ActiveTexture(gl.TEXTURE0)
 		g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.

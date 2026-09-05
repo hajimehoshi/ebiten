@@ -79,6 +79,14 @@ type nativeGamepadGC struct {
 	hats    []int
 }
 
+// close releases g's native resources. close can be called multiple times.
+func (g *nativeGamepadGC) close() {
+	releaseGCRumbleMotor(g.leftMotor)
+	releaseGCRumbleMotor(g.rightMotor)
+	g.leftMotor = nil
+	g.rightMotor = nil
+}
+
 func (g *nativeGamepadGC) update(gamepad *gamepads) error {
 	g.updateGCGamepad()
 	if !g.vibEnd.IsZero() && time.Since(g.vibEnd) >= 0 {

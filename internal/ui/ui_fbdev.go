@@ -110,8 +110,9 @@ func (b *fbdevBackend) run(game Game, options *RunOptions) error {
 		return b.loopGame()
 	})
 
-	// Run the main thread.
-	_ = b.mainThread.Loop(ctx)
+	// Run the main thread. The loop is the thread's whole life, so a call arriving after
+	// it ends is a no-op rather than a block forever.
+	_ = b.mainThread.LoopAndStop(ctx)
 	return wg.Wait()
 }
 
@@ -136,7 +137,7 @@ func (b *fbdevBackend) initOnMainThread(options *RunOptions) error {
 
 	b.graphicsDriver = g
 	b.setGraphicsLibrary(lib)
-	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, g)
+	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 
 	b.setRunningBackend(b)
 
@@ -254,7 +255,7 @@ func (b *fbdevBackend) applyCursorShape() {
 
 func (b *fbdevBackend) applyFPSMode() {
 	b.RunOnMainThread(func() {
-		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, b.graphicsDriver)
+		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 	})
 }
 

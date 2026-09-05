@@ -54,3 +54,26 @@ func (rtb *RuneToBoolMap) Get(rune rune) (bool, bool) {
 func SVGGlyphDocument(source []byte, gid uint32) []byte {
 	return newSVGDocIndex(source).glyphDocument(gid)
 }
+
+// GlyphImageCacheCount returns the number of the glyph image caches of the source, one per face size.
+func GlyphImageCacheCount(source *GoTextFaceSource) int {
+	c := &source.glyphImageCache
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return len(c.caches)
+}
+
+// HasGlyphImageCache reports whether the source has a glyph image cache for the given size.
+func HasGlyphImageCache(source *GoTextFaceSource, size float64) bool {
+	c := &source.glyphImageCache
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_, ok := c.caches[size]
+	return ok
+}
+
+// TouchGlyphImageCache creates or refreshes the glyph image cache for the size of the given face,
+// as if the face were used at the given tick.
+func TouchGlyphImageCache(face *GoTextFace, tick int64) {
+	face.Source.glyphImageCache.cacheForFace(face, tick)
+}

@@ -35,12 +35,14 @@ package vibrate
 //                                                error:&error];
 //     if (error) {
 //       NSLog(@"CHHapticEngine::initAndReturnError failed: %@", error);
+//       [engine release];
 //       return nil;
 //     }
 //
 //     [engine startAndReturnError:&error];
 //     if (error) {
 //       NSLog(@"CHHapticEngine::startAndReturnError failed %@", error);
+//       [engine release];
 //       return nil;
 //     }
 //     return engine;
@@ -79,8 +81,8 @@ package vibrate
 //       };
 //
 //       NSError* error = nil;
-//       CHHapticPattern* pattern = [[CHHapticPattern alloc] initWithDictionary:hapticDict
-//                                                                        error:&error];
+//       CHHapticPattern* pattern = [[[CHHapticPattern alloc] initWithDictionary:hapticDict
+//                                                                         error:&error] autorelease];
 //       if (error) {
 //         return;
 //       }
@@ -93,7 +95,7 @@ package vibrate
 //
 //       [player startAtTime:0 error:&error];
 //       if (error) {
-//         NSLog(@"3, %@", [error localizedDescription]);
+//         NSLog(@"CHHapticPatternPlayer::startAtTime failed: %@", [error localizedDescription]);
 //         return;
 //       }
 //     }

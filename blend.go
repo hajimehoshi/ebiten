@@ -34,7 +34,7 @@ import (
 //	c_out = BlendOperationRGB((BlendFactorSourceRGB) × c_src, (BlendFactorDestinationRGB) × c_dst)
 //	α_out = BlendOperationAlpha((BlendFactorSourceAlpha) × α_src, (BlendFactorDestinationAlpha) × α_dst)
 //
-// A blend factor is a factor for source and color destination color values.
+// A blend factor is a factor for source and destination color values.
 // The default is source-over (regular alpha blending).
 //
 // A blend operation is a binary operator of a source color and a destination color.
@@ -110,7 +110,7 @@ const (
 
 	// BlendFactorOneMinusSourceColor is a factor:
 	//
-	//     1 - (source color)
+	//     1 - (source RGBA)
 	BlendFactorOneMinusSourceColor
 
 	// BlendFactorSourceAlpha is a factor:

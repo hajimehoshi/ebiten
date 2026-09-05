@@ -31,6 +31,7 @@ import (
 	"github.com/go-text/typesetting/bidi"
 	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 
@@ -1433,6 +1434,46 @@ func TestGoTextFaceSourceConcurrentDrawWithDifferentSizes(t *testing.T) {
 			<-start
 			var op text.DrawOptions
 			text.Draw(dst, "Hello, World!", face, &op)
+		})
+	}
+	close(start)
+	wg.Wait()
+}
+
+func TestGoXFaceConcurrentDrawAndMeasure(t *testing.T) {
+	sfntFont, err := opentype.Parse(goregular.TTF)
+	if err != nil {
+		t.Fatal(err)
+	}
+	opentypeFace, err := opentype.NewFace(sfntFont, &opentype.FaceOptions{
+		Size: 24,
+		DPI:  72,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := text.NewGoXFace(opentypeFace)
+
+	const (
+		goroutineCount = 8
+		loopCount      = 10
+	)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range goroutineCount {
+		wg.Go(func() {
+			dst := ebiten.NewImage(256, 64)
+			str := string(rune('A'+i)) + "xyz"
+			<-start
+			for range loopCount {
+				if i%2 == 0 {
+					var op text.DrawOptions
+					text.Draw(dst, str, f, &op)
+				} else {
+					_, _ = text.Measure(str, f, 0)
+				}
+			}
 		})
 	}
 	close(start)

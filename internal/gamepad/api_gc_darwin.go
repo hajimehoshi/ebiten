@@ -591,8 +591,8 @@ func (g *gamepads) removeGCGamepad(controller uintptr) {
 			return false
 		}
 		if gc.controller == controller {
-			releaseGCRumbleMotor(gc.leftMotor)
-			releaseGCRumbleMotor(gc.rightMotor)
+			// Lock the gamepad so the close cannot race with a concurrent Vibrate using the motors.
+			gamepad.close()
 			return true
 		}
 		return false
@@ -630,22 +630,25 @@ func initializeGCGamepads() {
 	// Register for connect/disconnect notifications.
 	center := objc.ID(class_NSNotificationCenter).Send(sel_defaultCenter)
 
-	connectBlock := objc.NewBlock(func(_ objc.Block, notification objc.ID) {
-		controller := notification.Send(sel_object)
-		addController(controller)
-	})
-
-	disconnectBlock := objc.NewBlock(func(_ objc.Block, notification objc.ID) {
-		controller := notification.Send(sel_object)
-		removeController(controller)
-	})
-
 	// The notification name symbols are pointers to NSString* — dereference them.
 	if gcControllerDidConnectNotification != 0 {
+		connectBlock := objc.NewBlock(func(_ objc.Block, notification objc.ID) {
+			controller := notification.Send(sel_object)
+			addController(controller)
+		})
+		// The notification center retains its own copy of the block.
+		defer connectBlock.Release()
+
 		connectName := *(*objc.ID)(unsafe.Pointer(gcControllerDidConnectNotification))
 		center.Send(sel_addObserverForName_object_queue_usingBlock, connectName, uintptr(0), uintptr(0), connectBlock)
 	}
 	if gcControllerDidDisconnectNotification != 0 {
+		disconnectBlock := objc.NewBlock(func(_ objc.Block, notification objc.ID) {
+			controller := notification.Send(sel_object)
+			removeController(controller)
+		})
+		defer disconnectBlock.Release()
+
 		disconnectName := *(*objc.ID)(unsafe.Pointer(gcControllerDidDisconnectNotification))
 		center.Send(sel_addObserverForName_object_queue_usingBlock, disconnectName, uintptr(0), uintptr(0), disconnectBlock)
 	}

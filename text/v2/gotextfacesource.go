@@ -106,9 +106,22 @@ type goTextGlyphImageCacheKey struct {
 	variations string
 }
 
+// glyphImageCachesSoftLimit indicates the soft limit of the number of the caches, one per face size.
+const glyphImageCachesSoftLimit = 16
+
+type glyphImageCacheEntry struct {
+	cache *cache[goTextGlyphImageCacheKey, *ebiten.Image]
+
+	// atime is the last time when the cache was accessed.
+	atime int64
+}
+
 // glyphImageCaches is a set of glyph image caches, one per face size.
 type glyphImageCaches struct {
-	caches map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]
+	caches map[float64]*glyphImageCacheEntry
+
+	// atime is the last time when the caches were cleaned up.
+	atime int64
 
 	// mu guards caches, not the caches in it: each cache has its own
 	// mutex, and creating a glyph image must not block another size's
@@ -117,20 +130,48 @@ type glyphImageCaches struct {
 }
 
 func (c *glyphImageCaches) getOrCreate(face *GoTextFace, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
-	return c.cacheForFace(face).getOrCreate(key, create)
+	return c.cacheForFace(face, ebiten.Tick()).getOrCreate(key, create)
 }
 
-func (c *glyphImageCaches) cacheForFace(face *GoTextFace) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
+// cacheForFace returns the cache for the size of the given face, creating it if necessary.
+// n is the current tick, which is the criterion of the staleness of the caches.
+func (c *glyphImageCaches) cacheForFace(face *GoTextFace, n int64) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if e, ok := c.caches[face.Size]; ok {
+		e.atime = n
+		return e.cache
+	}
+
 	if c.caches == nil {
-		c.caches = map[float64]*cache[goTextGlyphImageCacheKey, *ebiten.Image]{}
+		c.caches = map[float64]*glyphImageCacheEntry{}
 	}
-	if _, ok := c.caches[face.Size]; !ok {
-		c.caches[face.Size] = newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(face))
+	e := &glyphImageCacheEntry{
+		cache: newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(face)),
+		atime: n,
 	}
-	return c.caches[face.Size]
+	c.caches[face.Size] = e
+
+	// Clean up old caches. The glyph images in a removed cache are released by GC.
+	if c.atime < n {
+		// If the number of the caches exceeds the soft limit, old caches are removed.
+		// Even after cleaning up the caches, the number of the caches might still exceed the soft limit,
+		// but this is fine.
+		if len(c.caches) > glyphImageCachesSoftLimit {
+			for size, e := range c.caches {
+				// 60 is an arbitrary number.
+				if e.atime >= n-60 {
+					continue
+				}
+				delete(c.caches, size)
+			}
+		}
+	}
+
+	c.atime = n
+
+	return e.cache
 }
 
 // runeToBoolMap is a map from rune to bool with performance optimizations.
@@ -299,8 +340,11 @@ type GoTextFaceSource struct {
 	glyphImageCache glyphImageCaches
 	hasGlyphCache   runeToBoolMap
 
-	unscaledMetrics     Metrics
-	unscaledMetricsOnce sync.Once
+	// unscaledMetrics is in font units, for the default variation
+	// coordinates. It is computed in newGoTextFaceSource, before the
+	// source can be shared, so that reading it needs no lock even
+	// though shaping mutates the variation coordinates of f.
+	unscaledMetrics Metrics
 
 	addr *GoTextFaceSource
 
@@ -378,7 +422,26 @@ func newGoTextFaceSource(face *font.Face, loader *opentype.Loader) *GoTextFaceSo
 	s.chunkPlanCache = newCache[chunkPlanKey, []chunk.Chunk](512)
 	// 4 is an arbitrary number, which should not cause troubles.
 	s.shaper.SetFontCacheSize(4)
+	s.initUnscaledMetrics()
 	return s
+}
+
+// initUnscaledMetrics reads the metrics of g.f in font units.
+// g.f must be at its default variation coordinates.
+func (g *GoTextFaceSource) initUnscaledMetrics() {
+	um := &g.unscaledMetrics
+	if h, ok := g.f.FontHExtents(); ok {
+		um.HLineGap = float64(h.LineGap)
+		um.HAscent = float64(h.Ascender)
+		um.HDescent = float64(-h.Descender)
+	}
+	if v, ok := g.f.FontVExtents(); ok {
+		um.VLineGap = float64(v.LineGap)
+		um.VAscent = float64(v.Ascender)
+		um.VDescent = float64(-v.Descender)
+	}
+	um.XHeight = float64(g.f.LineMetric(font.XHeight))
+	um.CapHeight = float64(g.f.LineMetric(font.CapHeight))
 }
 
 // NewGoTextFaceSource parses an OpenType or TrueType font and returns a GoTextFaceSource object.
@@ -1262,22 +1325,6 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 }
 
 func (g *GoTextFaceSource) metrics(size float64) Metrics {
-	g.unscaledMetricsOnce.Do(func() {
-		um := &g.unscaledMetrics
-		if h, ok := g.f.FontHExtents(); ok {
-			um.HLineGap = float64(h.LineGap)
-			um.HAscent = float64(h.Ascender)
-			um.HDescent = float64(-h.Descender)
-		}
-		if v, ok := g.f.FontVExtents(); ok {
-			um.VLineGap = float64(v.LineGap)
-			um.VAscent = float64(v.Ascender)
-			um.VDescent = float64(-v.Descender)
-		}
-		um.XHeight = float64(g.f.LineMetric(font.XHeight))
-		um.CapHeight = float64(g.f.LineMetric(font.CapHeight))
-	})
-
 	um := g.unscaledMetrics
 	scale := g.scale(size)
 	return Metrics{

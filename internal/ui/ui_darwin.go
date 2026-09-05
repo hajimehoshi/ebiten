@@ -184,9 +184,15 @@ func (u *glfwBackend) setApplePressAndHoldEnabled(enabled bool) {
 		val = 1
 	}
 	defaults := objc.ID(class_NSMutableDictionary).Send(sel_alloc).Send(sel_init)
-	defaults.Send(sel_setObject_forKey,
-		objc.ID(class_NSNumber).Send(sel_alloc).Send(sel_initWithBool, val),
-		cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled").ID)
+	defer defaults.Send(sel_release)
+
+	num := objc.ID(class_NSNumber).Send(sel_alloc).Send(sel_initWithBool, val)
+	defer num.Send(sel_release)
+
+	key := cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled")
+	defer key.ID.Send(sel_release)
+
+	defaults.Send(sel_setObject_forKey, num, key.ID)
 	ud := objc.ID(class_NSUserDefaults).Send(sel_standardUserDefaults)
 	ud.Send(sel_registerDefaults, defaults)
 }
@@ -294,6 +300,7 @@ var (
 	sel_origDelegate                  = objc.RegisterName("origDelegate")
 	sel_isOrigResizable               = objc.RegisterName("isOrigResizable")
 	sel_registerDefaults              = objc.RegisterName("registerDefaults:")
+	sel_release                       = objc.RegisterName("release")
 	sel_setAppearance                 = objc.RegisterName("setAppearance:")
 	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
 	sel_setDelegate                   = objc.RegisterName("setDelegate:")
@@ -392,7 +399,9 @@ func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 		screen = window.Screen()
 	}
 	screenDictionary := screen.DeviceDescription()
-	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber").ID)}
+	screenNumberKey := cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber")
+	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(screenNumberKey.ID)}
+	screenNumberKey.ID.Send(sel_release)
 	aID := uintptr(screenID.UnsignedIntValue()) // CGDirectDisplayID
 	pool.Release()
 	for _, m := range theMonitors.append(nil) {
@@ -466,7 +475,7 @@ func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 }
 
 func (u *glfwBackend) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
-	s := u.desktopWindow.windowSizeLimit.Load().(windowSizeRange)
+	s := u.desktopWindow.windowSizeLimit.Load()
 	if s.maxWidthInDIP != glfw.DontCare || s.maxHeightInDIP != glfw.DontCare {
 		return false
 	}

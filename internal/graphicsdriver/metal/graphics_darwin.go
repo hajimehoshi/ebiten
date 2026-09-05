@@ -118,6 +118,7 @@ func NewGraphics(colorSpace color.ColorSpace) (graphicsdriver.Graphics, error) {
 		// Initializing a Metal device and a layer must be done in the main thread on macOS.
 		// Note that this assumes NewGraphics is called on the main thread on desktops.
 		if err := g.view.initialize(systemDefaultDevice, colorSpace); err != nil {
+			g.view.release()
 			return nil, err
 		}
 	}
@@ -143,6 +144,8 @@ func (g *Graphics) End(present bool) error {
 	if present {
 		g.frame++
 	}
+	// Reclaim the resources for the past frames here, as a drawable is not always obtained in a frame.
+	g.gcBuffers()
 	return nil
 }
 
@@ -160,8 +163,10 @@ func (g *Graphics) SetMainThreadRunner(f func(func())) {
 	g.view.runOnMainThread = f
 }
 
+// SetUIView sets the UIView the game is rendered into.
+//
+// SetUIView is concurrent safe.
 func (g *Graphics) SetUIView(uiview uintptr) {
-	// TODO: Should this be called on the main thread?
 	g.view.setUIView(uiview)
 }
 
@@ -179,23 +184,23 @@ func pow2(x uintptr) uintptr {
 
 func (g *Graphics) gcBuffers() {
 loop:
-	for frame, bs := range g.buffers {
+	for frame, cbs := range g.frameToCB {
 		if frame == g.frame {
 			continue
 		}
 
 		// Check if all command buffers for the frame are completed.
-		for _, cb := range g.frameToCB[frame] {
+		for _, cb := range cbs {
 			if cb.Status() != mtl.CommandBufferStatusCompleted {
 				continue loop
 			}
 		}
-		for _, cb := range g.frameToCB[frame] {
+		for _, cb := range cbs {
 			cb.Release()
 		}
 		delete(g.frameToCB, frame)
 
-		for _, b := range bs {
+		for _, b := range g.buffers[frame] {
 			if g.unusedBuffers == nil {
 				g.unusedBuffers = map[mtl.Buffer]struct{}{}
 			}
@@ -629,7 +634,7 @@ func (g *Graphics) MaxImageSize() int {
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
-	s, err := newShader(g.view.getMTLDevice(), g.genNextShaderID(), program)
+	s, err := newShader(g.genNextShaderID(), g, g.view.getMTLDevice(), program)
 	if err != nil {
 		return nil, err
 	}

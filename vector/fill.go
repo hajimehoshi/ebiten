@@ -17,14 +17,19 @@ package vector
 import (
 	"fmt"
 	"image"
+	"runtime"
 	"slices"
 	"sync"
 	_ "unsafe"
+	"weak"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 // FillRule is the rule whether an overlapped region is rendered or not.
+//
+// The number of overlaps is counted with a limited precision, so a region with too many
+// overlapping triangles can be rendered incorrectly.
 type FillRule int
 
 const (
@@ -38,8 +43,10 @@ const (
 )
 
 var (
-	theCallbackTokens      = map[*ebiten.Image]int64{}
-	theFillPathsStates     = map[*ebiten.Image]*fillPathsState{}
+	// theCallbackTokens and theFillPathsStates are keyed by weak pointers not to keep the destination images alive.
+	// When a destination image is collected before being used again, releaseFillPathsState removes the entries.
+	theCallbackTokens      = map[weak.Pointer[ebiten.Image]]int64{}
+	theFillPathsStates     = map[weak.Pointer[ebiten.Image]]*fillPathsState{}
 	theFillPathsStatesPool = sync.Pool{
 		New: func() any {
 			return &fillPathsState{}
@@ -87,16 +94,20 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
 
+	key := weak.Make(dst)
+
 	// Remove the previous registered callbacks.
-	if token, ok := theCallbackTokens[dst]; ok {
+	if token, ok := theCallbackTokens[key]; ok {
 		removeUsageCallback(dst, token)
 	}
-	delete(theCallbackTokens, dst)
+	delete(theCallbackTokens, key)
 
-	if _, ok := theFillPathsStates[dst]; !ok {
-		theFillPathsStates[dst] = theFillPathsStatesPool.Get().(*fillPathsState)
+	s, ok := theFillPathsStates[key]
+	if !ok {
+		s = theFillPathsStatesPool.Get().(*fillPathsState)
+		theFillPathsStates[key] = s
+		s.cleanup = runtime.AddCleanup(dst, releaseFillPathsState, key)
 	}
-	s := theFillPathsStates[dst]
 	if s.antialias != drawPathOptions.AntiAlias || s.blend != drawPathOptions.Blend || s.fillRule != fillOptions.FillRule {
 		s.fillPaths(dst)
 		s.reset()
@@ -107,7 +118,7 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	s.addPath(path, bounds, drawPathOptions.ColorScale)
 
 	// Use an independent callback function to avoid unexpected captures.
-	theCallbackTokens[dst] = addUsageCallback(dst, fillPathCallback)
+	theCallbackTokens[key] = addUsageCallback(dst, fillPathCallback)
 }
 
 func fillPathCallback(dst *ebiten.Image) {
@@ -118,19 +129,41 @@ func fillPathCallback(dst *ebiten.Image) {
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
 
+	key := weak.Make(dst)
+
 	// Remove the callback not to call this twice.
-	if token, ok := theCallbackTokens[dst]; ok {
+	if token, ok := theCallbackTokens[key]; ok {
 		removeUsageCallback(dst, token)
 	}
-	delete(theCallbackTokens, dst)
+	delete(theCallbackTokens, key)
 
-	s, ok := theFillPathsStates[dst]
+	s, ok := theFillPathsStates[key]
 	if !ok {
 		panic("vector: fillPathsState must exist here")
 	}
 	s.fillPaths(dst)
 	s.reset()
-	delete(theFillPathsStates, dst)
+	delete(theFillPathsStates, key)
+	s.cleanup.Stop()
+	s.cleanup = runtime.Cleanup{}
+	theFillPathsStatesPool.Put(s)
+}
+
+// releaseFillPathsState discards the state for a destination image that was collected before being used again.
+func releaseFillPathsState(key weak.Pointer[ebiten.Image]) {
+	theFillPathM.Lock()
+	defer theFillPathM.Unlock()
+
+	// The destination image is already collected, and its usage callbacks are gone with it.
+	delete(theCallbackTokens, key)
+
+	s, ok := theFillPathsStates[key]
+	if !ok {
+		return
+	}
+	delete(theFillPathsStates, key)
+	s.cleanup = runtime.Cleanup{}
+	s.reset()
 	theFillPathsStatesPool.Put(s)
 }
 
@@ -259,6 +292,10 @@ type fillPathsState struct {
 	antialias bool
 	blend     ebiten.Blend
 	fillRule  FillRule
+
+	// cleanup removes the entries for the destination image from theCallbackTokens and theFillPathsStates
+	// when the image is collected.
+	cleanup runtime.Cleanup
 }
 
 func (f *fillPathsState) reset() {
@@ -284,6 +321,7 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 	for i, subPath := range path.subPaths {
 		dst.subPaths[i].start = subPath.start
 		dst.subPaths[i].closed = subPath.closed
+		dst.subPaths[i].invalid = subPath.invalid
 		dst.subPaths[i].ops = slices.Grow(dst.subPaths[i].ops, len(subPath.ops))[:len(subPath.ops)]
 		copy(dst.subPaths[i].ops, subPath.ops)
 	}

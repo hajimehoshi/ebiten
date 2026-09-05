@@ -93,54 +93,73 @@ func (v vec2) mul(s float32) vec2 {
 }
 
 type subPath struct {
-	ops                []op
-	start              point
-	closed             bool
-	cachedValid        bool
-	isCachedValidValid bool
+	ops    []op
+	start  point
+	closed bool
+
+	// invalid indicates that the sub-path has a non-finite coordinate.
+	// The operations modifying the sub-path keep this up to date so that reading a path never writes to it.
+	invalid bool
 }
 
 func (s *subPath) reset() {
 	s.ops = s.ops[:0]
 	s.start = point{}
 	s.closed = false
-	s.cachedValid = false
-	s.isCachedValidValid = false
+	s.invalid = false
 }
 
 func isRegularF32(x float32) bool {
 	return !math.IsNaN(float64(x)) && !math.IsInf(float64(x), 0)
 }
 
-func (s *subPath) isValid() bool {
-	if s.isCachedValidValid {
-		return s.cachedValid
-	}
+func isRegularPoint(p point) bool {
+	return isRegularF32(p.x) && isRegularF32(p.y)
+}
 
-	if !isRegularF32(s.start.x) || !isRegularF32(s.start.y) {
-		s.cachedValid = false
-		s.isCachedValidValid = true
-		return false
+func (s *subPath) isValid() bool {
+	return !s.invalid
+}
+
+// setStart sets the start position of the sub-path, which must not have any operations.
+func (s *subPath) setStart(pt point) {
+	s.start = pt
+	s.invalid = !isRegularPoint(pt)
+}
+
+// appendOp adds the operation o to the sub-path.
+func (s *subPath) appendOp(o op) {
+	s.ops = append(s.ops, o)
+	if s.invalid {
+		return
+	}
+	switch o.typ {
+	case opTypeLineTo:
+		s.invalid = !isRegularPoint(o.p1)
+	case opTypeQuadTo:
+		s.invalid = !isRegularPoint(o.p1) || !isRegularPoint(o.p2)
+	}
+}
+
+// updateValidity updates the validity state, and must be called after the coordinates are modified directly.
+func (s *subPath) updateValidity() {
+	s.invalid = true
+	if !isRegularPoint(s.start) {
+		return
 	}
 	for _, op := range s.ops {
 		switch op.typ {
 		case opTypeLineTo:
-			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) {
-				s.cachedValid = false
-				s.isCachedValidValid = true
-				return false
+			if !isRegularPoint(op.p1) {
+				return
 			}
 		case opTypeQuadTo:
-			if !isRegularF32(op.p1.x) || !isRegularF32(op.p1.y) || !isRegularF32(op.p2.x) || !isRegularF32(op.p2.y) {
-				s.cachedValid = false
-				s.isCachedValidValid = true
-				return false
+			if !isRegularPoint(op.p1) || !isRegularPoint(op.p2) {
+				return
 			}
 		}
 	}
-	s.cachedValid = true
-	s.isCachedValidValid = true
-	return true
+	s.invalid = false
 }
 
 func (s *subPath) startAtOp(index int) point {
@@ -206,15 +225,6 @@ func (p *Path) resetSubPaths() {
 	p.subPaths = p.subPaths[:0]
 }
 
-func (p *Path) resetLastSubPathCacheStates() {
-	if len(p.subPaths) == 0 {
-		return
-	}
-	s := &p.subPaths[len(p.subPaths)-1]
-	s.cachedValid = false
-	s.isCachedValidValid = false
-}
-
 func (p *Path) addSubPaths(n int) {
 	// Use slices.Grow instead of append to reuse the underlying sub path object.
 	p.subPaths = slices.Grow(p.subPaths, n)[:len(p.subPaths)+n]
@@ -229,8 +239,7 @@ func (p *Path) MoveTo(x, y float32) {
 	if len(p.subPaths) == 0 || len(p.subPaths[len(p.subPaths)-1].ops) > 0 {
 		p.addSubPaths(1)
 	}
-	p.resetLastSubPathCacheStates()
-	p.subPaths[len(p.subPaths)-1].start = point{x: x, y: y}
+	p.subPaths[len(p.subPaths)-1].setStart(point{x: x, y: y})
 	p.subPaths[len(p.subPaths)-1].closed = false
 }
 
@@ -243,18 +252,17 @@ func (p *Path) LineTo(x, y float32) {
 
 	if len(p.subPaths) == 0 {
 		p.addSubPaths(1)
-		p.subPaths[len(p.subPaths)-1].start = point{x: x, y: y}
+		p.subPaths[len(p.subPaths)-1].setStart(point{x: x, y: y})
 	} else if p.subPaths[len(p.subPaths)-1].closed {
 		p.addSubPaths(1)
-		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
+		p.subPaths[len(p.subPaths)-1].setStart(p.subPaths[len(p.subPaths)-2].start)
 	}
-	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
 		if cur.x == x && cur.y == y {
 			return
 		}
 	}
-	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
+	p.subPaths[len(p.subPaths)-1].appendOp(op{
 		typ: opTypeLineTo,
 		p1:  point{x: x, y: y},
 	})
@@ -267,12 +275,11 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 
 	if len(p.subPaths) == 0 {
 		p.addSubPaths(1)
-		p.subPaths[len(p.subPaths)-1].start = point{x: x1, y: y1}
+		p.subPaths[len(p.subPaths)-1].setStart(point{x: x1, y: y1})
 	} else if p.subPaths[len(p.subPaths)-1].closed {
 		p.addSubPaths(1)
-		p.subPaths[len(p.subPaths)-1].start = p.subPaths[len(p.subPaths)-2].start
+		p.subPaths[len(p.subPaths)-1].setStart(p.subPaths[len(p.subPaths)-2].start)
 	}
-	p.resetLastSubPathCacheStates()
 	if cur, ok := p.currentPosition(); ok {
 		// A quadratic whose start, control, and end points all coincide is a single point and can be dropped.
 		// Even if the start and end points coincide, it is not a single point when the control point differs:
@@ -281,7 +288,7 @@ func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
 			return
 		}
 	}
-	p.subPaths[len(p.subPaths)-1].ops = append(p.subPaths[len(p.subPaths)-1].ops, op{
+	p.subPaths[len(p.subPaths)-1].appendOp(op{
 		typ: opTypeQuadTo,
 		p1:  point{x: x1, y: y1},
 		p2:  point{x: x2, y: y2},
@@ -410,7 +417,7 @@ func lineForTwoPoints(p0, p1 point) (a, b, c float32) {
 	return
 }
 
-// isPointCloseToSegment detects the distance between a segment (x0, y0)-(x1, y1) and a point (x, y) is less than allow.
+// isPointCloseToSegment detects the distance between the point p and the line passing through p0 and p1 is less than allow.
 // If p0 and p1 are the same, isPointCloseToSegment returns true when the distance between p0 and p is less than allow.
 func isPointCloseToSegment(p, p0, p1 point, allow float32) bool {
 	if p0 == p1 {
@@ -573,13 +580,13 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 		}
 	}
 
-	// If the angle is big, splict this into multiple Arc calls.
+	// If the angle is big, split this into multiple arcs.
 	if da > math.Pi/2 {
 		const delta = math.Pi / 3
 		a := float64(startAngle)
 		if dir == Clockwise {
 			for {
-				p.Arc(x, y, radius, float32(a), float32(min(a+delta, float64(endAngle))), dir)
+				p.arc(x, y, radius, float32(a), float32(min(a+delta, float64(endAngle))), dir)
 				if a+delta >= float64(endAngle) {
 					break
 				}
@@ -587,7 +594,7 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 			}
 		} else {
 			for {
-				p.Arc(x, y, radius, float32(a), float32(max(a-delta, float64(endAngle))), dir)
+				p.arc(x, y, radius, float32(a), float32(max(a-delta, float64(endAngle))), dir)
 				if a-delta <= float64(endAngle) {
 					break
 				}
@@ -595,6 +602,19 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 			}
 		}
 		return
+	}
+
+	p.arc(x, y, radius, startAngle, endAngle, dir)
+}
+
+// arc adds an arc to the path without splitting it.
+// startAngle and endAngle must be already adjusted so that the arc sweeps from startAngle to endAngle in the direction dir.
+func (p *Path) arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
+	var da float64
+	if dir == Clockwise {
+		da = float64(endAngle - startAngle)
+	} else {
+		da = float64(startAngle - endAngle)
 	}
 
 	sin0, cos0 := math.Sincos(float64(startAngle))
@@ -671,6 +691,8 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 				}
 			}
 		}
+
+		p.subPaths[n+i].updateValidity()
 	}
 }
 
@@ -752,8 +774,7 @@ func normalizeSubPath(dst *subPath, src *subPath) {
 	dst.ops = ops
 	dst.start = src.start
 	dst.closed = src.closed
-	dst.cachedValid = false
-	dst.isCachedValidValid = false
+	dst.updateValidity()
 }
 
 func floor(x float32) int {

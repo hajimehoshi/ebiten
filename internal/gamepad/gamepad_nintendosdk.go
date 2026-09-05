@@ -54,9 +54,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 		C.ebitengine_GetGamepads(&g.gamepads[0])
 	}
 
-	for id := range g.ids {
-		delete(g.ids, id)
-	}
+	clear(g.ids)
 
 	for _, gp := range g.gamepads {
 		if g.ids == nil {

@@ -1139,14 +1139,19 @@ func platformTerminate() error {
 		_glfw.platformWindow.xi.handle = 0
 	}
 
+	if _glfw.platformWindow.xshape.handle != 0 {
+		_ = purego.Dlclose(_glfw.platformWindow.xshape.handle)
+		_glfw.platformWindow.xshape.handle = 0
+	}
+
 	// NOTE: These need to be unloaded after XCloseDisplay, as they register
 	//       cleanup callbacks that get called by that function
 	terminateEGL()
 	terminateGLX()
 
-	if _glfw.platformWindow.emptyEventPipe[0] != 0 || _glfw.platformWindow.emptyEventPipe[1] != 0 {
-		_ = unix.Close(_glfw.platformWindow.emptyEventPipe[0])
-		_ = unix.Close(_glfw.platformWindow.emptyEventPipe[1])
-	}
+	// Keep the empty event pipe open. PostEmptyEvent is concurrent safe and can write to the
+	// pipe even after the termination, and a closed file descriptor might be reused by then.
+	// The pipe is non-blocking, so a write with no reader is harmless, and the process exit
+	// reclaims the file descriptors.
 	return nil
 }

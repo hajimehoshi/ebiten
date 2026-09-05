@@ -19,3 +19,12 @@ import "image"
 func SrcRegionFromUniforms(uniforms []uint32, i int) (image.Rectangle, bool) {
 	return srcRegionFromUniforms(uniforms, i)
 }
+
+// NewGuestAudioStreamForTesting returns a stream reporting the given sample rate, as if the host had
+// already read readBytes bytes from it.
+func NewGuestAudioStreamForTesting(rate int, readBytes int64) *GuestAudioStream {
+	return &GuestAudioStream{
+		rate:      rate,
+		readBytes: readBytes,
+	}
+}

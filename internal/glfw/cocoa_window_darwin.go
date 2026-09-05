@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -928,14 +929,23 @@ func registerGLFWClasses() error {
 }
 
 // theGoWindows associates ObjC delegate and content-view instances with their Go Windows.
+//
+// theGoWindows must be accessed only from the main thread, like the rest of this package:
+// the entries are written and removed while a window is created or destroyed, and read
+// from the ObjC callbacks, which AppKit invokes on the thread that triggers them.
+// Thus no synchronization is needed here.
 var theGoWindows = map[objc.ID]*Window{}
 
 // getGoWindow returns the Go Window associated with an ObjC instance, or nil if there is none.
+//
+// getGoWindow must be called from the main thread.
 func getGoWindow(id objc.ID) *Window {
 	return theGoWindows[id]
 }
 
 // setGoWindow associates an ObjC instance with a Go Window.
+//
+// setGoWindow must be called from the main thread.
 func setGoWindow(id objc.ID, window *Window) {
 	theGoWindows[id] = window
 }
@@ -1748,6 +1758,12 @@ func platformWaitEventsTimeout(timeout float64) error {
 }
 
 func platformPostEmptyEvent() error {
+	// Unlike most of the platform functions, this can be called from any goroutine.
+	// An autorelease pool belongs to the OS thread that created it, so the goroutine must not
+	// migrate to another thread between creating and releasing the pool.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
@@ -1935,7 +1951,10 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 				hotyKey := cocoa.NSString_alloc().InitWithUTF8String("hoty")
 				hoty := objc.Send[float64](info.Send(sel_valueForKey, hotyKey.ID), sel_doubleValue)
 				hotyKey.ID.Send(sel_release)
+				// alloc/init returns an owned object. Autorelease it so that the retain
+				// below leaves exactly one owned reference.
 				cursor = objc.ID(class_NSCursor).Send(sel_alloc).Send(sel_initWithImage_hotSpot, image, cocoa.NSPoint{X: hotx, Y: hoty})
+				cursor.Send(sel_autorelease)
 			}
 			if image != 0 {
 				image.Send(sel_release)

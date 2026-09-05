@@ -166,13 +166,21 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	p.shaderDescriptorHeap = shaderH
 	defer func() {
 		if ferr != nil {
-			p.shaderDescriptorHeap.Release()
-			p.shaderDescriptorHeap = nil
+			p.release()
 		}
 	}()
 	p.shaderDescriptorSize = device.GetDescriptorHandleIncrementSize(_D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
 
 	return nil
+}
+
+// release releases the objects created by initialize.
+func (p *pipelineStates) release() {
+	if p.shaderDescriptorHeap != nil {
+		p.shaderDescriptorHeap.Release()
+		p.shaderDescriptorHeap = nil
+	}
+	p.shaderDescriptorSize = 0
 }
 
 func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderSrcImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int) error {
@@ -300,7 +308,8 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	return nil
 }
 
-func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignature *_ID3D12RootSignature, ferr error) {
+// ensureRootSignature returns the root signature owned by p, which the caller must not release.
+func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (*_ID3D12RootSignature, error) {
 	if p.rootSignature != nil {
 		return p.rootSignature, nil
 	}
@@ -356,27 +365,17 @@ func (p *pipelineStates) ensureRootSignature(device *_ID3D12Device) (rootSignatu
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if ferr != nil {
-			rootSignature.Release()
-		}
-	}()
 
 	p.rootSignature = rs
 
 	return p.rootSignature, nil
 }
 
-func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, blend graphicsdriver.Blend, screen bool) (state *_ID3D12PipelineState, ferr error) {
+func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3DBlob, blend graphicsdriver.Blend, screen bool) (*_ID3D12PipelineState, error) {
 	rootSignature, err := p.ensureRootSignature(device)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		if ferr != nil {
-			rootSignature.Release()
-		}
-	}()
 
 	writeMask := uint8(_D3D12_COLOR_WRITE_ENABLE_ALL)
 

@@ -410,7 +410,11 @@ func (i *imageImpl) regionWithPadding() image.Rectangle {
 //	4: Color R [0.0-1.0]
 //	5: Color G
 //	6: Color B
-//	7: Color Y
+//	7: Color A
+//	8: Custom0
+//	9: Custom1
+//	10: Custom2
+//	11: Custom3
 func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -623,10 +627,11 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 // Deallocate deallocates the internal state.
 // Even after this call, the image is still available as a new cleared image.
 func (i *Image) Deallocate() {
-	i.cleanup.Stop()
-
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	// i.cleanup is rewritten under backendsM e.g. at moveTo.
+	i.cleanup.Stop()
 
 	if !inFrame {
 		appendDeferred(func() {

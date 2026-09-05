@@ -116,6 +116,39 @@ func TestGCShader(t *testing.T) {
 	}
 }
 
+func TestGCShaderRemovesRegistryEntry(t *testing.T) {
+	const w, h = 1, 1
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, w, h)
+
+	// Ensure other objects are GCed, so that the base count is stable.
+	ensureGC()
+	base := atlas.ShaderCountWithInternalShaderForTesting()
+
+	const count = 10
+	shaders := make([]*atlas.Shader, 0, count)
+	for range count {
+		s := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff), "")
+		// Use the shader to initialize its internal shader.
+		vs := quadVertices(w, h, 0, 0, 1)
+		dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil)
+		shaders = append(shaders, s)
+	}
+
+	if got, want := atlas.ShaderCountWithInternalShaderForTesting(), base+count; got != want {
+		t.Errorf("shader count: got: %d, want: %d", got, want)
+	}
+
+	// Drop the references and let the shaders be collected.
+	shaders = nil
+	ensureGC()
+
+	if got, want := atlas.ShaderCountWithInternalShaderForTesting(), base; got != want {
+		t.Errorf("shader count after GC: got: %d, want: %d", got, want)
+	}
+}
+
 func TestBuiltinShaderSourceIDs(t *testing.T) {
 	for _, tc := range []struct {
 		name   string

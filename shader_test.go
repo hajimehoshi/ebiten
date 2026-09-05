@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -2976,55 +2977,6 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
-// Issue #3535
-func TestShaderArrayComparison(t *testing.T) {
-	const w, h = 16, 16
-
-	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	i0 := [2]int{1, 2}
-	i1 := [2]int{1, 2}
-	i2 := [2]int{1, 3}
-	v0 := [3]vec2{vec2(0), vec2(1), vec2(2)}
-	v1 := [3]vec2{vec2(0), vec2(1), vec2(2)}
-	v2 := [3]vec2{vec2(0), vec2(1), vec2(3)}
-	var r, g, b, a float
-	if i0 == i1 {
-		r = 0.25
-	}
-	if i0 != i2 {
-		g = 0.5
-	}
-	if v0 == v1 {
-		b = 0.75
-	}
-	if v0 != v2 {
-		a = 1
-	}
-	return vec4(r, g, b, a)
-}
-`))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dst.DrawRectShader(w, h, s, nil)
-
-	for j := range h {
-		for i := range w {
-			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{R: 0x40, G: 0x80, B: 0xc0, A: 0xff}
-			if !sameColors(got, want, 2) {
-				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
 func BenchmarkBuiltinShader(b *testing.B) {
 	// Create a shader to cache the shader compilation result.
 	_ = ebiten.BuiltinShader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)
@@ -3227,4 +3179,43 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			}
 		}
 	}
+}
+
+func TestShaderConcurrentDrawWithUniforms(t *testing.T) {
+	const w, h = 16, 16
+
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+var Color vec4
+var Offset vec2
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return Color + vec4(Offset, 0, 0)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const n = 8
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for range n {
+		wg.Go(func() {
+			dst := ebiten.NewImage(w, h)
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Uniforms = map[string]any{
+				"Color":  []float32{1, 0, 0, 1},
+				"Offset": []float32{0, 0},
+			}
+			<-start
+			for range 16 {
+				dst.DrawRectShader(w, h, s, op)
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
 }

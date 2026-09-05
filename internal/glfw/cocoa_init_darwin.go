@@ -554,6 +554,7 @@ func platformInit() error {
 		}
 		return event
 	})
+	defer keyUpBlock.Release()
 	_glfw.platformWindow.keyUpMonitor = objc.ID(class_NSEvent).Send(
 		sel_addLocalMonitorForEventsMatchingMask_handler,
 		_NSEventMaskKeyUp,

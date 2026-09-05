@@ -35,7 +35,7 @@ func (u *UserInterface) initializePlatform() error {
 }
 
 func (u *glfwBackend) setApplePressAndHoldEnabled(enabled bool) {
-	// Do nothings.
+	// Do nothing.
 }
 
 type graphicsDriverCreatorImpl struct {

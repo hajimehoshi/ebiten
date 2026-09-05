@@ -121,21 +121,21 @@ func (i *Image) InternalSize() (int, int) {
 //
 //	0: Destination X in pixels
 //	1: Destination Y in pixels
-//	2: Source X in texels
-//	3: Source Y in texels
+//	2: Source X in pixels
+//	3: Source Y in pixels
 //	4: Color R [0.0-1.0]
 //	5: Color G
 //	6: Color B
-//	7: Color Y
+//	7: Color A
+//	8: Custom0
+//	9: Custom1
+//	10: Custom2
+//	11: Custom3
 //
-// src and shader are exclusive and only either is non-nil.
+// The elements whose indices are 2 and 3 are used for the source image position.
 //
-// The elements that index is in between 2 and 7 are used for the source images.
-// The source image is 1) src argument if non-nil, or 2) an image value in the uniform variables if it exists.
-// If there are multiple images in the uniform variables, the smallest ID's value is adopted.
-//
-// If the source image is not specified, i.e., src is nil and there is no image in the uniform variables, the
-// elements for the source image are not used.
+// If the source image is not specified, i.e., the first element of srcs is nil, the
+// elements for the source image position are passed as they are.
 func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
 	for _, src := range srcs {
 		if src == nil {

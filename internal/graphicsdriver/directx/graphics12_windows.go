@@ -229,10 +229,21 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED
 		return err
 	}
 	g.device = (*_ID3D12Device)(d)
+	defer func() {
+		if ferr != nil {
+			g.device.Release()
+			g.device = nil
+		}
+	}()
 
 	if err := g.initializeMembers(); err != nil {
 		return err
 	}
+	defer func() {
+		if ferr != nil {
+			g.releaseMembers()
+		}
+	}()
 
 	// GetCopyableFootprints might return an invalid value with Wine (#2114).
 	// To check this early, call NewImage here.
@@ -264,10 +275,21 @@ func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (ferr erro
 		return err
 	}
 	g.device = (*_ID3D12Device)(d)
+	defer func() {
+		if ferr != nil {
+			g.device.Release()
+			g.device = nil
+		}
+	}()
 
 	if err := g.initializeMembers(); err != nil {
 		return err
 	}
+	defer func() {
+		if ferr != nil {
+			g.releaseMembers()
+		}
+	}()
 
 	if err := g.registerFrameEventForXbox(); err != nil {
 		return err
@@ -323,6 +345,12 @@ func (g *graphics12) registerFrameEventForXbox() error {
 }
 
 func (g *graphics12) initializeMembers() (ferr error) {
+	defer func() {
+		if ferr != nil {
+			g.releaseMembers()
+		}
+	}()
+
 	// Create an event for a fence.
 	e, err := windows.CreateEventEx(nil, nil, 0, windows.EVENT_MODIFY_STATE|windows.SYNCHRONIZE)
 	if err != nil {
@@ -340,12 +368,6 @@ func (g *graphics12) initializeMembers() (ferr error) {
 		return err
 	}
 	g.commandQueue = c
-	defer func() {
-		if ferr != nil {
-			g.commandQueue.Release()
-			g.commandQueue = nil
-		}
-	}()
 
 	// Create command allocators.
 	for i := range frameCount {
@@ -354,24 +376,12 @@ func (g *graphics12) initializeMembers() (ferr error) {
 			return err
 		}
 		g.drawCommandAllocators[i] = dca
-		defer func(i int) {
-			if ferr != nil {
-				g.drawCommandAllocators[i].Release()
-				g.drawCommandAllocators[i] = nil
-			}
-		}(i)
 
 		cca, err := g.device.CreateCommandAllocator(_D3D12_COMMAND_LIST_TYPE_DIRECT)
 		if err != nil {
 			return err
 		}
 		g.copyCommandAllocators[i] = cca
-		defer func(i int) {
-			if ferr != nil {
-				g.copyCommandAllocators[i].Release()
-				g.copyCommandAllocators[i] = nil
-			}
-		}(i)
 	}
 
 	// Create a frame fence.
@@ -381,12 +391,6 @@ func (g *graphics12) initializeMembers() (ferr error) {
 			return err
 		}
 		g.fences[i] = f
-		defer func() {
-			if ferr != nil {
-				g.fences[i].Release()
-				g.fences[i] = nil
-			}
-		}()
 	}
 
 	// Create command lists.
@@ -395,24 +399,12 @@ func (g *graphics12) initializeMembers() (ferr error) {
 		return err
 	}
 	g.drawCommandList = dcl
-	defer func() {
-		if ferr != nil {
-			g.drawCommandList.Release()
-			g.drawCommandList = nil
-		}
-	}()
 
 	ccl, err := g.device.CreateCommandList(0, _D3D12_COMMAND_LIST_TYPE_DIRECT, g.copyCommandAllocators[0], nil)
 	if err != nil {
 		return err
 	}
 	g.copyCommandList = ccl
-	defer func() {
-		if ferr != nil {
-			g.copyCommandList.Release()
-			g.copyCommandList = nil
-		}
-	}()
 
 	// Close the command list once as this is immediately Reset at Begin.
 	if err := g.drawCommandList.Close(); err != nil {
@@ -433,12 +425,6 @@ func (g *graphics12) initializeMembers() (ferr error) {
 		return err
 	}
 	g.rtvDescriptorHeap = h
-	defer func() {
-		if ferr != nil {
-			g.rtvDescriptorHeap.Release()
-			g.rtvDescriptorHeap = nil
-		}
-	}()
 	g.rtvDescriptorSize = g.device.GetDescriptorHandleIncrementSize(_D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
 
 	if err := g.pipelineStates.initialize(g.device); err != nil {
@@ -446,6 +432,51 @@ func (g *graphics12) initializeMembers() (ferr error) {
 	}
 
 	return nil
+}
+
+// releaseMembers releases the objects created by initializeMembers.
+func (g *graphics12) releaseMembers() {
+	g.pipelineStates.release()
+
+	if g.rtvDescriptorHeap != nil {
+		g.rtvDescriptorHeap.Release()
+		g.rtvDescriptorHeap = nil
+	}
+	g.rtvDescriptorSize = 0
+
+	if g.copyCommandList != nil {
+		g.copyCommandList.Release()
+		g.copyCommandList = nil
+	}
+	if g.drawCommandList != nil {
+		g.drawCommandList.Release()
+		g.drawCommandList = nil
+	}
+
+	for i := range frameCount {
+		if g.fences[i] != nil {
+			g.fences[i].Release()
+			g.fences[i] = nil
+		}
+		if g.copyCommandAllocators[i] != nil {
+			g.copyCommandAllocators[i].Release()
+			g.copyCommandAllocators[i] = nil
+		}
+		if g.drawCommandAllocators[i] != nil {
+			g.drawCommandAllocators[i].Release()
+			g.drawCommandAllocators[i] = nil
+		}
+	}
+
+	if g.commandQueue != nil {
+		g.commandQueue.Release()
+		g.commandQueue = nil
+	}
+
+	if g.fenceWaitEvent != 0 {
+		_ = windows.CloseHandle(g.fenceWaitEvent)
+		g.fenceWaitEvent = 0
+	}
 }
 
 func (g *graphics12) Initialize() (err error) {
@@ -492,6 +523,20 @@ func (g *graphics12) updateSwapChain(width, height int) error {
 	}
 
 	if microsoftgdk.IsXbox() {
+		// Release the current render targets before creating new ones. The GPU might still be using
+		// them, so make it idle first.
+		if g.renderTargets[0] != nil {
+			if err := g.flushCommandList(g.copyCommandList); err != nil {
+				return err
+			}
+			if err := g.flushCommandList(g.drawCommandList); err != nil {
+				return err
+			}
+			if err := g.waitForCommandQueue(); err != nil {
+				return err
+			}
+			g.releaseRenderTargets()
+		}
 		if err := g.initSwapChainXbox(width, height); err != nil {
 			return err
 		}
@@ -620,9 +665,7 @@ func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
 	}
 	g.releaseResources(g.frameIndex)
 
-	for _, r := range g.renderTargets {
-		r.Release()
-	}
+	g.releaseRenderTargets()
 
 	if err := g.graphicsInfra.resizeSwapChain(width, height); err != nil {
 		return err
@@ -658,6 +701,18 @@ func (g *graphics12) resizeSwapChainDesktop(width, height int) error {
 	}
 
 	return nil
+}
+
+// releaseRenderTargets releases the current render targets. The caller must make sure that the GPU
+// no longer uses them.
+func (g *graphics12) releaseRenderTargets() {
+	for i, r := range g.renderTargets {
+		if r == nil {
+			continue
+		}
+		r.Release()
+		g.renderTargets[i] = nil
+	}
 }
 
 func (g *graphics12) createRenderTargetViewsDesktop() (ferr error) {

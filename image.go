@@ -623,7 +623,7 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		return
 	}
 
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) && !i.Bounds().Empty() {
 		drawTrianglesWithStencilBuffer(i, vertices, indices, img, options)
 		return
 	}
@@ -864,7 +864,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		return
 	}
 
-	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) {
+	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) && !i.Bounds().Empty() {
 		drawTrianglesShaderWithStencilBuffer(i, vertices, indices, shader, options)
 		return
 	}

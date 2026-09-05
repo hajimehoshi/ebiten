@@ -109,6 +109,11 @@ type nativeGamepadsDesktop struct {
 	nativeWindow  windows.HWND
 	deviceChanged atomic.Bool
 	err           error
+
+	// ignoredDeviceGUIDs holds the instance GUIDs of the devices that were rejected as gamepads.
+	// Identical devices can share one instance GUID (#3046), but they have the same objects and are
+	// rejected anyway.
+	ignoredDeviceGUIDs map[windows.GUID]struct{}
 }
 
 type dinputObject struct {
@@ -225,6 +230,10 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		return _DIENUM_STOP
 	}
 
+	if _, ok := g.ignoredDeviceGUIDs[lpddi.guidInstance]; ok {
+		return _DIENUM_CONTINUE
+	}
+
 	s, err := supportsXInput(lpddi.guidProduct)
 	if err != nil {
 		g.err = err
@@ -332,6 +341,18 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		g.err = err
 		device.Release()
 		return _DIENUM_STOP
+	}
+
+	// Some special devices are recognized as gamepads by OSes, and the number of their 'buttons' can
+	// exceed the maximum (#1173, #2039). Reject such a device before it is registered, and remember
+	// it so that its DirectInput device is not created again at every device change.
+	if ctx.buttonCount > ButtonCount {
+		if g.ignoredDeviceGUIDs == nil {
+			g.ignoredDeviceGUIDs = map[windows.GUID]struct{}{}
+		}
+		g.ignoredDeviceGUIDs[lpddi.guidInstance] = struct{}{}
+		device.Release()
+		return _DIENUM_CONTINUE
 	}
 
 	slices.SortFunc(ctx.objects, func(a, b dinputObject) int {
@@ -564,6 +585,15 @@ func (g *nativeGamepadDesktop) usesDInput() bool {
 	return g.dinputDevice != nil
 }
 
+// close releases g's native resources. close can be called multiple times.
+func (g *nativeGamepadDesktop) close() {
+	if g.dinputDevice != nil {
+		g.dinputDevice.Release()
+		g.dinputDevice = nil
+	}
+	g.rumble.close()
+}
+
 func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 	var disconnected bool
 	defer func() {
@@ -573,10 +603,7 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 		gamepads.remove(func(gamepad *Gamepad) bool {
 			return gamepad.native == g
 		})
-		if g.dinputDevice != nil {
-			g.dinputDevice.Release()
-		}
-		g.rumble.close()
+		g.close()
 	}()
 
 	if g.usesDInput() {

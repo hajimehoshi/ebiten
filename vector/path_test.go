@@ -17,6 +17,7 @@ package vector_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"runtime"
 	"sync"
 	"testing"
@@ -296,6 +297,81 @@ func TestArcAndGeoM(t *testing.T) {
 	}
 }
 
+// Issue #3666
+func TestArcHugeAngle(t *testing.T) {
+	// For an angle this big, the float32 spacing is bigger than the angle by which an arc is split.
+	// Splitting such an arc must still terminate.
+	testCases := []struct {
+		name       string
+		startAngle float32
+		sweep      float32
+		dir        vector.Direction
+	}{
+		{
+			name:       "clockwise",
+			startAngle: 2e7,
+			sweep:      2,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, small sweep",
+			startAngle: 1 << 24,
+			sweep:      1.6,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, full circle",
+			startAngle: 1 << 24,
+			sweep:      2 * math.Pi,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, negative angle",
+			startAngle: -(1 << 25),
+			sweep:      4,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, wider spacing",
+			startAngle: 1 << 26,
+			sweep:      8,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "counterclockwise",
+			startAngle: 2e7,
+			sweep:      -2,
+			dir:        vector.CounterClockwise,
+		},
+		{
+			name:       "counterclockwise, negative angle",
+			startAngle: -(1 << 25),
+			sweep:      -4,
+			dir:        vector.CounterClockwise,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			const (
+				cx     = 100
+				cy     = 100
+				radius = 5
+			)
+			var p vector.Path
+			p.Arc(cx, cy, radius, tc.startAngle, tc.startAngle+tc.sweep, tc.dir)
+
+			// The angles are degenerate, so the shape is not specified, but it must be finite.
+			// The control points of the approximated Bézier curves can reach out this far.
+			const allow = 32 * radius
+			bounds := p.Bounds()
+			if want := image.Rect(cx-allow, cy-allow, cx+allow, cy+allow); !bounds.In(want) {
+				t.Errorf("bounds: got: %v, want: a rectangle in %v", bounds, want)
+			}
+		})
+	}
+}
+
 // Issue #3330
 func TestFillPathSubImage(t *testing.T) {
 	dst := ebiten.NewImage(16, 16)
@@ -439,6 +515,9 @@ func TestFillPathFillRule(t *testing.T) {
 }
 
 func TestBounds(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+
 	testCases := []struct {
 		name string
 		path func(p *vector.Path)
@@ -509,6 +588,76 @@ func TestBounds(t *testing.T) {
 			},
 			want: image.Rect(676, 1188, 1047, 1503),
 		},
+		{
+			name: "infinite line",
+			path: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(inf, inf)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "non-finite control point",
+			path: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.QuadTo(nan, nan, 10, 10)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "non-finite sub-path with a finite sub-path",
+			path: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(nan, nan)
+				p.MoveTo(100, 100)
+				p.LineTo(110, 110)
+			},
+			want: image.Rect(100, 100, 110, 110),
+		},
+		{
+			name: "moveTo replacing a non-finite position",
+			path: func(p *vector.Path) {
+				p.MoveTo(nan, nan)
+				p.MoveTo(0, 0)
+				p.LineTo(10, 10)
+			},
+			want: image.Rect(0, 0, 10, 10),
+		},
+		{
+			name: "addPath with a non-finite path",
+			path: func(p *vector.Path) {
+				var src vector.Path
+				src.MoveTo(0, 0)
+				src.LineTo(nan, nan)
+				p.AddPath(&src, nil)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "addPath with a non-finite geoM",
+			path: func(p *vector.Path) {
+				var src vector.Path
+				src.MoveTo(0, 0)
+				src.LineTo(10, 10)
+				op := &vector.AddPathOptions{}
+				op.GeoM.SetElement(0, 0, math.NaN())
+				p.AddPath(&src, op)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "addStroke with a non-finite geoM",
+			path: func(p *vector.Path) {
+				var src vector.Path
+				src.MoveTo(0, 0)
+				src.LineTo(10, 0)
+				op := &vector.AddStrokeOptions{}
+				op.StrokeOptions.Width = 2
+				op.GeoM.SetElement(0, 0, math.NaN())
+				p.AddStroke(&src, op)
+			},
+			want: image.Rectangle{},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -519,6 +668,31 @@ func TestBounds(t *testing.T) {
 				t.Errorf("got: %v, want: %v", got, want)
 			}
 		})
+	}
+}
+
+func TestBoundsConcurrency(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(10, 20)
+	p.LineTo(30, 40)
+	p.QuadTo(50, 60, 70, 80)
+	p.Close()
+
+	// Bounds must not modify the path so that one path can be shared by multiple goroutines.
+	const goroutineCount = 8
+	got := make([]image.Rectangle, goroutineCount)
+	var wg sync.WaitGroup
+	for i := range goroutineCount {
+		wg.Go(func() {
+			got[i] = p.Bounds()
+		})
+	}
+	wg.Wait()
+
+	for i, b := range got {
+		if want := image.Rect(10, 20, 70, 80); b != want {
+			t.Errorf("%d: got: %v, want: %v", i, b, want)
+		}
 	}
 }
 

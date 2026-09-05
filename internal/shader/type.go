@@ -105,7 +105,7 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 		cs.addError(t.Pos(), "struct is not implemented")
 		return shaderir.Type{}, false
 	default:
-		cs.addError(t.Pos(), fmt.Sprintf("unepxected type: %v", t))
+		cs.addError(t.Pos(), fmt.Sprintf("unexpected type: %v", t))
 		return shaderir.Type{}, false
 	}
 }

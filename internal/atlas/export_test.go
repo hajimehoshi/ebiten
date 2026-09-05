@@ -96,3 +96,9 @@ func ClearShaderForTesting() *Shader {
 func (s *Shader) SourceIDForTesting() shaderir.SourceID {
 	return s.ir.SourceID
 }
+
+func ShaderCountWithInternalShaderForTesting() int {
+	theShadersWithInternalShader.m.Lock()
+	defer theShadersWithInternalShader.m.Unlock()
+	return len(theShadersWithInternalShader.shaders)
+}

@@ -19,6 +19,8 @@ import (
 	"io"
 	"math"
 	"runtime"
+	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -537,6 +539,39 @@ func TestSetVolumeInvalidValue(t *testing.T) {
 	}
 }
 
+// Issue #3655
+func TestSetBufferSize(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(&infiniteReader{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var largeBufferSize int
+	if strconv.IntSize == 64 {
+		largeBufferSize64 := int64(19_051_200_000)
+		largeBufferSize = int(largeBufferSize64)
+	}
+	tests := []struct {
+		in   time.Duration
+		want int
+	}{
+		{in: -time.Second, want: 0},
+		{in: 0, want: 0},
+		{in: 50 * time.Millisecond, want: 17640},
+		{in: 15 * time.Hour, want: largeBufferSize},
+	}
+
+	for _, test := range tests {
+		p.SetBufferSize(test.in)
+		if got := audio.BufferSizeForTesting(p); got != test.want {
+			t.Errorf("buffer size for %v: got: %d, want: %d", test.in, got, test.want)
+		}
+	}
+}
+
 func TestPositionNotGrowingAfterFinished(t *testing.T) {
 	setup()
 	defer teardown()
@@ -612,5 +647,65 @@ func TestNewPlayerWithSourceOfClosedPlayer(t *testing.T) {
 	p1.Play()
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Errorf("UpdateForTesting after a new player took the source of a closed player over: %v", err)
+	}
+}
+
+func TestRestartWhilePlayersAreSwept(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("goroutines cannot run in parallel on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	// The first update creates the audio device, so that the players below play for real.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Many players widen the window between the sweep's playing check and its removal, as the
+	// removal used to happen only after the whole list was checked.
+	const playerCount = 64
+
+	players := make([]*audio.Player, 0, playerCount)
+	for range playerCount {
+		// A short source finishes quickly, so that the restart pattern below runs many times.
+		p, err := context.NewPlayerF32(bytes.NewReader(make([]byte, 4096)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Play()
+		players = append(players, p)
+	}
+
+	var untracked atomic.Bool
+	var wg sync.WaitGroup
+	deadline := time.Now().Add(2 * time.Second)
+	for _, p := range players {
+		wg.Go(func() {
+			for time.Now().Before(deadline) && !untracked.Load() {
+				// The typical pattern to replay a finished sound effect every tick.
+				if !p.IsPlaying() {
+					if err := p.Rewind(); err != nil {
+						return
+					}
+					p.Play()
+				}
+				if audio.PlayingButUntrackedForTesting(p) {
+					untracked.Store(true)
+					return
+				}
+			}
+		})
+	}
+	wg.Wait()
+
+	if untracked.Load() {
+		t.Error("a playing player was removed from the context")
+	}
+
+	// The sweep goroutine stops on an error, which would make the check above vacuous.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
 	}
 }

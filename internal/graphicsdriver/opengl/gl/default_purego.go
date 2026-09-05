@@ -237,6 +237,10 @@ func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
 }
 
 func (c *defaultContext) DeleteProgram(program uint32) {
+	// A program is no longer valid after a context loss and must not be deleted.
+	if !c.IsProgram(program) {
+		return
+	}
 	purego.SyscallN(c.gpDeleteProgram, uintptr(program))
 }
 

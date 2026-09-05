@@ -20,6 +20,7 @@ package vmhost_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -53,5 +54,32 @@ func TestReadPixelsRoundTrip(t *testing.T) {
 	if r != 0x12 || g8 != 0x34 || b != 0x56 || a != 0xff {
 		t.Errorf("screen center = (%d, %d, %d, %d); want (0x12, 0x34, 0x56, 0xff) — ReadPixels did not round-trip",
 			r, g8, b, a)
+	}
+}
+
+func TestReadPixelsIsServedWhileWaitingForTheTick(t *testing.T) {
+	guest := startGuest(t, "./testdata/readpixels", activateByEnv, "unix")
+
+	const w, h = 64, 48
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	outsideScreen := ebiten.NewImage(int(w*scale), int(h*scale))
+	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
+		t.Fatal(err)
+	}
+
+	guest.AdvanceTicks(1)
+	waited := make(chan bool, 1)
+	go func() {
+		waited <- guest.WaitTicks()
+	}()
+
+	const budget = 30 * time.Second
+	select {
+	case ok := <-waited:
+		if !ok {
+			t.Fatalf("advancing the guest failed: %v", guest.Err())
+		}
+	case <-time.After(budget):
+		t.Fatalf("WaitTicks did not return within %v: the guest's read-back was never served", budget)
 	}
 }

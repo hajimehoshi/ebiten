@@ -346,16 +346,10 @@ func (g *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 	rgba := newPooledRGBA(w, h)
 	defer releasePooledRGBA(rgba)
 
-	d := font.Drawer{
-		Dst:  rgba,
-		Src:  image.White,
-		Face: g.f,
-		Dot: fixed.Point26_6{
-			X: -glyphBounds.Min.X + subpixelOffset.X,
-			Y: -glyphBounds.Min.Y + subpixelOffset.Y,
-		},
-	}
-	d.DrawString(string(r))
+	g.f.drawString(rgba, image.White, fixed.Point26_6{
+		X: -glyphBounds.Min.X + subpixelOffset.X,
+		Y: -glyphBounds.Min.Y + subpixelOffset.Y,
+	}, string(r))
 
 	return ebiten.NewImageFromImage(rgba)
 }

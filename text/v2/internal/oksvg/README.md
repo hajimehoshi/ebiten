@@ -18,10 +18,25 @@ included.
   which ignores the transform. Without this, gradients with
   `gradientUnits="userSpaceOnUse"` were evaluated against untransformed
   geometry and rendered incorrectly when a transform was applied.
+- `<use>` expansion is bounded by a maximum number of expanded elements.
+  Without it, a document whose `<use>` element refers to itself, directly
+  or through another definition, recurses until the process dies with an
+  unrecoverable stack overflow, and nested `<use>` elements expand a small
+  document into an unbounded number of paths.
 - The `golang.org/x/net/html/charset` dependency is removed:
   `ReadIconStream` no longer sets `decoder.CharsetReader`. Consumers of
   this fork feed it OpenType SVG documents, which are UTF-8 by
   specification, and encoding/xml handles UTF-8 natively.
+- `transform="scale(s)"` with one argument is treated as `scale(s, s)`, as
+  the SVG specification defines. The original scaled the Y axis by zero,
+  which collapsed the element and everything under it onto a horizontal
+  line.
+- `hsl()` and `rgb()` color components strip a trailing `%` by trimming
+  the suffix instead of slicing off the last byte. The original indexed
+  the byte before checking that the component was non-empty, so a color
+  such as `hsl(0,,)` or `rgb(0,,0)` panicked with an out-of-range index
+  instead of failing to parse. Slicing also dropped the last digit of a
+  component written without a `%`.
 - Mechanical modernizations applied by `go fix` (e.g. `interface{}` to
   `any`).
 - The original license headers are replaced with SPDX-style headers

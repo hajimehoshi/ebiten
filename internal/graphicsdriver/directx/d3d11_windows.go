@@ -864,6 +864,11 @@ func (i *_ID3D11Device) QueryInterface(riid *windows.GUID) (unsafe.Pointer, erro
 	return v, nil
 }
 
+func (i *_ID3D11Device) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
 type _ID3D11DeviceContext struct {
 	_    structs.HostLayout
 	vtbl *_ID3D11DeviceContext_Vtbl
@@ -1127,6 +1132,11 @@ func (i *_ID3D11DeviceContext) PSSetShaderResources(startSlot uint32, shaderReso
 		uintptr(startSlot), uintptr(len(shaderResourceViews)), uintptr(unsafe.Pointer(ppShaderResourceViews)),
 		0, 0)
 	runtime.KeepAlive(shaderResourceViews)
+}
+
+func (i *_ID3D11DeviceContext) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
 }
 
 func (i *_ID3D11DeviceContext) RSSetScissorRects(rects []_D3D11_RECT) {

@@ -639,10 +639,13 @@ func (d Device) NewCommandQueue() CommandQueue {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433431-newlibrarywithsource?language=objc.
 func (d Device) NewLibraryWithSource(source string, opt CompileOptions) (Library, error) {
+	s := cocoa.NSString_alloc().InitWithUTF8String(source)
+	defer s.ID.Send(sel_release)
+
 	var err cocoa.NSError
 	l := d.device.Send(
 		sel_newLibraryWithSource_options_error,
-		cocoa.NSString_alloc().InitWithUTF8String(source).ID,
+		s.ID,
 		0,
 		unsafe.Pointer(&err),
 	)
@@ -1020,9 +1023,10 @@ type Library struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtllibrary/1515524-newfunctionwithname?language=objc.
 func (l Library) NewFunctionWithName(name string) (Function, error) {
-	f := l.library.Send(sel_newFunctionWithName,
-		cocoa.NSString_alloc().InitWithUTF8String(name).ID,
-	)
+	n := cocoa.NSString_alloc().InitWithUTF8String(name)
+	defer n.ID.Send(sel_release)
+
+	f := l.library.Send(sel_newFunctionWithName, n.ID)
 	if f == 0 {
 		return Function{}, fmt.Errorf("function %q not found", name)
 	}

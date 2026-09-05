@@ -389,7 +389,11 @@ func (u *UserInterface) AppendMonitors(monitors []*Monitor) []*Monitor {
 }
 
 func (u *UserInterface) RunOnMainThread(f func()) {
-	u.runningBackend().RunOnMainThread(f)
+	b := u.runningBackend()
+	if b == nil {
+		return
+	}
+	b.RunOnMainThread(f)
 }
 
 func (u *UserInterface) KeyName(key Key) string {

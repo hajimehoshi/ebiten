@@ -111,7 +111,7 @@ func IsWindowResizable() bool {
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
 // On the other environments, SetWindowResizable does nothing.
 //
-// Deprecated: as of v2.3, Use SetWindowResizingMode instead.
+// Deprecated: as of v2.3. Use SetWindowResizingMode instead.
 func SetWindowResizable(resizable bool) {
 	mode := ui.WindowResizingModeDisabled
 	if resizable {
@@ -162,7 +162,8 @@ func SetWindowIcon(iconImages []image.Image) {
 // The origin position is the upper-left corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// If the main loop does not start yet, WindowPosition returns the initial window position set by [SetWindowPosition].
+// If the main loop does not start yet, WindowPosition returns the initial window position set by
+// [SetWindowPosition], or (0, 0) if no initial position is set.
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //
@@ -207,7 +208,7 @@ func WindowSize() (int, int) {
 // SetWindowSize sets the window size on desktops.
 // The size is the content area size and doesn't include window decorations like a title bar.
 // The unit is device-independent pixels: the size in physical pixels is this size scaled by
-// [MonitorType.DeviceScaleFactor] and rounded down to whole pixels.
+// [MonitorType.DeviceScaleFactor] and rounded to the nearest whole pixel.
 // SetWindowSize does nothing on other environments.
 //
 // Even if the application is in fullscreen mode, SetWindowSize sets the original window size.
@@ -258,7 +259,7 @@ func SetWindowFloating(float bool) {
 
 // MaximizeWindow maximizes the window.
 //
-// MaximizeWindow does nothing when the window is not resizable (WindowResizingModeEnabled).
+// MaximizeWindow does nothing when the window is not resizable ([WindowResizingModeDisabled]).
 //
 // MaximizeWindow does nothing if the platform is not a desktop.
 //
@@ -269,7 +270,7 @@ func MaximizeWindow() {
 
 // IsWindowMaximized reports whether the window is maximized or not.
 //
-// IsWindowMaximized returns false when the window is not resizable (WindowResizingModeEnabled).
+// IsWindowMaximized returns false when the window is not resizable ([WindowResizingModeDisabled]).
 //
 // IsWindowMaximized always returns false if the platform is not a desktop.
 //
@@ -312,7 +313,7 @@ func RestoreWindow() {
 
 // IsWindowBeingClosed returns true when the user is trying to close the window on desktops.
 // As the window is closed immediately by default,
-// you might want to call SetWindowClosingHandled(true) to prevent the window is automatically closed.
+// you might want to call SetWindowClosingHandled(true) to prevent the window from being automatically closed.
 //
 // IsWindowBeingClosed always returns false if the platform is not a desktop.
 //

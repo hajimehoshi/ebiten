@@ -341,34 +341,90 @@ func axisMappings(id string) map[StandardAxis]mapping {
 	return nil
 }
 
-// buttonMapping returns the button mapping for the given id and button.
-// The mapping is resolved while mappingsM is held and returned by value,
-// so that the caller does not need the lock.
-func buttonMapping(id string, button StandardButton) (mapping, bool) {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
+// Mapping is the standard-layout mapping of one standard axis or button of a gamepad.
+// The zero Mapping maps nothing.
+//
+// Evaluating a Mapping takes no lock of this package, so a caller can hold its own gamepad lock
+// while doing so and read one consistent gamepad state.
+type Mapping struct {
+	mapping mapping
 
-	mappings := buttonMappings(id)
-	if mappings == nil {
-		return mapping{}, false
-	}
-	m, ok := mappings[button]
-	return m, ok
+	// hasStandardLayout reports that the gamepad has a standard layout mapping. This can be true even
+	// when the resolved axis or button is not a part of it.
+	hasStandardLayout bool
+
+	// mapped reports that mapping is meaningful.
+	mapped bool
 }
 
-// axisMapping returns the axis mapping for the given id and axis.
-// The mapping is resolved while mappingsM is held and returned by value,
-// so that the caller does not need the lock.
-func axisMapping(id string, axis StandardAxis) (mapping, bool) {
+// HasStandardLayout reports whether the gamepad has a standard layout mapping.
+func (m Mapping) HasStandardLayout() bool {
+	return m.hasStandardLayout
+}
+
+// IsMapped reports whether the standard axis or button is mapped to an input of the gamepad.
+func (m Mapping) IsMapped() bool {
+	return m.mapped
+}
+
+// StandardAxisMapping returns the mapping of the standard axis for the gamepad id.
+func StandardAxisMapping(id string, axis StandardAxis) Mapping {
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
 
-	mappings := axisMappings(id)
-	if mappings == nil {
-		return mapping{}, false
+	buttons := buttonMappings(id)
+	axes := axisMappings(id)
+	m := Mapping{
+		hasStandardLayout: buttons != nil || axes != nil,
 	}
-	m, ok := mappings[axis]
-	return m, ok
+	if a, ok := axes[axis]; ok {
+		m.mapping = a
+		m.mapped = true
+	}
+	return m
+}
+
+// StandardButtonMapping returns the mapping of the standard button for the gamepad id.
+func StandardButtonMapping(id string, button StandardButton) Mapping {
+	mappingsM.Lock()
+	defer mappingsM.Unlock()
+
+	buttons := buttonMappings(id)
+	axes := axisMappings(id)
+	m := Mapping{
+		hasStandardLayout: buttons != nil || axes != nil,
+	}
+	if b, ok := buttons[button]; ok {
+		m.mapping = b
+		m.mapped = true
+	}
+	return m
+}
+
+// AxisValue returns the value of the standard axis in the range -1 to 1, or 0 when the axis is not
+// mapped.
+func (m Mapping) AxisValue(state GamepadState) float64 {
+	if !m.mapped {
+		return 0
+	}
+	return standardAxisValue(m.mapping, state)
+}
+
+// ButtonValue returns the value of the standard button in the range 0 to 1, or 0 when the button is
+// not mapped.
+func (m Mapping) ButtonValue(state GamepadState) float64 {
+	if !m.mapped {
+		return 0
+	}
+	return standardButtonValue(m.mapping, state)
+}
+
+// IsButtonPressed reports whether the standard button is pressed. An unmapped button is not pressed.
+func (m Mapping) IsButtonPressed(state GamepadState) bool {
+	if !m.mapped {
+		return false
+	}
+	return isStandardButtonPressed(m.mapping, state)
 }
 
 func HasStandardLayoutMapping(id string) bool {
@@ -380,9 +436,7 @@ func HasStandardLayoutMapping(id string) bool {
 
 // GamepadState represents a gamepad state given by a gamepad driver.
 //
-// The methods must not be called while mappingsM is held. A gamepad implementation can
-// take its own lock in these methods, and a holder of that lock can call this package at
-// the same time, which would deadlock.
+// The methods must not be called while mappingsM is held.
 type GamepadState interface {
 	IsAxisReady(index int) bool
 	Axis(index int) float64
@@ -397,24 +451,8 @@ func Name(id string) string {
 	return gamepadNames[id]
 }
 
-func HasStandardAxis(id string, axis StandardAxis) bool {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
-
-	mappings := axisMappings(id)
-	if mappings == nil {
-		return false
-	}
-	_, ok := mappings[axis]
-	return ok
-}
-
-func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64 {
-	mapping, ok := axisMapping(id, axis)
-	if !ok {
-		return 0
-	}
-
+// standardAxisValue calculates the value for the given mapping, which is passed by value.
+func standardAxisValue(mapping mapping, state GamepadState) float64 {
 	switch mapping.Type {
 	case mappingTypeAxis:
 		if !state.IsAxisReady(mapping.Index) {
@@ -442,27 +480,6 @@ func StandardAxisValue(id string, axis StandardAxis, state GamepadState) float64
 	}
 
 	return 0
-}
-
-func HasStandardButton(id string, button StandardButton) bool {
-	mappingsM.Lock()
-	defer mappingsM.Unlock()
-
-	mappings := buttonMappings(id)
-	if mappings == nil {
-		return false
-	}
-	_, ok := mappings[button]
-	return ok
-}
-
-func StandardButtonValue(id string, button StandardButton, state GamepadState) float64 {
-	mapping, ok := buttonMapping(id, button)
-	if !ok {
-		return 0
-	}
-
-	return standardButtonValue(mapping, state)
 }
 
 // standardButtonValue calculates the value for the given mapping, which is passed by value.
@@ -501,12 +518,9 @@ func standardButtonValue(mapping mapping, state GamepadState) float64 {
 // Note: should be used with >, not >=, comparisons.
 const ButtonPressedThreshold = 30.0 / 255.0
 
-func IsStandardButtonPressed(id string, button StandardButton, state GamepadState) bool {
-	mapping, ok := buttonMapping(id, button)
-	if !ok {
-		return false
-	}
-
+// isStandardButtonPressed reports whether the button is pressed for the given mapping, which is
+// passed by value.
+func isStandardButtonPressed(mapping mapping, state GamepadState) bool {
 	switch mapping.Type {
 	case mappingTypeAxis:
 		v := standardButtonValue(mapping, state)
@@ -552,6 +566,11 @@ func Update(mappingData []byte) error {
 	}
 
 	for _, l := range lines {
+		// A line that maps neither a button nor an axis defines no mapping. Registering it would make
+		// a mapping exist with no content, and would drop an existing mapping for the same ID.
+		if l.buttons == nil && l.axes == nil {
+			continue
+		}
 		gamepadNames[l.id] = l.name
 		gamepadButtonMappings[l.id] = l.buttons
 		gamepadAxisMappings[l.id] = l.axes

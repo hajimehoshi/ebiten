@@ -50,6 +50,21 @@ func useCachedVerticesAndIndicesForUtil(fn func([]ebiten.Vertex, []uint32) (vs [
 	theCachedVerticesForUtil, theCachedIndicesForUtil = fn(theCachedVerticesForUtil[:0], theCachedIndicesForUtil[:0])
 }
 
+func circleVertexCount(r float32) int {
+	const maxCircleVertexCount = 8192
+
+	if !(r > 0) || math.IsInf(float64(r), 0) {
+		return 0
+	}
+
+	// At this count, the error from approximating a circle is comparable to
+	// float32 precision, so additional vertices cannot meaningfully improve it.
+	if float64(r) >= maxCircleVertexCount/math.Pi {
+		return maxCircleVertexCount
+	}
+	return int(math.Ceil(math.Pi * float64(r)))
+}
+
 var (
 	thePathPool = sync.Pool{
 		New: func() any {
@@ -204,6 +219,11 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 		return
 	}
 
+	count := circleVertexCount(r)
+	if count == 0 {
+		return
+	}
+
 	// Use a regular DrawTriangles32 for batching.
 	cr, cg, cb, ca := clr.RGBA()
 	crf := float32(cr) / 0xffff
@@ -211,7 +231,6 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 	cbf := float32(cb) / 0xffff
 	caf := float32(ca) / 0xffff
 	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
-		count := int(math.Ceil(math.Pi * float64(r)))
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
 			sin, cos := math.Sincos(angle)
@@ -275,6 +294,11 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 		return
 	}
 
+	count := circleVertexCount(r + strokeWidth/2)
+	if count == 0 {
+		return
+	}
+
 	// Use a regular DrawTriangles32 for batching.
 	cr, cg, cb, ca := clr.RGBA()
 	crf := float32(cr) / 0xffff
@@ -282,7 +306,6 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 	cbf := float32(cb) / 0xffff
 	caf := float32(ca) / 0xffff
 	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
-		count := int(math.Ceil(math.Pi * float64(r+strokeWidth/2)))
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
 			sin, cos := math.Sincos(angle)

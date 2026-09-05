@@ -33,6 +33,20 @@ func Vibrate(duration time.Duration, magnitude float64) {
 	vibrate(duration, magnitude)
 }
 
+func androidVibrationAmplitude(magnitude float64) int {
+	if !(magnitude > 0) {
+		return 0
+	}
+	if magnitude >= 1 {
+		return 255
+	}
+	amplitude := int(magnitude * 255)
+	if amplitude < 1 {
+		return 1
+	}
+	return amplitude
+}
+
 // EnableRecording makes [Vibrate] record the latest requested vibration for [AppendPendingVibrations]
 // to drain. The virtualization guest enables it to forward device vibration to its host; other builds
 // never call it, so recording stays off and Vibrate behaves exactly as before.

@@ -61,9 +61,9 @@ type session struct {
 	// caller-driven move must confirm the session first.
 	caretBounds image.Rectangle
 
-	// Composition state, written by platform IME callbacks (synchronously),
-	// read by platform IME query callbacks and by Composition. The mutex
-	// guards reads from the user goroutine.
+	// Composition state, written by the user goroutine in Update and read
+	// by the platform's IME query callbacks on the platform thread. The
+	// mutex guards those cross-thread reads.
 	compositionM sync.Mutex
 	composition  Composition
 
@@ -80,8 +80,8 @@ type session struct {
 	commit     Commit
 }
 
-// setComposition updates the composition state read by platform IME callbacks.
-// Called from the platform layer when the IME emits a composition update.
+// setComposition updates the composition state. It must be called from the
+// user goroutine.
 func (s *session) setComposition(text string, selStart, selEnd int) {
 	s.compositionM.Lock()
 	defer s.compositionM.Unlock()

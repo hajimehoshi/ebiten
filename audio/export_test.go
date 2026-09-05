@@ -133,10 +133,17 @@ func (p *dummyPlayer) IsPlaying() bool {
 }
 
 func (p *dummyPlayer) Volume() float64 {
+	// The volume is not shared with the goroutine Play spawns, but the mutex is held so that the
+	// test double is uniformly safe like the real player it stands in for.
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	return p.volume
 }
 
 func (p *dummyPlayer) SetVolume(volume float64) {
+	// See Volume for why the mutex is held.
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.volume = volume
 }
 
@@ -214,6 +221,35 @@ func PlayersCountForTesting() int {
 	n := len(c.playingPlayers)
 	c.m.Unlock()
 	return n
+}
+
+func BufferSizeForTesting(p *Player) int {
+	p.p.m.Lock()
+	defer p.p.m.Unlock()
+	return p.p.initBufferSize
+}
+
+// PlayingButUntrackedForTesting reports whether the player is playing but is not tracked by its
+// context as a playing player. This must never be true: an untracked playing player is not
+// updated by the context and is not guarded from being garbage-collected.
+//
+// The player's lock is held across both checks, so that a player which is being started or
+// stopped concurrently is not reported.
+func PlayingButUntrackedForTesting(p *Player) bool {
+	pi := p.p
+
+	pi.m.Lock()
+	defer pi.m.Unlock()
+
+	if pi.closed || !pi.isPlaying() {
+		return false
+	}
+
+	c := pi.context
+	c.m.Lock()
+	defer c.m.Unlock()
+	_, ok := c.playingPlayers[pi]
+	return !ok
 }
 
 // ContextCreatedForTesting reports whether the underlying audio device has been created.

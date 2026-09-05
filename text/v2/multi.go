@@ -29,12 +29,20 @@ var _ Face = (*MultiFace)(nil)
 //
 // There is a known issue: if the writing directions of the faces don't agree, the rendering result might be messed up.
 // [NewMultiFace] rejects such faces, but a face's direction can be changed after the creation (e.g. [GoTextFace.Direction]).
+//
+// There is another known issue: a change to a face's glyph availability after a MultiFace's creation
+// (e.g. by [LimitedFace.AddUnicodeRange] or by an assignment to [GoTextFace.Source]) is not reflected.
+// Configure all the faces before creating a MultiFace.
 type MultiFace struct {
 	faces []Face
 
 	// splitTextCache memoizes per-text chunk decomposition. The decomposition
-	// depends only on the faces' hasGlyph results, which are stable for the
-	// lifetime of a face, so cached entries never need invalidation.
+	// depends on the faces' hasGlyph results. The results can change even after
+	// the faces' creation (e.g. by [LimitedFace.AddUnicodeRange] or by an
+	// assignment to [GoTextFace.Source]), so a cached entry can be stale.
+	// The access time of an entry is updated on every hit, so an entry used
+	// every tick never ages out of the cache and stays stale.
+	// See the MultiFace doc for the workaround.
 	splitTextCache *cache[string, []textChunk]
 }
 

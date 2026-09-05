@@ -449,6 +449,13 @@ func (u *glfwBackend) applyFPSMode() {
 }
 
 func (u *glfwBackend) ScheduleFrame() {
+	// This check can slip past a termination running on the main thread, and then
+	// PostEmptyEvent touches GLFW's state after glfw.Terminate. PostEmptyEvent must stay
+	// harmless in that case.
+	if u.isTerminated() {
+		return
+	}
+
 	// As the main thread can be blocked, do not check the current FPS mode.
 	// PostEmptyEvent is concurrent safe.
 	if err := glfw.PostEmptyEvent(); err != nil {
@@ -458,30 +465,27 @@ func (u *glfwBackend) ScheduleFrame() {
 }
 
 func (u *glfwBackend) CursorMode() CursorMode {
-	var mode int
+	var v CursorMode
 	u.mainThread.Call(func() {
 		if u.isTerminated() {
 			return
 		}
-		m, err := u.window.GetInputMode(glfw.CursorMode)
+		mode, err := u.window.GetInputMode(glfw.CursorMode)
 		if err != nil {
 			u.setError(err)
 			return
 		}
-		mode = m
+		switch mode {
+		case glfw.CursorNormal:
+			v = CursorModeVisible
+		case glfw.CursorHidden:
+			v = CursorModeHidden
+		case glfw.CursorDisabled:
+			v = CursorModeCaptured
+		default:
+			panic(fmt.Sprintf("ui: invalid GLFW cursor mode: %d", mode))
+		}
 	})
-
-	var v CursorMode
-	switch mode {
-	case glfw.CursorNormal:
-		v = CursorModeVisible
-	case glfw.CursorHidden:
-		v = CursorModeHidden
-	case glfw.CursorDisabled:
-		v = CursorModeCaptured
-	default:
-		panic(fmt.Sprintf("ui: invalid GLFW cursor mode: %d", mode))
-	}
 	return v
 }
 
@@ -1132,7 +1136,7 @@ func (u *glfwBackend) setFPSMode(fpsMode FPSModeType) error {
 		return err
 	}
 
-	graphicscommand.SetVsyncEnabled(fpsMode == FPSModeVsyncOn, u.graphicsDriver)
+	graphicscommand.SetVsyncEnabled(fpsMode == FPSModeVsyncOn)
 
 	return nil
 }
@@ -1232,7 +1236,6 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 
 	// Initialize vsync after SetMonitor is called.
 	// Calling this inside setWindowSize didn't work (#1363).
-	// Also, setFPSMode has to be called after graphicscommand.SetOSThreadAsRenderThread is called (#2714).
 	if !u.fpsModeInited {
 		if err := u.setFPSMode(FPSModeType(u.fpsMode.Load())); err != nil {
 			return 0, 0, 0, 0, err
@@ -1307,10 +1310,12 @@ func (u *glfwBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
 		u.mainThread.Call(func() {
+			// Mark the termination before terminating GLFW so that a concurrent-safe API
+			// like ScheduleFrame stops touching GLFW's state before it is destroyed.
+			u.setTerminated()
 			if glfwErr := glfw.Terminate(); glfwErr != nil {
 				err = errors.Join(err, glfwErr)
 			}
-			u.setTerminated()
 		})
 	}()
 
@@ -1441,16 +1446,7 @@ func (u *glfwBackend) updateGame() error {
 }
 
 func (u *glfwBackend) updateIconIfNeeded() error {
-	// In the fullscreen mode, SetIcon fails (#1578).
-	f, err := u.isFullscreen()
-	if err != nil {
-		return err
-	}
-	if f {
-		return nil
-	}
-
-	imgs := u.desktopWindow.getAndResetIconImages()
+	imgs := u.desktopWindow.getIconImages()
 	// A 0-size slice and nil are distinguished here.
 	// A 0-size slice means a user indicates to reset the icon.
 	// On the other hand, nil means a user didn't update the icon state.
@@ -1459,10 +1455,10 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 	}
 
 	var newImgs []image.Image
-	if len(imgs) > 0 {
-		newImgs = make([]image.Image, len(imgs))
+	if len(*imgs) > 0 {
+		newImgs = make([]image.Image, len(*imgs))
 	}
-	for i, img := range imgs {
+	for i, img := range *imgs {
 		// TODO: If img is not *ebiten.Image, this converting is not necessary.
 		// However, this package cannot refer *ebiten.Image due to the package
 		// dependencies.
@@ -1482,8 +1478,26 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 		return err
 	}
 
+	var err error
 	u.mainThread.Call(func() {
-		err = u.window.SetIcon(newImgs)
+		if u.isTerminated() {
+			return
+		}
+		// In the fullscreen mode, SetIcon fails (#1578).
+		// Keep the icon images pending and retry them later.
+		f, e := u.isFullscreen()
+		if e != nil {
+			err = e
+			return
+		}
+		if f {
+			return
+		}
+		if e := u.window.SetIcon(newImgs); e != nil {
+			err = e
+			return
+		}
+		u.desktopWindow.resetIconImages(imgs)
 	})
 	if err != nil {
 		return err
@@ -2205,8 +2219,9 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 		return u.loopGame()
 	})
 
-	// Run the main thread.
-	_ = u.mainThread.Loop(ctx)
+	// Run the main thread. The loop is the thread's whole life, so a call arriving after
+	// it ends is a no-op rather than a block forever.
+	_ = u.mainThread.LoopAndStop(ctx)
 	return wg.Wait()
 }
 

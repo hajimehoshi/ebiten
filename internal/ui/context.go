@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
@@ -135,10 +136,8 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 
 	// A pipelined driver (DirectX 12) may not finish a forced frame before control returns to the
 	// OS's window-resize loop, showing stale content. Wait for it to finish if supported (#3477).
-	if f, ok := graphicsDriver.(interface{ FinishForcedFrame() error }); ok {
-		if err := f.FinishForcedFrame(); err != nil {
-			return err
-		}
+	if err := graphicscommand.FinishForcedFrame(graphicsDriver); err != nil {
+		return err
 	}
 	return nil
 }
@@ -205,10 +204,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Update the game.
 	for range updateCount {
-		// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
-		c.game.UpdateInputState(func(inputState *InputState) {
-			ui.readInputState(inputState)
-		})
+		c.readInputStateForTick(ui)
 
 		if err := hook.RunBeforeUpdateHooks(); err != nil {
 			return false, err
@@ -238,6 +234,16 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Draw the game.
 	return c.drawGame(graphicsDriver, ui, forceDraw)
+}
+
+// readInputStateForTick takes the input snapshot for the tick that is about to run.
+func (c *context) readInputStateForTick(ui *UserInterface) {
+	// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
+	c.game.UpdateInputState(func(inputState *InputState) {
+		ui.readInputState(inputState)
+	})
+	// The snapshot for this tick is taken, so an event recorded from now on belongs to the next tick.
+	ui.advanceInputTimeToNextTick()
 }
 
 func (c *context) swapBuffersOrWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {
@@ -504,8 +510,18 @@ func (c *context) updateVirtualKeyboardOffsetY() {
 	c.virtualKeyboardOffsetY = visibleBottom - caretBottom
 }
 
+// monitorDeviceScaleFactor returns the current monitor's device scale factor, or 1 when no monitor
+// is available.
+func (u *UserInterface) monitorDeviceScaleFactor() float64 {
+	m := u.Monitor()
+	if m == nil {
+		return 1
+	}
+	return m.DeviceScaleFactor()
+}
+
 func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float64) (float64, float64) {
-	s := u.Monitor().DeviceScaleFactor()
+	s := u.monitorDeviceScaleFactor()
 	x, y = u.context.logicalPositionToClientPosition(x, y, s)
 	x = dipToNativePixels(x, s)
 	y = dipToNativePixels(y, s)
@@ -515,7 +531,7 @@ func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float
 // LogicalPositionToClientPositionInDIPs converts a logical position to a client-area position in
 // device-independent pixels, which mean the same lengths on every platform (unlike native pixels).
 func (u *UserInterface) LogicalPositionToClientPositionInDIPs(x, y float64) (float64, float64) {
-	return u.context.logicalPositionToClientPosition(x, y, u.Monitor().DeviceScaleFactor())
+	return u.context.logicalPositionToClientPosition(x, y, u.monitorDeviceScaleFactor())
 }
 
 func (c *context) runInFrame(f func()) {

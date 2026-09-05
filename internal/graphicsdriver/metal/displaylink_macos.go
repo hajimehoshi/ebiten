@@ -46,6 +46,7 @@ func (v *view) initDisplayLink() error {
 var (
 	sel_processInfo            = objc.RegisterName("processInfo")
 	sel_operatingSystemVersion = objc.RegisterName("operatingSystemVersion")
+	sel_release                = objc.RegisterName("release")
 
 	class_NSProcessInfo = objc.GetClass("NSProcessInfo")
 )
@@ -63,6 +64,8 @@ var (
 	cvDisplayLinkCreateWithActiveCGDisplays func(displayLinkOut *uintptr) int32
 	cvDisplayLinkSetOutputCallback          func(displayLink uintptr, callback uintptr, userInfo uintptr) int32
 	cvDisplayLinkStart                      func(displayLink uintptr) int32
+	cvDisplayLinkStop                       func(displayLink uintptr) int32
+	cvDisplayLinkRelease                    func(displayLink uintptr)
 )
 
 func init() {
@@ -79,12 +82,16 @@ func init() {
 	purego.RegisterLibFunc(&cvDisplayLinkCreateWithActiveCGDisplays, coreVideo, "CVDisplayLinkCreateWithActiveCGDisplays")
 	purego.RegisterLibFunc(&cvDisplayLinkSetOutputCallback, coreVideo, "CVDisplayLinkSetOutputCallback")
 	purego.RegisterLibFunc(&cvDisplayLinkStart, coreVideo, "CVDisplayLinkStart")
+	purego.RegisterLibFunc(&cvDisplayLinkStop, coreVideo, "CVDisplayLinkStop")
+	purego.RegisterLibFunc(&cvDisplayLinkRelease, coreVideo, "CVDisplayLinkRelease")
 }
 
 func isCAMetalDisplayLinkAvailable() bool {
 	version := objc.Send[nsOperatingSystemVersion](objc.ID(class_NSProcessInfo).Send(sel_processInfo), sel_operatingSystemVersion)
 	if version.majorVersion >= 14 {
-		return nsClassFromString(cocoa.NSString_alloc().InitWithUTF8String("CAMetalDisplayLink")) != 0
+		s := cocoa.NSString_alloc().InitWithUTF8String("CAMetalDisplayLink")
+		defer s.ID.Send(sel_release)
+		return nsClassFromString(s) != 0
 	}
 	return false
 }
@@ -174,11 +181,13 @@ func (v *view) updateMetalDisplayLink() {
 		}
 
 		done := make(chan struct{})
-		v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
+		b := objc.NewBlock(func(block objc.Block) {
 			dl.Invalidate()
 			dl.Release()
 			close(done)
-		}))
+		})
+		defer b.Release()
+		v.metalDisplayLinkRunLoop.PerformBlock(b)
 
 		// A delegate callback might be blocked to send a drawable, preventing the run loop from executing
 		// the block above. Receive drawables until the display link is invalidated.
@@ -206,14 +215,16 @@ func (v *view) updateMetalDisplayLink() {
 	}
 
 	ch := make(chan uintptr)
-	v.metalDisplayLinkRunLoop.PerformBlock(objc.NewBlock(func(block objc.Block) {
+	b := objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
 		dl.SetDelegate(v.metalDisplayLinkDelegate)
 		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
 		dl.SetPaused(false)
 		ch <- uintptr(dl.ID)
 		close(ch)
-	}))
+	})
+	defer b.Release()
+	v.metalDisplayLinkRunLoop.PerformBlock(b)
 	v.metalDisplayLink = <-ch
 }
 
@@ -259,6 +270,22 @@ func (v *view) initCADisplayLink() error {
 
 	v.caDisplayLink = displayLinkRef
 	return nil
+}
+
+// releaseDisplayLink releases the display link created at initCADisplayLink.
+func (v *view) releaseDisplayLink() {
+	if v.caDisplayLink == 0 {
+		return
+	}
+
+	// CVDisplayLinkStop returns after the output callback finishes, so the view handle is no
+	// longer used by the callback after this.
+	cvDisplayLinkStop(v.caDisplayLink)
+	cvDisplayLinkRelease(v.caDisplayLink)
+	v.caDisplayLink = 0
+
+	deleteViewHandle(v.handleToSelf)
+	v.handleToSelf = 0
 }
 
 // displayLinkOutputCallback is the callback function for CVDisplayLink.

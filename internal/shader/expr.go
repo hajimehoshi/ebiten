@@ -67,7 +67,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 	case *ast.BinaryExpr:
 		var stmts []shaderir.Stmt
 
-		// Prase LHS first for the order of the statements.
+		// Parse LHS first for the order of the statements.
 		lhs, ts, ss, ok := cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
@@ -189,15 +189,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					Type:  shaderir.NumberExpr,
 					Const: v,
 				},
-			}, []shaderir.Type{t}, stmts, true
-		}
-
-		// Most of the shading languages cannot compare arrays. Compare them element by element (#3535).
-		// An array-typed expression is always a local or a uniform variable, as an array can be neither
-		// a returning value (#2923) nor an array element. Then, evaluating the operands per element is safe.
-		if lhst.Main == shaderir.Array && (op2 == shaderir.EqualOp || op2 == shaderir.NotEqualOp) {
-			return []shaderir.Expr{
-				arrayComparisonExpr(op2, lhst, lhs[0], rhs[0]),
 			}, []shaderir.Type{t}, stmts, true
 		}
 
@@ -822,7 +813,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}
 				case shaderir.Abs, shaderir.Sign:
 					if argts[0].Main != shaderir.Float && !argts[0].IsFloatVector() && argts[0].Main != shaderir.Int && !argts[0].IsIntVector() {
-						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivenN value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivecN value in argument to %s", argts[0].String(), callee.BuiltinFunc))
 						return nil, nil, nil, false
 					}
 				default:
@@ -1401,58 +1392,4 @@ func resolveConstKind(exprs []shaderir.Expr, ts []shaderir.Type) (kind gconstant
 	}
 
 	return gconstant.Int, true
-}
-
-// arrayComparisonExpr returns an expression comparing lhs and rhs of the array type t element by element.
-// op must be either shaderir.EqualOp or shaderir.NotEqualOp.
-// lhs and rhs must be free of side effects as they are evaluated once per element.
-func arrayComparisonExpr(op shaderir.Op, t shaderir.Type, lhs, rhs shaderir.Expr) shaderir.Expr {
-	elementOp := op
-	if t.Sub[0].IsFloatVector() || t.Sub[0].IsIntVector() {
-		if op == shaderir.EqualOp {
-			elementOp = shaderir.VectorEqualOp
-		} else {
-			elementOp = shaderir.VectorNotEqualOp
-		}
-	}
-	joinOp := shaderir.AndAnd
-	if op == shaderir.NotEqualOp {
-		joinOp = shaderir.OrOr
-	}
-
-	// The initial value is the result for an empty array, which always equals another empty array.
-	expr := shaderir.Expr{
-		Type:  shaderir.NumberExpr,
-		Const: gconstant.MakeBool(op == shaderir.EqualOp),
-	}
-	for i := range t.Length {
-		index := shaderir.Expr{
-			Type:  shaderir.NumberExpr,
-			Const: gconstant.MakeInt64(int64(i)),
-		}
-		e := shaderir.Expr{
-			Type: shaderir.Binary,
-			Op:   elementOp,
-			Exprs: []shaderir.Expr{
-				{
-					Type:  shaderir.Index,
-					Exprs: []shaderir.Expr{lhs, index},
-				},
-				{
-					Type:  shaderir.Index,
-					Exprs: []shaderir.Expr{rhs, index},
-				},
-			},
-		}
-		if i == 0 {
-			expr = e
-			continue
-		}
-		expr = shaderir.Expr{
-			Type:  shaderir.Binary,
-			Op:    joinOp,
-			Exprs: []shaderir.Expr{expr, e},
-		}
-	}
-	return expr
 }

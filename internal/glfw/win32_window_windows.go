@@ -1241,6 +1241,13 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 
 var windowProcPtr = windows.NewCallbackCDecl(windowProc)
 
+// handleToWindow is accessed only from the OS thread that created the windows: it is written when
+// a window is created or destroyed, and it is read in windowProc and in platformPollEvents. Win32
+// delivers a window's messages only to the thread that created the window, even when a message is
+// sent from another thread, and internal/ui calls glfw functions on the main thread, which is
+// locked with runtime.LockOSThread. The only exception, PostEmptyEvent, merely posts a message to
+// the helper window, which is dispatched on the main thread as well.
+// Thus, no synchronization is needed here.
 var handleToWindow = map[windows.HWND]*Window{}
 
 func (w *Window) createNativeWindow(wndconfig *wndconfig, fbconfig *fbconfig) error {
@@ -1644,6 +1651,7 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		}
 		smallIcon, err = createIcon(smallImage, 0, 0, false)
 		if err != nil {
+			_ = _DestroyIcon(bigIcon)
 			return err
 		}
 	} else {
@@ -1662,17 +1670,8 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_BIG, _LPARAM(bigIcon))
 	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_SMALL, _LPARAM(smallIcon))
 
-	if w.platform.bigIcon != 0 {
-		if err := _DestroyIcon(w.platform.bigIcon); err != nil {
-			return err
-		}
-	}
-
-	if w.platform.smallIcon != 0 {
-		if err := _DestroyIcon(w.platform.smallIcon); err != nil {
-			return err
-		}
-	}
+	oldBigIcon := w.platform.bigIcon
+	oldSmallIcon := w.platform.smallIcon
 
 	if len(images) > 0 {
 		w.platform.bigIcon = bigIcon
@@ -1681,7 +1680,15 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		w.platform.bigIcon = 0
 		w.platform.smallIcon = 0
 	}
-	return nil
+
+	var err error
+	if oldBigIcon != 0 {
+		err = errors.Join(err, _DestroyIcon(oldBigIcon))
+	}
+	if oldSmallIcon != 0 {
+		err = errors.Join(err, _DestroyIcon(oldSmallIcon))
+	}
+	return err
 }
 
 func (w *Window) platformGetWindowPos() (xpos, ypos int, err error) {
@@ -2413,7 +2420,7 @@ func (w *Window) platformSetCursorMode(mode int) error {
 
 func platformGetScancodeName(scancode int) (string, error) {
 	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) {
-		return "", fmt.Errorf("glwfwin: invalid scancode %d: %w", scancode, InvalidValue)
+		return "", fmt.Errorf("glfw: invalid scancode %d: %w", scancode, InvalidValue)
 	}
 	key := _glfw.platformWindow.keycodes[scancode]
 	if key == KeyUnknown {

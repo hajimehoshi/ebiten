@@ -146,7 +146,7 @@ type GamepadID = gamepad.ID
 // GamepadSDLID returns a string with the GUID generated in the same way as SDL.
 // To detect devices, see also the community project of gamepad devices database: https://github.com/gabomdq/SDL_GameControllerDB
 //
-// GamepadSDLID always returns an empty string on browsers and mobiles.
+// GamepadSDLID returns an empty string on consoles, where no such GUID exists.
 //
 // GamepadSDLID returns an empty string before the game starts.
 //
@@ -248,7 +248,7 @@ func GamepadButtonCount(id GamepadID) int {
 	}
 
 	// For backward compatibility, hats are treated as buttons in GLFW.
-	return g.ButtonCount() + g.HatCount()*4
+	return g.ButtonCountWithHats()
 }
 
 // GamepadButtonNum returns the number of the buttons of the given gamepad (id).
@@ -275,18 +275,8 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 		return false
 	}
 
-	nbuttons := g.ButtonCount()
-	if int(button) < nbuttons {
-		return g.Button(int(button))
-	}
-
 	// For backward compatibility, hats are treated as buttons in GLFW.
-	if hat := (int(button) - nbuttons) / 4; hat < g.HatCount() {
-		dir := (int(button) - nbuttons) % 4
-		return g.Hat(hat)&(1<<dir) != 0
-	}
-
-	return false
+	return g.IsButtonPressedWithHats(int(button))
 }
 
 // StandardGamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s standard axis (axis).
