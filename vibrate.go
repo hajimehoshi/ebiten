@@ -72,8 +72,9 @@ type VibrateGamepadOptions struct {
 //
 // VibrateGamepad does nothing on Android so far.
 //
-// On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers).
-// VibrateGamepad does nothing for DirectInput gamepads.
+// On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers) and
+// for PlayStation controllers (DualShock 4 and DualSense).
+// VibrateGamepad does nothing for other DirectInput gamepads.
 //
 // On Linux, VibrateGamepad works only for gamepads that support the force feedback rumble effect,
 // and requires write access to the gamepad's device file.
