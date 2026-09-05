@@ -12,19 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vmhost
+// Package mathutil provides integer arithmetic helpers.
+package mathutil
 
-import "image"
-
-func SrcRegionFromUniforms(uniforms []uint32, i int) (image.Rectangle, bool) {
-	return srcRegionFromUniforms(uniforms, i)
-}
-
-// NewGuestAudioStreamForTesting returns a stream reporting the given sample rate, as if the host had
-// already read readBytes bytes from it.
-func NewGuestAudioStreamForTesting(rate int, readBytes int64) *GuestAudioStream {
-	return &GuestAudioStream{
-		rate:      rate,
-		readBytes: readBytes,
-	}
+// MulDiv returns x * mul / div, avoiding the overflow of the intermediate x * mul.
+// mul * div must fit in int64.
+func MulDiv(x, mul, div int64) int64 {
+	return x/div*mul + x%div*mul/div
 }

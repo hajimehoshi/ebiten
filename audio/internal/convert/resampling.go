@@ -20,6 +20,8 @@ import (
 	"io"
 	"math"
 	"sync"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 var (
@@ -142,7 +144,7 @@ func (r *Resampling) srcLength() int64 {
 
 // resampledLength returns the length of the resampled stream in bytes for a source stream of the given length.
 func (r *Resampling) resampledLength(srcLength int64) int64 {
-	s := int64(float64(srcLength) * float64(r.to) / float64(r.from))
+	s := mathutil.MulDiv(srcLength, int64(r.to), int64(r.from))
 	return s / int64(r.bytesPerSample()) * int64(r.bytesPerSample())
 }
 

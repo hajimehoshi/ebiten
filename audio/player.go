@@ -22,6 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // player is almost the same as the interface oto.Player.
@@ -536,7 +538,7 @@ func bufferSizeInBytes(bufferSize time.Duration, bytesPerSample, sampleRate int)
 		return 0
 	}
 
-	size := mulDiv(int64(bufferSize), int64(bytesPerSample)*int64(sampleRate), int64(time.Second))
+	size := mathutil.MulDiv(int64(bufferSize), int64(bytesPerSample)*int64(sampleRate), int64(time.Second))
 	if size > int64(math.MaxInt) {
 		return 0
 	}
@@ -611,13 +613,7 @@ func (p *playerImpl) updatePosition() {
 	}
 
 	// Update the adjusted position every tick. This is necessary to keep the position accurate.
-	p.adjustedPosition = mulDiv(samples, int64(time.Second), int64(p.factory.sampleRate)) + int64(adjustingTime)
-}
-
-// mulDiv returns x * mul / div, avoiding the overflow of the intermediate x * mul.
-// mul * div must fit in int64.
-func mulDiv(x, mul, div int64) int64 {
-	return x/div*mul + x%div*mul/div
+	p.adjustedPosition = mathutil.MulDiv(samples, int64(time.Second), int64(p.factory.sampleRate)) + int64(adjustingTime)
 }
 
 type timeStream struct {
@@ -683,7 +679,7 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 
 func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	bytesPerSecond := int64(s.bytesPerSample) * int64(s.sampleRate)
-	o := mulDiv(int64(offset), bytesPerSecond, int64(time.Second))
+	o := mathutil.MulDiv(int64(offset), bytesPerSecond, int64(time.Second))
 
 	// Align the byte position with the samples.
 	o -= o % int64(s.bytesPerSample)
@@ -698,5 +694,5 @@ func (s *timeStream) position() int64 {
 
 func (s *timeStream) positionInTimeDuration() time.Duration {
 	bytesPerSecond := int64(s.sampleRate) * int64(s.bytesPerSample)
-	return time.Duration(mulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond))
+	return time.Duration(mathutil.MulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond))
 }
