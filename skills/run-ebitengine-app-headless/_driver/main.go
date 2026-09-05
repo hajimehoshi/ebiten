@@ -212,10 +212,10 @@ func xmain() error {
 		return err
 	}
 
-	// Build the guest with the ebitenginevm tag so its RunGame connects to this host instead of opening
+	// Build the guest with the ebitenginevmguest tag so its RunGame connects to this host instead of opening
 	// a window. The app's own source is unchanged.
 	guestBin := filepath.Join(dir, "guest")
-	build := exec.Command("go", "build", "-tags", "ebitenginevm", "-o", guestBin, *pkg)
+	build := exec.Command("go", "build", "-tags", "ebitenginevmguest", "-o", guestBin, *pkg)
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
 		return fmt.Errorf("building the guest failed: %w", err)

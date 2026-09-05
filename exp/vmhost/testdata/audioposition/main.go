@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest exercises the player position under the virtual audio device: it plays an infinite
 // source at tick 1 and asserts the position is exactly what the host has pulled — 0 through tick 4,
