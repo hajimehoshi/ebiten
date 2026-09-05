@@ -1252,7 +1252,9 @@ func (g *GoTextFaceSource) realizeRenderData(rd *glyphRenderData) {
 		if d.Outline != nil {
 			rawSegs = d.Outline.Segments
 		}
-		if rd.useBitmap {
+		// A sideways bitmap would need a rotated rasterization, which is not
+		// supported; the fallback outline is used instead.
+		if rd.useBitmap && !rd.sideways {
 			rawBitmap = d
 			hasRawBitmap = true
 		}
