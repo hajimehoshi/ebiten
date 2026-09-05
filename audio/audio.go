@@ -192,10 +192,10 @@ func (c *Context) error() error {
 	c.m.Lock()
 	defer c.m.Unlock()
 	if c.err != nil {
-		return fmt.Errorf("audio: audio error: %w", c.err)
+		return fmt.Errorf("audio: context error: %w", c.err)
 	}
 	if err := c.playerFactory.error(); err != nil {
-		return fmt.Errorf("audio: audio error: %w", err)
+		return fmt.Errorf("audio: context error: %w", err)
 	}
 	return nil
 }
@@ -356,7 +356,7 @@ type Player struct {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 //
-// For new code, NewPlayerF32 is preferrable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
+// For new code, NewPlayerF32 is preferable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
 //
 // A Player for 16bit integer must be used with 16bit integer version of audio APIs, like vorbis.DecodeWithoutResampling or audio.NewInfiniteLoop, not vorbis.DecodeF32 or audio.NewInfiniteLoopF32.
 func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
@@ -391,7 +391,7 @@ func (c *Context) NewPlayer(src io.Reader) (*Player, error) {
 // A Player doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
 //
-// For new code, NewPlayerF32 is preferrable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
+// For new code, NewPlayerF32 is preferable to NewPlayer, since Ebitengine will treat only 32bit float audio internally in the future.
 //
 // A Player for 32bit float must be used with 32bit float version of audio APIs, like vorbis.DecodeF32 or audio.NewInfiniteLoopF32, not vorbis.DecodeWithoutResampling or audio.NewInfiniteLoop.
 func (c *Context) NewPlayerF32(src io.Reader) (*Player, error) {
@@ -424,7 +424,7 @@ func (c *Context) NewPlayerFromBytes(src []byte) *Player {
 	p, err := c.NewPlayer(bytes.NewReader(src))
 	if err != nil {
 		// Errors should never happen.
-		panic(fmt.Sprintf("audio: %v at NewPlayerFromBytes", err))
+		panic(fmt.Sprintf("audio: NewPlayerFromBytes failed: %v", err))
 	}
 	return p
 }
@@ -439,7 +439,7 @@ func (c *Context) NewPlayerF32FromBytes(src []byte) *Player {
 	p, err := c.NewPlayerF32(bytes.NewReader(src))
 	if err != nil {
 		// Errors should never happen.
-		panic(fmt.Sprintf("audio: %v at NewPlayerF32FromBytes", err))
+		panic(fmt.Sprintf("audio: NewPlayerF32FromBytes failed: %v", err))
 	}
 	return p
 }

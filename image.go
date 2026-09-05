@@ -371,7 +371,7 @@ type Vertex struct {
 	// This means that an upper-left point of a sub-image might not be (0, 0).
 	//
 	// Before passing vertices to a Kage shader, SrcX/SrcY are converted to texture coordinates of the first image,
-	// which is DrawRectShaderOptions.Image[0] or DrawTrianglesShaderOptions.Images[0].
+	// which is DrawRectShaderOptions.Images[0] or DrawTrianglesShaderOptions.Images[0].
 	// If the image is nil, SrcX/SrcY are not converted and used as-is.
 	SrcX float32
 	SrcY float32
@@ -445,19 +445,19 @@ const (
 const (
 	// FillAll indicates all the triangles are rendered regardless of overlaps.
 	//
-	// Deprecated: as of v2.8. Use FillRuleFillAll instead.
+	// Deprecated: as of v2.8. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	FillAll = FillRuleFillAll
 
 	// NonZero means that triangles are rendered based on the non-zero rule.
 	// If and only if the number of overlaps is not 0, the region is rendered.
 	//
-	// Deprecated: as of v2.8. Use FillRuleNonZero instead.
+	// Deprecated: as of v2.8. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	NonZero = FillRuleNonZero
 
 	// EvenOdd means that triangles are rendered based on the even-odd rule.
 	// If and only if the number of overlaps is odd, the region is rendered.
 	//
-	// Deprecated: as of v2.8. Use FillRuleEvenOdd instead.
+	// Deprecated: as of v2.8. Use [github.com/hajimehoshi/ebiten/v2/vector.FillPath] instead.
 	EvenOdd = FillRuleEvenOdd
 )
 
@@ -1142,8 +1142,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 // SubImage returns an image representing the portion of the image p visible through r.
 // The returned value shares pixels with the original image.
 //
-// The returned value is always *ebiten.Image.
-//
+// The returned value is always *ebiten.Image, except when the image is disposed.
 // If the image is disposed, SubImage returns nil.
 //
 // A sub-image returned by SubImage can be used as a rendering source and a rendering destination.
@@ -1509,7 +1508,7 @@ func NewImage(width, height int) *Image {
 	return newImage(image.Rect(0, 0, width, height), atlas.ImageTypeRegular)
 }
 
-// NewImageOptions represents options for NewImage.
+// NewImageOptions represents options for NewImageWithOptions.
 type NewImageOptions struct {
 	// Unmanaged represents whether the image is unmanaged or not.
 	// The default (zero) value is false, that means the image is managed.
@@ -1526,7 +1525,7 @@ type NewImageOptions struct {
 // If width or height is more than [MaxImageSize], NewImageWithOptions panics when the image is used.
 //
 // The rendering origin position is (0, 0) of the given bounds.
-// If DrawImage is called on a new image created by NewImageOptions,
+// If DrawImage is called on a new image created by NewImageWithOptions,
 // for example, the center of scaling and rotating is (0, 0), that might not be an upper-left position.
 //
 // If options is nil, the default setting is used.
@@ -1580,7 +1579,7 @@ func NewImageFromImage(source image.Image) *Image {
 	return NewImageFromImageWithOptions(source, nil)
 }
 
-// NewImageFromImageOptions represents options for NewImageFromImage.
+// NewImageFromImageOptions represents options for NewImageFromImageWithOptions.
 type NewImageFromImageOptions struct {
 	// Unmanaged represents whether the image is unmanaged or not.
 	// The default (zero) value is false, that means the image is managed.

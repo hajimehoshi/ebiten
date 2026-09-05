@@ -446,7 +446,7 @@ func (g *Graphics) Initialize() error {
 			return err
 		}
 	}
-	// The default value is false [1], but transparinting doesn't work without calling this.
+	// The default value is false [1], but transparency doesn't work without calling this.
 	// To avoid confusion, let's call this explicitly.
 	// [1] https://developer.apple.com/documentation/quartzcore/calayer/isopaque?language=objc
 	g.view.ml.SetOpaque(!g.transparent)

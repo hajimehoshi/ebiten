@@ -998,7 +998,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	// If only one of two is a consntant, the constant can be a float.
+	// If only one of two is a constant, the constant can be a float.
 	a := 2
 	_ = a % 1.0
 	return vec4(0)
@@ -1019,7 +1019,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	// If only one of two is a consntant, the constant can be a float.
+	// If only one of two is a constant, the constant can be a float.
 	a := 1
 	_ = 2.0 % a
 	return vec4(0)

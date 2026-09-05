@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
-// ShaderProgramFill returns a shader source to fill the frambuffer.
+// ShaderProgramFill returns a shader source to fill the framebuffer.
 func ShaderProgramFill(r, g, b, a byte) *shaderir.Program {
 	ir, err := graphics.CompileShader(fmt.Appendf(nil, `//kage:unit pixels
 
@@ -38,7 +38,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return ir
 }
 
-// ShaderProgramImages returns a shader source to render the frambuffer with the given images.
+// ShaderProgramImages returns a shader source to render the framebuffer with the given images.
 func ShaderProgramImages(numImages int) *shaderir.Program {
 	if numImages <= 0 {
 		panic("testing: numImages must be >= 1")

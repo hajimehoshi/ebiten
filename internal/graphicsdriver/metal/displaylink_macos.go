@@ -367,7 +367,7 @@ func (v *view) nextDrawable() ca.MetalDrawable {
 				return d
 			case <-v.drawableTimer.C:
 				// This happens when the main thread needs to execute the notification observer callback,
-				// or when the appliation goes to full screen (#3354).
+				// or when the application goes to full screen (#3354).
 				return ca.MetalDrawable{}
 			}
 		}

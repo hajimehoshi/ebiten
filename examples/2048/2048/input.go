@@ -58,7 +58,7 @@ func (d Dir) String() string {
 	case DirLeft:
 		return "Left"
 	}
-	panic("not reach")
+	panic("not reached")
 }
 
 // Vector returns a [-1, 1] value for each axis.
@@ -73,7 +73,7 @@ func (d Dir) Vector() (x, y int) {
 	case DirLeft:
 		return -1, 0
 	}
-	panic("not reach")
+	panic("not reached")
 }
 
 // Input represents the current key states.
