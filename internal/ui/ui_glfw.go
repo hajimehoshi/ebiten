@@ -1876,7 +1876,7 @@ func (u *glfwBackend) currentMonitorImpl() (*Monitor, error) {
 		return m, nil
 	}
 
-	// The primiary monitor might be missing even after the initialization (#3094, #3241).
+	// The primary monitor might be missing even after the initialization (#3094, #3241).
 	// The reason is still unknown. As a workaround, return the initial monitor.
 	return u.getInitMonitor(), nil
 }

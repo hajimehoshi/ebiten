@@ -95,7 +95,7 @@ func (m *mascot) Update() error {
 		m.vy16 = 0
 	}
 
-	// If the mascto is on the ground, cause an action in random.
+	// If the mascot is on the ground, cause an action in random.
 	if rand.IntN(60) == 0 && m.y16 == 0 {
 		switch rand.IntN(2) {
 		case 0:

@@ -47,7 +47,7 @@ func (c *defaultContext) init() error {
 				c.isES = true
 				return nil
 			}
-			errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
+			errs = append(errs, fmt.Errorf("gl: dlopen failed: name: %s: %w", name, err))
 		}
 	}
 
@@ -64,11 +64,11 @@ func (c *defaultContext) init() error {
 				libGL = lib
 				return nil
 			}
-			errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
+			errs = append(errs, fmt.Errorf("gl: dlopen failed: name: %s: %w", name, err))
 		}
 	}
 
-	errs = append([]error{fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so: ")}, errs...)
+	errs = append([]error{fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")}, errs...)
 	return errors.Join(errs...)
 }
 

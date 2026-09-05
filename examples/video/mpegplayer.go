@@ -128,7 +128,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return p, nil
 }
 
-// updateFrame upadtes the current video frame.
+// updateFrame updates the current video frame.
 func (p *mpegPlayer) updateFrame() error {
 	p.m.Lock()
 	defer p.m.Unlock()

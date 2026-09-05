@@ -105,7 +105,7 @@ func (c *PathCursor) GetPoints(dataPoints string) error {
 	return nil
 }
 
-// EllipseAt adds a path of an elipse centered at cx, cy of radius rx and ry
+// EllipseAt adds a path of an ellipse centered at cx, cy of radius rx and ry
 // to the PathCursor
 func (c *PathCursor) EllipseAt(cx, cy, rx, ry float64) {
 	c.placeX, c.placeY = cx+rx, cy
@@ -201,7 +201,7 @@ func (c *PathCursor) reflectControlCube() {
 	}
 }
 
-// addSeg decodes an SVG seqment string into equivalent raster path commands saved
+// addSeg decodes an SVG segment string into equivalent raster path commands saved
 // in the cursor's Path
 func (c *PathCursor) addSeg(segString string) error {
 	// Parse the string describing the numeric points in SVG format

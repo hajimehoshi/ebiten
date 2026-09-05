@@ -92,7 +92,7 @@ func newEGL(nativeWindowHandle uintptr) (_ *egl, err error) {
 		C.EGL_NONE}
 	e.context = C.eglCreateContext(e.display, config, C.EGLContext(C.EGL_NO_CONTEXT), &contextAttribs[0])
 	if e.context == C.EGLContext(C.EGL_NO_CONTEXT) {
-		return nil, fmt.Errorf("opengl: eglCreateContext failed: error: %d", C.eglGetError())
+		return nil, fmt.Errorf("opengl: eglCreateContext failed: %d", C.eglGetError())
 	}
 
 	return e, nil

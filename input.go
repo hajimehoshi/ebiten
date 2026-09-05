@@ -75,7 +75,7 @@ func IsCapsLockOn() bool {
 
 // IsNumLockOn reports whether the numeric keypad produces digits instead of acting as navigation keys.
 //
-// The state is reported as on on platforms that do not report it, like mobiles and consoles, and on
+// The state is reported as on, on platforms that do not report it, like mobiles and consoles, and on
 // macOS, where the numeric keypad always produces digits.
 // On browsers, the state is the one carried by the last input event the app received.
 //

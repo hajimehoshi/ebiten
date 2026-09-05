@@ -338,7 +338,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
 		t0, t1 := c.typ(p, t)
-		panic(fmt.Sprintf("?(unexpected type: %s%s)", t0, t1))
+		panic(fmt.Sprintf("glsl: unexpected type: %s%s", t0, t1))
 	}
 }
 

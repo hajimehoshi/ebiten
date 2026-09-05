@@ -56,11 +56,11 @@ type Game struct {
 func NewGame() (*Game, error) {
 	source, err := loadImage(blend.Source_png)
 	if err != nil {
-		return nil, fmt.Errorf("fail to load source: %w", err)
+		return nil, fmt.Errorf("failed to load source: %w", err)
 	}
 	dest, err := loadImage(blend.Dest_png)
 	if err != nil {
-		return nil, fmt.Errorf("fail to load dest: %w", err)
+		return nil, fmt.Errorf("failed to load dest: %w", err)
 	}
 
 	// Set up a grid for drawing.

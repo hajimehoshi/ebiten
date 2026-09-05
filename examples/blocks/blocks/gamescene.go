@@ -218,7 +218,7 @@ func (s *GameScene) addScore(lines int) {
 	case 4:
 		base = 1000
 	default:
-		panic("not reach")
+		panic("not reached")
 	}
 	s.score += (s.level() + 1) * base
 }

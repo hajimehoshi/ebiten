@@ -2495,7 +2495,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 
 	defer func() {
 		if e := recover(); e == nil {
-			panic("DrawRectShader with a disposed shader must panic but not")
+			panic("DrawRectShader with a disposed shader must panic but did not")
 		}
 	}()
 

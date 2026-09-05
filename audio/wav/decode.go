@@ -138,7 +138,7 @@ func decode(src io.Reader, bitDepthInBytes int) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
-		return nil, fmt.Errorf("wav: invalid header")
+		return nil, fmt.Errorf("wav: invalid header: too short")
 	}
 	if err != nil {
 		return nil, err
@@ -161,7 +161,7 @@ chunks:
 		var buf [8]byte
 		n, err := io.ReadFull(src, buf[:])
 		if n != len(buf) {
-			return nil, fmt.Errorf("wav: invalid header")
+			return nil, fmt.Errorf("wav: invalid header: chunk header too short")
 		}
 		if err != nil {
 			return nil, err
@@ -179,7 +179,7 @@ chunks:
 			var fmtBuf [16]byte
 			n, err := io.ReadFull(src, fmtBuf[:])
 			if n != len(fmtBuf) {
-				return nil, fmt.Errorf("wav: invalid header")
+				return nil, fmt.Errorf("wav: invalid header: 'fmt ' chunk too short")
 			}
 			if err != nil {
 				return nil, err
@@ -207,7 +207,7 @@ chunks:
 				return nil, fmt.Errorf("wav: sample rate must be positive but was %d", sampleRate)
 			}
 			if _, err := io.CopyN(io.Discard, src, paddedSize-16); err != nil {
-				return nil, fmt.Errorf("wav: invalid header")
+				return nil, fmt.Errorf("wav: invalid header: failed to skip 'fmt ' chunk: %w", err)
 			}
 			headerSize += paddedSize
 		case bytes.Equal(buf[0:4], []byte("data")):
@@ -215,7 +215,7 @@ chunks:
 			break chunks
 		default:
 			if _, err := io.CopyN(io.Discard, src, paddedSize); err != nil {
-				return nil, fmt.Errorf("wav: invalid header")
+				return nil, fmt.Errorf("wav: invalid header: failed to skip chunk: %w", err)
 			}
 			headerSize += paddedSize
 		}

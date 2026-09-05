@@ -30,7 +30,7 @@ func tileColor(value int) color.Color {
 	case 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536:
 		return color.RGBA{0xf9, 0xf6, 0xf2, 0xff}
 	}
-	panic("not reach")
+	panic("not reached")
 }
 
 func tileBackgroundColor(value int) color.Color {
@@ -70,5 +70,5 @@ func tileBackgroundColor(value int) color.Color {
 	case 65536:
 		return color.NRGBA{0xa3, 0x49, 0xa4, 0xff}
 	}
-	panic("not reach")
+	panic("not reached")
 }
