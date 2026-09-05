@@ -100,19 +100,14 @@ func fetchProps() (map[string][]entry, error) {
 		if t == "" || strings.HasPrefix(t, "#") {
 			continue
 		}
-		semi := strings.Index(line, ";")
-		if semi < 0 {
+		cpField, rest, ok := strings.Cut(line, ";")
+		if !ok {
 			continue
 		}
-		cpField := strings.TrimSpace(line[:semi])
-		rest := line[semi+1:]
-		var prop, name string
-		if hash := strings.Index(rest, "#"); hash >= 0 {
-			prop = strings.TrimSpace(rest[:hash])
-			name = strings.TrimSpace(rest[hash+1:])
-		} else {
-			prop = strings.TrimSpace(rest)
-		}
+		cpField = strings.TrimSpace(cpField)
+		prop, name, _ := strings.Cut(rest, "#")
+		prop = strings.TrimSpace(prop)
+		name = strings.TrimSpace(name)
 		start, end, err := parseCodepoints(cpField)
 		if err != nil {
 			return nil, fmt.Errorf("parse %q: %w", cpField, err)
@@ -129,12 +124,12 @@ func fetchProps() (map[string][]entry, error) {
 // parseCodepoints accepts "NNNN" or "NNNN..MMMM" and returns the
 // inclusive range; for a single codepoint, start == end.
 func parseCodepoints(s string) (rune, rune, error) {
-	if i := strings.Index(s, ".."); i >= 0 {
-		a, err := strconv.ParseInt(s[:i], 16, 32)
+	if before, after, ok := strings.Cut(s, ".."); ok {
+		a, err := strconv.ParseInt(before, 16, 32)
 		if err != nil {
 			return 0, 0, err
 		}
-		b, err := strconv.ParseInt(s[i+2:], 16, 32)
+		b, err := strconv.ParseInt(after, 16, 32)
 		if err != nil {
 			return 0, 0, err
 		}

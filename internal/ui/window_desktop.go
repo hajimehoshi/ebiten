@@ -43,7 +43,7 @@ type desktopWindow struct {
 
 	title atomic.Value
 
-	windowSizeLimit atomic.Value
+	windowSizeLimit atomic.Pointer[windowSizeRange]
 
 	iconImages           atomic.Pointer[[]image.Image]
 	windowClosingHandled atomic.Bool
@@ -52,7 +52,7 @@ type desktopWindow struct {
 	initWindowDecorated        atomic.Bool
 	initWindowVisible          atomic.Bool
 	initWindowPositionInDIP    atomic.Pointer[image.Point]
-	initWindowSizeInDIP        atomic.Value
+	initWindowSizeInDIP        atomic.Pointer[image.Point]
 	initWindowFloating         atomic.Bool
 	initWindowMaximized        atomic.Bool
 	initWindowMousePassthrough atomic.Bool
@@ -62,7 +62,7 @@ var _ Window = (*desktopWindow)(nil)
 
 func (w *desktopWindow) init() {
 	w.title.Store("")
-	w.windowSizeLimit.Store(windowSizeRange{
+	w.windowSizeLimit.Store(&windowSizeRange{
 		minWidthInDIP:  glfw.DontCare,
 		minHeightInDIP: glfw.DontCare,
 		maxWidthInDIP:  glfw.DontCare,
@@ -70,7 +70,8 @@ func (w *desktopWindow) init() {
 	})
 	w.initWindowDecorated.Store(true)
 	w.initWindowVisible.Store(true)
-	w.initWindowSizeInDIP.Store(image.Pt(640, 480))
+	p := image.Pt(640, 480)
+	w.initWindowSizeInDIP.Store(&p)
 }
 
 func (w *desktopWindow) getWindowSizeLimitsInDIP() (minw, minh, maxw, maxh int) {
@@ -78,7 +79,7 @@ func (w *desktopWindow) getWindowSizeLimitsInDIP() (minw, minh, maxw, maxh int) 
 		return glfw.DontCare, glfw.DontCare, glfw.DontCare, glfw.DontCare
 	}
 
-	s := w.windowSizeLimit.Load().(windowSizeRange)
+	s := w.windowSizeLimit.Load()
 	return s.minWidthInDIP, s.minHeightInDIP, s.maxWidthInDIP, s.maxHeightInDIP
 }
 
@@ -88,13 +89,14 @@ func (w *desktopWindow) setWindowSizeLimitsInDIP(minw, minh, maxw, maxh int) boo
 		return false
 	}
 
-	newS := windowSizeRange{
+	newS := &windowSizeRange{
 		minWidthInDIP:  minw,
 		minHeightInDIP: minh,
 		maxWidthInDIP:  maxw,
 		maxHeightInDIP: maxh,
 	}
-	return w.windowSizeLimit.Swap(newS) != newS
+	old := w.windowSizeLimit.Swap(newS)
+	return old == nil || *old != *newS
 }
 
 func (w *desktopWindow) isWindowMaximizable() bool {
@@ -183,7 +185,7 @@ func (w *desktopWindow) getInitWindowSizeInDIP() (int, int) {
 		return microsoftgdk.MonitorResolution()
 	}
 
-	pt := w.initWindowSizeInDIP.Load().(image.Point)
+	pt := w.initWindowSizeInDIP.Load()
 	return pt.X, pt.Y
 }
 
@@ -192,7 +194,8 @@ func (w *desktopWindow) setInitWindowSizeInDIP(width, height int) {
 		return
 	}
 
-	w.initWindowSizeInDIP.Store(image.Pt(width, height))
+	pt := image.Pt(width, height)
+	w.initWindowSizeInDIP.Store(&pt)
 }
 
 func (w *desktopWindow) isInitWindowFloating() bool {

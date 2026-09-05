@@ -154,9 +154,7 @@ func (s *openGLState) reset(context *context) error {
 
 	s.lastProgram = 0
 	context.ctx.UseProgram(0)
-	for key := range s.lastUniforms {
-		delete(s.lastUniforms, key)
-	}
+	clear(s.lastUniforms)
 
 	if s.arrayBuffer != 0 {
 		context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
@@ -228,9 +226,7 @@ func (s *openGLState) setVertices(context *context, vertices []float32, indices 
 }
 
 func (s *openGLState) resetLastUniforms() {
-	for k := range s.lastUniforms {
-		delete(s.lastUniforms, k)
-	}
+	clear(s.lastUniforms)
 }
 
 // areSameUint32Array returns a boolean indicating if a and b are deeply equal.
@@ -284,9 +280,7 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.context.ctx.UseProgram(uint32(program))
 
 		g.state.lastProgram = program
-		for k := range g.state.lastUniforms {
-			delete(g.state.lastUniforms, k)
-		}
+		clear(g.state.lastUniforms)
 		g.state.lastActiveTexture = 0
 		g.context.ctx.ActiveTexture(gl.TEXTURE0)
 		g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
