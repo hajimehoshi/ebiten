@@ -37,6 +37,11 @@ included.
   such as `hsl(0,,)` or `rgb(0,,0)` panicked with an out-of-range index
   instead of failing to parse. Slicing also dropped the last digit of a
   component written without a `%`.
+- `rgb()` color components are clamped to their valid ranges at parse
+  time, as CSS Color Module Level 4 requires. The original clamped only
+  values above 255, so a negative value such as `rgb(-1,0,0)` wrapped
+  around to 255 through the uint8 conversion, and percentages were not
+  clamped at all, so `rgb(1000%,0%,0%)` became 246.
 - Mechanical modernizations applied by `go fix` (e.g. `interface{}` to
   `any`).
 - The original license headers are replaced with SPDX-style headers
