@@ -191,12 +191,12 @@ func convertByteCountToUTF16Count(text string, c int) int {
 	for idx, r := range text {
 		l16 := utf16.RuneLen(r)
 		if l16 < 0 {
-			panic(fmt.Sprintf("textinput: invalid rune length for rune %c", r))
+			panic(fmt.Sprintf("textinput: invalid rune: %c", r))
 		}
 		utf16Len += l16
 		l8 := utf8.RuneLen(r)
 		if l8 < 0 {
-			panic(fmt.Sprintf("textinput: invalid rune length for rune %c", r))
+			panic(fmt.Sprintf("textinput: invalid rune: %c", r))
 		}
 		if idx+l8 >= c {
 			return utf16Len

@@ -234,7 +234,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 			}
 		}
 		if idx == -1 {
-			panic("not reach")
+			panic("not reached")
 		}
 		r.lruSrcBlocks = append(r.lruSrcBlocks[:idx], r.lruSrcBlocks[idx+1:]...)
 		r.lruSrcBlocks = append(r.lruSrcBlocks, r.srcBlock)

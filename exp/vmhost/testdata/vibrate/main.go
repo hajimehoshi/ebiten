@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest that requests a gamepad vibration during each Update, with fixed magnitudes and
 // duration, so the host can verify the guest→host vibration channel. It is launched by a host; see

@@ -89,10 +89,10 @@ func (b *Board) Move(dir Dir) error {
 		nextTiles := map[*Tile]struct{}{}
 		for t := range b.tiles {
 			if t.IsMoving() {
-				panic("not reach")
+				panic("not reached")
 			}
 			if t.next.value != 0 {
-				panic("not reach")
+				panic("not reached")
 			}
 			if t.current.value == 0 {
 				continue

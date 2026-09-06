@@ -132,7 +132,7 @@ retry:
 
 func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 	if !s.seekable {
-		return 0, fmt.Errorf("vorbis: the source must be io.Seeker but not: %w", errors.ErrUnsupported)
+		return 0, fmt.Errorf("vorbis: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 
 	var next int64
@@ -165,7 +165,7 @@ func (s *i16Stream) totalBytes() int64 {
 	return s.vorbisReader.Length() * int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
 }
 
-// decodeI16 accepts an ogg stream and returns a decorded stream.
+// decodeI16 accepts an ogg stream and returns a decoded stream.
 func decodeI16(in io.Reader) (*i16Stream, error) {
 	r, err := oggvorbis.NewReader(in)
 	if err != nil {

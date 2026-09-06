@@ -217,7 +217,7 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 	i.pos += int64(n)
 	n += extralen
 	if i.pos > i.length() {
-		panic(fmt.Sprintf("audio: position must be <= length but not at (*InfiniteLoop).Read: pos: %d, length: %d", i.pos, i.length()))
+		panic(fmt.Sprintf("audio: position %d exceeds length %d at (*InfiniteLoop).Read", i.pos, i.length()))
 	}
 
 	// bpos is the stream position of b[0], which must be calculated before the remainder is removed from b.
@@ -234,7 +234,7 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 	// Ideally, afterLoop and the loop start should be identical, but they can have very slight differences.
 	if !i.noBlendForTesting && i.blending && i.pos >= i.lstart && bpos < i.lstart+int64(len(i.afterLoop)) {
 		if n%i.bitDepthInBytes != 0 {
-			panic(fmt.Sprintf("audio: n must be a multiple of bit depth %d [bytes] but not: %d", i.bitDepthInBytes, n))
+			panic(fmt.Sprintf("audio: n (%d) must be a multiple of bit depth %d [bytes]", n, i.bitDepthInBytes))
 		}
 		for idx := 0; idx < n/i.bitDepthInBytes; idx++ {
 			abspos := bpos + int64(idx)*int64(i.bitDepthInBytes)
@@ -337,7 +337,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		next = i.pos - int64(len(i.extra)) + offset
 	}
 	if next < 0 {
-		return 0, fmt.Errorf("audio: position must >= 0")
+		return 0, fmt.Errorf("audio: position must be >= 0 but was %d", next)
 	}
 	// A position in the middle of a value is not a position this stream can be at: reading from
 	// there would return values straddling two of the source's.

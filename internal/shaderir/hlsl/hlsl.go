@@ -314,7 +314,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return "0.0"
 	default:
 		t0, t1 := c.typ(p, t)
-		panic(fmt.Sprintf("?(unexpected type: %s%s)", t0, t1))
+		panic(fmt.Sprintf("hlsl: unexpected type: %s%s", t0, t1))
 	}
 }
 

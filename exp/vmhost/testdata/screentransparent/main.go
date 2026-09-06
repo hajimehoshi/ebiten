@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest requests a transparent screen via RunGameOptions.ScreenTransparent, so the host's
 // CompositeFrame preserves its frame's alpha instead of compositing over black; see vmhost's

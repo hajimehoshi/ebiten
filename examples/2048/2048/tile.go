@@ -118,7 +118,7 @@ func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 			continue
 		}
 		if result != nil {
-			panic("not reach")
+			panic("not reached")
 		}
 		result = t
 	}
@@ -138,7 +138,7 @@ func currentOrNextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 			}
 		}
 		if result != nil {
-			panic("not reach")
+			panic("not reached")
 		}
 		result = t
 	}
@@ -177,10 +177,10 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				continue
 			}
 			if t.next != (TileData{}) {
-				panic("not reach")
+				panic("not reached")
 			}
 			if t.IsMoving() {
-				panic("not reach")
+				panic("not reached")
 			}
 			// (ii, jj) is the next position for tile t.
 			// (ii, jj) is updated until a mergeable tile is found or
@@ -246,7 +246,7 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	cells := make([]bool, size*size)
 	for t := range tiles {
 		if t.IsMoving() {
-			panic("not reach")
+			panic("not reached")
 		}
 		i := t.current.x + t.current.y*size
 		cells[i] = true

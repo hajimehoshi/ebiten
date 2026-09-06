@@ -95,7 +95,7 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	s, ok := r.r.(io.Seeker)
 	if !ok {
-		return 0, fmt.Errorf("float32: the source must be io.Seeker when seeking but not: %w", errors.ErrUnsupported)
+		return 0, fmt.Errorf("float32: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 	// Resolve the requested position before rounding the offset toward the sample boundary
 	// below, as the rounding truncates toward zero and would turn a small negative position

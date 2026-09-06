@@ -272,7 +272,7 @@ func (p *playerImpl) Play() {
 	defer p.m.Unlock()
 
 	if p.closed {
-		p.context.setError(fmt.Errorf("audio: Play for a closed player"))
+		p.context.setError(fmt.Errorf("audio: Play called on a closed player"))
 		return
 	}
 
@@ -307,7 +307,7 @@ func (p *playerImpl) Pause() {
 	defer p.m.Unlock()
 
 	if p.closed {
-		p.context.setError(fmt.Errorf("audio: Pause for a closed player"))
+		p.context.setError(fmt.Errorf("audio: Pause called on a closed player"))
 		return
 	}
 
@@ -521,7 +521,7 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 	defer p.m.Unlock()
 
 	if p.closed {
-		p.context.setError(fmt.Errorf("audio: SetBufferSize for a closed player"))
+		p.context.setError(fmt.Errorf("audio: SetBufferSize called on a closed player"))
 		return
 	}
 
@@ -666,7 +666,7 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 
 	if !s.seekable {
 		// TODO: Should this return an error?
-		panic("audio: the source must be io.Seeker when seeking but not")
+		panic("audio: the source must be io.Seeker to seek")
 	}
 	pos, err := s.r.(io.Seeker).Seek(offset, whence)
 	if err != nil {

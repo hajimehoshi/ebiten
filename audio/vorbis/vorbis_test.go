@@ -60,7 +60,7 @@ func TestMono(t *testing.T) {
 	}
 
 	// Stream decoded by audio/vorbis.DecodeWithSampleRate() is always 16bit stereo.
-	// On the other hand, the original vorbis package is monoral.
+	// On the other hand, the original vorbis package is monaural.
 	// As Length() represents the number of samples,
 	// this needs to be doubled by 2 (= bytes in 16bits).
 	if got, want := s.Length(), r.Length()*2*2; got != want {
@@ -86,7 +86,7 @@ func TestMonoF32(t *testing.T) {
 	}
 
 	// Stream decoded by audio/vorbis.DecodeF32() is always 32bit float stereo.
-	// On the other hand, the original vorbis package is monoral.
+	// On the other hand, the original vorbis package is monaural.
 	// As Length() represents the number of samples,
 	// this needs to be doubled by 4 (= bytes in 32bits).
 	if got, want := s.Length(), r.Length()*2*4; got != want {

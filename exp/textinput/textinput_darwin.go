@@ -150,7 +150,7 @@ func (t *textInputImpl) start(bounds image.Rectangle) (<-chan textInputState, fu
 	t.events.clearQueue()
 
 	r := objc.Send[nsRect](contentView, sel_frame)
-	// The Y dirction is upward in the Cocoa coordinate system.
+	// The Y direction is upward in the Cocoa coordinate system.
 	y := int(r.size.height) - bounds.Max.Y
 	// X is shifted a little bit, especially for the accent popup.
 	bounds = bounds.Add(image.Pt(6, 0))

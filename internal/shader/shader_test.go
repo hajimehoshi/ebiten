@@ -289,6 +289,34 @@ func Fragment(position vec4, texCoord vec3, color vec4) vec4 {
 	}
 }
 
+func TestCompileBlankAsValue(t *testing.T) {
+	values := []string{
+		"min(_, 1)",
+		"1 + _",
+		"min(-_, 1)",
+		"max(+_, 1)",
+		"clamp(-_, 0, 1)",
+		"1 + (-_)",
+	}
+	for _, v := range values {
+		src := []byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const x = %s
+	return vec4(x)
+}`, v))
+		t.Run(v, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("Compile must not panic when _ is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile(src, "Vertex", "Fragment", 0); err == nil {
+				t.Fatalf("Compile must return an error when _ is used as a value, but got nil")
+			}
+		})
+	}
+}
 func TestCompileHugeShift(t *testing.T) {
 	src := `package main
 
@@ -299,5 +327,102 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
 	if err == nil {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
+	}
+}
+
+func TestCompileVarCountMismatch(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func f() (int, int) {
+	return 1, 2
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b, c = f()
+	return vec4(a + b + c)
+}`,
+		`package main
+
+func f() (int, int) {
+	return 1, 2
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b, c int = f()
+	return vec4(a + b + c)
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b = 1
+	return vec4(a + b)
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b int = 1
+	return vec4(a + b)
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic for a var count mismatch, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for a var count mismatch, but got nil")
+			}
+		}()
+	}
+}
+
+func TestCompileBoolArithmetic(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true + true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true - true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true * true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true / true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := true
+	b := true
+	c := a + b
+	if c {
+		return vec4(1)
+	}
+	return vec4(0)
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic for bool arithmetic, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for bool arithmetic, but got nil")
+			}
+		}()
 	}
 }

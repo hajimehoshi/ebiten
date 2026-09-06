@@ -228,7 +228,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
 		t := c.typ(p, t)
-		panic(fmt.Sprintf("?(unexpected type: %s)", t))
+		panic(fmt.Sprintf("msl: unexpected type: %s", t))
 	}
 }
 

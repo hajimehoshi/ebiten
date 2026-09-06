@@ -1525,7 +1525,7 @@ func (i *_ID3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) 
 
 func (i *_ID3D12Device) CreateDepthStencilView(pResource *_ID3D12Resource, pDesc *_D3D12_DEPTH_STENCIL_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
 	if pDesc != nil {
-		panic("directx: D3D12_DEPTH_STENCIL_VIEW_DESC is not implemented yet (especially for 32bit machine)")
+		panic("directx: D3D12_DEPTH_STENCIL_VIEW_DESC with a non-nil desc is not implemented")
 	}
 	_, _, _ = syscall.Syscall6(i.vtbl.CreateDepthStencilView, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,

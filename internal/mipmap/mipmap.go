@@ -124,7 +124,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 		}
 	}
 	if level == math.MaxInt32 {
-		panic("mipmap: level must be calculated at least once but not")
+		panic("mipmap: level must be calculated at least once")
 	}
 
 	var imgs [graphics.ShaderSrcImageCount]*buffered.Image
@@ -162,7 +162,7 @@ func (m *Mipmap) setImg(level int, img *buffered.Image) {
 
 func (m *Mipmap) level(level int) *buffered.Image {
 	if level == 0 {
-		panic("mipmap: level must be non-zero at level")
+		panic("mipmap: level must be non-zero")
 	}
 
 	if !canUseMipmap(m.imageType) {

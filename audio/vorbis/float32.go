@@ -73,7 +73,7 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 
 func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	if !r.seekable {
-		return 0, fmt.Errorf("vorbis: the source must be io.Seeker but not: %w", errors.ErrUnsupported)
+		return 0, fmt.Errorf("vorbis: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 
 	sampleSize := int64(r.r.Channels()) * 4

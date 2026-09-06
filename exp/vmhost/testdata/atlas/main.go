@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest exercises atlas-packed images. It creates several small ebiten.Images (the default
 // ImageType is Regular, so the atlas packs them into a shared backend at distinct offsets, each with

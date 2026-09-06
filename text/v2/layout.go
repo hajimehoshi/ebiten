@@ -48,12 +48,12 @@ type DrawOptions struct {
 	LayoutOptions
 }
 
-// LayoutOptions represents options for layouting texts.
+// LayoutOptions represents options for laying out text.
 //
 // PrimaryAlign and SecondaryAlign determine where to put the text in the given region at Draw.
 // Draw might render the text outside of the specified image bounds, so you might have to specify GeoM to make the text visible.
 type LayoutOptions struct {
-	// LineSpacing is a distance between two adjacent lines's baselines.
+	// LineSpacing is a distance between two adjacent lines' baselines.
 	// The unit is in pixels.
 	LineSpacing float64
 

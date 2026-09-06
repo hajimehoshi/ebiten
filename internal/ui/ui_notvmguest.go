@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginevm
+//go:build !ebitenginevmguest
 
 package ui
 
 // vmGuestEndpointFromEnv always returns an empty string: activating guest mode from the environment
-// is enabled only by the ebitenginevm build tag.
+// is enabled only by the ebitenginevmguest build tag.
 func vmGuestEndpointFromEnv() string {
 	return ""
 }

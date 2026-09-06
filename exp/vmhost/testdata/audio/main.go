@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest exercises audio forwarding with two players: a finite ramp source (every sample
 // component is its 1-based index) starts at tick 3, and an infinite constant 0.25 source at half

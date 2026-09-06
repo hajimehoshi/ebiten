@@ -318,7 +318,7 @@ type RunGameOptions struct {
 	// VMGuestEndpoint is the endpoint URL of a virtualization host, like unix:///path/to/socket or
 	// tcp://host:port. If it is not empty, the game runs as a virtualization guest of that host
 	// instead of opening a window. When VMGuestEndpoint is empty and the binary is built with the
-	// `ebitenginevm` build tag, the environment variable EBITENGINE_VM_ENDPOINT is used instead.
+	// `ebitenginevmguest` build tag, the environment variable EBITENGINE_VM_ENDPOINT is used instead.
 	//
 	// When the game runs as a virtualization guest, GraphicsLibrary is ignored, and the graphics
 	// library is always GraphicsLibraryRemote. ColorSpace is also ignored: the color space is

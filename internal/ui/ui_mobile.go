@@ -130,7 +130,7 @@ func (u *UserInterface) SetForeground(foreground bool) error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	return fmt.Errorf("internal/ui: Run is not implemented for GOOS=%s", runtime.GOOS)
+	return fmt.Errorf("ui: Run is not implemented for GOOS=%s", runtime.GOOS)
 }
 
 func (u *UserInterface) RunWithoutMainLoop(game Game, options *RunOptions) {

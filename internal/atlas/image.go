@@ -362,7 +362,7 @@ func (i *Image) putOnSourceBackend() {
 	}
 
 	if !i.canBePutOnAtlas() {
-		panic("atlas: putOnSourceBackend cannot be called on a image that cannot be on an atlas")
+		panic("atlas: putOnSourceBackend cannot be called on an image that cannot be on an atlas")
 	}
 
 	if i.imageType != ImageTypeRegular {
@@ -384,13 +384,13 @@ func (i *Image) putOnSourceBackend() {
 	i.usedAsSourceCount = 0
 
 	if !i.isOnSourceBackend() {
-		panic("atlas: i must be on a source backend but not")
+		panic("atlas: image must be on a source backend")
 	}
 }
 
 func (i *imageImpl) regionWithPadding() image.Rectangle {
 	if i.backend == nil {
-		panic("atlas: backend must not be nil: not allocated yet?")
+		panic("atlas: backend must not be nil: not allocated yet")
 	}
 	if !i.isOnAtlas() {
 		return image.Rect(0, 0, i.width+i.paddingSize(), i.height+i.paddingSize())
@@ -443,7 +443,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 			continue
 		}
 		if src.backend == nil {
-			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
+			// It is possible to specify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
 			// If the backend becomes the same as i's, i's backend will be changed at ensureIsolatedFromSource.
 			src.allocate(nil, i.imageType == ImageTypeRegular)
 		}

@@ -37,7 +37,7 @@ func TestEbitenPackageAsGuest(t *testing.T) {
 
 	// Compile the guest's test binary in guest mode.
 	guestBin := filepath.Join(t.TempDir(), "ebiten.test")
-	build := exec.Command("go", "test", "-c", "-buildvcs=false", "-tags", "ebitenginevm", "-o", guestBin, guestPkg)
+	build := exec.Command("go", "test", "-c", "-buildvcs=false", "-tags", "ebitenginevmguest", "-o", guestBin, guestPkg)
 	build.Stderr = os.Stderr
 	if err := build.Run(); err != nil {
 		t.Fatalf("compiling the guest test binary failed: %v", err)
