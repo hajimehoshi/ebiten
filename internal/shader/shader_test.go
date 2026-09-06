@@ -350,3 +350,51 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		}()
 	}
 }
+
+func TestCompileBoolArithmetic(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true + true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true - true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true * true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true / true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := true
+	b := true
+	c := a + b
+	if c {
+		return vec4(1)
+	}
+	return vec4(0)
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic for bool arithmetic, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for bool arithmetic, but got nil")
+			}
+		}()
+	}
+}
