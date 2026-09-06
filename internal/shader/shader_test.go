@@ -471,3 +471,22 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		t.Errorf("Compile must return an error for a bare return in a non-void function, but got nil")
 	}
 }
+
+func TestCompileLargeFloatConstant(t *testing.T) {
+	src := []byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(1e19)
+}`)
+	s, err := shader.Compile(src, "Vertex", "Fragment", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, fs := glsl.Compile(s, glsl.GLSLVersionDefault)
+	if strings.Contains(fs, "-9223372036854775808") {
+		t.Errorf("GLSL must not contain the overflowed int64 literal, but got:\n%s", fs)
+	}
+	if !strings.Contains(fs, "1.0000000000e+19") {
+		t.Errorf("GLSL should contain the scientific-notation literal 1.0000000000e+19, but got:\n%s", fs)
+	}
+}

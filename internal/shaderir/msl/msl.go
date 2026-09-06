@@ -285,7 +285,7 @@ func constantToNumberLiteral(v constant.Value) string {
 		return fmt.Sprintf("%d", x)
 	case constant.Float:
 		x, _ := constant.Float64Val(v)
-		if i := math.Floor(x); i == x {
+		if i := math.Floor(x); i == x && math.Abs(x) < 1<<63 {
 			return fmt.Sprintf("%d.0", int64(i))
 		}
 		return fmt.Sprintf("%.10e", x)
