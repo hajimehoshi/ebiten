@@ -239,3 +239,19 @@ func TestStrokePathKeepsSourcePath(t *testing.T) {
 		t.Errorf("got:\n%v\nwant:\n%v", got, want)
 	}
 }
+
+func TestStrokeCircleThickStrokeNonAntiAlias(t *testing.T) {
+	dst := ebiten.NewImage(64, 64)
+	defer dst.Deallocate()
+	vector.StrokeCircle(dst, 32, 32, 10, 10, color.White, false)
+	if got, want := dst.At(32, 32), (color.RGBA{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	dst2 := ebiten.NewImage(64, 64)
+	defer dst2.Deallocate()
+	vector.StrokeCircle(dst2, 32, 32, 10, 20, color.White, false)
+	if got, want := dst2.At(32, 32), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
