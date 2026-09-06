@@ -249,9 +249,9 @@ func (w *desktopWindow) SetDecorated(decorated bool) {
 	if w.ui.isTerminated() {
 		return
 	}
+	w.setInitWindowDecorated(decorated)
 	b := w.ui.runningBackend()
 	if b == nil {
-		w.setInitWindowDecorated(decorated)
 		return
 	}
 	b.Window().SetDecorated(decorated)
@@ -316,9 +316,9 @@ func (w *desktopWindow) SetFloating(floating bool) {
 	if w.ui.isTerminated() {
 		return
 	}
+	w.setInitWindowFloating(floating)
 	b := w.ui.runningBackend()
 	if b == nil {
-		w.setInitWindowFloating(floating)
 		return
 	}
 	b.Window().SetFloating(floating)
@@ -401,9 +401,9 @@ func (w *desktopWindow) SetMonitor(monitor *Monitor) {
 	if w.ui.isTerminated() {
 		return
 	}
+	w.ui.setInitMonitor(monitor)
 	b := w.ui.runningBackend()
 	if b == nil {
-		w.ui.setInitMonitor(monitor)
 		return
 	}
 	b.Window().SetMonitor(monitor)
@@ -454,10 +454,10 @@ func (w *desktopWindow) SetSize(width, height int) {
 	if w.ui.isTerminated() {
 		return
 	}
+	// If the window is initially maximized, the set size is ignored anyway.
+	w.setInitWindowSizeInDIP(width, height)
 	b := w.ui.runningBackend()
 	if b == nil {
-		// If the window is initially maximized, the set size is ignored anyway.
-		w.setInitWindowSizeInDIP(width, height)
 		return
 	}
 	b.Window().SetSize(width, height)
@@ -537,9 +537,9 @@ func (w *desktopWindow) SetMousePassthrough(enabled bool) {
 	if w.ui.isTerminated() {
 		return
 	}
+	w.setInitWindowMousePassthrough(enabled)
 	b := w.ui.runningBackend()
 	if b == nil {
-		w.setInitWindowMousePassthrough(enabled)
 		return
 	}
 	b.Window().SetMousePassthrough(enabled)
