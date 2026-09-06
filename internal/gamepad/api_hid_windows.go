@@ -14,12 +14,7 @@
 
 package gamepad
 
-import (
-	"fmt"
-	"unsafe"
-
-	"golang.org/x/sys/windows"
-)
+import "golang.org/x/sys/windows"
 
 const _HIDP_STATUS_SUCCESS = 0x00110000
 
@@ -49,28 +44,3 @@ var (
 	procHidDFreePreparsedData = hid.NewProc("HidD_FreePreparsedData")
 	procHidPGetCaps           = hid.NewProc("HidP_GetCaps")
 )
-
-// hidCaps returns the capabilities of an opened HID device. The report byte
-// lengths in the capabilities are maximums and include the report ID byte.
-func hidCaps(handle windows.Handle) (_HIDP_CAPS, error) {
-	for _, p := range []*windows.LazyProc{procHidDGetPreparsedData, procHidDFreePreparsedData, procHidPGetCaps} {
-		if err := p.Find(); err != nil {
-			return _HIDP_CAPS{}, err
-		}
-	}
-
-	var preparsedData uintptr
-	if r, _, _ := procHidDGetPreparsedData.Call(uintptr(handle), uintptr(unsafe.Pointer(&preparsedData))); r == 0 {
-		return _HIDP_CAPS{}, fmt.Errorf("gamepad: HidD_GetPreparsedData failed")
-	}
-	defer func() {
-		_, _, _ = procHidDFreePreparsedData.Call(preparsedData)
-	}()
-
-	var caps _HIDP_CAPS
-	if r, _, _ := procHidPGetCaps.Call(preparsedData, uintptr(unsafe.Pointer(&caps))); uint32(r) != _HIDP_STATUS_SUCCESS {
-		return _HIDP_CAPS{}, fmt.Errorf("gamepad: HidP_GetCaps failed: NTSTATUS(%#08x)", uint32(r))
-	}
-
-	return caps, nil
-}
