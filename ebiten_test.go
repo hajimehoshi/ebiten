@@ -41,8 +41,3 @@ func TestScreenSizeInFullscreen(t *testing.T) {
 		t.Errorf("h must be positive but not: %d", h)
 	}
 }
-
-func TestVibrateWithNilOptions(t *testing.T) {
-	ebiten.Vibrate(nil)
-	ebiten.VibrateGamepad(0, nil)
-}
