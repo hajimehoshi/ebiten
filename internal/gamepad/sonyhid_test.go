@@ -230,19 +230,24 @@ func TestSonyRumbleByte(t *testing.T) {
 }
 
 func TestSonyBTCRC(t *testing.T) {
-	if got, want := gamepad.SonyBTCRC(nil), crc32.ChecksumIEEE([]byte{0xa2}); got != want {
-		t.Errorf("SonyBTCRC(nil) = %#08x, want %#08x", got, want)
+	for _, header := range []byte{0xa1, 0xa2} {
+		if got, want := gamepad.SonyBTCRC(header, nil), crc32.ChecksumIEEE([]byte{header}); got != want {
+			t.Errorf("SonyBTCRC(%#02x, nil) = %#08x, want %#08x", header, got, want)
+		}
+		data := []byte{0x11, 0xc0, 0x00, 0x01}
+		if got, want := gamepad.SonyBTCRC(header, data), crc32.ChecksumIEEE(append([]byte{header}, data...)); got != want {
+			t.Errorf("SonyBTCRC(%#02x, %v) = %#08x, want %#08x", header, data, got, want)
+		}
 	}
-	data := []byte{0x11, 0xc0, 0x00, 0x01}
-	if got, want := gamepad.SonyBTCRC(data), crc32.ChecksumIEEE(append([]byte{0xa2}, data...)); got != want {
-		t.Errorf("SonyBTCRC(%v) = %#08x, want %#08x", data, got, want)
+	if gamepad.SonyBTCRC(0xa1, nil) == gamepad.SonyBTCRC(0xa2, nil) {
+		t.Errorf("SonyBTCRC: input and output headers produce the same CRC")
 	}
 }
 
 // checkReport verifies the length and the expected non-zero bytes of a
 // report. want maps an offset to its expected value; every other byte must be
 // 0, except the trailing 4 CRC bytes when hasCRC is set, which must match
-// SonyBTCRC over the rest of the report.
+// SonyBTCRC with the output header over the rest of the report.
 func checkReport(t *testing.T, name string, report []byte, size int, want map[int]byte, hasCRC bool) {
 	t.Helper()
 
@@ -255,7 +260,7 @@ func checkReport(t *testing.T, name string, report []byte, size int, want map[in
 	if hasCRC {
 		n := len(report) - 4
 		body = report[:n]
-		if got, wantCRC := binary.LittleEndian.Uint32(report[n:]), gamepad.SonyBTCRC(body); got != wantCRC {
+		if got, wantCRC := binary.LittleEndian.Uint32(report[n:]), gamepad.SonyBTCRC(0xa2, body); got != wantCRC {
 			t.Errorf("%s: CRC = %#08x, want %#08x", name, got, wantCRC)
 		}
 	}
@@ -374,8 +379,7 @@ var dualsenseLayoutState = gamepad.SonyInputState{
 }
 
 // inputReport builds an input report of the given size with the payload at
-// the given offset. The other bytes, including a Bluetooth CRC, are filler
-// that must not affect decoding.
+// the given offset. The other bytes are filler that must not affect decoding.
 func inputReport(id byte, size, offset int, payload []byte) []byte {
 	r := make([]byte, size)
 	for i := range r {
@@ -386,12 +390,43 @@ func inputReport(id byte, size, offset int, payload []byte) []byte {
 	return r
 }
 
+// fullBTInputReport builds a full Bluetooth input report like inputReport,
+// with the HID-data-present flag set in byte 1 and a valid CRC in the last 4
+// bytes. The CRC is computed here, independently of the package, over the
+// input header byte and the report bytes before the CRC.
+func fullBTInputReport(id byte, size, offset int, payload []byte) []byte {
+	r := inputReport(id, size, offset, payload)
+	r[1] = 0xc0
+	return signBTInputReport(r)
+}
+
+// signBTInputReport overwrites the last 4 bytes of a full Bluetooth input
+// report with the CRC over the bytes before them.
+func signBTInputReport(r []byte) []byte {
+	n := len(r) - 4
+	binary.LittleEndian.PutUint32(r[n:], crc32.ChecksumIEEE(append([]byte{0xa1}, r[:n]...)))
+	return r
+}
+
+// corruptByte returns a copy of r with byte i inverted.
+func corruptByte(r []byte, i int) []byte {
+	c := append([]byte{}, r...)
+	c[i] ^= 0xff
+	return c
+}
+
 func TestSonyInputStateFromReport(t *testing.T) {
 	ds4USB := inputReport(0x01, gamepad.Dualshock4InputReportSizeUSB, 1, ds4LayoutPayload)
 	dualsenseUSB := inputReport(0x01, gamepad.DualsenseInputReportSizeUSB, 1, dualsenseLayoutPayload)
 	simple := inputReport(0x01, gamepad.SonySimpleInputReportSizeBT, 1, ds4LayoutPayload)
-	ds4Full := inputReport(0x11, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload)
-	dualsenseFull := inputReport(0x31, gamepad.DualsenseInputReportSizeBT, 2, dualsenseLayoutPayload)
+	ds4Full := fullBTInputReport(0x11, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload)
+	dualsenseFull := fullBTInputReport(0x31, gamepad.DualsenseInputReportSizeBT, 2, dualsenseLayoutPayload)
+
+	// ds4FullNoData has a valid CRC but its HID-data-present flag clear, so
+	// it carries no controller state.
+	ds4FullNoData := append([]byte{}, ds4Full...)
+	ds4FullNoData[1] = 0x40
+	signBTInputReport(ds4FullNoData)
 
 	tests := []struct {
 		name   string
@@ -457,12 +492,74 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			wantOK: true,
 		},
 		{
+			name:   "dualsense full padded",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: append(dualsenseFull, make([]byte, 400)...),
+			want:   dualsenseLayoutState,
+			wantOK: true,
+		},
+		{
 			name:   "simple padded",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
 			report: append(simple, make([]byte, 60)...),
 			want:   ds4LayoutState,
 			wantOK: true,
+		},
+		// Full Bluetooth reports carry a CRC over the bytes before it. A
+		// report whose CRC does not match its contents is corrupted, and is
+		// rejected whether the damage is in the state or in the CRC itself.
+		{
+			name:   "ds4 full corrupted state",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: corruptByte(ds4Full, 3+5), // Second button byte.
+		},
+		{
+			name:   "ds4 full corrupted crc",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: corruptByte(ds4Full, gamepad.Dualshock4InputReportSizeBT-1),
+		},
+		{
+			name:   "dualsense full corrupted state",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: corruptByte(dualsenseFull, 2+8), // Second button byte.
+		},
+		{
+			name:   "dualsense full corrupted crc",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: corruptByte(dualsenseFull, gamepad.DualsenseInputReportSizeBT-1),
+		},
+		// The CRC covers the report, not the host's padding.
+		{
+			name:   "ds4 full padded corrupted",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: append(corruptByte(ds4Full, 3), make([]byte, 400)...),
+		},
+		{
+			name:   "ds4 full no crc",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: inputReport(0x11, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload),
+		},
+		{
+			name:   "dualsense full no crc",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: inputReport(0x31, gamepad.DualsenseInputReportSizeBT, 2, dualsenseLayoutPayload),
+		},
+		// A DualShock 4 full report carries controller state only when its
+		// HID-data-present flag is set.
+		{
+			name:   "ds4 full no hid data",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: ds4FullNoData,
 		},
 		// The DualSense uses different layouts for report 0x01 over USB and
 		// over Bluetooth; the transport selects the layout.

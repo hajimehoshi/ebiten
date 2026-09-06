@@ -146,19 +146,33 @@ func sonyRumbleByte(magnitude float64) byte {
 
 var sonyCRCTable = crc32.MakeTable(crc32.IEEE)
 
-// sonyBTCRC computes the CRC32 carried in the last 4 bytes of Bluetooth
-// output reports: an IEEE CRC32 over a 0xa2 prefix byte (the HID output
-// transaction header) followed by the report bytes before the CRC itself.
-func sonyBTCRC(data []byte) uint32 {
-	crc := crc32.Update(0, sonyCRCTable, []byte{0xa2})
+// The Bluetooth HID transaction headers that prefix the data a CRC covers.
+// Input reports come from the device and output reports go to it.
+const (
+	sonyBTInputHeader  = 0xa1
+	sonyBTOutputHeader = 0xa2
+)
+
+// sonyBTCRC computes the CRC32 carried in the last 4 bytes of full Bluetooth
+// reports: an IEEE CRC32 over the report's transaction header byte followed
+// by the report bytes before the CRC itself.
+func sonyBTCRC(header byte, data []byte) uint32 {
+	crc := crc32.Update(0, sonyCRCTable, []byte{header})
 	return crc32.Update(crc, sonyCRCTable, data)
 }
 
-// putSonyBTCRC writes the CRC over everything before the last 4 bytes of
-// report into its last 4 bytes.
+// putSonyBTCRC writes the CRC over everything before the last 4 bytes of an
+// output report into its last 4 bytes.
 func putSonyBTCRC(report []byte) {
 	n := len(report) - 4
-	binary.LittleEndian.PutUint32(report[n:], sonyBTCRC(report[:n]))
+	binary.LittleEndian.PutUint32(report[n:], sonyBTCRC(sonyBTOutputHeader, report[:n]))
+}
+
+// sonyBTInputCRCValid reports whether the last 4 bytes of an input report
+// hold the CRC over everything before them. report must be at least 4 bytes.
+func sonyBTInputCRCValid(report []byte) bool {
+	n := len(report) - 4
+	return binary.LittleEndian.Uint32(report[n:]) == sonyBTCRC(sonyBTInputHeader, report[:n])
 }
 
 // dualshock4RumbleReportUSB builds output report 0x05.
@@ -292,7 +306,8 @@ func sonyInputStateDualSenseLayout(p []byte) sonyInputState {
 
 // sonyInputStateFromReport decodes an input report received from a controller
 // over a transport. ok is false if the report is not a state report the model
-// sends over that transport, or is shorter than that report. A report may be
+// sends over that transport, is shorter than that report, or fails the
+// validation below; the caller keeps its previous state then. A report may be
 // longer than the state report when the host pads reports to the device's
 // maximum report length; the trailing bytes are ignored.
 //
@@ -302,12 +317,17 @@ func sonyInputStateDualSenseLayout(p []byte) sonyInputState {
 // report 0x11 with its layout at an offset of 3, and the DualSense sends
 // report 0x31 with its layout at an offset of 2. The transport is needed to
 // tell the DualSense's two report 0x01 layouts apart.
+//
+// The full Bluetooth reports end in a CRC over the bytes before it, and a
+// report whose CRC does not match is corrupted. The DualShock 4's report 0x11
+// also carries controller state only when bit 7 of its byte 1 is set.
 func sonyInputStateFromReport(model sonyModel, bt bool, report []byte) (state sonyInputState, ok bool) {
 	if len(report) == 0 {
 		return sonyInputState{}, false
 	}
 	var offset, size int
 	var decode func([]byte) sonyInputState
+	var crc bool
 	switch {
 	case report[0] == 0x01 && !bt && model == sonyModelDualShock4:
 		offset, size, decode = 1, dualshock4InputReportSizeUSB, sonyInputStateDS4Layout
@@ -316,13 +336,20 @@ func sonyInputStateFromReport(model sonyModel, bt bool, report []byte) (state so
 	case report[0] == 0x01 && bt && (model == sonyModelDualShock4 || model == sonyModelDualSense):
 		offset, size, decode = 1, sonySimpleInputReportSizeBT, sonyInputStateDS4Layout
 	case report[0] == 0x11 && bt && model == sonyModelDualShock4:
-		offset, size, decode = 3, dualshock4InputReportSizeBT, sonyInputStateDS4Layout
+		offset, size, decode, crc = 3, dualshock4InputReportSizeBT, sonyInputStateDS4Layout, true
 	case report[0] == 0x31 && bt && model == sonyModelDualSense:
-		offset, size, decode = 2, dualsenseInputReportSizeBT, sonyInputStateDualSenseLayout
+		offset, size, decode, crc = 2, dualsenseInputReportSizeBT, sonyInputStateDualSenseLayout, true
 	default:
 		return sonyInputState{}, false
 	}
 	if len(report) < size {
+		return sonyInputState{}, false
+	}
+	report = report[:size]
+	if crc && !sonyBTInputCRCValid(report) {
+		return sonyInputState{}, false
+	}
+	if report[0] == 0x11 && report[1]&0x80 == 0 {
 		return sonyInputState{}, false
 	}
 	return decode(report[offset:]), true
