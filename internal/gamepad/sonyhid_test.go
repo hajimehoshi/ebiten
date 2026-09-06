@@ -315,3 +315,275 @@ func TestDualsenseRumbleReportBT(t *testing.T) {
 		t.Errorf("bt seq: byte 1 = %#02x, want %#02x", got, want)
 	}
 }
+
+func TestSonyInputReportSize(t *testing.T) {
+	tests := []struct {
+		model gamepad.SonyModel
+		bt    bool
+		want  int
+	}{
+		{model: gamepad.SonyModelDualShock4, bt: false, want: 64},
+		{model: gamepad.SonyModelDualShock4, bt: true, want: 78},
+		{model: gamepad.SonyModelDualSense, bt: false, want: 64},
+		{model: gamepad.SonyModelDualSense, bt: true, want: 78},
+		{model: gamepad.SonyModelNone, bt: false, want: 0},
+		{model: gamepad.SonyModelNone, bt: true, want: 0},
+	}
+	for _, tt := range tests {
+		if got := gamepad.SonyInputReportSize(tt.model, tt.bt); got != tt.want {
+			t.Errorf("SonyInputReportSize(%d, %t) = %d, want %d", tt.model, tt.bt, got, tt.want)
+		}
+	}
+}
+
+// ds4LayoutPayload is a state payload in the DualShock 4 layout with every
+// field set to a distinct value. The third button byte carries the counter in
+// its high 6 bits and the Mute bit of the DualSense layout, none of which are
+// buttons in this layout.
+var ds4LayoutPayload = []byte{
+	0x10, 0x20, 0x30, 0x40, // lx, ly, rx, ry
+	0x18,       // hat 8 (centered), Square
+	0x21,       // L1, Options
+	0xfe,       // Touchpad, Mute position, counter
+	0x50, 0x60, // l2, r2
+}
+
+var ds4LayoutState = gamepad.SonyInputState{
+	LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
+	L2: 0x50, R2: 0x60,
+	Hat:     8,
+	Buttons: 1<<0 | 1<<4 | 1<<9 | 1<<13,
+}
+
+// dualsenseLayoutPayload is a state payload in the DualSense full layout with
+// every field set to a distinct value.
+var dualsenseLayoutPayload = []byte{
+	0x10, 0x20, 0x30, 0x40, // lx, ly, rx, ry
+	0x50, 0x60, // l2, r2
+	0x99, // counter
+	0x83, // hat 3 (right-down), Triangle
+	0xc8, // R2, L3, R3
+	0xfd, // PS, Mute, reserved
+}
+
+var dualsenseLayoutState = gamepad.SonyInputState{
+	LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
+	L2: 0x50, R2: 0x60,
+	Hat:     3,
+	Buttons: 1<<3 | 1<<7 | 1<<10 | 1<<11 | 1<<12 | 1<<14,
+}
+
+// inputReport builds an input report of the given size with the payload at
+// the given offset. The other bytes, including a Bluetooth CRC, are filler
+// that must not affect decoding.
+func inputReport(id byte, size, offset int, payload []byte) []byte {
+	r := make([]byte, size)
+	for i := range r {
+		r[i] = 0xee
+	}
+	r[0] = id
+	copy(r[offset:], payload)
+	return r
+}
+
+func TestSonyInputStateFromReport(t *testing.T) {
+	ds4USB := inputReport(0x01, gamepad.Dualshock4InputReportSizeUSB, 1, ds4LayoutPayload)
+	dualsenseUSB := inputReport(0x01, gamepad.DualsenseInputReportSizeUSB, 1, dualsenseLayoutPayload)
+	simple := inputReport(0x01, gamepad.SonySimpleInputReportSizeBT, 1, ds4LayoutPayload)
+	ds4Full := inputReport(0x11, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload)
+	dualsenseFull := inputReport(0x31, gamepad.DualsenseInputReportSizeBT, 2, dualsenseLayoutPayload)
+
+	tests := []struct {
+		name   string
+		model  gamepad.SonyModel
+		bt     bool
+		report []byte
+		want   gamepad.SonyInputState
+		wantOK bool
+	}{
+		{
+			name:   "ds4 usb",
+			model:  gamepad.SonyModelDualShock4,
+			report: ds4USB,
+			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		{
+			name:   "dualsense usb",
+			model:  gamepad.SonyModelDualSense,
+			report: dualsenseUSB,
+			want:   dualsenseLayoutState,
+			wantOK: true,
+		},
+		{
+			name:   "ds4 simple",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: simple,
+			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		{
+			name:   "ds4 full",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: ds4Full,
+			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		{
+			name:   "dualsense simple",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: simple,
+			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		{
+			name:   "dualsense full",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: dualsenseFull,
+			want:   dualsenseLayoutState,
+			wantOK: true,
+		},
+		// The host may pad reports to the device's maximum report length.
+		{
+			name:   "ds4 full padded",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: append(ds4Full, make([]byte, 400)...),
+			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		{
+			name:   "simple padded",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: append(simple, make([]byte, 60)...),
+			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		// The DualSense uses different layouts for report 0x01 over USB and
+		// over Bluetooth; the transport selects the layout.
+		{
+			name:   "dualsense usb report over bt",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: dualsenseUSB,
+			want: gamepad.SonyInputState{
+				LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
+				L2: 0x83, R2: 0xc8,
+				Hat:     0,
+				Buttons: 0x5<<0 | 0x60<<4 | 0x1<<12, // 0x50 >> 4, 0x60, 0x99 & 0x03
+			},
+			wantOK: true,
+		},
+		// Reports of the other model, of the other transport, or of other
+		// kinds are not state reports.
+		{
+			name:   "ds4 gets dualsense full",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: dualsenseFull,
+		},
+		{
+			name:   "dualsense gets ds4 full",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: ds4Full,
+		},
+		{
+			name:   "ds4 full over usb",
+			model:  gamepad.SonyModelDualShock4,
+			report: ds4Full,
+		},
+		{
+			name:   "dualsense full over usb",
+			model:  gamepad.SonyModelDualSense,
+			report: dualsenseFull,
+		},
+		{
+			name:   "simple over usb",
+			model:  gamepad.SonyModelDualShock4,
+			report: simple,
+		},
+		{
+			name:   "unknown model usb",
+			model:  gamepad.SonyModelNone,
+			report: ds4USB,
+		},
+		{
+			name:   "unknown model bt",
+			model:  gamepad.SonyModelNone,
+			bt:     true,
+			report: simple,
+		},
+		{
+			name:   "other report id",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: inputReport(0x12, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload),
+		},
+		{
+			name:   "empty",
+			model:  gamepad.SonyModelDualShock4,
+			report: nil,
+		},
+		{
+			name:   "ds4 usb short",
+			model:  gamepad.SonyModelDualShock4,
+			report: ds4USB[:gamepad.Dualshock4InputReportSizeUSB-1],
+		},
+		{
+			name:   "dualsense usb short",
+			model:  gamepad.SonyModelDualSense,
+			report: dualsenseUSB[:gamepad.DualsenseInputReportSizeUSB-1],
+		},
+		{
+			name:   "simple short",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: simple[:gamepad.SonySimpleInputReportSizeBT-1],
+		},
+		{
+			name:   "ds4 full short",
+			model:  gamepad.SonyModelDualShock4,
+			bt:     true,
+			report: ds4Full[:gamepad.Dualshock4InputReportSizeBT-1],
+		},
+		{
+			name:   "dualsense full short",
+			model:  gamepad.SonyModelDualSense,
+			bt:     true,
+			report: dualsenseFull[:gamepad.DualsenseInputReportSizeBT-1],
+		},
+	}
+	for _, tt := range tests {
+		got, ok := gamepad.SonyInputStateFromReport(tt.model, tt.bt, tt.report)
+		if ok != tt.wantOK {
+			t.Errorf("%s: ok = %t, want %t", tt.name, ok, tt.wantOK)
+			continue
+		}
+		if got != tt.want {
+			t.Errorf("%s: state = %+v, want %+v", tt.name, got, tt.want)
+		}
+	}
+}
+
+func TestSonyInputStateFromReportHat(t *testing.T) {
+	for hat := byte(0); hat < 16; hat++ {
+		payload := append([]byte{}, ds4LayoutPayload...)
+		payload[4] = hat | 0xf0
+		got, ok := gamepad.SonyInputStateFromReport(gamepad.SonyModelDualShock4, false, inputReport(0x01, gamepad.Dualshock4InputReportSizeUSB, 1, payload))
+		if !ok {
+			t.Fatalf("hat %d: not ok", hat)
+		}
+		if got.Hat != hat {
+			t.Errorf("hat %d: got %d", hat, got.Hat)
+		}
+		if want := uint16(0x0f | 1<<4 | 1<<9 | 1<<13); got.Buttons != want {
+			t.Errorf("hat %d: buttons = %#04x, want %#04x", hat, got.Buttons, want)
+		}
+	}
+}

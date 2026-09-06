@@ -23,7 +23,7 @@ import (
 // assigned the rumbler for its family when the device is detected:
 //
 //   - XInput devices: xinputRumbler
-//   - PlayStation controllers: sonyRumbler
+//   - PlayStation controllers: sonyDevice
 //   - other DirectInput devices: noRumbler
 type rumbler interface {
 	// vibrate starts vibrating the motors for the duration, or stops them
