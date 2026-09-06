@@ -406,7 +406,7 @@ func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error
 			err = r.Reset()
 		}, true)
 	}
-	return nil
+	return
 }
 
 // MaxImageSize returns the maximum size of an image.
