@@ -289,6 +289,34 @@ func Fragment(position vec4, texCoord vec3, color vec4) vec4 {
 	}
 }
 
+func TestCompileBlankAsValue(t *testing.T) {
+	values := []string{
+		"min(_, 1)",
+		"1 + _",
+		"min(-_, 1)",
+		"max(+_, 1)",
+		"clamp(-_, 0, 1)",
+		"1 + (-_)",
+	}
+	for _, v := range values {
+		src := []byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const x = %s
+	return vec4(x)
+}`, v))
+		t.Run(v, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("Compile must not panic when _ is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile(src, "Vertex", "Fragment", 0); err == nil {
+				t.Fatalf("Compile must return an error when _ is used as a value, but got nil")
+			}
+		})
+	}
+}
 func TestCompileHugeShift(t *testing.T) {
 	src := `package main
 
