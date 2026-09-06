@@ -170,7 +170,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	// When the source or the loop reaches its end, go back to the loop start and read again so that
 	// this doesn't return (0, nil). A retry either returns data, stops at the loop start, or grows
 	// the remainder, which is shorter than one value, so the retries end.
-	for {
+	for rewinds := 0; ; rewinds++ {
 		n, err := i.read(b)
 		if err != nil && err != io.EOF {
 			return 0, err
@@ -179,7 +179,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		if !atEnd {
 			return n, nil
 		}
-		if n == 0 && i.pos == i.lstart {
+		if n == 0 && (i.pos == i.lstart || rewinds > 0) {
 			// The loop has no data to repeat.
 			return 0, io.EOF
 		}
@@ -308,6 +308,7 @@ func (i *InfiniteLoop) rewind() error {
 		return err
 	}
 	i.pos = i.lstart
+	i.extra = i.extra[:0]
 	return nil
 }
 

@@ -746,3 +746,23 @@ func TestInfiniteLoopWithPartialValueAtLoopStart(t *testing.T) {
 		})
 	}
 }
+
+func TestInfiniteLoopRewindClearsExtra(t *testing.T) {
+	src := make([]byte, 101)
+	for i := range src {
+		src[i] = byte(i)
+	}
+	l := audio.NewInfiniteLoop(bytes.NewReader(src), 200)
+
+	buf := make([]byte, 128)
+	if _, err := l.Read(buf); err != nil {
+		t.Fatal(err)
+	}
+	n, err := l.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := buf[:4], []byte{0, 1, 2, 3}; !bytes.Equal(got[:4], want) {
+		t.Errorf("got: %v, want: %v (n: %d)", got, want, n)
+	}
+}
