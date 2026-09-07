@@ -244,6 +244,11 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 			}
 
 			relpos := abspos - i.lstart
+			if relpos+int64(i.bitDepthInBytes) > int64(len(i.afterLoop)) {
+				// afterLoop is a raw byte truncation with no alignment guarantee.
+				// A sample straddling its end cannot be blended; leave the original.
+				continue
+			}
 			switch i.bitDepthInBytes {
 			case 2:
 				afterLoop := int16(i.afterLoop[relpos]) | (int16(i.afterLoop[relpos+1]) << 8)
