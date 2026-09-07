@@ -161,7 +161,7 @@ func GamepadSDLID(id GamepadID) string {
 
 // GamepadName returns a string with the name.
 // This function may vary in how it returns descriptions for the same device across platforms.
-// for example the following drivers/platforms see an Xbox One controller as the following:
+// For example, the following drivers/platforms see an Xbox One controller as the following:
 //
 //   - Windows: "Xbox Controller"
 //   - Chrome: "Xbox 360 Controller (XInput STANDARD GAMEPAD)"
@@ -388,7 +388,7 @@ func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton
 //
 // UpdateStandardGamepadLayoutMappings is concurrent-safe.
 //
-// UpdateStandardGamepadLayoutMappings mappings take effect immediately even for already connected gamepads.
+// The mappings take effect immediately even for already connected gamepads.
 //
 // UpdateStandardGamepadLayoutMappings works atomically. If an error happens, nothing is updated.
 func UpdateStandardGamepadLayoutMappings(mappings string) (bool, error) {

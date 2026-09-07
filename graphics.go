@@ -68,7 +68,7 @@ func (g GraphicsLibrary) String() string {
 	return ui.GraphicsLibrary(g).String()
 }
 
-// Ensures GraphicsLibraryAuto is zero (the default value for RunOptions).
+// Ensures GraphicsLibraryAuto is zero (the default value for RunGameOptions).
 var _ [GraphicsLibraryAuto]int = [0]int{}
 
 // DebugInfo is a struct to store debug info about the graphics.

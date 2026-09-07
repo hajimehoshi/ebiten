@@ -93,7 +93,7 @@ const (
 
 // StandardGamepadAxis represents a gamepad axis in the standard layout.
 //
-// The layout and the button values are based on the web standard.
+// The layout and the axis values are based on the web standard.
 // See https://www.w3.org/TR/gamepad/#remapping.
 type StandardGamepadAxis = gamepaddb.StandardAxis
 
