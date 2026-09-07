@@ -50,38 +50,18 @@ type uiBackend interface {
 	KeyName(key Key) string
 }
 
-// backendWindow is the part of Window that a backend implements.
-// The methods are called only while the game runs. The remaining part of
-// Window is answered by desktopWindow from the settings in userInterfaceImpl.
-//
-// An applyX method takes no value and applies the setting currently stored in
-// userInterfaceImpl or desktopWindow, rather than a value passed by the caller.
-// The store and this apply run as two steps, so a value-carrying apply could let
-// two concurrent setters leave the store and the window disagreeing; applying the
-// stored value instead keeps them in agreement (#3481).
+// backendWindow provides window queries and actions.
 type backendWindow interface {
 	IsDecorated() bool
-	SetDecorated(decorated bool)
 	IsVisible() bool
-	SetVisible(visible bool)
-	applyResizingMode()
-	SetMonitor(monitor *Monitor)
 	Position() (int, int)
-	SetPosition(x, y int)
 	Size() (int, int)
-	SetSize(width, height int)
-	SetSizeLimits(minw, minh, maxw, maxh int)
 	IsFloating() bool
-	SetFloating(floating bool)
 	Maximize()
 	IsMaximized() bool
 	Minimize()
 	IsMinimized() bool
-	applyTitle()
-	applyColorMode()
 	Restore()
-	applyClosingHandled()
-	SetMousePassthrough(enabled bool)
 	IsMousePassthrough() bool
 	RequestAttention()
 }
@@ -109,9 +89,9 @@ type userInterfaceImpl struct {
 	fpsMode             atomic.Int32
 	cursorShape         atomic.Int32
 
-	initMonitor    atomic.Pointer[Monitor]
-	initFullscreen atomic.Bool
-	initCursorMode atomic.Int32
+	requestedMonitor windowSetting[*Monitor]
+	initFullscreen   atomic.Bool
+	initCursorMode   atomic.Int32
 
 	desktopWindow desktopWindow
 
@@ -188,12 +168,12 @@ func (u *UserInterface) runningBackend() uiBackend {
 	return *b
 }
 
-func (u *UserInterface) setInitMonitor(m *Monitor) {
-	u.initMonitor.Store(m)
+func (u *UserInterface) setRequestedMonitor(m *Monitor) bool {
+	return u.requestedMonitor.Store(m)
 }
 
-func (u *UserInterface) getInitMonitor() *Monitor {
-	return u.initMonitor.Load()
+func (u *UserInterface) getRequestedMonitor() *Monitor {
+	return u.requestedMonitor.Load()
 }
 
 func (u *UserInterface) isInitFullscreen() bool {
@@ -365,7 +345,7 @@ func (u *UserInterface) Monitor() *Monitor {
 		if err := u.ensureGLFWInit(); err != nil {
 			return nil
 		}
-		return u.getInitMonitor()
+		return u.getRequestedMonitor()
 	}
 	return b.Monitor()
 }

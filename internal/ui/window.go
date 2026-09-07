@@ -72,9 +72,6 @@ func (*nullWindow) ResizingMode() WindowResizingMode {
 func (*nullWindow) SetResizingMode(mode WindowResizingMode) {
 }
 
-func (*nullWindow) applyResizingMode() {
-}
-
 func (*nullWindow) SetMonitor(monitor *Monitor) {
 }
 
@@ -126,9 +123,6 @@ func (*nullWindow) SetIcon(iconImages []image.Image) {
 func (*nullWindow) SetTitle(title string) {
 }
 
-func (*nullWindow) applyTitle() {
-}
-
 func (*nullWindow) applyColorMode() {
 }
 
@@ -136,9 +130,6 @@ func (*nullWindow) Restore() {
 }
 
 func (*nullWindow) SetClosingHandled(handled bool) {
-}
-
-func (*nullWindow) applyClosingHandled() {
 }
 
 func (*nullWindow) IsClosingHandled() bool {

@@ -29,7 +29,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
-	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
@@ -124,7 +123,6 @@ type glfwBackend struct {
 	cachedCurrentMonitor     *Monitor
 	cachedCurrentMonitorTime int64
 
-	darwinInitOnce        sync.Once
 	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
 
@@ -187,7 +185,7 @@ func (u *UserInterface) initializeGLFW() error {
 		return errors.New("ui: no monitor was found at initializeGLFW")
 	}
 
-	u.setInitMonitor(m)
+	u.requestedMonitor.init(m)
 
 	// Create system cursors. These cursors are destroyed at glfw.Terminate().
 	glfwSystemCursors[CursorShapeDefault] = nil
@@ -275,6 +273,9 @@ func (u *UserInterface) ensureGLFWInit() error {
 
 // Monitor returns the window's current monitor.
 func (u *glfwBackend) Monitor() *Monitor {
+	if p := u.requestedMonitor.pending(); p != nil {
+		return *p
+	}
 	var monitor *Monitor
 	u.mainThread.Call(func() {
 		if u.isTerminated() {
@@ -527,8 +528,8 @@ func (u *glfwBackend) createWindow() error {
 		panic("ui: u.window must not exist at createWindow")
 	}
 
-	monitor := u.getInitMonitor()
-	ww, wh := u.desktopWindow.getInitWindowSizeInDIP()
+	monitor := u.getRequestedMonitor()
+	ww, wh := u.desktopWindow.getWindowSizeInDIP()
 	s := monitor.DeviceScaleFactor()
 	width, height := windowSizeInGLFWPixels(ww, wh, s)
 	window, err := glfw.CreateWindow(width, height, "", nil, nil)
@@ -539,9 +540,18 @@ func (u *glfwBackend) createWindow() error {
 	// Publish the backend and set the running state true just as a window is set (#2742).
 	u.setRunningBackend(u)
 
+	monitorRequest := u.requestedMonitor.value.Load()
+	monitor = *monitorRequest
+	sizeRequest := u.desktopWindow.windowSizeInDIP.value.Load()
+	ww, wh = sizeRequest.X, sizeRequest.Y
+
 	// The position must be set before the size is set (#1982).
 	// setWindowSizeInDIP refers the current monitor's device scale.
-	wx, wy := u.desktopWindow.getInitWindowPositionInDIP()
+	positionRequest := u.desktopWindow.windowPositionInDIP.value.Load()
+	wx, wy := invalidPos, invalidPos
+	if positionRequest != nil {
+		wx, wy = positionRequest.X, positionRequest.Y
+	}
 	mw, mh := monitor.sizeInDIP()
 	if max := int(mw) - ww; wx >= max {
 		wx = max
@@ -563,6 +573,9 @@ func (u *glfwBackend) createWindow() error {
 	if err := u.setWindowSizeInDIP(ww, wh, true); err != nil {
 		return err
 	}
+	u.requestedMonitor.markApplied(monitorRequest)
+	u.desktopWindow.windowPositionInDIP.markApplied(positionRequest)
+	u.desktopWindow.windowSizeInDIP.markApplied(sizeRequest)
 
 	if err := u.initializeWindowAfterCreation(window); err != nil {
 		return err
@@ -580,7 +593,7 @@ func (u *glfwBackend) createWindow() error {
 	if err := u.window.SetCursor(glfwSystemCursors[u.getCursorShape()]); err != nil {
 		return err
 	}
-	if err := u.window.SetTitle(u.desktopWindow.title.Load().(string)); err != nil {
+	if err := u.window.SetTitle(u.desktopWindow.title.Load()); err != nil {
 		return err
 	}
 	// Icons are set after every frame. They don't have to be cared here.
@@ -859,11 +872,12 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 
 	// Center the window on the monitor if the position was not explicitly set.
 	if !options.WindowPositionSet {
-		m := u.getInitMonitor()
+		m := u.getRequestedMonitor()
 		if m != nil {
 			sw, sh := m.sizeInDIP()
 			x, y := InitialWindowPosition(int(sw), int(sh), options.InitWindowWidthInDIP, options.InitWindowHeightInDIP)
-			u.UserInterface.Window().SetPosition(x, y)
+			p := image.Pt(x, y)
+			u.desktopWindow.windowPositionInDIP.init(p)
 		}
 	}
 
@@ -889,7 +903,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
 	if runtime.GOOS != "darwin" {
 		decorated := glfw.False
-		if u.desktopWindow.isInitWindowDecorated() {
+		if u.desktopWindow.isWindowDecorated() {
 			decorated = glfw.True
 		}
 		if err := glfw.WindowHint(glfw.Decorated, decorated); err != nil {
@@ -940,7 +954,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	// Before creating a window, set it unresizable no matter what u.isInitWindowResizable() is (#1987).
 	// Making the window resizable here doesn't work correctly when switching to enable resizing.
 	resizable := glfw.False
-	if WindowResizingMode(u.desktopWindow.windowResizingMode.Load()) == WindowResizingModeEnabled {
+	if u.desktopWindow.windowResizingMode.Load() == WindowResizingModeEnabled {
 		resizable = glfw.True
 	}
 	if err := glfw.WindowHint(glfw.Resizable, resizable); err != nil {
@@ -948,7 +962,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	}
 
 	floating := glfw.False
-	if u.desktopWindow.isInitWindowFloating() {
+	if u.desktopWindow.isWindowFloating() {
 		floating = glfw.True
 	}
 	if err := glfw.WindowHint(glfw.Floating, floating); err != nil {
@@ -965,7 +979,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	}
 
 	mousePassthrough := glfw.False
-	if u.desktopWindow.isInitWindowMousePassthrough() {
+	if u.desktopWindow.isWindowMousePassthrough() {
 		mousePassthrough = glfw.True
 	}
 	if err := glfw.WindowHint(glfw.MousePassthrough, mousePassthrough); err != nil {
@@ -976,12 +990,8 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 		return err
 	}
 
-	// createWindow has published the backend. A concurrent SetPreferredColorMode thus either
-	// applies the color mode by itself, or stores a value that is read here.
-	if m := u.PreferredColorMode(); m != colormode.Unknown {
-		if err := u.setWindowColorModeImpl(m); err != nil {
-			return err
-		}
+	if err := u.applyWindowSettings(); err != nil {
+		return err
 	}
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
@@ -991,7 +1001,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 		}
 	}
 
-	if err := u.setWindowResizingModeForOS(WindowResizingMode(u.desktopWindow.windowResizingMode.Load())); err != nil {
+	if err := u.setWindowResizingModeForOS(u.desktopWindow.windowResizingMode.Load()); err != nil {
 		return err
 	}
 
@@ -1147,6 +1157,11 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		return 0, 0, 0, 0, err
 	}
 
+	settingsChanged := u.desktopWindow.settingsChanged.Swap(false)
+	if err := u.applyWindowSettings(); err != nil {
+		return 0, 0, 0, 0, err
+	}
+
 	sc, err := u.window.ShouldClose()
 	if err != nil {
 		return 0, 0, 0, 0, err
@@ -1163,77 +1178,6 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		u.setInitFullscreen(false)
 	}
 
-	if runtime.GOOS == "darwin" && u.bufferOnceSwapped {
-		var err error
-		u.darwinInitOnce.Do(func() {
-			// On macOS, window decoration should be initialized once after buffers are swapped (#2600).
-			decorated := glfw.False
-			if u.desktopWindow.isInitWindowDecorated() {
-				decorated = glfw.True
-			}
-			if err = u.window.SetAttrib(glfw.Decorated, decorated); err != nil {
-				return
-			}
-		})
-		if err != nil {
-			return 0, 0, 0, 0, err
-		}
-	}
-
-	// Showing the window (and the focus and size adjustments that go with it) is skipped when the window
-	// is initially invisible, so an application started with SetWindowVisible(false) never shows a window.
-	// A later SetWindowVisible(true) shows it through the regular path.
-	if u.bufferOnceSwapped && u.desktopWindow.isInitWindowVisible() {
-		var err error
-		u.showWindowOnce.Do(func() {
-			// Show the window after first buffer swap to avoid flash of white especially on Windows.
-			if err = u.window.Show(); err != nil {
-				return
-			}
-			if !u.initUnfocused {
-				if err = u.window.Focus(); err != nil {
-					return
-				}
-			}
-
-			if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
-				return
-			}
-
-			// On Linux or UNIX, there is a problematic desktop environment like i3wm
-			// where an invisible window size cannot be initialized correctly (#2951).
-			// Call SetSize explicitly after the window becomes visible.
-
-			fullscreen, e := u.isFullscreen()
-			if e != nil {
-				err = e
-				return
-			}
-			if fullscreen {
-				return
-			}
-
-			m, e := u.currentMonitor()
-			if e != nil {
-				err = e
-				return
-			}
-			s := m.DeviceScaleFactor()
-			newW, newH := windowSizeInGLFWPixels(u.windowWidthInDIP, u.windowHeightInDIP, s)
-
-			// Even though a framebuffer callback is not called, waitForFramebufferSizeCallback returns by timeout,
-			// so it is safe to use this.
-			if err = u.waitForFramebufferSizeCallback(u.window, func() error {
-				return u.window.SetSize(newW, newH)
-			}); err != nil {
-				return
-			}
-		})
-		if err != nil {
-			return 0, 0, 0, 0, err
-		}
-	}
-
 	// Initialize vsync after SetMonitor is called.
 	// Calling this inside setWindowSize didn't work (#1363).
 	if !u.fpsModeInited {
@@ -1242,7 +1186,10 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		}
 	}
 
-	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum {
+	// Settings can change while their application polls native events. Check again
+	// before waiting, since those events may have consumed the setter's wakeup.
+	settingsChanged = u.desktopWindow.settingsChanged.Swap(false) || settingsChanged
+	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum || settingsChanged {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
 		u.pollingEvents = true
 		err := glfw.PollEvents()
@@ -1258,12 +1205,18 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 			return 0, 0, 0, 0, err
 		}
 	}
+	if err := u.applyWindowSettings(); err != nil {
+		return 0, 0, 0, 0, err
+	}
 	u.syncModKeysFromOS()
 	u.syncLockKeysFromOS()
 
 	// If isRunnableOnUnfocused is false and the window is not focused, wait here.
 	// For the first update, skip this check as the window might not be seen yet in some environments like ChromeOS (#3091).
 	for !u.isRunnableOnUnfocused() && u.bufferOnceSwapped {
+		if err := u.applyWindowSettings(); err != nil {
+			return 0, 0, 0, 0, err
+		}
 		// In the initial state on macOS, the window is not shown (#2620).
 		visible, err := u.window.GetAttrib(glfw.Visible)
 		if err != nil {
@@ -1327,7 +1280,7 @@ func (u *glfwBackend) loopGame() (err error) {
 }
 
 // shouldPresentFrame reports whether a frame should be presented to the window.
-func shouldPresentFrame(windowOnScreen, bufferOnceSwapped, initWindowVisible bool) bool {
+func shouldPresentFrame(windowOnScreen, bufferOnceSwapped, windowVisible bool) bool {
 	if windowOnScreen {
 		return true
 	}
@@ -1335,7 +1288,7 @@ func shouldPresentFrame(windowOnScreen, bufferOnceSwapped, initWindowVisible boo
 	// A window that is to be shown at startup stays hidden until the first frame is presented (#2875).
 	// That frame must still be presented (#3508): showing the window and, on macOS, entering the
 	// fullscreen mode (#2599) both require buffers to have been swapped once.
-	if !bufferOnceSwapped && initWindowVisible {
+	if !bufferOnceSwapped && windowVisible {
 		return true
 	}
 
@@ -1377,7 +1330,7 @@ func (u *glfwBackend) updateGame() error {
 			err = e
 			return
 		}
-		present = shouldPresentFrame(visible == glfw.True && !occluded, u.bufferOnceSwapped, u.desktopWindow.isInitWindowVisible())
+		present = shouldPresentFrame(visible == glfw.True && !occluded, u.bufferOnceSwapped, u.desktopWindow.isWindowVisible())
 
 		outsideWidth, outsideHeight, screenWidth, screenHeight, err = u.update()
 		if err != nil {
@@ -1545,7 +1498,7 @@ func (u *glfwBackend) updateWindowSizeLimits() error {
 	}
 
 	// The window size limit affects the resizing mode, especially on macOS (#2260).
-	if err := u.setWindowResizingModeForOS(WindowResizingMode(u.desktopWindow.windowResizingMode.Load())); err != nil {
+	if err := u.setWindowResizingModeForOS(u.desktopWindow.windowResizingMode.Load()); err != nil {
 		return err
 	}
 
@@ -1840,7 +1793,7 @@ func (u *glfwBackend) currentMonitor() (*Monitor, error) {
 // currentMonitorImpl must be called from the main thread.
 func (u *glfwBackend) currentMonitorImpl() (*Monitor, error) {
 	if u.window == nil {
-		return u.getInitMonitor(), nil
+		return u.getRequestedMonitor(), nil
 	}
 
 	// Getting a monitor from a window position is not reliable in general (e.g., when a window is put across
@@ -1877,8 +1830,8 @@ func (u *glfwBackend) currentMonitorImpl() (*Monitor, error) {
 	}
 
 	// The primary monitor might be missing even after the initialization (#3094, #3241).
-	// The reason is still unknown. As a workaround, return the initial monitor.
-	return u.getInitMonitor(), nil
+	// The reason is still unknown. As a workaround, return the last requested monitor.
+	return u.getRequestedMonitor(), nil
 }
 
 func (u *glfwBackend) readInputState(inputState *InputState) {
@@ -1994,10 +1947,54 @@ func (u *glfwBackend) setWindowVisible(visible bool) error {
 		return nil
 	}
 
-	if visible {
-		return u.window.Show()
+	if !visible {
+		return u.window.Hide()
 	}
-	return u.window.Hide()
+	if err := u.window.Show(); err != nil {
+		return err
+	}
+	var err error
+	u.showWindowOnce.Do(func() {
+		if !u.initUnfocused {
+			if err = u.window.Focus(); err != nil {
+				return
+			}
+		}
+
+		if runtime.GOOS == "darwin" || runtime.GOOS == "windows" {
+			return
+		}
+
+		// On Linux or UNIX, there is a problematic desktop environment like i3wm
+		// where an invisible window size cannot be initialized correctly (#2951).
+		// Call SetSize explicitly after the window becomes visible.
+
+		fullscreen, e := u.isFullscreen()
+		if e != nil {
+			err = e
+			return
+		}
+		if fullscreen {
+			return
+		}
+
+		m, e := u.currentMonitor()
+		if e != nil {
+			err = e
+			return
+		}
+		s := m.DeviceScaleFactor()
+		newW, newH := windowSizeInGLFWPixels(u.windowWidthInDIP, u.windowHeightInDIP, s)
+
+		// Even though a framebuffer callback is not called, waitForFramebufferSizeCallback returns by timeout,
+		// so it is safe to use this.
+		if err = u.waitForFramebufferSizeCallback(u.window, func() error {
+			return u.window.SetSize(newW, newH)
+		}); err != nil {
+			return
+		}
+	})
+	return err
 }
 
 // setWindowDecorated must be called from the main thread.
@@ -2016,7 +2013,7 @@ func (u *glfwBackend) setWindowDecorated(decorated bool) error {
 
 	// The title can be lost when the decoration is gone. Recover this.
 	if decorated {
-		if err := u.window.SetTitle(u.desktopWindow.title.Load().(string)); err != nil {
+		if err := u.window.SetTitle(u.desktopWindow.title.Load()); err != nil {
 			return err
 		}
 	}
