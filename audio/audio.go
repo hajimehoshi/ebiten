@@ -21,8 +21,10 @@
 // The stream format must be 16-bit little endian or 32-bit float little endian, and 2 channels. The format is as follows:
 //
 //	[data]      = [sample 1] [sample 2] [sample 3] ...
-//	[sample *]  = [channel 1] ...
+//	[sample *]  = [channel 1] [channel 2]
 //	[channel *] = [byte 1] [byte 2] ...
+//
+// A channel is 2 bytes in the 16-bit integer format, and 4 bytes in the 32-bit float format.
 //
 // An audio context (audio.Context object) has a sample rate you can specify
 // and all streams you want to play must have the same sample rate.

@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package graphicscommand represents a low layer for graphics using OpenGL.
+// Package graphicscommand represents a low layer for graphics rendering, independent of graphics drivers.
 package graphicscommand

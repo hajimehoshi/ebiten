@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// LineCap represents the way in which how the ends of the stroke are rendered.
+// LineCap represents the way in which the ends of the stroke are rendered.
 type LineCap int
 
 const (
@@ -30,7 +30,7 @@ const (
 	LineCapSquare
 )
 
-// LineJoin represents the way in which how two segments are joined.
+// LineJoin represents the way in which two segments are joined.
 type LineJoin int
 
 const (
@@ -46,13 +46,13 @@ type StrokeOptions struct {
 	// The default (zero) value is 0.
 	Width float32
 
-	// LineCap is the way in which how the ends of the stroke are rendered.
+	// LineCap is the way in which the ends of the stroke are rendered.
 	// Line caps are not rendered when the sub-path is marked as closed.
 	//
 	// The default (zero) value is [LineCapButt].
 	LineCap LineCap
 
-	// LineJoin is the way in which how two segments are joined.
+	// LineJoin is the way in which two segments are joined.
 	//
 	// The default (zero) value is [LineJoinMiter].
 	LineJoin LineJoin

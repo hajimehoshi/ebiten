@@ -267,7 +267,7 @@ func JustConnectedGamepadIDs() []ebiten.GamepadID {
 }
 
 // IsGamepadJustDisconnected returns a boolean value indicating
-// whether the gamepad of the given id is released just in the current tick.
+// whether the gamepad of the given id is disconnected just in the current tick.
 //
 // IsGamepadJustDisconnected must be called in a game's Update, not Draw.
 //

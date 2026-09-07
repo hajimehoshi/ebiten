@@ -1275,7 +1275,7 @@ func (i *Image) ColorModel() color.Model {
 // Note that an important logic should not rely on values returned by ReadPixels, since
 // the returned values can include very slight differences between some machines.
 //
-// ReadPixels can't be called outside the main loop (ebiten.Run's updating function) starts.
+// ReadPixels can't be called outside the main loop (ebiten.RunGame's updating function) starts.
 func (i *Image) ReadPixels(pixels []byte) {
 	b := i.Bounds()
 	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
@@ -1298,7 +1298,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 // Note that an important logic should not rely on values returned by At, since
 // the returned values can include very slight differences between some machines.
 //
-// At can't be called outside the main loop (ebiten.Run's updating function) starts.
+// At can't be called outside the main loop (ebiten.RunGame's updating function) starts.
 func (i *Image) At(x, y int) color.Color {
 	r, g, b, a := i.at(x, y)
 	return color.RGBA{R: r, G: g, B: b, A: a}
@@ -1314,7 +1314,7 @@ func (i *Image) At(x, y int) color.Color {
 // Note that an important logic should not rely on values returned by RGBA64At,
 // since the returned values can include very slight differences between some machines.
 //
-// RGBA64At can't be called outside the main loop (ebiten.Run's updating function) starts.
+// RGBA64At can't be called outside the main loop (ebiten.RunGame's updating function) starts.
 func (i *Image) RGBA64At(x, y int) color.RGBA64 {
 	r, g, b, a := i.at(x, y)
 	return color.RGBA64{R: uint16(r) * 0x101, G: uint16(g) * 0x101, B: uint16(b) * 0x101, A: uint16(a) * 0x101}
