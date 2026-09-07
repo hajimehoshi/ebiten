@@ -148,6 +148,14 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 	a.atlasImages = slices.Grow(a.atlasImages, atlasImageCount)[:atlasImageCount]
 	for i := range a.atlasImages {
 		s := a.atlasSizes[i]
+		if s.X <= 0 || s.Y <= 0 {
+			// All regions are empty: keep a clean no-op without creating an image.
+			if a.atlasImages[i] != nil {
+				a.atlasImages[i].Deallocate()
+				a.atlasImages[i] = nil
+			}
+			continue
+		}
 		var origWidth, origHeight int
 		if a.atlasImages[i] != nil {
 			origWidth = a.atlasImages[i].Bounds().Dx()
@@ -179,6 +187,9 @@ func (a *atlas) stencilBufferImageAt(i int, antialias bool, antialiasIndex int) 
 	}
 
 	atlas := a.atlasImages[ar.imageIndex]
+	if atlas == nil {
+		return nil
+	}
 	b := ar.imageBounds
 	if antialias {
 		switch antialiasIndex {
