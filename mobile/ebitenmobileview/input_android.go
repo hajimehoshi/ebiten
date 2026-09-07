@@ -138,7 +138,7 @@ func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
 	case 0x00, 0x05, 0x02: // ACTION_DOWN, ACTION_POINTER_DOWN, ACTION_MOVE
 		touches[ui.TouchID(id)] = position{x, y}
 		updateInput(nil)
-	case 0x01, 0x06: // ACTION_UP, ACTION_POINTER_UP
+	case 0x01, 0x06, 0x03: // ACTION_UP, ACTION_POINTER_UP, ACTION_CANCEL
 		delete(touches, ui.TouchID(id))
 		updateInput(nil)
 	}
