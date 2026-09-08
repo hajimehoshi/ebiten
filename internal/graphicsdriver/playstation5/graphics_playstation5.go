@@ -78,9 +78,9 @@ func (g *Graphics) Begin() error {
 	return nil
 }
 
-func (g *Graphics) End(present bool) error {
+func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	var cPresent C.int
-	if present {
+	if mode == graphicsdriver.FlushModePresent {
 		cPresent = 1
 	}
 	C.ebitengine_End(cPresent)

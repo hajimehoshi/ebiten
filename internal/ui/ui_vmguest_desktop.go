@@ -427,7 +427,7 @@ func (r *remoteBackend) advanceTick() error {
 	if err := r.context.updateTickForVMGuest(r.graphicsDriver, w, h, sw, sh, s, r.UserInterface); err != nil {
 		return err
 	}
-	if err := atlas.SwapBuffers(r.graphicsDriver); err != nil {
+	if err := atlas.FlushCommands(r.graphicsDriver, true); err != nil {
 		return err
 	}
 	return r.flushCommands()
@@ -447,7 +447,7 @@ func (r *remoteBackend) advanceFrame() error {
 	if err := r.context.drawFrameForVMGuest(r.graphicsDriver, w, h, sw, sh, s, r.UserInterface); err != nil {
 		return err
 	}
-	if err := atlas.SwapBuffers(r.graphicsDriver); err != nil {
+	if err := atlas.FlushCommands(r.graphicsDriver, true); err != nil {
 		return err
 	}
 	return r.flushCommands()

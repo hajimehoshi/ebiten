@@ -251,10 +251,7 @@ func (c *writePixelsCommand) Exec(commandQueue *commandQueue, graphicsDriver gra
 	args := make([]graphicsdriver.PixelsArgs, 0, len(c.args))
 	for _, a := range c.args {
 		pix, f := a.pixels.GetAndRelease()
-		// A finalizer is executed when flushing the queue at the end of the frame.
-		// At the end of the frame, the last command is rendering triangles onto the screen,
-		// so the bytes are already sent to GPU and synced.
-		// TODO: This might be fragile. When is the better time to call finalizers by a command queue?
+		// Keep upload bytes alive until the frame's commands have been submitted.
 		commandQueue.addFinalizer(f)
 		args = append(args, graphicsdriver.PixelsArgs{
 			Pixels: pix,

@@ -160,7 +160,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 		args: args,
 	}
 	theCommandQueueManager.enqueueCommand(c)
-	if err := theCommandQueueManager.flush(graphicsDriver, false); err != nil {
+	if err := theCommandQueueManager.flush(graphicsDriver, graphicsdriver.FlushModeIntermediate); err != nil {
 		return err
 	}
 	return nil
