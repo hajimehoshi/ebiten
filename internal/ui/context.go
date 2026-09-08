@@ -410,6 +410,9 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 // reports whether the screen size changed from the previous layout.
 func (c *context) layoutGame(outsideWidth, outsideHeight float64, screenWidth, screenHeight int) (int, int, bool) {
 	owf, ohf := c.game.Layout(outsideWidth, outsideHeight)
+	if math.IsNaN(owf) || math.IsNaN(ohf) || math.IsInf(owf, 0) || math.IsInf(ohf, 0) {
+		panic("ui: Layout must return finite positive numbers")
+	}
 	if owf <= 0 || ohf <= 0 {
 		panic("ui: Layout must return positive numbers")
 	}
