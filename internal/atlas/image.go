@@ -891,12 +891,12 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	return nil
 }
 
-func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, present bool) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if inFrame {
-		panic("atlas: inFrame must be false in SwapBuffer")
+		panic("atlas: inFrame must be false in FlushCommands")
 	}
 
 	if debug.IsDebug {
@@ -911,7 +911,11 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 		graphicscommand.LogImagesInfo(imgs)
 	}
 
-	if err := graphicscommand.FlushCommands(graphicsDriver, true); err != nil {
+	mode := graphicsdriver.FlushModeEndFrame
+	if present {
+		mode = graphicsdriver.FlushModePresent
+	}
+	if err := graphicscommand.FlushCommands(graphicsDriver, mode); err != nil {
 		return err
 	}
 

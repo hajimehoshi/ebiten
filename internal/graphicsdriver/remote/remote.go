@@ -161,10 +161,10 @@ func (g *Graphics) Begin() error {
 	return nil
 }
 
-func (g *Graphics) End(present bool) error {
+func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	g.record(vmprotocol.GraphicsCommand{
 		Kind:    vmprotocol.GraphicsCommandKindEnd,
-		Present: present,
+		Present: mode == graphicsdriver.FlushModePresent,
 	})
 	return nil
 }

@@ -137,11 +137,11 @@ func (g *Graphics) Begin() error {
 	return nil
 }
 
-func (g *Graphics) End(present bool) error {
-	g.flushCommandBufferIfNeeded(present)
+func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
+	g.flushCommandBufferIfNeeded(mode == graphicsdriver.FlushModePresent)
 	g.pool.Release()
 	g.pool.ID = 0
-	if present {
+	if mode != graphicsdriver.FlushModeIntermediate {
 		g.frame++
 	}
 	// Reclaim the resources for the past frames here, as a drawable is not always obtained in a frame.

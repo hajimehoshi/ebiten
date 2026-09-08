@@ -300,8 +300,8 @@ func (g *graphics11) IsOccluded() bool {
 	return g.graphicsInfra.occluded.Load()
 }
 
-func (g *graphics11) End(present bool) error {
-	if !present {
+func (g *graphics11) End(mode graphicsdriver.FlushMode) error {
+	if mode != graphicsdriver.FlushModePresent {
 		return nil
 	}
 

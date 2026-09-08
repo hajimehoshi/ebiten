@@ -93,10 +93,9 @@ func applyVsyncEnabledIfNeeded(graphicsDriver graphicsdriver.Graphics) {
 	}
 }
 
-// FlushCommands flushes the command queue and present the screen if needed.
-// If endFrame is true, the current screen might be used to present.
-func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	if err := theCommandQueueManager.flush(graphicsDriver, endFrame); err != nil {
+// FlushCommands executes queued commands with the given flush mode.
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
+	if err := theCommandQueueManager.flush(graphicsDriver, mode); err != nil {
 		return err
 	}
 	return nil
@@ -221,14 +220,14 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
 	if err := q.err.Load(); err != nil {
 		return err.(error)
 	}
 
 	var sync bool
 	// Disable asynchronous rendering when vsync is on, as this causes a rendering delay (#2822).
-	if endFrame && isVsyncEnabled() {
+	if mode == graphicsdriver.FlushModePresent && isVsyncEnabled() {
 		sync = true
 	}
 	if !sync {
@@ -248,7 +247,7 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 		applyVsyncEnabledIfNeeded(graphicsDriver)
 
-		if err := q.flush(graphicsDriver, endFrame, logger); err != nil {
+		if err := q.flush(graphicsDriver, mode, logger); err != nil {
 			if sync {
 				flushErr = err
 				return
@@ -268,9 +267,9 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 }
 
 // flush must be called the render thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, logger debug.FrameLogger) (err error) {
-	// If endFrame is true, Begin/End should be called to ensure the framebuffer is swapped.
-	if len(q.commands) == 0 && !endFrame {
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode, logger debug.FrameLogger) (err error) {
+	// Complete the frame even when no commands remain after an intermediate flush.
+	if len(q.commands) == 0 && mode == graphicsdriver.FlushModeIntermediate {
 		return nil
 	}
 
@@ -284,7 +283,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 
 	defer func() {
 		// Call End even if an error causes, or the graphics driver's state might be stale (#2388).
-		if graphicsErr := graphicsDriver.End(endFrame); graphicsErr != nil {
+		if graphicsErr := graphicsDriver.End(mode); graphicsErr != nil {
 			err = errors.Join(err, graphicsErr)
 		}
 
@@ -302,7 +301,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		q.indices = q.indices[:0]
 		q.tmpNumVertexFloats = 0
 
-		if endFrame {
+		if mode != graphicsdriver.FlushModeIntermediate {
 			q.uint32sBuffer.reset()
 			for i, f := range q.finalizers {
 				f()
@@ -545,7 +544,7 @@ func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [grap
 	c.current.EnqueueDrawTrianglesCommand(dst, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms)
 }
 
-func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
+func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
 	// Switch the command queue.
 	prev := c.current
 	q, err := c.pool.get()
@@ -557,7 +556,7 @@ func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, endF
 	if prev == nil {
 		return nil
 	}
-	if err := prev.Flush(graphicsDriver, endFrame); err != nil {
+	if err := prev.Flush(graphicsDriver, mode); err != nil {
 		return err
 	}
 	return nil
