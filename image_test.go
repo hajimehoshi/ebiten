@@ -322,6 +322,8 @@ func TestImageDispose(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)
 	img.Dispose()
+	img.Dispose()
+	img.Deallocate()
 
 	// The color is transparent (color.RGBA{}).
 	// Note that the value's type must be color.RGBA.
@@ -347,6 +349,7 @@ func TestImageReadPixelsDispose(t *testing.T) {
 func TestImageDeallocate(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)
+	img.Deallocate()
 	img.Deallocate()
 
 	// The color is transparent (color.RGBA{}).

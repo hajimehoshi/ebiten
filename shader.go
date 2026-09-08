@@ -65,8 +65,13 @@ func newShader(src []byte, name string) (*Shader, error) {
 // Dispose disposes the shader program.
 // After disposing, the shader is no longer available.
 //
+// If the shader is disposed, Dispose does nothing.
+//
 // Deprecated: as of v2.7. Use Deallocate instead.
 func (s *Shader) Dispose() {
+	if s.isDisposed() {
+		return
+	}
 	s.shader.Deallocate()
 	s.shader = nil
 }
