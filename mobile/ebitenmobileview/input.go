@@ -22,11 +22,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-type position struct {
-	x float64
-	y float64
-}
-
 var (
 	// inputMu protects the variables below and ptrToID in input_ios.go.
 	// The platform entry points are expected to run on the UI thread only;
