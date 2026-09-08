@@ -149,7 +149,6 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 	for i := range a.atlasImages {
 		s := a.atlasSizes[i]
 		if s.X <= 0 || s.Y <= 0 {
-			// All regions are empty: keep a clean no-op without creating an image.
 			if a.atlasImages[i] != nil {
 				a.atlasImages[i].Deallocate()
 				a.atlasImages[i] = nil
