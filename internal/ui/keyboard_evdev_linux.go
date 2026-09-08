@@ -20,6 +20,9 @@ import (
 	"encoding/binary"
 	"os"
 	"path/filepath"
+	"unsafe"
+
+	"golang.org/x/sys/unix"
 )
 
 // evdevKeyboard reads keyboard keys from the Linux input layer; each
@@ -27,6 +30,14 @@ import (
 type evdevKeyboard struct {
 	onKey func(key Key, pressed bool)
 	files []*os.File
+}
+
+// linuxInputEvent mirrors the native Linux input_event layout.
+type linuxInputEvent struct {
+	time  unix.Timeval
+	typ   uint16
+	code  uint16
+	value int32
 }
 
 func startEvdevKeyboard(onKey func(key Key, pressed bool)) *evdevKeyboard {
@@ -44,24 +55,25 @@ func startEvdevKeyboard(onKey func(key Key, pressed bool)) *evdevKeyboard {
 }
 
 func (k *evdevKeyboard) read(f *os.File) {
-	const (
-		eventSize = 24 // 64-bit input_event: 16-byte timeval, u16 type, u16 code, s32 value
-		evKey     = 0x01
-	)
-	var buf [eventSize * 32]byte
+	const evKey = 0x01
+	eventSize := int(unsafe.Sizeof(linuxInputEvent{}))
+	typeOffset := int(unsafe.Offsetof(linuxInputEvent{}.typ))
+	codeOffset := int(unsafe.Offsetof(linuxInputEvent{}.code))
+	valueOffset := int(unsafe.Offsetof(linuxInputEvent{}.value))
+	buf := make([]byte, eventSize*32)
 	for {
-		n, err := f.Read(buf[:])
+		n, err := f.Read(buf)
 		if err != nil {
 			return
 		}
 		for off := 0; off+eventSize <= n; off += eventSize {
 			rec := buf[off : off+eventSize]
-			typ := binary.LittleEndian.Uint16(rec[16:18])
+			typ := binary.NativeEndian.Uint16(rec[typeOffset : typeOffset+2])
 			if typ != evKey {
 				continue
 			}
-			code := binary.LittleEndian.Uint16(rec[18:20])
-			value := int32(binary.LittleEndian.Uint32(rec[20:24]))
+			code := binary.NativeEndian.Uint16(rec[codeOffset : codeOffset+2])
+			value := int32(binary.NativeEndian.Uint32(rec[valueOffset : valueOffset+4]))
 			key, ok := evdevKeyMap[code]
 			if !ok {
 				continue

@@ -33,28 +33,86 @@ const (
 	gbmUseRendering   = 1 << 2
 )
 
-func u16At(p unsafe.Pointer, o int) uint16 { return *(*uint16)(unsafe.Add(p, o)) }
-func u32At(p unsafe.Pointer, o int) uint32 { return *(*uint32)(unsafe.Add(p, o)) }
-func i32At(p unsafe.Pointer, o int) int32  { return *(*int32)(unsafe.Add(p, o)) }
-func ptrAt(p unsafe.Pointer, o int) unsafe.Pointer {
-	return *(*unsafe.Pointer)(unsafe.Add(p, o))
+// These mirror libdrm structures and use native pointer alignment.
+type drmModeRes struct {
+	countFBs        int32
+	fbs             *uint32
+	countCrtcs      int32
+	crtcs           *uint32
+	countConnectors int32
+	connectors      *uint32
+	countEncoders   int32
+	encoders        *uint32
+	minWidth        uint32
+	maxWidth        uint32
+	minHeight       uint32
+	maxHeight       uint32
 }
-func u32Index(p unsafe.Pointer, i int) uint32 {
-	return *(*uint32)(unsafe.Add(p, i*4))
+
+type drmModeModeInfo struct {
+	clock                                  uint32
+	hdisplay, hsyncStart, hsyncEnd, htotal uint16
+	hskew                                  uint16
+	vdisplay, vsyncStart, vsyncEnd, vtotal uint16
+	vscan                                  uint16
+	vrefresh                               uint32
+	flags                                  uint32
+	typ                                    uint32
+	name                                   [32]byte
+}
+
+type drmModeConnector struct {
+	connectorID     uint32
+	encoderID       uint32
+	connectorType   uint32
+	connectorTypeID uint32
+	connection      uint32
+	mmWidth         uint32
+	mmHeight        uint32
+	subpixel        uint32
+	countModes      int32
+	modes           *drmModeModeInfo
+	countProps      int32
+	props           *uint32
+	propValues      *uint64
+	countEncoders   int32
+	encoders        *uint32
+}
+
+type drmModeEncoder struct {
+	encoderID      uint32
+	encoderType    uint32
+	crtcID         uint32
+	possibleCrtcs  uint32
+	possibleClones uint32
+}
+
+func uint32Slice(p *uint32, n int32) []uint32 {
+	if p == nil || n <= 0 {
+		return nil
+	}
+	return unsafe.Slice(p, int(n))
+}
+
+func modeSlice(p *drmModeModeInfo, n int32) []drmModeModeInfo {
+	if p == nil || n <= 0 {
+		return nil
+	}
+	return unsafe.Slice(p, int(n))
 }
 
 type drmLib struct {
-	GetResources   func(fd int32) unsafe.Pointer
-	GetConnector   func(fd int32, id uint32) unsafe.Pointer
-	GetEncoder     func(fd int32, id uint32) unsafe.Pointer
-	SetCrtc        func(fd int32, crtc, fb, x, y uint32, conns *uint32, count int32, mode unsafe.Pointer) int32
+	GetResources   func(fd int32) *drmModeRes
+	GetConnector   func(fd int32, id uint32) *drmModeConnector
+	GetEncoder     func(fd int32, id uint32) *drmModeEncoder
+	SetCrtc        func(fd int32, crtc, fb, x, y uint32, conns *uint32, count int32, mode *drmModeModeInfo) int32
 	PageFlip       func(fd int32, crtc, fb, flags uint32, user uintptr) int32
 	AddFB2         func(fd int32, w, h, format uint32, handles, pitches, offsets *uint32, bufID *uint32, flags uint32) int32
 	AddFB2WithMods func(fd int32, w, h, format uint32, handles, pitches, offsets *uint32, modifiers *uint64, bufID *uint32, flags uint32) int32
 	RmFB           func(fd int32, id uint32) int32
-	FreeResources  func(p unsafe.Pointer)
-	FreeConnector  func(p unsafe.Pointer)
-	FreeEncoder    func(p unsafe.Pointer)
+	FreeResources  func(p *drmModeRes)
+	FreeConnector  func(p *drmModeConnector)
+	FreeEncoder    func(p *drmModeEncoder)
 	SetMaster      func(fd int32) int32
 	DropMaster     func(fd int32) int32
 }
@@ -150,10 +208,54 @@ type Display struct {
 	gbmDev  uintptr
 	connID  uint32
 	crtcID  uint32
-	mode    [68]byte
+	mode    drmModeModeInfo
 	width   int
 	height  int
 	refresh int
+}
+
+func crtcForEncoder(enc *drmModeEncoder, crtcs []uint32) uint32 {
+	if enc.crtcID != 0 {
+		return enc.crtcID
+	}
+	for i, crtc := range crtcs {
+		if i >= 32 {
+			break
+		}
+		if enc.possibleCrtcs&(uint32(1)<<i) != 0 {
+			return crtc
+		}
+	}
+	return 0
+}
+
+func findConnectorCRTC(fd int32, conn *drmModeConnector, crtcs []uint32) uint32 {
+	// Prefer the active route, as some drivers expose incomplete masks.
+	if conn.encoderID != 0 {
+		if enc := drml.GetEncoder(fd, conn.encoderID); enc != nil {
+			crtc := crtcForEncoder(enc, crtcs)
+			drml.FreeEncoder(enc)
+			if crtc != 0 {
+				return crtc
+			}
+		}
+	}
+
+	for _, encoderID := range uint32Slice(conn.encoders, conn.countEncoders) {
+		if encoderID == conn.encoderID {
+			continue
+		}
+		enc := drml.GetEncoder(fd, encoderID)
+		if enc == nil {
+			continue
+		}
+		crtc := crtcForEncoder(enc, crtcs)
+		drml.FreeEncoder(enc)
+		if crtc != 0 {
+			return crtc
+		}
+	}
+	return 0
 }
 
 func OpenDisplay() (*Display, error) {
@@ -171,63 +273,58 @@ func OpenDisplay() (*Display, error) {
 	}
 	fd := int32(f.Fd())
 
-	drml.SetMaster(fd)
+	if r := drml.SetMaster(fd); r != 0 {
+		_ = f.Close()
+		return nil, fmt.Errorf("gbm: drmSetMaster failed: %d", r)
+	}
+	closeFile := func() {
+		drml.DropMaster(fd)
+		_ = f.Close()
+	}
 
 	res := drml.GetResources(fd)
 	if res == nil {
-		_ = f.Close()
+		closeFile()
 		return nil, fmt.Errorf("gbm: drmModeGetResources failed (no KMS, or another client holds the device)")
 	}
 	defer drml.FreeResources(res)
 
-	countConns := int(i32At(res, 32))
-	connsPtr := ptrAt(res, 40)
-	countCrtcs := int(i32At(res, 16))
-	crtcsPtr := ptrAt(res, 24)
+	connectors := uint32Slice(res.connectors, res.countConnectors)
+	crtcs := uint32Slice(res.crtcs, res.countCrtcs)
 
 	d := &Display{file: f, fd: fd}
 	found := false
-	for i := 0; i < countConns; i++ {
-		cid := u32Index(connsPtr, i)
+	for _, cid := range connectors {
 		conn := drml.GetConnector(fd, cid)
 		if conn == nil {
 			continue
 		}
-		if i32At(conn, 16) == drmModeConnected && int(i32At(conn, 32)) > 0 {
-			modes := ptrAt(conn, 40)
+		modes := modeSlice(conn.modes, conn.countModes)
+		if conn.connection == drmModeConnected && len(modes) > 0 {
 			// Copy the mode out before the connector is freed.
-			copy(d.mode[:], unsafe.Slice((*byte)(modes), 68))
-			d.width = int(u16At(modes, 4))    // hdisplay
-			d.height = int(u16At(modes, 14))  // vdisplay
-			d.refresh = int(u32At(modes, 48)) // vrefresh
+			d.mode = modes[0]
+			d.width = int(d.mode.hdisplay)
+			d.height = int(d.mode.vdisplay)
+			d.refresh = int(d.mode.vrefresh)
 			d.connID = cid
-			if encID := u32At(conn, 4); encID != 0 {
-				if enc := drml.GetEncoder(fd, encID); enc != nil {
-					d.crtcID = u32At(enc, 8)
-					drml.FreeEncoder(enc)
-				}
-			}
-			found = true
+			d.crtcID = findConnectorCRTC(fd, conn, crtcs)
+			found = d.crtcID != 0
 			drml.FreeConnector(conn)
-			break
+			if found {
+				break
+			}
+			continue
 		}
 		drml.FreeConnector(conn)
 	}
 	if !found {
-		_ = f.Close()
-		return nil, fmt.Errorf("gbm: no connected connector with a mode")
-	}
-	if d.crtcID == 0 && countCrtcs > 0 {
-		d.crtcID = u32Index(crtcsPtr, 0)
-	}
-	if d.crtcID == 0 {
-		_ = f.Close()
-		return nil, fmt.Errorf("gbm: no CRTC available")
+		closeFile()
+		return nil, fmt.Errorf("gbm: no connected connector with a mode and compatible CRTC")
 	}
 
 	d.gbmDev = gbml.CreateDevice(fd)
 	if d.gbmDev == 0 {
-		_ = f.Close()
+		closeFile()
 		return nil, fmt.Errorf("gbm: gbm_create_device failed")
 	}
 	return d, nil
@@ -236,8 +333,6 @@ func OpenDisplay() (*Display, error) {
 func (d *Display) Size() (width, height int) { return d.width, d.height }
 
 func (d *Display) RefreshRate() int { return d.refresh }
-
-func (d *Display) modePointer() unsafe.Pointer { return unsafe.Pointer(&d.mode[0]) }
 
 func (d *Display) Close() error {
 	if d.gbmDev != 0 {

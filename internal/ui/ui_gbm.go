@@ -61,10 +61,15 @@ func maybeNewGBMBackend(u *UserInterface) (*gbmBackend, error) {
 	if err != nil {
 		return nil, err
 	}
+	c, err := gbm.NewContext(display)
+	if err != nil {
+		return nil, errors.Join(err, display.Close())
+	}
 
 	b := &gbmBackend{
 		UserInterface: u,
 		display:       display,
+		eglContext:    c,
 		frameCh:       make(chan struct{}, 1),
 	}
 	b.monitor = &Monitor{virtual: b}
@@ -116,12 +121,17 @@ func (b *gbmBackend) run(game Game, options *RunOptions) error {
 	return wg.Wait()
 }
 
-func (b *gbmBackend) initOnMainThread(options *RunOptions) error {
-	c, err := gbm.NewContext(b.display)
-	if err != nil {
-		return err
+func (b *gbmBackend) initOnMainThread(options *RunOptions) (err error) {
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, b.closeOnMainThread())
+		}
+	}()
+
+	c := b.eglContext
+	if c == nil {
+		return fmt.Errorf("ui: the GBM context is not initialized")
 	}
-	b.eglContext = c
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
@@ -170,14 +180,7 @@ func (b *gbmBackend) loopGame() (err error) {
 		}
 		graphicscommand.Terminate()
 		b.mainThread.Call(func() {
-			if b.eglContext != nil {
-				err = errors.Join(err, b.eglContext.Close())
-				b.eglContext = nil
-			}
-			if b.display != nil {
-				err = errors.Join(err, b.display.Close())
-				b.display = nil
-			}
+			err = errors.Join(err, b.closeOnMainThread())
 			b.setTerminated()
 		})
 	}()
@@ -187,6 +190,19 @@ func (b *gbmBackend) loopGame() (err error) {
 			return err
 		}
 	}
+}
+
+func (b *gbmBackend) closeOnMainThread() error {
+	var err error
+	if b.eglContext != nil {
+		err = errors.Join(err, b.eglContext.Close())
+		b.eglContext = nil
+	}
+	if b.display != nil {
+		err = errors.Join(err, b.display.Close())
+		b.display = nil
+	}
+	return err
 }
 
 func (b *gbmBackend) updateGame() error {

@@ -39,6 +39,7 @@ const (
 	_EGL_SUCCESS                = 0x3000
 
 	_DRM_MODE_PAGE_FLIP_EVENT = 0x01
+	_DRM_MODE_PAGE_FLIP_ASYNC = 0x02
 	_DRM_MODE_FB_MODIFIERS    = 0x02
 	_DRM_FORMAT_MOD_INVALID   = 0x00ffffffffffffff
 )
@@ -74,11 +75,12 @@ type Context struct {
 	width  int
 	height int
 
-	swapInterval int
-	modesetDone  bool
-	prevBo       uintptr
-	prevFB       uint32
-	eventBuf     [64]byte
+	swapInterval             int
+	modesetDone              bool
+	asyncPageFlipUnsupported bool
+	prevBo                   uintptr
+	prevFB                   uint32
+	eventBuf                 [64]byte
 }
 
 func NewContext(d *Display) (*Context, error) {
@@ -200,8 +202,8 @@ func (c *Context) SwapInterval(interval int) error {
 	if c.swapInterval == interval {
 		return nil
 	}
-	if c.egl.SwapInterval != nil {
-		c.egl.SwapInterval(c.display, int32(interval))
+	if !c.egl.SwapInterval(c.display, int32(interval)) {
+		return fmt.Errorf("gbm: eglSwapInterval failed: %w", c.lastError())
 	}
 	c.swapInterval = interval
 	return nil
@@ -217,17 +219,35 @@ func (c *Context) SwapBuffers() error {
 	}
 	fb, err := c.addFB(bo)
 	if err != nil {
+		gbml.ReleaseBuffer(c.gbmSurface, bo)
 		return err
+	}
+	release := func() {
+		drml.RmFB(c.d.fd, fb)
+		gbml.ReleaseBuffer(c.gbmSurface, bo)
 	}
 
 	if !c.modesetDone {
 		// The first frame sets the mode; later frames page-flip and wait.
-		if r := drml.SetCrtc(c.d.fd, c.d.crtcID, fb, 0, 0, &c.d.connID, 1, c.d.modePointer()); r != 0 {
+		if r := drml.SetCrtc(c.d.fd, c.d.crtcID, fb, 0, 0, &c.d.connID, 1, &c.d.mode); r != 0 {
+			release()
 			return fmt.Errorf("gbm: drmModeSetCrtc failed: %d", r)
 		}
 		c.modesetDone = true
 	} else {
-		if r := drml.PageFlip(c.d.fd, c.d.crtcID, fb, _DRM_MODE_PAGE_FLIP_EVENT, 0); r != 0 {
+		flags := uint32(_DRM_MODE_PAGE_FLIP_EVENT)
+		async := c.swapInterval == 0 && !c.asyncPageFlipUnsupported
+		if async {
+			flags |= _DRM_MODE_PAGE_FLIP_ASYNC
+		}
+		r := drml.PageFlip(c.d.fd, c.d.crtcID, fb, flags, 0)
+		if r != 0 && async {
+			// Fall back permanently when the driver rejects asynchronous flips.
+			c.asyncPageFlipUnsupported = true
+			r = drml.PageFlip(c.d.fd, c.d.crtcID, fb, _DRM_MODE_PAGE_FLIP_EVENT, 0)
+		}
+		if r != 0 {
+			release()
 			return fmt.Errorf("gbm: drmModePageFlip failed: %d", r)
 		}
 		if _, err := unix.Read(int(c.d.fd), c.eventBuf[:]); err != nil {
