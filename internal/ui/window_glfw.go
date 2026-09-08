@@ -57,12 +57,12 @@ func (w *glfwWindow) IsVisible() bool {
 		if w.ui.isTerminated() {
 			return
 		}
-		a, err := w.ui.window.GetAttrib(glfw.Visible)
+		visible, err := w.ui.isWindowVisible()
 		if err != nil {
 			w.ui.setError(err)
 			return
 		}
-		v = a == glfw.True
+		v = visible
 	})
 	return v
 }
@@ -124,12 +124,12 @@ func (w *glfwWindow) IsMinimized() bool {
 		if w.ui.isTerminated() {
 			return
 		}
-		a, err := w.ui.window.GetAttrib(glfw.Iconified)
+		iconified, err := w.ui.isWindowIconified()
 		if err != nil {
 			w.ui.setError(err)
 			return
 		}
-		v = a == glfw.True
+		v = iconified
 	})
 	return v
 }
