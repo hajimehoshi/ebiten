@@ -332,6 +332,14 @@ func (u *glfwBackend) KeyName(key Key) string {
 		if u.isTerminated() {
 			return
 		}
+		scancode, err := glfw.GetKeyScancode(gk)
+		if err != nil {
+			u.setError(err)
+			return
+		}
+		if scancode == -1 {
+			return
+		}
 		n, err := glfw.GetKeyName(gk, 0)
 		if err != nil {
 			u.setError(err)
