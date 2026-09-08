@@ -2220,7 +2220,9 @@ func platformRawMouseMotionSupported() bool {
 
 func platformPollEvents() error {
 	if len(_glfw.errors) > 0 {
-		return _glfw.errors[0]
+		err := errors.Join(_glfw.errors...)
+		_glfw.errors = nil
+		return err
 	}
 
 	var msg _MSG
