@@ -17,6 +17,8 @@ package ui
 import (
 	"image"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 func (i *InputState) SetKeyPressed(key Key, t InputTime) {
@@ -71,4 +73,9 @@ func VsyncIgnoredForTest(frameTimes []time.Duration, refreshInterval time.Durati
 		ignored = c.updateVsyncIgnored(frameTime, refreshInterval)
 	}
 	return ignored
+}
+
+func FlushCommandsAndWaitForTesting(driver graphicsdriver.Graphics, present bool) error {
+	var c context
+	return c.flushCommandsAndWait(present, driver, false, 60)
 }

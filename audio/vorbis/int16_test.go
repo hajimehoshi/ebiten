@@ -216,3 +216,18 @@ func TestInt16BytesReaderEOFWithData(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestInt16BytesReaderClipsOutOfRange(t *testing.T) {
+	in := []float32{1.5, -1.5, 2, -2, 0.5, -0.5}
+	r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32reader{data: in}, 1)
+	buf := make([]byte, len(in)*2)
+	if _, err := io.ReadFull(r, buf); err != nil {
+		t.Fatal(err)
+	}
+	want := []int16{32767, -32767, 32767, -32767, 16383, -16383}
+	for i, w := range want {
+		if got := int16(buf[2*i]) | int16(buf[2*i+1])<<8; got != w {
+			t.Errorf("value %d: got: %d, want: %d", i, got, w)
+		}
+	}
+}

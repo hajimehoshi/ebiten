@@ -108,7 +108,7 @@ var theDrawGlyphEntriesPool = sync.Pool{
 // Then old glyphs might be evicted from the cache.
 // As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at Draw are cached.
 //
-// It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+// It is OK to call Draw with the same text and the same face at every frame in terms of performance.
 //
 // Draw is concurrent-safe.
 //

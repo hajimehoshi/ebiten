@@ -513,7 +513,7 @@ func IsRunnableOnUnfocused() bool {
 // [SetWindowVisible], since a hidden window can never be focused and would otherwise never run again.
 //
 // Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
-// This is because browsers throttles background tabs not to often update.
+// This is because browsers throttle background tabs so as not to update too often.
 //
 // SetRunnableOnUnfocused does nothing on mobiles so far.
 //

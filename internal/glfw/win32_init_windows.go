@@ -20,7 +20,7 @@ func createKeyTables() {
 		_glfw.platformWindow.keycodes[i] = -1
 	}
 	for i := range _glfw.platformWindow.scancodes {
-		_glfw.platformWindow.keycodes[i] = -1
+		_glfw.platformWindow.scancodes[i] = -1
 	}
 
 	_glfw.platformWindow.keycodes[0x00B] = Key0

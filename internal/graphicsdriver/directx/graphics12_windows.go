@@ -92,7 +92,7 @@ type graphics12 struct {
 	// the vertex buffers, command allocators, and fences are indexed by it.
 	backBufferIndex int
 
-	// frameStarted is true since Begin until End with present
+	// frameStarted is true from Begin until the frame completes.
 	frameStarted bool
 
 	images         map[graphicsdriver.ImageID]*image12
@@ -803,7 +803,7 @@ func (g *graphics12) IsOccluded() bool {
 	return g.graphicsInfra.occluded.Load()
 }
 
-func (g *graphics12) End(present bool) error {
+func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 	// The swap chain might still be nil when Begin-End is invoked not by a frame (e.g., Image.At).
 
 	// As copyCommandList and drawCommandList are exclusive, the order should not matter here.
@@ -815,7 +815,7 @@ func (g *graphics12) End(present bool) error {
 	}
 
 	// screenImage can be nil in tests.
-	if present && g.screenImage != nil {
+	if mode == graphicsdriver.FlushModePresent && g.screenImage != nil {
 		if rb, ok := g.screenImage.transiteState(_D3D12_RESOURCE_STATE_PRESENT()); ok {
 			g.drawCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
 		}
@@ -828,7 +828,7 @@ func (g *graphics12) End(present bool) error {
 
 	// Release vertices and indices buffers when too many ones were created.
 	// The threshold is an arbitrary number.
-	// This is needed especially for testings, where present is always false.
+	// Tests can submit command batches without completing a frame.
 	if len(g.vertices[g.frameIndex]) >= 16 {
 		if err := g.waitForCommandQueue(); err != nil {
 			return err
@@ -839,7 +839,7 @@ func (g *graphics12) End(present bool) error {
 
 	g.pipelineStates.resetConstantBuffers(g.frameIndex)
 
-	if present {
+	if mode == graphicsdriver.FlushModePresent {
 		if microsoftgdk.IsXbox() {
 			if err := g.presentXbox(); err != nil {
 				return err
@@ -849,10 +849,21 @@ func (g *graphics12) End(present bool) error {
 				return err
 			}
 		}
+	}
 
-		if err := g.moveToNextFrame(); err != nil {
-			return err
+	if mode != graphicsdriver.FlushModeIntermediate {
+		if mode == graphicsdriver.FlushModePresent {
+			if err := g.moveToNextFrame(); err != nil {
+				return err
+			}
+		} else {
+			// The back buffer stays current, so wait before reusing its frame resources.
+			if err := g.waitForCommandQueue(); err != nil {
+				return err
+			}
 		}
+		// Reset the command allocators when the next frame begins, even if the back buffer did not change.
+		g.prevBeginFrameIndex = -1
 
 		g.releaseResources(g.frameIndex)
 		g.resetVerticesAndIndices(g.frameIndex, false)

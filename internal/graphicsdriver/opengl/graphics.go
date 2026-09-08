@@ -89,13 +89,13 @@ func (g *Graphics) Begin() error {
 	return nil
 }
 
-func (g *Graphics) End(present bool) error {
+func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.ctx.Flush()
 
 	// The last uniforms must be reset before swapping the buffer (#2517).
-	if present {
+	if mode == graphicsdriver.FlushModePresent {
 		g.state.resetLastUniforms()
 		if err := g.swapBuffers(); err != nil {
 			return err

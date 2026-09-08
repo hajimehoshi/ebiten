@@ -289,7 +289,7 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 		return
 	}
 
-	if strokeWidth >= r {
+	if strokeWidth >= 2*r {
 		FillCircle(dst, cx, cy, r+strokeWidth/2, clr, false)
 		return
 	}

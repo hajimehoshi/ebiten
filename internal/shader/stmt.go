@@ -448,6 +448,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Return,
 			})
+		} else if len(stmt.Results) == 0 {
+			if returnType.Main != shaderir.None {
+				cs.addError(stmt.Pos(), "cannot use a bare return in a function that returns a value")
+				return nil, false
+			}
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.Return,
+			})
 		}
 
 	case *ast.BranchStmt:

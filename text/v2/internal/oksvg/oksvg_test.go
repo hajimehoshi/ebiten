@@ -182,6 +182,47 @@ func TestParseSVGColor(t *testing.T) {
 	}
 }
 
+func TestParseSVGColorOutOfRange(t *testing.T) {
+	for _, tc := range []struct {
+		colorStr string
+		want     color.NRGBA
+	}{
+		{
+			colorStr: "rgb(-1,0,0)",
+			want:     color.NRGBA{R: 0, G: 0, B: 0, A: 0xff},
+		},
+		{
+			colorStr: "rgb(0,-1,0)",
+			want:     color.NRGBA{R: 0, G: 0, B: 0, A: 0xff},
+		},
+		{
+			colorStr: "rgb(256,0,0)",
+			want:     color.NRGBA{R: 0xff, G: 0, B: 0, A: 0xff},
+		},
+		{
+			colorStr: "rgb(-1%,0%,0%)",
+			want:     color.NRGBA{R: 0, G: 0, B: 0, A: 0xff},
+		},
+		{
+			colorStr: "rgb(1000%,0%,0%)",
+			want:     color.NRGBA{R: 0xff, G: 0, B: 0, A: 0xff},
+		},
+		{
+			colorStr: "rgb(100%,0%,0%)",
+			want:     color.NRGBA{R: 0xff, G: 0, B: 0, A: 0xff},
+		},
+	} {
+		got, err := oksvg.ParseSVGColor(tc.colorStr)
+		if err != nil {
+			t.Errorf("ParseSVGColor(%q): %v", tc.colorStr, err)
+			continue
+		}
+		if got != tc.want {
+			t.Errorf("ParseSVGColor(%q): got: %v, want: %v", tc.colorStr, got, tc.want)
+		}
+	}
+}
+
 // Issue #3665
 func TestParseSVGColorEmptyComponent(t *testing.T) {
 	// A color with an empty component must be rejected instead of crashing.

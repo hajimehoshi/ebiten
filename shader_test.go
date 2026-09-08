@@ -2490,6 +2490,8 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 
 	s.Dispose()
+	s.Dispose()
+	s.Deallocate()
 
 	dst.Clear()
 
@@ -2534,6 +2536,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 
 	// Even after Deallocate is called, the shader is still available.
+	s.Deallocate()
 	s.Deallocate()
 
 	dst.Clear()
