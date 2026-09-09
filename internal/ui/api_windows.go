@@ -187,6 +187,14 @@ type _ITaskbarList_Vtbl struct {
 	SetActiveAlt uintptr
 }
 
+func (i *_ITaskbarList) HrInit() error {
+	r, _, _ := syscall.Syscall(i.vtbl.HrInit, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("ui: ITaskbarList::HrInit failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
+}
+
 func (i *_ITaskbarList) DeleteTab(hwnd windows.HWND) error {
 	r, _, _ := syscall.Syscall(i.vtbl.DeleteTab, 2, uintptr(unsafe.Pointer(i)), uintptr(hwnd), 0)
 	if uint32(r) != uint32(windows.S_OK) {

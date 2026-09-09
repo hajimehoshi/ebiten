@@ -264,6 +264,9 @@ func (u *glfwBackend) skipTaskbar() error {
 
 	t := (*_ITaskbarList)(ptr)
 	defer t.Release()
+	if err := t.HrInit(); err != nil {
+		return err
+	}
 
 	w, err := u.window.GetWin32Window()
 	if err != nil {
