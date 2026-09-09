@@ -89,7 +89,7 @@ type controllerProperty struct {
 	buttonMask           uint32
 	guid                 [16]byte
 	name                 string
-	hasDualshockTouchpad bool
+	hasDualShockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
 }
@@ -340,7 +340,7 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 				profileButtons := profile.Send(sel_buttons)
 				if profileButtons != 0 {
 					if gcInputDualShockTouchpadButton != 0 && profileButtons.Send(sel_objectForKeyedSubscript, gcInputDualShockTouchpadButton) != 0 {
-						prop.hasDualshockTouchpad = true
+						prop.hasDualShockTouchpad = true
 						prop.buttonMask |= (1 << kControllerButtonMisc1)
 						prop.nButtons++
 					}
@@ -389,7 +389,7 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 		} else if isPS4 {
 			vendor = kUSBVendorSony
 			product = kUSBProductSonyDS4Slim
-			if prop.hasDualshockTouchpad {
+			if prop.hasDualShockTouchpad {
 				subtype = 1
 			}
 		} else if isPS5 {
@@ -451,7 +451,7 @@ func getHatState(dpad objc.ID) uint8 {
 
 // getControllerStateGC reads the current input state from a GCController.
 func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
-	hasDualshockTouchpad, hasXboxPaddles, hasXboxShareButton bool) controllerState {
+	hasDualShockTouchpad, hasXboxPaddles, hasXboxShareButton bool) controllerState {
 
 	controller := objc.ID(controllerPtr)
 	var state controllerState
@@ -502,7 +502,7 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 		setButton(getIsPressed(extGamepad.Send(sel_buttonMenu)))
 	}
 
-	if hasDualshockTouchpad {
+	if hasDualShockTouchpad {
 		profile := controller.Send(sel_physicalInputProfile)
 		profileButtons := profile.Send(sel_buttons)
 		btn := profileButtons.Send(sel_objectForKeyedSubscript, gcInputDualShockTouchpadButton)
@@ -575,7 +575,7 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 		buttons:              make([]bool, prop.nButtons+prop.nHats*4),
 		hats:                 make([]int, prop.nHats),
 		buttonMask:           prop.buttonMask,
-		hasDualshockTouchpad: prop.hasDualshockTouchpad,
+		hasDualShockTouchpad: prop.hasDualShockTouchpad,
 		hasXboxPaddles:       prop.hasXboxPaddles,
 		hasXboxShareButton:   prop.hasXboxShareButton,
 		leftMotor:            createGCRumbleMotor(controller, 0),
@@ -656,7 +656,7 @@ func initializeGCGamepads() {
 
 func (g *nativeGamepadGC) updateGCGamepad() {
 	state := getControllerStateGC(g.controller, g.buttonMask, len(g.hats),
-		g.hasDualshockTouchpad, g.hasXboxPaddles, g.hasXboxShareButton)
+		g.hasDualShockTouchpad, g.hasXboxPaddles, g.hasXboxShareButton)
 
 	nButtons := len(g.buttons) - len(g.hats)*4
 	for i := range nButtons {
