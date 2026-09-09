@@ -430,7 +430,9 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		}
 
 		var name [256]uint16
-		size = uint32(unsafe.Sizeof(name))
+		// RIDI_DEVICENAME requires the buffer size in characters.
+		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdeviceinfow
+		size = uint32(len(name))
 		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICENAME, unsafe.Pointer(&name[0]), &size); err != nil {
 			return false, err
 		}
