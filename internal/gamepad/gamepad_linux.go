@@ -39,15 +39,15 @@ func isBitSet(s []byte, bit int) bool {
 }
 
 type nativeGamepadsImpl struct {
-	inotify int
-	watch   int
+	inotifyPlus1 int
+	watch        int
 }
 
 func newNativeGamepadsImpl() nativeGamepads {
 	return &nativeGamepadsImpl{}
 }
 
-func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
+func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 	// Check the existence of the directory `dirName`.
 	var stat unix.Stat_t
 	if err := unix.Stat(dirName, &stat); err != nil {
@@ -68,17 +68,21 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	if err != nil {
 		return fmt.Errorf("gamepad: InotifyInit1 failed: %w", err)
 	}
-	g.inotify = inotify
-
-	if g.inotify > 0 {
-		// Register for IN_ATTRIB to get notified when udev is done.
-		// This works well in practice but the true way is libudev.
-		watch, err := unix.InotifyAddWatch(g.inotify, dirName, unix.IN_CREATE|unix.IN_ATTRIB|unix.IN_DELETE)
+	g.inotifyPlus1 = inotify + 1
+	defer func() {
 		if err != nil {
-			return fmt.Errorf("gamepad: InotifyAddWatch failed: %w", err)
+			_ = unix.Close(g.inotifyPlus1 - 1)
+			g.inotifyPlus1 = 0
 		}
-		g.watch = watch
+	}()
+
+	// Register for IN_ATTRIB to get notified when udev is done.
+	// This works well in practice but the true way is libudev.
+	watch, err := unix.InotifyAddWatch(g.inotifyPlus1-1, dirName, unix.IN_CREATE|unix.IN_ATTRIB|unix.IN_DELETE)
+	if err != nil {
+		return fmt.Errorf("gamepad: InotifyAddWatch failed: %w", err)
 	}
+	g.watch = watch
 
 	ents, err := os.ReadDir(dirName)
 	if err != nil {
@@ -99,7 +103,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	return nil
 }
 
-func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err error) {
+func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	if gamepads.find(func(gamepad *Gamepad) bool {
 		return gamepad.native.(*nativeGamepadImpl).path == path
 	}) != nil {
@@ -129,8 +133,9 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		}
 		return fmt.Errorf("gamepad: Open failed: %w", err)
 	}
+	owned := true
 	defer func() {
-		if err != nil {
+		if owned {
 			_ = unix.Close(fd)
 		}
 	}()
@@ -153,11 +158,8 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 	}
 
 	if !isBitSet(evBits, unix.EV_ABS) {
-		if err := unix.Close(fd); err != nil {
-			return err
-		}
-
-		return nil
+		owned = false
+		return unix.Close(fd)
 	}
 
 	cname := make([]byte, 256)
@@ -194,15 +196,10 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 
 	n := &nativeGamepadImpl{
 		path:           path,
-		fd:             fd,
+		fdPlus1:        fd + 1,
 		supportsRumble: supportsRumble,
 		effectID:       -1,
 	}
-	gp := gamepads.add(name, sdlID)
-	gp.native = n
-	runtime.AddCleanup(gp, func(n *nativeGamepadImpl) {
-		n.close()
-	}, n)
 
 	var axisCount int
 	var buttonCount int
@@ -233,7 +230,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 			hatCount++
 			continue
 		}
-		if err := ioctl(n.fd, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&n.absInfo[code])); err != nil {
+		if err := ioctl(n.fdPlus1-1, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&n.absInfo[code])); err != nil {
 			return fmt.Errorf("gamepad: ioctl for an abs at openGamepad failed: %w", err)
 		}
 		n.absMap[code] = axisCount
@@ -250,16 +247,23 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) (err err
 		return err
 	}
 
+	owned = false
+	gp := gamepads.add(name, sdlID)
+	gp.native = n
+	runtime.AddCleanup(gp, func(n *nativeGamepadImpl) {
+		n.close()
+	}, n)
+
 	return nil
 }
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
-	if g.inotify <= 0 {
+	if g.inotifyPlus1 == 0 {
 		return nil
 	}
 
 	buf := make([]byte, 16384)
-	n, err := unix.Read(g.inotify, buf[:])
+	n, err := unix.Read(g.inotifyPlus1-1, buf[:])
 	if err != nil {
 		if err == unix.EAGAIN {
 			return nil
@@ -313,7 +317,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 }
 
 type nativeGamepadImpl struct {
-	fd      int
+	fdPlus1 int
 	path    string
 	keyMap  [_KEY_CNT - _BTN_MISC]int
 	absMap  [_ABS_CNT]int
@@ -336,21 +340,22 @@ type nativeGamepadImpl struct {
 }
 
 func (g *nativeGamepadImpl) close() {
-	if g.fd != 0 {
-		_ = unix.Close(g.fd)
+	if g.fdPlus1 == 0 {
+		return
 	}
-	g.fd = 0
+	_ = unix.Close(g.fdPlus1 - 1)
+	g.fdPlus1 = 0
 }
 
 func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
-	if g.fd == 0 {
+	if g.fdPlus1 == 0 {
 		return nil
 	}
 
 	for {
 		buf := make([]byte, unsafe.Sizeof(input_event{}))
 		// TODO: Should the returned byte count be cared?
-		if _, err := unix.Read(g.fd, buf); err != nil {
+		if _, err := unix.Read(g.fdPlus1-1, buf); err != nil {
 			if err == unix.EAGAIN {
 				break
 			}
@@ -409,7 +414,7 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 
 func (g *nativeGamepadImpl) pollKeyState() error {
 	var keyBits [(_KEY_CNT + 7) / 8]byte
-	if err := ioctl(g.fd, _EVIOCGKEY(uint(len(keyBits))), unsafe.Pointer(&keyBits[0])); err != nil {
+	if err := ioctl(g.fdPlus1-1, _EVIOCGKEY(uint(len(keyBits))), unsafe.Pointer(&keyBits[0])); err != nil {
 		return fmt.Errorf("gamepad: ioctl for keys at pollKeyState failed: %w", err)
 	}
 	for code, index := range g.keyMap {
@@ -425,7 +430,7 @@ func (g *nativeGamepadImpl) pollAbsState() error {
 		if g.absMap[code] < 0 {
 			continue
 		}
-		if err := ioctl(g.fd, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&g.absInfo[code])); err != nil {
+		if err := ioctl(g.fdPlus1-1, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&g.absInfo[code])); err != nil {
 			return fmt.Errorf("gamepad: ioctl for an abs at pollAbsState failed: %w", err)
 		}
 		g.handleAbsEvent(code, g.absInfo[code].value)
@@ -666,7 +671,7 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	if !g.supportsRumble || g.fd == 0 {
+	if !g.supportsRumble || g.fdPlus1 == 0 {
 		return
 	}
 
@@ -700,7 +705,7 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 	effect.u.rumble.strong_magnitude = motorMagnitude(strongMagnitude)
 	effect.u.rumble.weak_magnitude = motorMagnitude(weakMagnitude)
 
-	if err := ioctl(g.fd, _EVIOCSFF(), unsafe.Pointer(&effect)); err != nil {
+	if err := ioctl(g.fdPlus1-1, _EVIOCSFF(), unsafe.Pointer(&effect)); err != nil {
 		return
 	}
 	g.effectID = effect.id
@@ -719,5 +724,5 @@ func (g *nativeGamepadImpl) writeFFEvent(value int32) {
 		code:  uint16(g.effectID),
 		value: value,
 	}
-	_, _ = unix.Write(g.fd, unsafe.Slice((*byte)(unsafe.Pointer(&e)), int(unsafe.Sizeof(e))))
+	_, _ = unix.Write(g.fdPlus1-1, unsafe.Slice((*byte)(unsafe.Pointer(&e)), int(unsafe.Sizeof(e))))
 }
