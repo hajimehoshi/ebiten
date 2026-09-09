@@ -106,6 +106,10 @@ func _EVIOCGBIT(ev, len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x20+ev, len)
 }
 
+func _EVIOCGKEY(len uint) uint {
+	return _IOC(_IOC_READ, 'E', 0x18, len)
+}
+
 func _EVIOCGID() uint {
 	return _IOR('E', 0x02, uint(unsafe.Sizeof(input_id{})))
 }
