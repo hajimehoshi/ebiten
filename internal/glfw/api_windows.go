@@ -639,6 +639,10 @@ type _POINT struct {
 	y int32
 }
 
+func (p _POINT) pack64() uint64 {
+	return uint64(uint32(p.x)) | uint64(uint32(p.y))<<32
+}
+
 type _POINTL struct {
 	_ structs.HostLayout
 	x int32
@@ -1499,7 +1503,7 @@ func _PostMessageW(hWnd windows.HWND, msg uint32, wParam _WPARAM, lParam _LPARAM
 func _PtInRect(lprc *_RECT, pt _POINT) bool {
 	var r uintptr
 	if unsafe.Sizeof(uintptr(0)) == unsafe.Sizeof(uint64(0)) {
-		r, _, _ = procPtInRect.Call(uintptr(unsafe.Pointer(lprc)), uintptr(pt.x)|uintptr(pt.y)<<32)
+		r, _, _ = procPtInRect.Call(uintptr(unsafe.Pointer(lprc)), uintptr(pt.pack64()))
 	} else {
 		switch runtime.GOARCH {
 		case "386":
@@ -1865,7 +1869,7 @@ func wglSwapIntervalEXT(interval int32) error {
 func _WindowFromPoint(point _POINT) windows.HWND {
 	var r uintptr
 	if unsafe.Sizeof(uintptr(0)) == unsafe.Sizeof(uint64(0)) {
-		r, _, _ = procWindowFromPoint.Call(uintptr(point.x) | uintptr(point.y)<<32)
+		r, _, _ = procWindowFromPoint.Call(uintptr(point.pack64()))
 	} else {
 		r, _, _ = procWindowFromPoint.Call(uintptr(point.x), uintptr(point.y))
 	}
