@@ -194,8 +194,9 @@ func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepa
 	name := "Unknown"
 	if prop := hidDeviceProperty(device, kIOHIDProductKey); prop != 0 {
 		var cstr [256]byte
-		_CFStringGetCString(_CFStringRef(prop), cstr[:], kCFStringEncodingUTF8)
-		name = strings.TrimRight(string(cstr[:]), "\x00")
+		if _CFStringGetCString(_CFStringRef(prop), cstr[:], _CFIndex(len(cstr)), kCFStringEncodingUTF8) {
+			name = strings.TrimRight(string(cstr[:]), "\x00")
+		}
 	}
 
 	var vendor uint32
