@@ -246,9 +246,17 @@ func getMonitorNameNS(displayID uint32) string {
 	}
 
 	size := cfStringGetMaximumSizeForEncoding(cfStringGetLength(nameRef), kCFStringEncodingUTF8)
+	if size < 0 {
+		return "Display"
+	}
 	buf := make([]byte, size+1)
-	cfStringGetCString(nameRef, &buf[0], size, kCFStringEncodingUTF8)
-	return cStringToGoString(buf)
+	if !cfStringGetCString(nameRef, &buf[0], len(buf), kCFStringEncodingUTF8) {
+		return "Display"
+	}
+	if name := cStringToGoString(buf); name != "" {
+		return name
+	}
+	return "Display"
 }
 
 // cStringToGoString converts a null-terminated C string in a byte slice to a Go string.
