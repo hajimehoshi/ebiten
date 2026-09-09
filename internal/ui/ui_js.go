@@ -702,6 +702,15 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
+	v.Call("addEventListener", "touchcancel", js.FuncOf(func(this js.Value, args []js.Value) any {
+		e := args[0]
+		e.Call("preventDefault")
+		if err := u.updateInputFromEvent(e); err != nil {
+			u.setError(err)
+			return nil
+		}
+		return nil
+	}))
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")

@@ -26,15 +26,16 @@ var (
 	stringMeta    = js.ValueOf("Meta")
 	stringShift   = js.ValueOf("Shift")
 
-	stringKeydown    = js.ValueOf("keydown")
-	stringKeyup      = js.ValueOf("keyup")
-	stringMousedown  = js.ValueOf("mousedown")
-	stringMouseup    = js.ValueOf("mouseup")
-	stringMousemove  = js.ValueOf("mousemove")
-	stringWheel      = js.ValueOf("wheel")
-	stringTouchstart = js.ValueOf("touchstart")
-	stringTouchend   = js.ValueOf("touchend")
-	stringTouchmove  = js.ValueOf("touchmove")
+	stringKeydown     = js.ValueOf("keydown")
+	stringKeyup       = js.ValueOf("keyup")
+	stringMousedown   = js.ValueOf("mousedown")
+	stringMouseup     = js.ValueOf("mouseup")
+	stringMousemove   = js.ValueOf("mousemove")
+	stringWheel       = js.ValueOf("wheel")
+	stringTouchstart  = js.ValueOf("touchstart")
+	stringTouchend    = js.ValueOf("touchend")
+	stringTouchmove   = js.ValueOf("touchmove")
+	stringTouchcancel = js.ValueOf("touchcancel")
 
 	stringCapsLock = js.ValueOf("CapsLock")
 	stringNumLock  = js.ValueOf("NumLock")
@@ -164,7 +165,7 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
 		u.inputState.WheelX += -e.Get("deltaX").Float()
 		u.inputState.WheelY += -e.Get("deltaY").Float()
-	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
+	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove) || t.Equal(stringTouchcancel):
 		u.updateTouchesFromEvent(e)
 	}
 
