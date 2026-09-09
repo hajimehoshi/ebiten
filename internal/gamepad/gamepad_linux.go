@@ -275,6 +275,10 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 			Cookie: uint32(buf[8]) | uint32(buf[9])<<8 | uint32(buf[10])<<16 | uint32(buf[11])<<24,
 			Len:    uint32(buf[12]) | uint32(buf[13])<<8 | uint32(buf[14])<<16 | uint32(buf[15])<<24,
 		}
+		if e.Len == 0 {
+			buf = buf[16:]
+			continue
+		}
 		name := unix.ByteSliceToString(buf[16 : 16+e.Len-1]) // len includes the null terminate.
 		buf = buf[16+e.Len:]
 		if !reEvent.MatchString(name) {
