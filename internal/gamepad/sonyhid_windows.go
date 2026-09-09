@@ -288,16 +288,16 @@ func (s *sonyDevice) issueWrite(strong, weak byte) {
 	switch s.model {
 	case sonyModelDualShock4:
 		if s.bt {
-			report = dualshock4RumbleReportBT(strong, weak)
+			report = dualShock4RumbleReportBT(strong, weak)
 		} else {
-			report = dualshock4RumbleReportUSB(strong, weak)
+			report = dualShock4RumbleReportUSB(strong, weak)
 		}
 	case sonyModelDualSense:
 		if s.bt {
-			report = dualsenseRumbleReportBT(s.seq, strong, weak)
+			report = dualSenseRumbleReportBT(s.seq, strong, weak)
 			s.seq++
 		} else {
-			report = dualsenseRumbleReportUSB(strong, weak)
+			report = dualSenseRumbleReportUSB(strong, weak)
 		}
 	default:
 		return

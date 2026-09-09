@@ -78,21 +78,21 @@ func bluetoothFromDeviceInstanceID(id string) (bt, ok bool) {
 // Report sizes include the leading report ID byte. That the Bluetooth sizes
 // match across models and directions is a coincidence.
 const (
-	dualshock4OutputReportSizeUSB = 32
-	dualshock4OutputReportSizeBT  = 78
-	dualsenseOutputReportSizeUSB  = 48
-	dualsenseOutputReportSizeBT   = 78
+	dualShock4OutputReportSizeUSB = 32
+	dualShock4OutputReportSizeBT  = 78
+	dualSenseOutputReportSizeUSB  = 48
+	dualSenseOutputReportSizeBT   = 78
 
-	dualshock4InputReportSizeUSB = 64 // Report 0x01.
-	dualsenseInputReportSizeUSB  = 64 // Report 0x01.
+	dualShock4InputReportSizeUSB = 64 // Report 0x01.
+	dualSenseInputReportSizeUSB  = 64 // Report 0x01.
 
 	// sonySimpleInputReportSizeBT is the size of input report 0x01, which
 	// both models send over Bluetooth until they receive an output report.
 	// Receiving one switches a controller to its full input report for the
 	// rest of the session.
 	sonySimpleInputReportSizeBT = 10
-	dualshock4InputReportSizeBT = 78 // Report 0x11.
-	dualsenseInputReportSizeBT  = 78 // Report 0x31.
+	dualShock4InputReportSizeBT = 78 // Report 0x11.
+	dualSenseInputReportSizeBT  = 78 // Report 0x31.
 )
 
 // sonyInputReportSize returns the size of the full input report a model sends
@@ -101,14 +101,14 @@ func sonyInputReportSize(model sonyModel, bt bool) int {
 	switch model {
 	case sonyModelDualShock4:
 		if bt {
-			return dualshock4InputReportSizeBT
+			return dualShock4InputReportSizeBT
 		}
-		return dualshock4InputReportSizeUSB
+		return dualShock4InputReportSizeUSB
 	case sonyModelDualSense:
 		if bt {
-			return dualsenseInputReportSizeBT
+			return dualSenseInputReportSizeBT
 		}
-		return dualsenseInputReportSizeUSB
+		return dualSenseInputReportSizeUSB
 	}
 	return 0
 }
@@ -119,14 +119,14 @@ func sonyOutputReportSize(model sonyModel, bt bool) int {
 	switch model {
 	case sonyModelDualShock4:
 		if bt {
-			return dualshock4OutputReportSizeBT
+			return dualShock4OutputReportSizeBT
 		}
-		return dualshock4OutputReportSizeUSB
+		return dualShock4OutputReportSizeUSB
 	case sonyModelDualSense:
 		if bt {
-			return dualsenseOutputReportSizeBT
+			return dualSenseOutputReportSizeBT
 		}
-		return dualsenseOutputReportSizeUSB
+		return dualSenseOutputReportSizeUSB
 	}
 	return 0
 }
@@ -175,12 +175,12 @@ func sonyBTInputCRCValid(report []byte) bool {
 	return binary.LittleEndian.Uint32(report[n:]) == sonyBTCRC(sonyBTInputHeader, report[:n])
 }
 
-// dualshock4RumbleReportUSB builds output report 0x05.
+// dualShock4RumbleReportUSB builds output report 0x05.
 //
 // Only the rumble-valid flag is set so the light bar and flash state are left
 // as they are.
-func dualshock4RumbleReportUSB(strong, weak byte) []byte {
-	r := make([]byte, dualshock4OutputReportSizeUSB)
+func dualShock4RumbleReportUSB(strong, weak byte) []byte {
+	r := make([]byte, dualShock4OutputReportSizeUSB)
 	r[0] = 0x05
 	r[1] = 0x01 // Rumble fields are valid.
 	r[4] = weak
@@ -188,9 +188,9 @@ func dualshock4RumbleReportUSB(strong, weak byte) []byte {
 	return r
 }
 
-// dualshock4RumbleReportBT builds output report 0x11 with its CRC trailer.
-func dualshock4RumbleReportBT(strong, weak byte) []byte {
-	r := make([]byte, dualshock4OutputReportSizeBT)
+// dualShock4RumbleReportBT builds output report 0x11 with its CRC trailer.
+func dualShock4RumbleReportBT(strong, weak byte) []byte {
+	r := make([]byte, dualShock4OutputReportSizeBT)
 	r[0] = 0x11
 	r[1] = 0xc0 // HID output with a CRC32 trailer.
 	r[3] = 0x01 // Rumble fields are valid.
@@ -200,34 +200,34 @@ func dualshock4RumbleReportBT(strong, weak byte) []byte {
 	return r
 }
 
-// dualsenseSetCommon fills the common output payload shared by the USB and
+// setDualSenseCommonOutput fills the common output payload shared by the USB and
 // Bluetooth report framings.
 //
 // The compatible-vibration and haptics-select flags route the motor values to
 // the rumble emulation; no other state (LEDs, triggers, audio) is marked
 // valid.
-func dualsenseSetCommon(p []byte, strong, weak byte) {
+func setDualSenseCommonOutput(p []byte, strong, weak byte) {
 	p[0] = 0x03 // Compatible vibration + haptics select.
 	p[2] = weak
 	p[3] = strong
 }
 
-// dualsenseRumbleReportUSB builds output report 0x02.
-func dualsenseRumbleReportUSB(strong, weak byte) []byte {
-	r := make([]byte, dualsenseOutputReportSizeUSB)
+// dualSenseRumbleReportUSB builds output report 0x02.
+func dualSenseRumbleReportUSB(strong, weak byte) []byte {
+	r := make([]byte, dualSenseOutputReportSizeUSB)
 	r[0] = 0x02
-	dualsenseSetCommon(r[1:], strong, weak)
+	setDualSenseCommonOutput(r[1:], strong, weak)
 	return r
 }
 
-// dualsenseRumbleReportBT builds output report 0x31 with its CRC trailer.
+// dualSenseRumbleReportBT builds output report 0x31 with its CRC trailer.
 // seq is a per-device counter; only its low 4 bits are used.
-func dualsenseRumbleReportBT(seq, strong, weak byte) []byte {
-	r := make([]byte, dualsenseOutputReportSizeBT)
+func dualSenseRumbleReportBT(seq, strong, weak byte) []byte {
+	r := make([]byte, dualSenseOutputReportSizeBT)
 	r[0] = 0x31
 	r[1] = (seq & 0x0f) << 4
 	r[2] = 0x10 // Output report tag.
-	dualsenseSetCommon(r[3:], strong, weak)
+	setDualSenseCommonOutput(r[3:], strong, weak)
 	putSonyBTCRC(r)
 	return r
 }
@@ -330,15 +330,15 @@ func sonyInputStateFromReport(model sonyModel, bt bool, report []byte) (state so
 	var crc bool
 	switch {
 	case report[0] == 0x01 && !bt && model == sonyModelDualShock4:
-		offset, size, decode = 1, dualshock4InputReportSizeUSB, sonyInputStateDS4Layout
+		offset, size, decode = 1, dualShock4InputReportSizeUSB, sonyInputStateDS4Layout
 	case report[0] == 0x01 && !bt && model == sonyModelDualSense:
-		offset, size, decode = 1, dualsenseInputReportSizeUSB, sonyInputStateDualSenseLayout
+		offset, size, decode = 1, dualSenseInputReportSizeUSB, sonyInputStateDualSenseLayout
 	case report[0] == 0x01 && bt && (model == sonyModelDualShock4 || model == sonyModelDualSense):
 		offset, size, decode = 1, sonySimpleInputReportSizeBT, sonyInputStateDS4Layout
 	case report[0] == 0x11 && bt && model == sonyModelDualShock4:
-		offset, size, decode, crc = 3, dualshock4InputReportSizeBT, sonyInputStateDS4Layout, true
+		offset, size, decode, crc = 3, dualShock4InputReportSizeBT, sonyInputStateDS4Layout, true
 	case report[0] == 0x31 && bt && model == sonyModelDualSense:
-		offset, size, decode, crc = 2, dualsenseInputReportSizeBT, sonyInputStateDualSenseLayout, true
+		offset, size, decode, crc = 2, dualSenseInputReportSizeBT, sonyInputStateDualSenseLayout, true
 	default:
 		return sonyInputState{}, false
 	}

@@ -272,21 +272,21 @@ func checkReport(t *testing.T, name string, report []byte, size int, want map[in
 	}
 }
 
-func TestDualshock4RumbleReportUSB(t *testing.T) {
-	checkReport(t, "usb", gamepad.Dualshock4RumbleReportUSB(0xab, 0xcd), gamepad.Dualshock4OutputReportSizeUSB, map[int]byte{
+func TestDualShock4RumbleReportUSB(t *testing.T) {
+	checkReport(t, "usb", gamepad.DualShock4RumbleReportUSB(0xab, 0xcd), gamepad.DualShock4OutputReportSizeUSB, map[int]byte{
 		0: 0x05,
 		1: 0x01,
 		4: 0xcd, // weak
 		5: 0xab, // strong
 	}, false)
-	checkReport(t, "usb stop", gamepad.Dualshock4RumbleReportUSB(0, 0), gamepad.Dualshock4OutputReportSizeUSB, map[int]byte{
+	checkReport(t, "usb stop", gamepad.DualShock4RumbleReportUSB(0, 0), gamepad.DualShock4OutputReportSizeUSB, map[int]byte{
 		0: 0x05,
 		1: 0x01,
 	}, false)
 }
 
-func TestDualshock4RumbleReportBT(t *testing.T) {
-	checkReport(t, "bt", gamepad.Dualshock4RumbleReportBT(0xab, 0xcd), gamepad.Dualshock4OutputReportSizeBT, map[int]byte{
+func TestDualShock4RumbleReportBT(t *testing.T) {
+	checkReport(t, "bt", gamepad.DualShock4RumbleReportBT(0xab, 0xcd), gamepad.DualShock4OutputReportSizeBT, map[int]byte{
 		0: 0x11,
 		1: 0xc0,
 		3: 0x01,
@@ -295,8 +295,8 @@ func TestDualshock4RumbleReportBT(t *testing.T) {
 	}, true)
 }
 
-func TestDualsenseRumbleReportUSB(t *testing.T) {
-	checkReport(t, "usb", gamepad.DualsenseRumbleReportUSB(0xab, 0xcd), gamepad.DualsenseOutputReportSizeUSB, map[int]byte{
+func TestDualSenseRumbleReportUSB(t *testing.T) {
+	checkReport(t, "usb", gamepad.DualSenseRumbleReportUSB(0xab, 0xcd), gamepad.DualSenseOutputReportSizeUSB, map[int]byte{
 		0: 0x02,
 		1: 0x03,
 		3: 0xcd, // weak
@@ -304,8 +304,8 @@ func TestDualsenseRumbleReportUSB(t *testing.T) {
 	}, false)
 }
 
-func TestDualsenseRumbleReportBT(t *testing.T) {
-	checkReport(t, "bt", gamepad.DualsenseRumbleReportBT(2, 0xab, 0xcd), gamepad.DualsenseOutputReportSizeBT, map[int]byte{
+func TestDualSenseRumbleReportBT(t *testing.T) {
+	checkReport(t, "bt", gamepad.DualSenseRumbleReportBT(2, 0xab, 0xcd), gamepad.DualSenseOutputReportSizeBT, map[int]byte{
 		0: 0x31,
 		1: 0x20, // Sequence 2 in the high nibble.
 		2: 0x10,
@@ -315,7 +315,7 @@ func TestDualsenseRumbleReportBT(t *testing.T) {
 	}, true)
 
 	// Only the low 4 bits of the sequence counter are used.
-	r := gamepad.DualsenseRumbleReportBT(0x1f, 0, 0)
+	r := gamepad.DualSenseRumbleReportBT(0x1f, 0, 0)
 	if got, want := r[1], byte(0xf0); got != want {
 		t.Errorf("bt seq: byte 1 = %#02x, want %#02x", got, want)
 	}
@@ -360,9 +360,9 @@ var ds4LayoutState = gamepad.SonyInputState{
 	Buttons: 1<<0 | 1<<4 | 1<<9 | 1<<13,
 }
 
-// dualsenseLayoutPayload is a state payload in the DualSense full layout with
+// dualSenseLayoutPayload is a state payload in the DualSense full layout with
 // every field set to a distinct value.
-var dualsenseLayoutPayload = []byte{
+var dualSenseLayoutPayload = []byte{
 	0x10, 0x20, 0x30, 0x40, // lx, ly, rx, ry
 	0x50, 0x60, // l2, r2
 	0x99, // counter
@@ -371,7 +371,7 @@ var dualsenseLayoutPayload = []byte{
 	0xfd, // PS, Mute, reserved
 }
 
-var dualsenseLayoutState = gamepad.SonyInputState{
+var dualSenseLayoutState = gamepad.SonyInputState{
 	LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
 	L2: 0x50, R2: 0x60,
 	Hat:     3,
@@ -416,11 +416,11 @@ func corruptByte(r []byte, i int) []byte {
 }
 
 func TestSonyInputStateFromReport(t *testing.T) {
-	ds4USB := inputReport(0x01, gamepad.Dualshock4InputReportSizeUSB, 1, ds4LayoutPayload)
-	dualsenseUSB := inputReport(0x01, gamepad.DualsenseInputReportSizeUSB, 1, dualsenseLayoutPayload)
+	ds4USB := inputReport(0x01, gamepad.DualShock4InputReportSizeUSB, 1, ds4LayoutPayload)
+	dualSenseUSB := inputReport(0x01, gamepad.DualSenseInputReportSizeUSB, 1, dualSenseLayoutPayload)
 	simple := inputReport(0x01, gamepad.SonySimpleInputReportSizeBT, 1, ds4LayoutPayload)
-	ds4Full := fullBTInputReport(0x11, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload)
-	dualsenseFull := fullBTInputReport(0x31, gamepad.DualsenseInputReportSizeBT, 2, dualsenseLayoutPayload)
+	ds4Full := fullBTInputReport(0x11, gamepad.DualShock4InputReportSizeBT, 3, ds4LayoutPayload)
+	dualSenseFull := fullBTInputReport(0x31, gamepad.DualSenseInputReportSizeBT, 2, dualSenseLayoutPayload)
 
 	// ds4FullNoData has a valid CRC but its HID-data-present flag clear, so
 	// it carries no controller state.
@@ -444,10 +444,10 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			wantOK: true,
 		},
 		{
-			name:   "dualsense usb",
+			name:   "DualSense usb",
 			model:  gamepad.SonyModelDualSense,
-			report: dualsenseUSB,
-			want:   dualsenseLayoutState,
+			report: dualSenseUSB,
+			want:   dualSenseLayoutState,
 			wantOK: true,
 		},
 		{
@@ -467,7 +467,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			wantOK: true,
 		},
 		{
-			name:   "dualsense simple",
+			name:   "DualSense simple",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
 			report: simple,
@@ -475,11 +475,11 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			wantOK: true,
 		},
 		{
-			name:   "dualsense full",
+			name:   "DualSense full",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
-			report: dualsenseFull,
-			want:   dualsenseLayoutState,
+			report: dualSenseFull,
+			want:   dualSenseLayoutState,
 			wantOK: true,
 		},
 		// The host may pad reports to the device's maximum report length.
@@ -492,11 +492,11 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			wantOK: true,
 		},
 		{
-			name:   "dualsense full padded",
+			name:   "DualSense full padded",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
-			report: append(dualsenseFull, make([]byte, 400)...),
-			want:   dualsenseLayoutState,
+			report: append(dualSenseFull, make([]byte, 400)...),
+			want:   dualSenseLayoutState,
 			wantOK: true,
 		},
 		{
@@ -520,19 +520,19 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			name:   "ds4 full corrupted crc",
 			model:  gamepad.SonyModelDualShock4,
 			bt:     true,
-			report: corruptByte(ds4Full, gamepad.Dualshock4InputReportSizeBT-1),
+			report: corruptByte(ds4Full, gamepad.DualShock4InputReportSizeBT-1),
 		},
 		{
-			name:   "dualsense full corrupted state",
+			name:   "DualSense full corrupted state",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
-			report: corruptByte(dualsenseFull, 2+8), // Second button byte.
+			report: corruptByte(dualSenseFull, 2+8), // Second button byte.
 		},
 		{
-			name:   "dualsense full corrupted crc",
+			name:   "DualSense full corrupted crc",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
-			report: corruptByte(dualsenseFull, gamepad.DualsenseInputReportSizeBT-1),
+			report: corruptByte(dualSenseFull, gamepad.DualSenseInputReportSizeBT-1),
 		},
 		// The CRC covers the report, not the host's padding.
 		{
@@ -545,13 +545,13 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			name:   "ds4 full no crc",
 			model:  gamepad.SonyModelDualShock4,
 			bt:     true,
-			report: inputReport(0x11, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload),
+			report: inputReport(0x11, gamepad.DualShock4InputReportSizeBT, 3, ds4LayoutPayload),
 		},
 		{
-			name:   "dualsense full no crc",
+			name:   "DualSense full no crc",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
-			report: inputReport(0x31, gamepad.DualsenseInputReportSizeBT, 2, dualsenseLayoutPayload),
+			report: inputReport(0x31, gamepad.DualSenseInputReportSizeBT, 2, dualSenseLayoutPayload),
 		},
 		// A DualShock 4 full report carries controller state only when its
 		// HID-data-present flag is set.
@@ -564,10 +564,10 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		// The DualSense uses different layouts for report 0x01 over USB and
 		// over Bluetooth; the transport selects the layout.
 		{
-			name:   "dualsense usb report over bt",
+			name:   "DualSense usb report over bt",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
-			report: dualsenseUSB,
+			report: dualSenseUSB,
 			want: gamepad.SonyInputState{
 				LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
 				L2: 0x83, R2: 0xc8,
@@ -579,13 +579,13 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		// Reports of the other model, of the other transport, or of other
 		// kinds are not state reports.
 		{
-			name:   "ds4 gets dualsense full",
+			name:   "ds4 gets DualSense full",
 			model:  gamepad.SonyModelDualShock4,
 			bt:     true,
-			report: dualsenseFull,
+			report: dualSenseFull,
 		},
 		{
-			name:   "dualsense gets ds4 full",
+			name:   "DualSense gets ds4 full",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
 			report: ds4Full,
@@ -596,9 +596,9 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			report: ds4Full,
 		},
 		{
-			name:   "dualsense full over usb",
+			name:   "DualSense full over usb",
 			model:  gamepad.SonyModelDualSense,
-			report: dualsenseFull,
+			report: dualSenseFull,
 		},
 		{
 			name:   "simple over usb",
@@ -620,7 +620,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			name:   "other report id",
 			model:  gamepad.SonyModelDualShock4,
 			bt:     true,
-			report: inputReport(0x12, gamepad.Dualshock4InputReportSizeBT, 3, ds4LayoutPayload),
+			report: inputReport(0x12, gamepad.DualShock4InputReportSizeBT, 3, ds4LayoutPayload),
 		},
 		{
 			name:   "empty",
@@ -630,12 +630,12 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		{
 			name:   "ds4 usb short",
 			model:  gamepad.SonyModelDualShock4,
-			report: ds4USB[:gamepad.Dualshock4InputReportSizeUSB-1],
+			report: ds4USB[:gamepad.DualShock4InputReportSizeUSB-1],
 		},
 		{
-			name:   "dualsense usb short",
+			name:   "DualSense usb short",
 			model:  gamepad.SonyModelDualSense,
-			report: dualsenseUSB[:gamepad.DualsenseInputReportSizeUSB-1],
+			report: dualSenseUSB[:gamepad.DualSenseInputReportSizeUSB-1],
 		},
 		{
 			name:   "simple short",
@@ -647,13 +647,13 @@ func TestSonyInputStateFromReport(t *testing.T) {
 			name:   "ds4 full short",
 			model:  gamepad.SonyModelDualShock4,
 			bt:     true,
-			report: ds4Full[:gamepad.Dualshock4InputReportSizeBT-1],
+			report: ds4Full[:gamepad.DualShock4InputReportSizeBT-1],
 		},
 		{
-			name:   "dualsense full short",
+			name:   "DualSense full short",
 			model:  gamepad.SonyModelDualSense,
 			bt:     true,
-			report: dualsenseFull[:gamepad.DualsenseInputReportSizeBT-1],
+			report: dualSenseFull[:gamepad.DualSenseInputReportSizeBT-1],
 		},
 	}
 	for _, tt := range tests {
@@ -672,7 +672,7 @@ func TestSonyInputStateFromReportHat(t *testing.T) {
 	for hat := byte(0); hat < 16; hat++ {
 		payload := append([]byte{}, ds4LayoutPayload...)
 		payload[4] = hat | 0xf0
-		got, ok := gamepad.SonyInputStateFromReport(gamepad.SonyModelDualShock4, false, inputReport(0x01, gamepad.Dualshock4InputReportSizeUSB, 1, payload))
+		got, ok := gamepad.SonyInputStateFromReport(gamepad.SonyModelDualShock4, false, inputReport(0x01, gamepad.DualShock4InputReportSizeUSB, 1, payload))
 		if !ok {
 			t.Fatalf("hat %d: not ok", hat)
 		}

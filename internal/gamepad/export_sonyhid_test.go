@@ -23,15 +23,15 @@ const (
 )
 
 const (
-	Dualshock4OutputReportSizeUSB = dualshock4OutputReportSizeUSB
-	Dualshock4OutputReportSizeBT  = dualshock4OutputReportSizeBT
-	DualsenseOutputReportSizeUSB  = dualsenseOutputReportSizeUSB
-	DualsenseOutputReportSizeBT   = dualsenseOutputReportSizeBT
-	Dualshock4InputReportSizeUSB  = dualshock4InputReportSizeUSB
-	DualsenseInputReportSizeUSB   = dualsenseInputReportSizeUSB
+	DualShock4OutputReportSizeUSB = dualShock4OutputReportSizeUSB
+	DualShock4OutputReportSizeBT  = dualShock4OutputReportSizeBT
+	DualSenseOutputReportSizeUSB  = dualSenseOutputReportSizeUSB
+	DualSenseOutputReportSizeBT   = dualSenseOutputReportSizeBT
+	DualShock4InputReportSizeUSB  = dualShock4InputReportSizeUSB
+	DualSenseInputReportSizeUSB   = dualSenseInputReportSizeUSB
 	SonySimpleInputReportSizeBT   = sonySimpleInputReportSizeBT
-	Dualshock4InputReportSizeBT   = dualshock4InputReportSizeBT
-	DualsenseInputReportSizeBT    = dualsenseInputReportSizeBT
+	DualShock4InputReportSizeBT   = dualShock4InputReportSizeBT
+	DualSenseInputReportSizeBT    = dualSenseInputReportSizeBT
 )
 
 type SonyInputState struct {
@@ -58,8 +58,8 @@ var (
 	SonyInputReportSize           = sonyInputReportSize
 	SonyRumbleByte                = sonyRumbleByte
 	SonyBTCRC                     = sonyBTCRC
-	Dualshock4RumbleReportUSB     = dualshock4RumbleReportUSB
-	Dualshock4RumbleReportBT      = dualshock4RumbleReportBT
-	DualsenseRumbleReportUSB      = dualsenseRumbleReportUSB
-	DualsenseRumbleReportBT       = dualsenseRumbleReportBT
+	DualShock4RumbleReportUSB     = dualShock4RumbleReportUSB
+	DualShock4RumbleReportBT      = dualShock4RumbleReportBT
+	DualSenseRumbleReportUSB      = dualSenseRumbleReportUSB
+	DualSenseRumbleReportBT       = dualSenseRumbleReportBT
 )
