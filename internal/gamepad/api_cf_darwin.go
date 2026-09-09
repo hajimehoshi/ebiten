@@ -108,6 +108,6 @@ var (
 	_CFRunLoopGetMain          func() _CFRunLoopRef
 	_CFRunLoopRunInMode        func(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAfterSourceHandled bool) _CFRunLoopRunResult
 	_CFGetTypeID               func(cf _CFTypeRef) _CFTypeID
-	_CFStringGetCString        func(theString _CFStringRef, buffer []byte, encoding _CFStringEncoding) bool
+	_CFStringGetCString        func(theString _CFStringRef, buffer []byte, bufferSize _CFIndex, encoding _CFStringEncoding) bool
 	_CFStringCreateWithCString func(alloc _CFAllocatorRef, cstr []byte, encoding _CFStringEncoding) _CFStringRef
 )
