@@ -73,9 +73,15 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 		defer _CFRelease(_CFTypeRef(usageRef))
 
 		usagePageKey := _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsagePageKey, kCFStringEncodingUTF8)
+		if usagePageKey == 0 {
+			return errors.New("gamepad: CFStringCreateWithCString returned nil")
+		}
 		defer _CFRelease(_CFTypeRef(usagePageKey))
 
 		usageKey := _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsageKey, kCFStringEncodingUTF8)
+		if usageKey == 0 {
+			return errors.New("gamepad: CFStringCreateWithCString returned nil")
+		}
 		defer _CFRelease(_CFTypeRef(usageKey))
 
 		keys := []_CFStringRef{
@@ -103,11 +109,14 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 		(*unsafe.Pointer)(unsafe.Pointer(&dicts[0])),
 		_CFIndex(len(dicts)), *(**_CFArrayCallBacks)(unsafe.Pointer(&kCFTypeArrayCallBacks)))
 	if matching == 0 {
-		return errors.New("gamepad: CFArrayCreateMutable returned nil")
+		return errors.New("gamepad: CFArrayCreate returned nil")
 	}
 	defer _CFRelease(_CFTypeRef(matching))
 
 	g.hidManager = _IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone)
+	if g.hidManager == 0 {
+		return errors.New("gamepad: IOHIDManagerCreate returned nil")
+	}
 	if _IOHIDManagerOpen(g.hidManager, kIOHIDOptionsTypeNone) != kIOReturnSuccess {
 		_CFRelease(_CFTypeRef(g.hidManager))
 		g.hidManager = 0
