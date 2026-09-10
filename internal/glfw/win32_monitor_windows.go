@@ -133,7 +133,7 @@ adapterLoop:
 		//       (as sometimes happens), add it directly as a monitor
 		if !found {
 			for i, monitor := range disconnected {
-				if monitor != nil && monitor.platform.displayName == windows.UTF16ToString(adapter.DeviceName[:]) {
+				if monitor != nil && monitor.platform.adapterName == windows.UTF16ToString(adapter.DeviceName[:]) {
 					disconnected[i] = nil
 					continue adapterLoop
 				}
