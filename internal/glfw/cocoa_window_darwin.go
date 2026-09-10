@@ -2086,8 +2086,13 @@ func platformGetScancodeName(scancode int) (string, error) {
 
 	length := cfStringGetLength(str)
 	size := cfStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8)
+	if size < 0 {
+		return "", nil
+	}
 	buf := make([]byte, size+1)
-	cfStringGetCString(str, &buf[0], size+1, kCFStringEncodingUTF8)
+	if !cfStringGetCString(str, &buf[0], len(buf), kCFStringEncodingUTF8) {
+		return "", nil
+	}
 
 	// Find the null terminator.
 	name := cStringToGoString(buf)
