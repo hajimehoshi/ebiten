@@ -216,6 +216,7 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 			gp := gamepads.add(name, sdlID)
 			gp.native = &nativeGamepadDesktop{
 				xinputIndex: i,
+				rumble:      &xinputRumbler{index: i},
 			}
 		}
 	}
@@ -363,6 +364,8 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 
 	name := windows.UTF16ToString(lpddi.tszInstanceName[:])
 	var sdlID string
+	var rumble rumbler = noRumbler{}
+	var sonyInput *sonyDevice
 	if string(lpddi.guidProduct.Data4[2:8]) == "PIDVID" {
 		// This seems different from the current SDL implementation.
 		// Probably guidProduct includes the vendor and the product information, but this works.
@@ -372,6 +375,10 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 			byte(lpddi.guidProduct.Data1>>8),
 			byte(lpddi.guidProduct.Data1>>16),
 			byte(lpddi.guidProduct.Data1>>24))
+		if sony := openSonyDevice(dinputPath, uint16(lpddi.guidProduct.Data1), uint16(lpddi.guidProduct.Data1>>16)); sony != nil {
+			rumble = sony
+			sonyInput = sony
+		}
 	} else {
 		bs := []byte(name)
 		if len(bs) < 12 {
@@ -389,6 +396,8 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		dinputAxes:    make([]float64, ctx.axisCount+ctx.sliderCount),
 		dinputButtons: make([]bool, ctx.buttonCount),
 		dinputHats:    make([]int, ctx.povCount),
+		sonyInput:     sonyInput,
+		rumble:        rumble,
 	}
 
 	return _DIENUM_CONTINUE
@@ -562,8 +571,13 @@ type nativeGamepadDesktop struct {
 	xinputIndex int
 	xinputState _XINPUT_STATE
 
-	vib    bool
-	vibEnd time.Time
+	// sonyInput supplies the input of a PlayStation controller in place of the
+	// DirectInput state, which stops updating over Bluetooth once rumble is
+	// used. It is nil for every other device. The DirectInput device is still
+	// polled to detect disconnection. See sonyDevice.
+	sonyInput *sonyDevice
+
+	rumble rumbler
 }
 
 func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
@@ -584,11 +598,11 @@ func (g *nativeGamepadDesktop) usesDInput() bool {
 
 // close releases g's native resources. close can be called multiple times.
 func (g *nativeGamepadDesktop) close() {
-	if g.dinputDevice == nil {
-		return
+	if g.dinputDevice != nil {
+		g.dinputDevice.Release()
+		g.dinputDevice = nil
 	}
-	g.dinputDevice.Release()
-	g.dinputDevice = nil
+	g.rumble.close()
 }
 
 func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
@@ -631,60 +645,17 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 			}
 		}
 
-		var ai, bi, hi int
-		for _, obj := range g.dinputObjects {
-			switch obj.objectType {
-			case dinputObjectTypeAxis:
-				var v int32
-				switch obj.index {
-				case 0:
-					v = state.lX
-				case 1:
-					v = state.lY
-				case 2:
-					v = state.lZ
-				case 3:
-					v = state.lRx
-				case 4:
-					v = state.lRy
-				case 5:
-					v = state.lRz
-				}
-				g.dinputAxes[ai] = (float64(v) + 0.5) / 32767.5
-				ai++
-			case dinputObjectTypeSlider:
-				v := state.rglSlider[obj.index]
-				g.dinputAxes[ai] = (float64(v) + 0.5) / 32767.5
-				ai++
-			case dinputObjectTypeButton:
-				v := (state.rgbButtons[obj.index] & 0x80) != 0
-				g.dinputButtons[bi] = v
-				bi++
-			case dinputObjectTypePOV:
-				stateIndex := state.rgdwPOV[obj.index] / (45 * _DI_DEGREES)
-				v := hatCentered
-				switch stateIndex {
-				case 0:
-					v = hatUp
-				case 1:
-					v = hatRightUp
-				case 2:
-					v = hatRight
-				case 3:
-					v = hatRightDown
-				case 4:
-					v = hatDown
-				case 5:
-					v = hatLeftDown
-				case 6:
-					v = hatLeft
-				case 7:
-					v = hatLeftUp
-				}
-				g.dinputHats[hi] = v
-				hi++
+		if g.sonyInput != nil {
+			if !g.sonyInput.updateInput() {
+				disconnected = true
+				return nil
 			}
+			g.applySonyInputState(g.sonyInput.input)
+		} else {
+			g.applyDInputState(&state)
 		}
+
+		g.rumble.update()
 		return nil
 	}
 
@@ -698,11 +669,122 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 	}
 	g.xinputState = state
 
-	// XInput vibration lasts until changed, so stop it once the requested duration has passed.
-	if g.vib && time.Since(g.vibEnd) >= 0 {
-		g.stopVibration()
-	}
+	g.rumble.update()
 	return nil
+}
+
+// hatFromDirectionIndex converts a direction index, where 0 is up and each
+// step of 1 turns 45 degrees clockwise, to a hat value. Indices above 7 are
+// centered, which covers DirectInput's centered POV value of 0xffffffff.
+func hatFromDirectionIndex(index uint32) int {
+	switch index {
+	case 0:
+		return hatUp
+	case 1:
+		return hatRightUp
+	case 2:
+		return hatRight
+	case 3:
+		return hatRightDown
+	case 4:
+		return hatDown
+	case 5:
+		return hatLeftDown
+	case 6:
+		return hatLeft
+	case 7:
+		return hatLeftUp
+	}
+	return hatCentered
+}
+
+// applyDInputState fills the axis, button, and hat values from a DirectInput
+// device state, in the order the objects were enumerated.
+func (g *nativeGamepadDesktop) applyDInputState(state *_DIJOYSTATE) {
+	var ai, bi, hi int
+	for _, obj := range g.dinputObjects {
+		switch obj.objectType {
+		case dinputObjectTypeAxis:
+			var v int32
+			switch obj.index {
+			case 0:
+				v = state.lX
+			case 1:
+				v = state.lY
+			case 2:
+				v = state.lZ
+			case 3:
+				v = state.lRx
+			case 4:
+				v = state.lRy
+			case 5:
+				v = state.lRz
+			}
+			g.dinputAxes[ai] = (float64(v) + 0.5) / 32767.5
+			ai++
+		case dinputObjectTypeSlider:
+			v := state.rglSlider[obj.index]
+			g.dinputAxes[ai] = (float64(v) + 0.5) / 32767.5
+			ai++
+		case dinputObjectTypeButton:
+			v := (state.rgbButtons[obj.index] & 0x80) != 0
+			g.dinputButtons[bi] = v
+			bi++
+		case dinputObjectTypePOV:
+			g.dinputHats[hi] = hatFromDirectionIndex(state.rgdwPOV[obj.index] / (45 * _DI_DEGREES))
+			hi++
+		}
+	}
+}
+
+// applySonyInputState fills the axis, button, and hat values from a
+// PlayStation controller state decoded from its HID input report, in the
+// order DirectInput enumerated the objects, so the result is the same as the
+// DirectInput state for the same controller state.
+//
+// The controllers declare the sticks as the X, Y, Z, and Rz axes, the triggers
+// as Rx and Ry, one hat, and the buttons in sonyInputState's numbering.
+// DirectInput maps the 8-bit values onto the range set in
+// dinputDevice8EnumObjectsCallback, and the same scaling is applied here.
+func (g *nativeGamepadDesktop) applySonyInputState(state sonyInputState) {
+	var ai, bi, hi int
+	for _, obj := range g.dinputObjects {
+		switch obj.objectType {
+		case dinputObjectTypeAxis:
+			var v byte
+			switch obj.index {
+			case 0:
+				v = state.lx
+			case 1:
+				v = state.ly
+			case 2:
+				v = state.rx
+			case 3:
+				v = state.l2
+			case 4:
+				v = state.r2
+			case 5:
+				v = state.ry
+			}
+			g.dinputAxes[ai] = float64(v)/127.5 - 1
+			ai++
+		case dinputObjectTypeSlider:
+			// The controllers have no sliders. One would keep its initial
+			// value.
+			ai++
+		case dinputObjectTypeButton:
+			g.dinputButtons[bi] = obj.index < 16 && state.buttons&(1<<obj.index) != 0
+			bi++
+		case dinputObjectTypePOV:
+			// The controllers have one hat.
+			v := hatCentered
+			if obj.index == 0 {
+				v = hatFromDirectionIndex(uint32(state.hat))
+			}
+			g.dinputHats[hi] = v
+			hi++
+		}
+	}
 }
 
 func (g *nativeGamepadDesktop) axisCount() int {
@@ -815,25 +897,5 @@ func (g *nativeGamepadDesktop) hatState(hat int) int {
 }
 
 func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
-	if g.usesDInput() {
-		// TODO: Implement this for DirectInput devices (#2014)
-		return
-	}
-
-	if strongMagnitude <= 0 && weakMagnitude <= 0 {
-		g.stopVibration()
-		return
-	}
-
-	g.vib = true
-	g.vibEnd = time.Now().Add(duration)
-	_ = _XInputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{
-		wLeftMotorSpeed:  motorMagnitude(strongMagnitude),
-		wRightMotorSpeed: motorMagnitude(weakMagnitude),
-	})
-}
-
-func (g *nativeGamepadDesktop) stopVibration() {
-	g.vib = false
-	_ = _XInputSetState(uint32(g.xinputIndex), &_XINPUT_VIBRATION{})
+	g.rumble.vibrate(duration, strongMagnitude, weakMagnitude)
 }
