@@ -488,7 +488,7 @@ func platformInit() error {
 						bundle.Send(objc.RegisterName("loadNibNamed:owner:topLevelObjects:"),
 							mainMenuNib.ID,
 							objc.ID(class_NSApplication).Send(sel_sharedApplication),
-							uintptr(unsafe.Pointer(&_glfw.platformWindow.nibObjects)))
+							unsafe.Pointer(&_glfw.platformWindow.nibObjects))
 					} else {
 						createMenuBar()
 					}
