@@ -463,6 +463,11 @@ func (g *nativeGamepadsDesktop) dinputDevice8EnumObjectsCallback(lpddoi *_DIDEVI
 		var index int
 		switch lpddoi.guidType {
 		case _GUID_Slider:
+			// EnumObjects enumerates the device's objects, not the data format's, so a
+			// device can have more sliders than _DIJOYSTATE holds.
+			if ctx.sliderCount >= len(_DIJOYSTATE{}.rglSlider) {
+				return _DIENUM_CONTINUE
+			}
 			index = ctx.sliderCount
 		case _GUID_XAxis:
 			index = 0
@@ -513,6 +518,10 @@ func (g *nativeGamepadsDesktop) dinputDevice8EnumObjectsCallback(lpddoi *_DIDEVI
 		})
 		ctx.buttonCount++
 	case _DIDFT_GETTYPE(lpddoi.dwType)&_DIDFT_POV != 0:
+		// Likewise a device can have more POVs than _DIJOYSTATE holds.
+		if ctx.povCount >= len(_DIJOYSTATE{}.rgdwPOV) {
+			return _DIENUM_CONTINUE
+		}
 		ctx.objects = append(ctx.objects, dinputObject{
 			objectType: dinputObjectTypePOV,
 			index:      ctx.povCount,
