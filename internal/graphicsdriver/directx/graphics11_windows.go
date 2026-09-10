@@ -333,6 +333,7 @@ func (g *graphics11) SetVertices(vertices []float32, indices []uint32) error {
 		if g.vertexBuffer != nil {
 			g.vertexBuffer.Release()
 			g.vertexBuffer = nil
+			g.vertexBufferSizeInBytes = 0
 		}
 		b, err := g.device.CreateBuffer(&_D3D11_BUFFER_DESC{
 			ByteWidth:      size,
@@ -352,6 +353,7 @@ func (g *graphics11) SetVertices(vertices []float32, indices []uint32) error {
 		if g.indexBuffer != nil {
 			g.indexBuffer.Release()
 			g.indexBuffer = nil
+			g.indexBufferSizeInBytes = 0
 		}
 		b, err := g.device.CreateBuffer(&_D3D11_BUFFER_DESC{
 			ByteWidth:      size,

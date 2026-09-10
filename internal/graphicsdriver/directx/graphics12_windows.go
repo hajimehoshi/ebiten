@@ -947,16 +947,21 @@ func (g *graphics12) releaseResources(frameIndex int) {
 
 func (g *graphics12) resetVerticesAndIndices(frameIndex int, release bool) {
 	if release {
-		for i := range g.vertices[frameIndex] {
-			g.vertices[frameIndex][i].release()
+		// An entry can be nil when SetVertices failed to create a buffer.
+		for i, v := range g.vertices[frameIndex] {
+			if v != nil {
+				v.release()
+			}
 			g.vertices[frameIndex][i] = nil
 		}
 	}
 	g.vertices[frameIndex] = g.vertices[frameIndex][:0]
 
 	if release {
-		for i := range g.indices[frameIndex] {
-			g.indices[frameIndex][i].release()
+		for i, idx := range g.indices[frameIndex] {
+			if idx != nil {
+				idx.release()
+			}
 			g.indices[frameIndex][i] = nil
 		}
 	}
