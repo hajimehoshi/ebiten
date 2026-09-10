@@ -274,8 +274,6 @@ func init() {
 // When the given image img is disposed, DrawImage panics.
 // When the image i is disposed and img is not, DrawImage does nothing.
 //
-// When the given image is as same as i, DrawImage panics.
-//
 // DrawImage works more efficiently as batches
 // when the successive calls of DrawImage satisfy the below conditions:
 //
