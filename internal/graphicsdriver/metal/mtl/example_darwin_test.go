@@ -144,7 +144,10 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 		{f32.Vec4{-0.75, -0.75, 0, 1}, f32.Vec4{1, 1, 1, 1}},
 		{f32.Vec4{+0.75, -0.75, 0, 1}, f32.Vec4{0, 0, 0, 1}},
 	}
-	vertexBuffer := device.NewBufferWithBytes(unsafe.Pointer(&vertexData[0]), unsafe.Sizeof(vertexData), mtl.ResourceStorageModeManaged)
+	vertexBuffer, err := device.NewBufferWithBytes(unsafe.Pointer(&vertexData[0]), unsafe.Sizeof(vertexData), mtl.ResourceStorageModeManaged)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	// Create an output texture to render into.
 	td := mtl.TextureDescriptor{
@@ -154,10 +157,19 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 		Height:      20,
 		StorageMode: mtl.StorageModeManaged,
 	}
-	texture := device.NewTextureWithDescriptor(td)
+	texture, err := device.NewTextureWithDescriptor(td)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
-	cq := device.NewCommandQueue()
-	cb := cq.CommandBuffer()
+	cq, err := device.NewCommandQueue()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	cb, err := cq.CommandBuffer()
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	// Encode all render commands.
 	var rpd mtl.RenderPassDescriptor
@@ -165,14 +177,20 @@ fragment float4 FragmentShader(Vertex in [[stage_in]]) {
 	rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
 	rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{Red: 0, Green: 0, Blue: 0, Alpha: 1}
 	rpd.ColorAttachments[0].Texture = texture
-	rce := cb.RenderCommandEncoderWithDescriptor(rpd)
+	rce, err := cb.RenderCommandEncoderWithDescriptor(rpd)
+	if err != nil {
+		log.Fatalln(err)
+	}
 	rce.SetRenderPipelineState(rps)
 	rce.SetVertexBuffer(vertexBuffer, 0, 0)
 	rce.DrawPrimitives(mtl.PrimitiveTypeTriangle, 0, 3)
 	rce.EndEncoding()
 
 	// Encode all blit commands.
-	bce := cb.BlitCommandEncoder()
+	bce, err := cb.BlitCommandEncoder()
+	if err != nil {
+		log.Fatalln(err)
+	}
 	bce.Synchronize(texture)
 	bce.EndEncoding()
 
