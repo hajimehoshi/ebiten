@@ -137,6 +137,7 @@ const (
 	_QS_TIMER                                                  = 0x0010
 	_RID_INPUT                                                 = 0x10000003
 	_RIDEV_REMOVE                                              = 0x00000001
+	_RIM_TYPEMOUSE                                             = 0
 	_SC_KEYMENU                                                = 0xf100
 	_SC_MONITORPOWER                                           = 0xf170
 	_SC_SCREENSAVE                                             = 0xf140

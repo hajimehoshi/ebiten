@@ -912,19 +912,32 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 			_glfw.errors = append(_glfw.errors, err)
 			return 0
 		}
+		// The size comes from the device driver, and a report shorter than
+		// _RAWINPUT cannot be interpreted as a mouse event.
+		if size < uint32(unsafe.Sizeof(_RAWINPUT{})) {
+			break
+		}
 		if size > uint32(len(_glfw.platformWindow.rawInput)) {
 			_glfw.platformWindow.rawInput = make([]byte, size)
 		}
 
 		size = uint32(len(_glfw.platformWindow.rawInput))
-		if _, err := _GetRawInputData(ri, _RID_INPUT, unsafe.Pointer(&_glfw.platformWindow.rawInput[0]), &size); err != nil {
+		n, err := _GetRawInputData(ri, _RID_INPUT, unsafe.Pointer(&_glfw.platformWindow.rawInput[0]), &size)
+		if err != nil {
 			_glfw.errors = append(_glfw.errors, err)
 			return 0
 			// TODO: break?
 		}
+		if n < uint32(unsafe.Sizeof(_RAWINPUT{})) {
+			break
+		}
+
+		data := (*_RAWINPUT)(unsafe.Pointer(&_glfw.platformWindow.rawInput[0]))
+		if data.header.dwType != _RIM_TYPEMOUSE {
+			break
+		}
 
 		var dx, dy int
-		data := (*_RAWINPUT)(unsafe.Pointer(&_glfw.platformWindow.rawInput[0]))
 		if data.mouse.usFlags&_MOUSE_MOVE_ABSOLUTE != 0 {
 			if _glfw.platformWindow.isRemoteSession {
 				// Remote Desktop Mode
