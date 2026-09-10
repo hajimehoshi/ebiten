@@ -88,7 +88,7 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 	}
 
 	n.gameInput = g
-	n.deviceCallbackPtr = windows.NewCallbackCDecl(n.deviceCallback)
+	n.deviceCallbackPtr = windows.NewCallback(n.deviceCallback)
 
 	if err := n.gameInput.RegisterDeviceCallback(
 		nil,

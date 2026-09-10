@@ -23,7 +23,7 @@ func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, monitor *Monitor /*
 	return 1
 }
 
-var monitorCallbackPtr = windows.NewCallbackCDecl(monitorCallback)
+var monitorCallbackPtr = windows.NewCallback(monitorCallback)
 
 func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monitor, error) {
 	var name string

@@ -1240,7 +1240,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 	return uintptr(_DefWindowProcW(hWnd, uMsg, wParam, lParam))
 }
 
-var windowProcPtr = windows.NewCallbackCDecl(windowProc)
+var windowProcPtr = windows.NewCallback(windowProc)
 
 // handleToWindow is accessed only from the OS thread that created the windows: it is written when
 // a window is created or destroyed, and it is read in windowProc and in platformPollEvents. Win32
