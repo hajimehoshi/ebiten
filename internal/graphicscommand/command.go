@@ -20,6 +20,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -39,25 +40,10 @@ type command interface {
 	NeedsSync() bool
 }
 
-type drawTrianglesCommandPool struct {
-	pool []*drawTrianglesCommand
-}
-
-func (p *drawTrianglesCommandPool) get() *drawTrianglesCommand {
-	if len(p.pool) == 0 {
+var theDrawTrianglesCommandPool = sync.Pool{
+	New: func() any {
 		return &drawTrianglesCommand{}
-	}
-	v := p.pool[len(p.pool)-1]
-	p.pool[len(p.pool)-1] = nil
-	p.pool = p.pool[:len(p.pool)-1]
-	return v
-}
-
-func (p *drawTrianglesCommandPool) put(v *drawTrianglesCommand) {
-	if len(p.pool) >= 1024 {
-		return
-	}
-	p.pool = append(p.pool, v)
+	},
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.

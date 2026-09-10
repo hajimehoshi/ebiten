@@ -112,8 +112,6 @@ type commandQueue struct {
 
 	tmpNumVertexFloats int
 
-	drawTrianglesCommandPool drawTrianglesCommandPool
-
 	uint32sBuffer uint32sBuffer
 	finalizers    []func()
 
@@ -183,7 +181,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		}
 	}
 
-	c := q.drawTrianglesCommandPool.get()
+	c := theDrawTrianglesCommandPool.Get().(*drawTrianglesCommand)
 	c.dst = dst
 	c.srcs = srcs
 	c.vertices = q.lastVertices(len(vertices))
@@ -292,7 +290,12 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 		// Then, resetting the length by [:0] doesn't release the references.
 		for i, c := range q.commands {
 			if c, ok := c.(*drawTrianglesCommand); ok {
-				q.drawTrianglesCommandPool.put(c)
+				// Only dstRegions owns its backing array and retains its capacity for reuse.
+				// The vertices and uniforms slices reference buffers owned by the command queue.
+				*c = drawTrianglesCommand{
+					dstRegions: c.dstRegions[:0],
+				}
+				theDrawTrianglesCommandPool.Put(c)
 			}
 			q.commands[i] = nil
 		}
