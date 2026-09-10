@@ -890,7 +890,7 @@ func startGuest(bin, sock, pkg string) (gp *guestProcess, err error) {
 
 		// Mirror each vibration the guest requests onto the host's own gamepad. The guest's gamepad IDs
 		// match the host's, because the host forwards its own gamepads to the guest.
-		OnGamepadVibration: func(v vmhost.GamepadVibration) {
+		OnGamepadVibration: func(v vmhost.GuestGamepadVibration) {
 			ebiten.VibrateGamepad(v.GamepadID, &ebiten.VibrateGamepadOptions{
 				Duration:        v.Duration,
 				StrongMagnitude: v.StrongMagnitude,
@@ -898,7 +898,7 @@ func startGuest(bin, sock, pkg string) (gp *guestProcess, err error) {
 			})
 		},
 		// Mirror the device vibration the guest requests onto the host's own device.
-		OnVibration: func(v vmhost.Vibration) {
+		OnVibration: func(v vmhost.GuestVibration) {
 			ebiten.Vibrate(&ebiten.VibrateOptions{
 				Duration:  v.Duration,
 				Magnitude: v.Magnitude,

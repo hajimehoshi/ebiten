@@ -164,11 +164,11 @@ type GuestSession struct {
 
 	// onGamepadVibration, if non-nil, is called for each vibration the guest requests. It is set at
 	// construction and never modified, so it is read without a lock.
-	onGamepadVibration func(GamepadVibration)
+	onGamepadVibration func(GuestGamepadVibration)
 
 	// onVibration, if non-nil, is called for each device vibration the guest requests. Like
 	// onGamepadVibration, it is set at construction and never modified.
-	onVibration func(Vibration)
+	onVibration func(GuestVibration)
 
 	// onAudioStream, if non-nil, is called for each new audio stream the guest starts. Like
 	// onGamepadVibration it is set at construction and never modified, so it is read without a lock.
@@ -230,8 +230,8 @@ const (
 // payload.
 type guestEvent struct {
 	kind             guestEventKind
-	gamepadVibration GamepadVibration
-	vibration        Vibration
+	gamepadVibration GuestGamepadVibration
+	vibration        GuestVibration
 	audioStream      *GuestAudioStream
 	textInput        *GuestTextInput
 }
@@ -264,12 +264,12 @@ type NewGuestSessionOptions struct {
 	// OnGamepadVibration, if non-nil, is called for each gamepad vibration the guest's game requests. It
 	// runs during [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the calling goroutine; a
 	// host typically just calls [ebiten.VibrateGamepad]. A nil handler discards the guest's vibrations.
-	OnGamepadVibration func(GamepadVibration)
+	OnGamepadVibration func(GuestGamepadVibration)
 
 	// OnVibration, if non-nil, is called for each device vibration the guest's game requests. It runs
 	// during [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the calling goroutine; a host
 	// typically just calls [ebiten.Vibrate]. A nil handler discards the guest's vibrations.
-	OnVibration func(Vibration)
+	OnVibration func(GuestVibration)
 
 	// OnAudioStream, if non-nil, is called once for each new audio stream the guest starts, handed the
 	// persistent [GuestAudioStream] to read and inspect. It runs during [GuestSession.AdvanceTicks] and
@@ -1227,11 +1227,16 @@ func copyStandardButtonsToProtocol(dst map[ebiten.StandardGamepadButton]vmprotoc
 	return dst
 }
 
-// GamepadVibration is a vibration the guest's game requested for one gamepad, passed to the
+// GamepadVibration is an alias for GuestGamepadVibration.
+//
+// Deprecated: as of v2.11. Use GuestGamepadVibration instead.
+type GamepadVibration = GuestGamepadVibration
+
+// GuestGamepadVibration is a vibration the guest's game requested for one gamepad, passed to the
 // [NewGuestSessionOptions] OnGamepadVibration handler. GamepadID matches the
 // [GuestSession.UpdateGamepads] ID, so a host applies it to the corresponding gamepad with
 // [ebiten.VibrateGamepad].
-type GamepadVibration struct {
+type GuestGamepadVibration struct {
 	// StartTick is the guest's [ebiten.Tick] during the Update that requested the vibration.
 	StartTick int
 
@@ -1256,7 +1261,7 @@ func (g *GuestSession) queueGamepadVibrations(msg *vmprotocol.GuestMessage) {
 		v := &msg.GamepadVibrations[i]
 		g.pendingEvents = append(g.pendingEvents, guestEvent{
 			kind: guestEventGamepadVibration,
-			gamepadVibration: GamepadVibration{
+			gamepadVibration: GuestGamepadVibration{
 				StartTick:       msg.StartTick,
 				GamepadID:       ebiten.GamepadID(v.ID),
 				Duration:        v.Duration,
@@ -1267,9 +1272,14 @@ func (g *GuestSession) queueGamepadVibrations(msg *vmprotocol.GuestMessage) {
 	}
 }
 
-// Vibration is a device vibration the guest's game requested, passed to the [NewGuestSessionOptions]
+// Vibration is an alias for GuestVibration.
+//
+// Deprecated: as of v2.11. Use GuestVibration instead.
+type Vibration = GuestVibration
+
+// GuestVibration is a device vibration the guest's game requested, passed to the [NewGuestSessionOptions]
 // OnVibration handler. A host acts on it by vibrating its own device with [ebiten.Vibrate].
-type Vibration struct {
+type GuestVibration struct {
 	// StartTick is the guest's [ebiten.Tick] during the Update that requested the vibration.
 	StartTick int
 
@@ -1289,7 +1299,7 @@ func (g *GuestSession) queueVibration(msg *vmprotocol.GuestMessage) {
 	defer g.mu.Unlock()
 	g.pendingEvents = append(g.pendingEvents, guestEvent{
 		kind: guestEventVibration,
-		vibration: Vibration{
+		vibration: GuestVibration{
 			StartTick: msg.StartTick,
 			Duration:  msg.Vibration.Duration,
 			Magnitude: msg.Vibration.Magnitude,
