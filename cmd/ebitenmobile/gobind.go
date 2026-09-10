@@ -141,7 +141,7 @@ import "C"`); err != nil {
 		case "go":
 			// Do nothing.
 		default:
-			panic(fmt.Sprintf("unsupported language: %s", lang))
+			return fmt.Errorf("unsupported language: %s", lang)
 		}
 	}
 
