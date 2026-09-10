@@ -714,13 +714,16 @@ func initExtensions() error {
 		randr := &_glfw.platformWindow.randr
 		sr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 
-		if (*_XRRScreenResources)(unsafe.Pointer(sr)).Ncrtc == 0 {
-			// A system without CRTCs is likely a system with broken RandR
+		if sr == 0 || (*_XRRScreenResources)(unsafe.Pointer(sr)).Ncrtc == 0 {
+			// A system without screen resources or CRTCs is likely a system
+			// with broken RandR
 			// Disable the RandR monitor path and fall back to core functions
 			randr.monitorBroken = true
 		}
 
-		randr.FreeScreenResources(sr)
+		if sr != 0 {
+			randr.FreeScreenResources(sr)
+		}
 	}
 
 	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {

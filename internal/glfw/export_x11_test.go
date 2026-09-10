@@ -54,6 +54,9 @@ func SmokeTestX11() error {
 	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {
 		randr := &_glfw.platformWindow.randr
 		srPtr := randr.GetScreenResourcesCurrent(_glfw.platformWindow.display, _glfw.platformWindow.root)
+		if srPtr == 0 {
+			return fmt.Errorf("glfw: smoke: XRRGetScreenResourcesCurrent failed")
+		}
 		defer randr.FreeScreenResources(srPtr)
 		if ciPtr := getCrtcInfoX11(srPtr, 0xdeadbeef); ciPtr != 0 {
 			randr.FreeCrtcInfo(ciPtr)
