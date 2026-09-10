@@ -336,6 +336,9 @@ func initializeTIS() error {
 	}
 
 	bundleID := cfString("com.apple.HIToolbox")
+	if bundleID == 0 {
+		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+	}
 	defer cfRelease(bundleID)
 
 	bundle := cfBundleGetBundleWithIdentifier(bundleID)
@@ -345,6 +348,9 @@ func initializeTIS() error {
 
 	// Load TISCopyCurrentKeyboardLayoutInputSource
 	fnName1 := cfString("TISCopyCurrentKeyboardLayoutInputSource")
+	if fnName1 == 0 {
+		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+	}
 	defer cfRelease(fnName1)
 	ptr1 := cfBundleGetFunctionPointerForName(bundle, fnName1)
 	if ptr1 == 0 {
@@ -357,6 +363,9 @@ func initializeTIS() error {
 
 	// Load TISGetInputSourceProperty
 	fnName2 := cfString("TISGetInputSourceProperty")
+	if fnName2 == 0 {
+		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+	}
 	defer cfRelease(fnName2)
 	ptr2 := cfBundleGetFunctionPointerForName(bundle, fnName2)
 	if ptr2 == 0 {
@@ -369,6 +378,9 @@ func initializeTIS() error {
 
 	// Load LMGetKbdType
 	fnName3 := cfString("LMGetKbdType")
+	if fnName3 == 0 {
+		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+	}
 	defer cfRelease(fnName3)
 	ptr3 := cfBundleGetFunctionPointerForName(bundle, fnName3)
 	if ptr3 == 0 {
@@ -395,6 +407,9 @@ func initializeTIS() error {
 
 	// Load kTISPropertyUnicodeKeyLayoutData string constant
 	dataName := cfString("kTISPropertyUnicodeKeyLayoutData")
+	if dataName == 0 {
+		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+	}
 	defer cfRelease(dataName)
 	dataPtr := cfBundleGetDataPointerForName(bundle, dataName)
 	if dataPtr == 0 {
