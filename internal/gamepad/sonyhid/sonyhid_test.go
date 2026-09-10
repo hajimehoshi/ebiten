@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gamepad_test
+package sonyhid_test
 
 import (
 	"encoding/binary"
@@ -20,61 +20,61 @@ import (
 	"math"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad/sonyhid"
 )
 
-func TestSonyModelFromIDs(t *testing.T) {
+func TestModelFromIDs(t *testing.T) {
 	tests := []struct {
 		vid  uint16
 		pid  uint16
-		want gamepad.SonyModel
+		want sonyhid.Model
 	}{
 		{
 			vid:  0x054c,
 			pid:  0x05c4,
-			want: gamepad.SonyModelDualShock4,
+			want: sonyhid.ModelDualShock4,
 		},
 		{
 			vid:  0x054c,
 			pid:  0x09cc,
-			want: gamepad.SonyModelDualShock4,
+			want: sonyhid.ModelDualShock4,
 		},
 		{
 			vid:  0x054c,
 			pid:  0x0ce6,
-			want: gamepad.SonyModelDualSense,
+			want: sonyhid.ModelDualSense,
 		},
 		{
 			vid:  0x054c,
 			pid:  0x0df2,
-			want: gamepad.SonyModelDualSense,
+			want: sonyhid.ModelDualSense,
 		},
 		// DualShock 3
 		{
 			vid:  0x054c,
 			pid:  0x0268,
-			want: gamepad.SonyModelNone,
+			want: sonyhid.ModelNone,
 		},
 		{
 			vid:  0x054c,
 			pid:  0x0000,
-			want: gamepad.SonyModelNone,
+			want: sonyhid.ModelNone,
 		},
 		// Sony PID with a non-Sony VID
 		{
 			vid:  0x045e,
 			pid:  0x05c4,
-			want: gamepad.SonyModelNone,
+			want: sonyhid.ModelNone,
 		},
 		{
 			vid:  0x0000,
 			pid:  0x0000,
-			want: gamepad.SonyModelNone,
+			want: sonyhid.ModelNone,
 		},
 	}
 	for _, tt := range tests {
-		if got := gamepad.SonyModelFromIDs(tt.vid, tt.pid); got != tt.want {
-			t.Errorf("SonyModelFromIDs(%#04x, %#04x) = %d, want %d", tt.vid, tt.pid, got, tt.want)
+		if got := sonyhid.ModelFromIDs(tt.vid, tt.pid); got != tt.want {
+			t.Errorf("ModelFromIDs(%#04x, %#04x) = %d, want %d", tt.vid, tt.pid, got, tt.want)
 		}
 	}
 }
@@ -133,58 +133,58 @@ func TestBluetoothFromDeviceInstanceID(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		bt, ok := gamepad.BluetoothFromDeviceInstanceID(tt.id)
+		bt, ok := sonyhid.BluetoothFromDeviceInstanceID(tt.id)
 		if bt != tt.wantBT || ok != tt.wantOK {
 			t.Errorf("BluetoothFromDeviceInstanceID(%q) = %t, %t, want %t, %t", tt.id, bt, ok, tt.wantBT, tt.wantOK)
 		}
 	}
 }
 
-func TestSonyOutputReportSize(t *testing.T) {
+func TestOutputReportSize(t *testing.T) {
 	tests := []struct {
-		model gamepad.SonyModel
+		model sonyhid.Model
 		bt    bool
 		want  int
 	}{
 		{
-			model: gamepad.SonyModelDualShock4,
+			model: sonyhid.ModelDualShock4,
 			bt:    false,
 			want:  32,
 		},
 		{
-			model: gamepad.SonyModelDualShock4,
+			model: sonyhid.ModelDualShock4,
 			bt:    true,
 			want:  78,
 		},
 		{
-			model: gamepad.SonyModelDualSense,
+			model: sonyhid.ModelDualSense,
 			bt:    false,
 			want:  48,
 		},
 		{
-			model: gamepad.SonyModelDualSense,
+			model: sonyhid.ModelDualSense,
 			bt:    true,
 			want:  78,
 		},
 		{
-			model: gamepad.SonyModelNone,
+			model: sonyhid.ModelNone,
 			bt:    false,
 			want:  0,
 		},
 		{
-			model: gamepad.SonyModelNone,
+			model: sonyhid.ModelNone,
 			bt:    true,
 			want:  0,
 		},
 	}
 	for _, tt := range tests {
-		if got := gamepad.SonyOutputReportSize(tt.model, tt.bt); got != tt.want {
-			t.Errorf("SonyOutputReportSize(%d, %t) = %d, want %d", tt.model, tt.bt, got, tt.want)
+		if got := sonyhid.OutputReportSize(tt.model, tt.bt); got != tt.want {
+			t.Errorf("OutputReportSize(%d, %t) = %d, want %d", tt.model, tt.bt, got, tt.want)
 		}
 	}
 }
 
-func TestSonyRumbleByte(t *testing.T) {
+func TestRumbleByte(t *testing.T) {
 	tests := []struct {
 		in   float64
 		want byte
@@ -223,31 +223,31 @@ func TestSonyRumbleByte(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		if got := gamepad.SonyRumbleByte(tt.in); got != tt.want {
-			t.Errorf("SonyRumbleByte(%v) = %#02x, want %#02x", tt.in, got, tt.want)
+		if got := sonyhid.RumbleByte(tt.in); got != tt.want {
+			t.Errorf("RumbleByte(%v) = %#02x, want %#02x", tt.in, got, tt.want)
 		}
 	}
 }
 
-func TestSonyBTCRC(t *testing.T) {
+func TestBTCRC(t *testing.T) {
 	for _, header := range []byte{0xa1, 0xa2} {
-		if got, want := gamepad.SonyBTCRC(header, nil), crc32.ChecksumIEEE([]byte{header}); got != want {
-			t.Errorf("SonyBTCRC(%#02x, nil) = %#08x, want %#08x", header, got, want)
+		if got, want := sonyhid.BTCRC(header, nil), crc32.ChecksumIEEE([]byte{header}); got != want {
+			t.Errorf("BTCRC(%#02x, nil) = %#08x, want %#08x", header, got, want)
 		}
 		data := []byte{0x11, 0xc0, 0x00, 0x01}
-		if got, want := gamepad.SonyBTCRC(header, data), crc32.ChecksumIEEE(append([]byte{header}, data...)); got != want {
-			t.Errorf("SonyBTCRC(%#02x, %v) = %#08x, want %#08x", header, data, got, want)
+		if got, want := sonyhid.BTCRC(header, data), crc32.ChecksumIEEE(append([]byte{header}, data...)); got != want {
+			t.Errorf("BTCRC(%#02x, %v) = %#08x, want %#08x", header, data, got, want)
 		}
 	}
-	if gamepad.SonyBTCRC(0xa1, nil) == gamepad.SonyBTCRC(0xa2, nil) {
-		t.Errorf("SonyBTCRC: input and output headers produce the same CRC")
+	if sonyhid.BTCRC(0xa1, nil) == sonyhid.BTCRC(0xa2, nil) {
+		t.Errorf("BTCRC: input and output headers produce the same CRC")
 	}
 }
 
 // checkReport verifies the length and the expected non-zero bytes of a
 // report. want maps an offset to its expected value; every other byte must be
 // 0, except the trailing 4 CRC bytes when hasCRC is set, which must match
-// SonyBTCRC with the output header over the rest of the report.
+// BTCRC with the output header over the rest of the report.
 func checkReport(t *testing.T, name string, report []byte, size int, want map[int]byte, hasCRC bool) {
 	t.Helper()
 
@@ -260,7 +260,7 @@ func checkReport(t *testing.T, name string, report []byte, size int, want map[in
 	if hasCRC {
 		n := len(report) - 4
 		body = report[:n]
-		if got, wantCRC := binary.LittleEndian.Uint32(report[n:]), gamepad.SonyBTCRC(0xa2, body); got != wantCRC {
+		if got, wantCRC := binary.LittleEndian.Uint32(report[n:]), sonyhid.BTCRC(0xa2, body); got != wantCRC {
 			t.Errorf("%s: CRC = %#08x, want %#08x", name, got, wantCRC)
 		}
 	}
@@ -273,20 +273,20 @@ func checkReport(t *testing.T, name string, report []byte, size int, want map[in
 }
 
 func TestDualShock4RumbleReportUSB(t *testing.T) {
-	checkReport(t, "usb", gamepad.DualShock4RumbleReportUSB(0xab, 0xcd), gamepad.DualShock4OutputReportSizeUSB, map[int]byte{
+	checkReport(t, "usb", sonyhid.DualShock4RumbleReportUSB(0xab, 0xcd), sonyhid.DualShock4OutputReportSizeUSB, map[int]byte{
 		0: 0x05,
 		1: 0x01,
 		4: 0xcd, // weak
 		5: 0xab, // strong
 	}, false)
-	checkReport(t, "usb stop", gamepad.DualShock4RumbleReportUSB(0, 0), gamepad.DualShock4OutputReportSizeUSB, map[int]byte{
+	checkReport(t, "usb stop", sonyhid.DualShock4RumbleReportUSB(0, 0), sonyhid.DualShock4OutputReportSizeUSB, map[int]byte{
 		0: 0x05,
 		1: 0x01,
 	}, false)
 }
 
 func TestDualShock4RumbleReportBT(t *testing.T) {
-	checkReport(t, "bt", gamepad.DualShock4RumbleReportBT(0xab, 0xcd), gamepad.DualShock4OutputReportSizeBT, map[int]byte{
+	checkReport(t, "bt", sonyhid.DualShock4RumbleReportBT(0xab, 0xcd), sonyhid.DualShock4OutputReportSizeBT, map[int]byte{
 		0: 0x11,
 		1: 0xc0,
 		3: 0x01,
@@ -296,7 +296,7 @@ func TestDualShock4RumbleReportBT(t *testing.T) {
 }
 
 func TestDualSenseRumbleReportUSB(t *testing.T) {
-	checkReport(t, "usb", gamepad.DualSenseRumbleReportUSB(0xab, 0xcd), gamepad.DualSenseOutputReportSizeUSB, map[int]byte{
+	checkReport(t, "usb", sonyhid.DualSenseRumbleReportUSB(0xab, 0xcd), sonyhid.DualSenseOutputReportSizeUSB, map[int]byte{
 		0: 0x02,
 		1: 0x03,
 		3: 0xcd, // weak
@@ -305,7 +305,7 @@ func TestDualSenseRumbleReportUSB(t *testing.T) {
 }
 
 func TestDualSenseRumbleReportBT(t *testing.T) {
-	checkReport(t, "bt", gamepad.DualSenseRumbleReportBT(2, 0xab, 0xcd), gamepad.DualSenseOutputReportSizeBT, map[int]byte{
+	checkReport(t, "bt", sonyhid.DualSenseRumbleReportBT(2, 0xab, 0xcd), sonyhid.DualSenseOutputReportSizeBT, map[int]byte{
 		0: 0x31,
 		1: 0x20, // Sequence 2 in the high nibble.
 		2: 0x10,
@@ -315,28 +315,28 @@ func TestDualSenseRumbleReportBT(t *testing.T) {
 	}, true)
 
 	// Only the low 4 bits of the sequence counter are used.
-	r := gamepad.DualSenseRumbleReportBT(0x1f, 0, 0)
+	r := sonyhid.DualSenseRumbleReportBT(0x1f, 0, 0)
 	if got, want := r[1], byte(0xf0); got != want {
 		t.Errorf("bt seq: byte 1 = %#02x, want %#02x", got, want)
 	}
 }
 
-func TestSonyInputReportSize(t *testing.T) {
+func TestInputReportSize(t *testing.T) {
 	tests := []struct {
-		model gamepad.SonyModel
+		model sonyhid.Model
 		bt    bool
 		want  int
 	}{
-		{model: gamepad.SonyModelDualShock4, bt: false, want: 64},
-		{model: gamepad.SonyModelDualShock4, bt: true, want: 78},
-		{model: gamepad.SonyModelDualSense, bt: false, want: 64},
-		{model: gamepad.SonyModelDualSense, bt: true, want: 78},
-		{model: gamepad.SonyModelNone, bt: false, want: 0},
-		{model: gamepad.SonyModelNone, bt: true, want: 0},
+		{model: sonyhid.ModelDualShock4, bt: false, want: 64},
+		{model: sonyhid.ModelDualShock4, bt: true, want: 78},
+		{model: sonyhid.ModelDualSense, bt: false, want: 64},
+		{model: sonyhid.ModelDualSense, bt: true, want: 78},
+		{model: sonyhid.ModelNone, bt: false, want: 0},
+		{model: sonyhid.ModelNone, bt: true, want: 0},
 	}
 	for _, tt := range tests {
-		if got := gamepad.SonyInputReportSize(tt.model, tt.bt); got != tt.want {
-			t.Errorf("SonyInputReportSize(%d, %t) = %d, want %d", tt.model, tt.bt, got, tt.want)
+		if got := sonyhid.InputReportSize(tt.model, tt.bt); got != tt.want {
+			t.Errorf("InputReportSize(%d, %t) = %d, want %d", tt.model, tt.bt, got, tt.want)
 		}
 	}
 }
@@ -353,7 +353,7 @@ var ds4LayoutPayload = []byte{
 	0x50, 0x60, // l2, r2
 }
 
-var ds4LayoutState = gamepad.SonyInputState{
+var ds4LayoutState = sonyhid.InputState{
 	LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
 	L2: 0x50, R2: 0x60,
 	Hat:     8,
@@ -371,7 +371,7 @@ var dualSenseLayoutPayload = []byte{
 	0xfd, // PS, Mute, reserved
 }
 
-var dualSenseLayoutState = gamepad.SonyInputState{
+var dualSenseLayoutState = sonyhid.InputState{
 	LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
 	L2: 0x50, R2: 0x60,
 	Hat:     3,
@@ -415,12 +415,12 @@ func corruptByte(r []byte, i int) []byte {
 	return c
 }
 
-func TestSonyInputStateFromReport(t *testing.T) {
-	ds4USB := inputReport(0x01, gamepad.DualShock4InputReportSizeUSB, 1, ds4LayoutPayload)
-	dualSenseUSB := inputReport(0x01, gamepad.DualSenseInputReportSizeUSB, 1, dualSenseLayoutPayload)
-	simple := inputReport(0x01, gamepad.SonySimpleInputReportSizeBT, 1, ds4LayoutPayload)
-	ds4Full := fullBTInputReport(0x11, gamepad.DualShock4InputReportSizeBT, 3, ds4LayoutPayload)
-	dualSenseFull := fullBTInputReport(0x31, gamepad.DualSenseInputReportSizeBT, 2, dualSenseLayoutPayload)
+func TestInputStateFromReport(t *testing.T) {
+	ds4USB := inputReport(0x01, sonyhid.DualShock4InputReportSizeUSB, 1, ds4LayoutPayload)
+	dualSenseUSB := inputReport(0x01, sonyhid.DualSenseInputReportSizeUSB, 1, dualSenseLayoutPayload)
+	simple := inputReport(0x01, sonyhid.SimpleInputReportSizeBT, 1, ds4LayoutPayload)
+	ds4Full := fullBTInputReport(0x11, sonyhid.DualShock4InputReportSizeBT, 3, ds4LayoutPayload)
+	dualSenseFull := fullBTInputReport(0x31, sonyhid.DualSenseInputReportSizeBT, 2, dualSenseLayoutPayload)
 
 	// ds4FullNoData has a valid CRC but its HID-data-present flag clear, so
 	// it carries no controller state.
@@ -430,29 +430,29 @@ func TestSonyInputStateFromReport(t *testing.T) {
 
 	tests := []struct {
 		name   string
-		model  gamepad.SonyModel
+		model  sonyhid.Model
 		bt     bool
 		report []byte
-		want   gamepad.SonyInputState
+		want   sonyhid.InputState
 		wantOK bool
 	}{
 		{
 			name:   "ds4 usb",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			report: ds4USB,
 			want:   ds4LayoutState,
 			wantOK: true,
 		},
 		{
 			name:   "DualSense usb",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			report: dualSenseUSB,
 			want:   dualSenseLayoutState,
 			wantOK: true,
 		},
 		{
 			name:   "ds4 simple",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: simple,
 			want:   ds4LayoutState,
@@ -460,7 +460,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		},
 		{
 			name:   "ds4 full",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: ds4Full,
 			want:   ds4LayoutState,
@@ -468,7 +468,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		},
 		{
 			name:   "DualSense simple",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: simple,
 			want:   ds4LayoutState,
@@ -476,7 +476,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		},
 		{
 			name:   "DualSense full",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: dualSenseFull,
 			want:   dualSenseLayoutState,
@@ -485,7 +485,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		// The host may pad reports to the device's maximum report length.
 		{
 			name:   "ds4 full padded",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: append(ds4Full, make([]byte, 400)...),
 			want:   ds4LayoutState,
@@ -493,7 +493,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		},
 		{
 			name:   "DualSense full padded",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: append(dualSenseFull, make([]byte, 400)...),
 			want:   dualSenseLayoutState,
@@ -501,7 +501,7 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		},
 		{
 			name:   "simple padded",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: append(simple, make([]byte, 60)...),
 			want:   ds4LayoutState,
@@ -512,52 +512,52 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		// rejected whether the damage is in the state or in the CRC itself.
 		{
 			name:   "ds4 full corrupted state",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: corruptByte(ds4Full, 3+5), // Second button byte.
 		},
 		{
 			name:   "ds4 full corrupted crc",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
-			report: corruptByte(ds4Full, gamepad.DualShock4InputReportSizeBT-1),
+			report: corruptByte(ds4Full, sonyhid.DualShock4InputReportSizeBT-1),
 		},
 		{
 			name:   "DualSense full corrupted state",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: corruptByte(dualSenseFull, 2+8), // Second button byte.
 		},
 		{
 			name:   "DualSense full corrupted crc",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
-			report: corruptByte(dualSenseFull, gamepad.DualSenseInputReportSizeBT-1),
+			report: corruptByte(dualSenseFull, sonyhid.DualSenseInputReportSizeBT-1),
 		},
 		// The CRC covers the report, not the host's padding.
 		{
 			name:   "ds4 full padded corrupted",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: append(corruptByte(ds4Full, 3), make([]byte, 400)...),
 		},
 		{
 			name:   "ds4 full no crc",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
-			report: inputReport(0x11, gamepad.DualShock4InputReportSizeBT, 3, ds4LayoutPayload),
+			report: inputReport(0x11, sonyhid.DualShock4InputReportSizeBT, 3, ds4LayoutPayload),
 		},
 		{
 			name:   "DualSense full no crc",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
-			report: inputReport(0x31, gamepad.DualSenseInputReportSizeBT, 2, dualSenseLayoutPayload),
+			report: inputReport(0x31, sonyhid.DualSenseInputReportSizeBT, 2, dualSenseLayoutPayload),
 		},
 		// A DualShock 4 full report carries controller state only when its
 		// HID-data-present flag is set.
 		{
 			name:   "ds4 full no hid data",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: ds4FullNoData,
 		},
@@ -565,10 +565,10 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		// over Bluetooth; the transport selects the layout.
 		{
 			name:   "DualSense usb report over bt",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: dualSenseUSB,
-			want: gamepad.SonyInputState{
+			want: sonyhid.InputState{
 				LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
 				L2: 0x83, R2: 0xc8,
 				Hat:     0,
@@ -580,84 +580,84 @@ func TestSonyInputStateFromReport(t *testing.T) {
 		// kinds are not state reports.
 		{
 			name:   "ds4 gets DualSense full",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: dualSenseFull,
 		},
 		{
 			name:   "DualSense gets ds4 full",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: ds4Full,
 		},
 		{
 			name:   "ds4 full over usb",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			report: ds4Full,
 		},
 		{
 			name:   "DualSense full over usb",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			report: dualSenseFull,
 		},
 		{
 			name:   "simple over usb",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			report: simple,
 		},
 		{
 			name:   "unknown model usb",
-			model:  gamepad.SonyModelNone,
+			model:  sonyhid.ModelNone,
 			report: ds4USB,
 		},
 		{
 			name:   "unknown model bt",
-			model:  gamepad.SonyModelNone,
+			model:  sonyhid.ModelNone,
 			bt:     true,
 			report: simple,
 		},
 		{
 			name:   "other report id",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
-			report: inputReport(0x12, gamepad.DualShock4InputReportSizeBT, 3, ds4LayoutPayload),
+			report: inputReport(0x12, sonyhid.DualShock4InputReportSizeBT, 3, ds4LayoutPayload),
 		},
 		{
 			name:   "empty",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			report: nil,
 		},
 		{
 			name:   "ds4 usb short",
-			model:  gamepad.SonyModelDualShock4,
-			report: ds4USB[:gamepad.DualShock4InputReportSizeUSB-1],
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USB[:sonyhid.DualShock4InputReportSizeUSB-1],
 		},
 		{
 			name:   "DualSense usb short",
-			model:  gamepad.SonyModelDualSense,
-			report: dualSenseUSB[:gamepad.DualSenseInputReportSizeUSB-1],
+			model:  sonyhid.ModelDualSense,
+			report: dualSenseUSB[:sonyhid.DualSenseInputReportSizeUSB-1],
 		},
 		{
 			name:   "simple short",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
-			report: simple[:gamepad.SonySimpleInputReportSizeBT-1],
+			report: simple[:sonyhid.SimpleInputReportSizeBT-1],
 		},
 		{
 			name:   "ds4 full short",
-			model:  gamepad.SonyModelDualShock4,
+			model:  sonyhid.ModelDualShock4,
 			bt:     true,
-			report: ds4Full[:gamepad.DualShock4InputReportSizeBT-1],
+			report: ds4Full[:sonyhid.DualShock4InputReportSizeBT-1],
 		},
 		{
 			name:   "DualSense full short",
-			model:  gamepad.SonyModelDualSense,
+			model:  sonyhid.ModelDualSense,
 			bt:     true,
-			report: dualSenseFull[:gamepad.DualSenseInputReportSizeBT-1],
+			report: dualSenseFull[:sonyhid.DualSenseInputReportSizeBT-1],
 		},
 	}
 	for _, tt := range tests {
-		got, ok := gamepad.SonyInputStateFromReport(tt.model, tt.bt, tt.report)
+		got, ok := sonyhid.InputStateFromReport(tt.model, tt.bt, tt.report)
 		if ok != tt.wantOK {
 			t.Errorf("%s: ok = %t, want %t", tt.name, ok, tt.wantOK)
 			continue
@@ -668,11 +668,11 @@ func TestSonyInputStateFromReport(t *testing.T) {
 	}
 }
 
-func TestSonyInputStateFromReportHat(t *testing.T) {
-	for hat := byte(0); hat < 16; hat++ {
+func TestInputStateFromReportHat(t *testing.T) {
+	for hat := range byte(16) {
 		payload := append([]byte{}, ds4LayoutPayload...)
 		payload[4] = hat | 0xf0
-		got, ok := gamepad.SonyInputStateFromReport(gamepad.SonyModelDualShock4, false, inputReport(0x01, gamepad.DualShock4InputReportSizeUSB, 1, payload))
+		got, ok := sonyhid.InputStateFromReport(sonyhid.ModelDualShock4, false, inputReport(0x01, sonyhid.DualShock4InputReportSizeUSB, 1, payload))
 		if !ok {
 			t.Fatalf("hat %d: not ok", hat)
 		}

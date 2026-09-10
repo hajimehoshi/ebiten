@@ -16,6 +16,8 @@ package gamepad
 
 import (
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad/sonyhid"
 )
 
 // rumbler drives the vibration motors of one gamepad. Rumble on Windows goes
@@ -23,7 +25,7 @@ import (
 // assigned the rumbler for its family when the device is detected:
 //
 //   - XInput devices: xinputRumbler
-//   - PlayStation controllers: sonyDevice
+//   - PlayStation controllers: sonyRumbler
 //   - other DirectInput devices: noRumbler
 type rumbler interface {
 	// vibrate starts vibrating the motors for the duration, or stops them
@@ -88,4 +90,21 @@ func (x *xinputRumbler) stop() {
 }
 
 func (x *xinputRumbler) close() {
+}
+
+// sonyRumbler adapts a PlayStation HID device to the gamepad rumble interface.
+type sonyRumbler struct {
+	device *sonyhid.Device
+}
+
+func (s *sonyRumbler) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	s.device.Vibrate(duration, strongMagnitude, weakMagnitude)
+}
+
+func (s *sonyRumbler) update() {
+	s.device.Update()
+}
+
+func (s *sonyRumbler) close() {
+	s.device.Close()
 }

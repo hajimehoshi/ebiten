@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gamepad
+package sonyhid
 
-type SonyModel = sonyModel
+type Model = model
 
 const (
-	SonyModelNone       = sonyModelNone
-	SonyModelDualShock4 = sonyModelDualShock4
-	SonyModelDualSense  = sonyModelDualSense
+	ModelNone       = modelNone
+	ModelDualShock4 = modelDualShock4
+	ModelDualSense  = modelDualSense
 )
 
 const (
@@ -29,35 +29,20 @@ const (
 	DualSenseOutputReportSizeBT   = dualSenseOutputReportSizeBT
 	DualShock4InputReportSizeUSB  = dualShock4InputReportSizeUSB
 	DualSenseInputReportSizeUSB   = dualSenseInputReportSizeUSB
-	SonySimpleInputReportSizeBT   = sonySimpleInputReportSizeBT
+	SimpleInputReportSizeBT       = simpleInputReportSizeBT
 	DualShock4InputReportSizeBT   = dualShock4InputReportSizeBT
 	DualSenseInputReportSizeBT    = dualSenseInputReportSizeBT
 )
 
-type SonyInputState struct {
-	LX, LY, RX, RY byte
-	L2, R2         byte
-	Hat            byte
-	Buttons        uint16
-}
-
-func SonyInputStateFromReport(model sonyModel, bt bool, report []byte) (SonyInputState, bool) {
-	s, ok := sonyInputStateFromReport(model, bt, report)
-	return SonyInputState{
-		LX: s.lx, LY: s.ly, RX: s.rx, RY: s.ry,
-		L2: s.l2, R2: s.r2,
-		Hat:     s.hat,
-		Buttons: s.buttons,
-	}, ok
-}
+var InputStateFromReport = inputStateFromReport
 
 var (
-	SonyModelFromIDs              = sonyModelFromIDs
+	ModelFromIDs                  = modelFromIDs
 	BluetoothFromDeviceInstanceID = bluetoothFromDeviceInstanceID
-	SonyOutputReportSize          = sonyOutputReportSize
-	SonyInputReportSize           = sonyInputReportSize
-	SonyRumbleByte                = sonyRumbleByte
-	SonyBTCRC                     = sonyBTCRC
+	OutputReportSize              = outputReportSize
+	InputReportSize               = inputReportSize
+	RumbleByte                    = rumbleByte
+	BTCRC                         = btCRC
 	DualShock4RumbleReportUSB     = dualShock4RumbleReportUSB
 	DualShock4RumbleReportBT      = dualShock4RumbleReportBT
 	DualSenseRumbleReportUSB      = dualSenseRumbleReportUSB

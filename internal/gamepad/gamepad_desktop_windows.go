@@ -26,6 +26,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad/sonyhid"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
@@ -365,7 +366,7 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 	name := windows.UTF16ToString(lpddi.tszInstanceName[:])
 	var sdlID string
 	var rumble rumbler = noRumbler{}
-	var sonyInput *sonyDevice
+	var sonyInput *sonyhid.Device
 	if string(lpddi.guidProduct.Data4[2:8]) == "PIDVID" {
 		// This seems different from the current SDL implementation.
 		// Probably guidProduct includes the vendor and the product information, but this works.
@@ -375,8 +376,8 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 			byte(lpddi.guidProduct.Data1>>8),
 			byte(lpddi.guidProduct.Data1>>16),
 			byte(lpddi.guidProduct.Data1>>24))
-		if sony := openSonyDevice(dinputPath, uint16(lpddi.guidProduct.Data1), uint16(lpddi.guidProduct.Data1>>16)); sony != nil {
-			rumble = sony
+		if sony := sonyhid.Open(dinputPath, uint16(lpddi.guidProduct.Data1), uint16(lpddi.guidProduct.Data1>>16)); sony != nil {
+			rumble = &sonyRumbler{device: sony}
 			sonyInput = sony
 		}
 	} else {
@@ -574,8 +575,8 @@ type nativeGamepadDesktop struct {
 	// sonyInput supplies the input of a PlayStation controller in place of the
 	// DirectInput state, which stops updating over Bluetooth once rumble is
 	// used. It is nil for every other device. The DirectInput device is still
-	// polled to detect disconnection. See sonyDevice.
-	sonyInput *sonyDevice
+	// polled to detect disconnection. See sonyhid.Device.
+	sonyInput *sonyhid.Device
 
 	rumble rumbler
 }
@@ -646,11 +647,11 @@ func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
 		}
 
 		if g.sonyInput != nil {
-			if !g.sonyInput.updateInput() {
+			if !g.sonyInput.UpdateInput() {
 				disconnected = true
 				return nil
 			}
-			g.applySonyInputState(g.sonyInput.input)
+			g.applySonyInputState(g.sonyInput.Input())
 		} else {
 			g.applyDInputState(&state)
 		}
@@ -743,10 +744,10 @@ func (g *nativeGamepadDesktop) applyDInputState(state *_DIJOYSTATE) {
 // DirectInput state for the same controller state.
 //
 // The controllers declare the sticks as the X, Y, Z, and Rz axes, the triggers
-// as Rx and Ry, one hat, and the buttons in sonyInputState's numbering.
+// as Rx and Ry, one hat, and the buttons in sonyhid.InputState's numbering.
 // DirectInput maps the 8-bit values onto the range set in
 // dinputDevice8EnumObjectsCallback, and the same scaling is applied here.
-func (g *nativeGamepadDesktop) applySonyInputState(state sonyInputState) {
+func (g *nativeGamepadDesktop) applySonyInputState(state sonyhid.InputState) {
 	var ai, bi, hi int
 	for _, obj := range g.dinputObjects {
 		switch obj.objectType {
@@ -754,17 +755,17 @@ func (g *nativeGamepadDesktop) applySonyInputState(state sonyInputState) {
 			var v byte
 			switch obj.index {
 			case 0:
-				v = state.lx
+				v = state.LX
 			case 1:
-				v = state.ly
+				v = state.LY
 			case 2:
-				v = state.rx
+				v = state.RX
 			case 3:
-				v = state.l2
+				v = state.L2
 			case 4:
-				v = state.r2
+				v = state.R2
 			case 5:
-				v = state.ry
+				v = state.RY
 			}
 			g.dinputAxes[ai] = float64(v)/127.5 - 1
 			ai++
@@ -773,13 +774,13 @@ func (g *nativeGamepadDesktop) applySonyInputState(state sonyInputState) {
 			// value.
 			ai++
 		case dinputObjectTypeButton:
-			g.dinputButtons[bi] = obj.index < 16 && state.buttons&(1<<obj.index) != 0
+			g.dinputButtons[bi] = obj.index < 16 && state.Buttons&(1<<obj.index) != 0
 			bi++
 		case dinputObjectTypePOV:
 			// The controllers have one hat.
 			v := hatCentered
 			if obj.index == 0 {
-				v = hatFromDirectionIndex(uint32(state.hat))
+				v = hatFromDirectionIndex(uint32(state.Hat))
 			}
 			g.dinputHats[hi] = v
 			hi++
