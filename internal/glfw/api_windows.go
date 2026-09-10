@@ -806,6 +806,7 @@ var (
 	procFlashWindow                   = user32.NewProc("FlashWindow")
 	procGetActiveWindow               = user32.NewProc("GetActiveWindow")
 	procGetClassLongPtrW              = user32.NewProc("GetClassLongPtrW")
+	procGetClassLongW                 = user32.NewProc("GetClassLongW")
 	procGetClientRect                 = user32.NewProc("GetClientRect")
 	procGetCursorPos                  = user32.NewProc("GetCursorPos")
 	procGetDC                         = user32.NewProc("GetDC")
@@ -1250,10 +1251,18 @@ func _GetActiveWindow() windows.HWND {
 
 func _GetClassLongPtrW(hWnd windows.HWND, nIndex int32) (uintptr, error) {
 	r, _, e := procGetClassLongPtrW.Call(uintptr(hWnd), uintptr(nIndex))
-	if r == 0 {
+	if r == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return 0, fmt.Errorf("glfw: GetClassLongPtrW failed: %w", e)
 	}
 	return r, nil
+}
+
+func _GetClassLongW(hWnd windows.HWND, nIndex int32) (uint32, error) {
+	r, _, e := procGetClassLongW.Call(uintptr(hWnd), uintptr(nIndex))
+	if uint32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
+		return 0, fmt.Errorf("glfw: GetClassLongW failed: %w", e)
+	}
+	return uint32(r), nil
 }
 
 func _GetClientRect(hWnd windows.HWND) (_RECT, error) {

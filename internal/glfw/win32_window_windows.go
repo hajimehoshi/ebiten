@@ -11,6 +11,7 @@ import (
 	"image"
 	"log/slog"
 	"math"
+	"math/bits"
 	"runtime"
 	"unsafe"
 
@@ -1621,6 +1622,24 @@ func (w *Window) platformSetWindowTitle(title string) error {
 	return _SetWindowTextW(w.platform.handle, title)
 }
 
+// classIcon returns the icon handle stored in the window class of hWnd at nIndex, or 0 when the
+// class has no such icon.
+func classIcon(hWnd windows.HWND, nIndex int32) (_HICON, error) {
+	// GetClassLongPtrW is not exported on 32-bit Windows, where it is a macro for GetClassLongW.
+	if bits.UintSize == 64 {
+		i, err := _GetClassLongPtrW(hWnd, nIndex)
+		if err != nil {
+			return 0, err
+		}
+		return _HICON(i), nil
+	}
+	i, err := _GetClassLongW(hWnd, nIndex)
+	if err != nil {
+		return 0, err
+	}
+	return _HICON(i), nil
+}
+
 func (w *Window) platformSetWindowIcon(images []*Image) error {
 	var bigIcon, smallIcon _HICON
 
@@ -1655,16 +1674,18 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 			return err
 		}
 	} else {
-		i, err := _GetClassLongPtrW(w.platform.handle, _GCLP_HICON)
+		// A class icon can be 0, e.g. when the class sets no small icon. A 0 handle is valid
+		// for WM_SETICON and leaves the class icon in place.
+		i, err := classIcon(w.platform.handle, _GCLP_HICON)
 		if err != nil {
 			return err
 		}
-		bigIcon = _HICON(i)
-		i, err = _GetClassLongPtrW(w.platform.handle, _GCLP_HICONSM)
+		bigIcon = i
+		i, err = classIcon(w.platform.handle, _GCLP_HICONSM)
 		if err != nil {
 			return err
 		}
-		smallIcon = _HICON(i)
+		smallIcon = i
 	}
 
 	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_BIG, _LPARAM(bigIcon))
