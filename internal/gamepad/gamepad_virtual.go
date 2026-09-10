@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // VirtualGamepadState is the externally supplied state of one virtual gamepad. The raw axes and
@@ -263,8 +264,8 @@ func (g *nativeGamepadVirtual) vibrate(duration time.Duration, strongMagnitude f
 	// lock is held by Gamepad.Vibrate, the same lock AppendVirtualGamepadVibrations takes to drain.
 	g.vibration = virtualVibration{
 		duration:        duration,
-		strongMagnitude: strongMagnitude,
-		weakMagnitude:   weakMagnitude,
+		strongMagnitude: mathutil.Clamp01(strongMagnitude),
+		weakMagnitude:   mathutil.Clamp01(weakMagnitude),
 	}
 	g.vibrationPending = true
 }

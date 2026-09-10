@@ -28,6 +28,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 const dirName = "/dev/input"
@@ -674,6 +675,9 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 	if !g.supportsRumble || g.fdPlus1 == 0 {
 		return
 	}
+
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
 
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		g.writeFFEvent(0)

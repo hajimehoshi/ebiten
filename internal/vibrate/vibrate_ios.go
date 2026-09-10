@@ -113,9 +113,12 @@ import "C"
 
 import (
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 func vibrate(duration time.Duration, magnitude float64) {
+	magnitude = mathutil.Clamp01(magnitude)
 	go func() {
 		C.vibrate(C.double(float64(duration)/float64(time.Second)), C.double(magnitude))
 	}()

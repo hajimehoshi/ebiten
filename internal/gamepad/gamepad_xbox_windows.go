@@ -23,6 +23,7 @@ import (
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 func standardButtonToGamepadInputGamepadButton(b gamepaddb.StandardButton) (_GameInputGamepadButtons, bool) {
@@ -272,6 +273,9 @@ func (n *nativeGamepadXbox) hatState(hat int) int {
 }
 
 func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		n.vib = false
 		n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{

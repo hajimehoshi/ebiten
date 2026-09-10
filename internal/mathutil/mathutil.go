@@ -12,8 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mathutil provides integer arithmetic helpers.
+// Package mathutil provides arithmetic helpers.
 package mathutil
+
+// Clamp01 returns x clamped to the range 0 to 1. NaN is treated as 0.
+func Clamp01(x float64) float64 {
+	// A NaN value fails both of the comparisons below and results in 0.
+	if !(x > 0) {
+		return 0
+	}
+	if x > 1 {
+		return 1
+	}
+	return x
+}
 
 // MulDiv returns x * mul / div, avoiding the overflow of the intermediate x * mul.
 // mul * div must fit in int64.

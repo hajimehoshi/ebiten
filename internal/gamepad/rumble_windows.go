@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad/sonyhid"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // rumbler drives the vibration motors of one gamepad. Rumble on Windows goes
@@ -65,6 +66,9 @@ type xinputRumbler struct {
 }
 
 func (x *xinputRumbler) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		x.stop()
 		return

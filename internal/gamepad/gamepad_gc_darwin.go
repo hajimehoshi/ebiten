@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // gcControllerToAdd is a controller waiting to be registered, along with the properties read from it
@@ -153,6 +154,9 @@ func (g *nativeGamepadGC) hatState(hat int) int {
 }
 
 func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		g.vibEnd = time.Time{}
 		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)

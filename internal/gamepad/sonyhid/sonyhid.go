@@ -18,6 +18,8 @@ import (
 	"encoding/binary"
 	"hash/crc32"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 type model int
@@ -125,16 +127,11 @@ func outputReportSize(model model, bt bool) int {
 }
 
 // rumbleByte converts a magnitude in the range 0 to 1 to a motor value.
-// Out-of-range values are clamped, and NaN is treated as 0, since converting
-// such values to an integer is implementation-defined.
+// Out-of-range values are clamped and NaN is treated as 0.
 func rumbleByte(magnitude float64) byte {
-	if !(magnitude > 0) {
-		return 0
-	}
-	if magnitude > 1 {
-		return 0xff
-	}
-	return byte(magnitude * 0xff)
+	// Converting an out-of-range or NaN value to an integer is implementation-defined,
+	// so such values must be rejected before the conversion.
+	return byte(mathutil.Clamp01(magnitude) * 0xff)
 }
 
 var crcTable = crc32.MakeTable(crc32.IEEE)

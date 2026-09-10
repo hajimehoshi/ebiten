@@ -21,6 +21,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/windows"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // Device is the HID device of a PlayStation controller.
@@ -212,6 +214,9 @@ func Open(path string, vid, pid uint16) *Device {
 
 // Vibrate runs the motors for the duration with magnitudes clamped to 0 to 1.
 func (s *Device) Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		s.stop()
 		return

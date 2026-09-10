@@ -22,6 +22,51 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
+func TestClamp01(t *testing.T) {
+	cases := []struct {
+		in   float64
+		want float64
+	}{
+		{
+			in:   math.NaN(),
+			want: 0,
+		},
+		{
+			in:   math.Inf(-1),
+			want: 0,
+		},
+		{
+			in:   -1,
+			want: 0,
+		},
+		{
+			in:   0,
+			want: 0,
+		},
+		{
+			in:   0.5,
+			want: 0.5,
+		},
+		{
+			in:   1,
+			want: 1,
+		},
+		{
+			in:   2,
+			want: 1,
+		},
+		{
+			in:   math.Inf(1),
+			want: 1,
+		},
+	}
+	for _, c := range cases {
+		if got := mathutil.Clamp01(c.in); got != c.want {
+			t.Errorf("mathutil.Clamp01(%v): got: %v, want: %v", c.in, got, c.want)
+		}
+	}
+}
+
 func TestMulDiv(t *testing.T) {
 	cases := []struct {
 		x   int64

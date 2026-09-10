@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 type nativeGamepadsImpl struct {
@@ -173,5 +174,8 @@ func (*nativeGamepadImpl) hatState(hat int) int {
 }
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+
 	C.ebitengine_VibrateGamepad(C.int(g.id), C.double(float64(duration)/float64(time.Second)), C.double(strongMagnitude), C.double(weakMagnitude))
 }
