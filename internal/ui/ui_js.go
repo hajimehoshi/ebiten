@@ -771,7 +771,20 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":
-			entries = append(entries, items.Index(i).Call("webkitGetAsEntry").Get("filesystem").Get("root"))
+			// webkitGetAsEntry can return null even for a "file" item, depending on the drag source.
+			entry := items.Index(i).Call("webkitGetAsEntry")
+			if !entry.Truthy() {
+				continue
+			}
+			filesystem := entry.Get("filesystem")
+			if !filesystem.Truthy() {
+				continue
+			}
+			root := filesystem.Get("root")
+			if !root.Truthy() {
+				continue
+			}
+			entries = append(entries, root)
 		}
 	}
 	if len(entries) > 0 {
