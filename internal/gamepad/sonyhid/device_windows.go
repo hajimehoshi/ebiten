@@ -43,8 +43,14 @@ type Device struct {
 	// report's length; the padding beyond the report stays zero. While a
 	// write is pending the kernel owns the buffer, and it must not be
 	// modified until the write completes.
-	wbuf     []byte
-	wov      windows.Overlapped
+	wbuf []byte
+	wov  windows.Overlapped
+	// wdone receives the write's immediate byte count, which is meaningless for
+	// an overlapped operation and is never read. It must not be a local: the
+	// system may store through it after the call returns. A nil pointer is not
+	// an option, as golang.org/x/sys/windows dereferences it under the race
+	// detector.
+	wdone    uint32
 	wpending bool
 
 	// nextStrong and nextWeak hold the last motor state requested while a
@@ -59,8 +65,10 @@ type Device struct {
 	// rbuf is the reused ReadFile buffer. Its length is the device's maximum
 	// input report length, which ReadFile requires. The kernel owns it while
 	// a read is pending.
-	rbuf     []byte
-	rov      windows.Overlapped
+	rbuf []byte
+	rov  windows.Overlapped
+	// rdone is the read's counterpart to wdone.
+	rdone    uint32
 	rpending bool
 
 	// input is the state decoded from the newest input report. inputLost is
@@ -293,8 +301,7 @@ func (s *Device) issueWrite(strong, weak byte) {
 	}
 
 	copy(s.wbuf, report)
-	var written uint32
-	if err := windows.WriteFile(s.handle, s.wbuf, &written, &s.wov); errors.Is(err, windows.ERROR_IO_PENDING) {
+	if err := windows.WriteFile(s.handle, s.wbuf, &s.wdone, &s.wov); errors.Is(err, windows.ERROR_IO_PENDING) {
 		s.wpending = true
 	}
 	// Any other write error means no rumble; there is nothing to report to
@@ -308,8 +315,7 @@ func (s *Device) UpdateInput() bool {
 	}
 	for range maxInputReportsPerUpdate {
 		if !s.rpending {
-			var n uint32
-			if err := windows.ReadFile(s.handle, s.rbuf, &n, &s.rov); err != nil && !errors.Is(err, windows.ERROR_IO_PENDING) {
+			if err := windows.ReadFile(s.handle, s.rbuf, &s.rdone, &s.rov); err != nil && !errors.Is(err, windows.ERROR_IO_PENDING) {
 				s.inputLost = true
 				return false
 			}
