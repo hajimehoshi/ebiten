@@ -135,7 +135,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	addAttrib(0)
 
 	// Create the pixel format.
-	pixelFormat := objc.ID(class_NSOpenGLPixelFormat).Send(sel_alloc).Send(sel_initWithAttributes, uintptr(unsafe.Pointer(&attribs[0])))
+	pixelFormat := objc.ID(class_NSOpenGLPixelFormat).Send(sel_alloc).Send(sel_initWithAttributes, unsafe.Pointer(&attribs[0]))
 	if pixelFormat == 0 {
 		return fmt.Errorf("glfw: NSGL: failed to find a suitable pixel format: %w", FormatUnavailable)
 	}
@@ -158,7 +158,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	// Set surface opacity for transparent windows.
 	if fbconfig_.transparent {
 		var opacity int32 = 0
-		context.Send(sel_setValues_forParameter, uintptr(unsafe.Pointer(&opacity)), uintptr(NSOpenGLCPSurfaceOpacity))
+		context.Send(sel_setValues_forParameter, unsafe.Pointer(&opacity), uintptr(NSOpenGLCPSurfaceOpacity))
 	}
 
 	// Set retina support. Always call this to explicitly enable or disable.
@@ -199,7 +199,7 @@ func swapBuffersNSGL(window *Window) error {
 	// windows with a non-visible occlusion state.
 	if window.platform.occluded {
 		var interval int32
-		window.context.platform.object.Send(sel_getValues_forParameter, uintptr(unsafe.Pointer(&interval)), uintptr(NSOpenGLCPSwapInterval))
+		window.context.platform.object.Send(sel_getValues_forParameter, unsafe.Pointer(&interval), uintptr(NSOpenGLCPSwapInterval))
 		if interval > 0 {
 			const framerate = 60.0
 			elapsed := float64(time.Now().UnixNano()) / float64(time.Second)
@@ -219,7 +219,7 @@ func swapIntervalNSGL(window *Window, interval int) error {
 	defer pool.Release()
 
 	value := int32(interval)
-	window.context.platform.object.Send(sel_setValues_forParameter, uintptr(unsafe.Pointer(&value)), uintptr(NSOpenGLCPSwapInterval))
+	window.context.platform.object.Send(sel_setValues_forParameter, unsafe.Pointer(&value), uintptr(NSOpenGLCPSwapInterval))
 	return nil
 }
 
