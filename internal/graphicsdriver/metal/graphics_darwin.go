@@ -311,7 +311,6 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 		} else {
 			g.view.presentDrawable(g.cb, g.screenDrawable)
 		}
-		g.screenDrawable = ca.MetalDrawable{}
 		presented = true
 	}
 
@@ -329,6 +328,8 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 	g.cb = mtl.CommandBuffer{}
 
 	if presented {
+		g.screenDrawable.Release()
+		g.screenDrawable = ca.MetalDrawable{}
 		g.view.finishDrawableUsage()
 	}
 }
@@ -830,6 +831,8 @@ func (i *Image) mtlTexture() mtl.Texture {
 			if drawable == (ca.MetalDrawable{}) {
 				return mtl.Texture{}
 			}
+			// Keep the drawable alive across flushes that drain the autorelease pool without presenting (#3704).
+			drawable.Retain()
 			g.screenDrawable = drawable
 			// After nextDrawable, it is expected some command buffers are completed.
 			g.gcBuffers()
