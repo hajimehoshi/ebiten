@@ -23,3 +23,11 @@ const (
 	FFEffectUnionOffset  = unsafe.Offsetof(ff_effect{}.u)
 	FFEffectRumbleOffset = unsafe.Offsetof(ff_effect{}.u) + unsafe.Offsetof(ff_effect_union{}.rumble)
 )
+
+const DirName = dirName
+
+// InitNativeGamepadsForTest initializes the device-polling backend, as the first [Update] does.
+func InitNativeGamepadsForTest() error {
+	var gs gamepads
+	return newNativeGamepadsImpl().init(&gs)
+}
