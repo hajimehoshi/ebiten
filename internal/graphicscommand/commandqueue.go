@@ -114,8 +114,6 @@ type commandQueue struct {
 
 	uint32sBuffer uint32sBuffer
 	finalizers    []func()
-
-	err atomic.Value
 }
 
 // addFinalizer adds a finalizer function to this queue.
@@ -218,11 +216,9 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
-	if err := q.err.Load(); err != nil {
-		return err.(error)
-	}
-
+//
+// An error at an asynchronous flush is reported to manager instead of being returned.
+func (q *commandQueue) Flush(manager *commandQueueManager, graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
 	var sync bool
 	// Disable asynchronous rendering when vsync is on, as this causes a rendering delay (#2822).
 	if mode == graphicsdriver.FlushModePresent && isVsyncEnabled() {
@@ -250,11 +246,12 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 				flushErr = err
 				return
 			}
-			q.err.Store(err)
+			// The queue is not returned to the pool, as an error stops any further flush.
+			manager.setError(err)
 			return
 		}
 
-		theCommandQueueManager.putCommandQueue(q)
+		manager.putCommandQueue(q)
 	}, sync)
 
 	if sync && flushErr != nil {
@@ -494,24 +491,18 @@ type commandQueuePool struct {
 	m     sync.Mutex
 }
 
-func (c *commandQueuePool) get() (*commandQueue, error) {
+func (c *commandQueuePool) get() *commandQueue {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	if len(c.cache) == 0 {
-		return &commandQueue{}, nil
-	}
-
-	for _, q := range c.cache {
-		if err := q.err.Load(); err != nil {
-			return nil, err.(error)
-		}
+		return &commandQueue{}
 	}
 
 	q := c.cache[len(c.cache)-1]
 	c.cache[len(c.cache)-1] = nil
 	c.cache = c.cache[:len(c.cache)-1]
-	return q, nil
+	return q
 }
 
 func (c *commandQueuePool) put(queue *commandQueue) {
@@ -524,13 +515,39 @@ func (c *commandQueuePool) put(queue *commandQueue) {
 type commandQueueManager struct {
 	pool    commandQueuePool
 	current *commandQueue
+
+	err atomic.Pointer[error]
 }
 
 var theCommandQueueManager commandQueueManager
 
+// error returns the error at an asynchronous flush if it exists.
+func (c *commandQueueManager) error() error {
+	if err := c.err.Load(); err != nil {
+		return *err
+	}
+	return nil
+}
+
+// setError records the error at an asynchronous flush.
+//
+// setError can be called from any goroutines.
+func (c *commandQueueManager) setError(err error) {
+	for {
+		oldErr := c.err.Load()
+		newErr := err
+		if oldErr != nil {
+			newErr = errors.Join(*oldErr, err)
+		}
+		if c.err.CompareAndSwap(oldErr, &newErr) {
+			return
+		}
+	}
+}
+
 func (c *commandQueueManager) enqueueCommand(command command) {
 	if c.current == nil {
-		c.current, _ = c.pool.get()
+		c.current = c.pool.get()
 	}
 	c.current.Enqueue(command)
 }
@@ -542,24 +559,31 @@ func (c *commandQueueManager) putCommandQueue(commandQueue *commandQueue) {
 
 func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
 	if c.current == nil {
-		c.current, _ = c.pool.get()
+		c.current = c.pool.get()
 	}
 	c.current.EnqueueDrawTrianglesCommand(dst, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms)
 }
 
 func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
-	// Switch the command queue.
-	prev := c.current
-	q, err := c.pool.get()
-	if err != nil {
+	// An error at an earlier flush stops any further work.
+	if err := c.error(); err != nil {
 		return err
 	}
-	c.current = q
+
+	// Switch the command queue.
+	prev := c.current
+	c.current = c.pool.get()
 
 	if prev == nil {
 		return nil
 	}
-	if err := prev.Flush(graphicsDriver, mode); err != nil {
+	if err := prev.Flush(c, graphicsDriver, mode); err != nil {
+		return err
+	}
+
+	// A flush is queued on the render thread after the previous asynchronous flush has finished,
+	// and thus the error of the previous flush is available here.
+	if err := c.error(); err != nil {
 		return err
 	}
 	return nil

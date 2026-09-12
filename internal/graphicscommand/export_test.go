@@ -49,3 +49,15 @@ func (q *commandQueue) AllocUniformsForTesting(n int) {
 func (q *commandQueue) PendingResourcesForTesting() (uniforms, finalizers int) {
 	return len(q.uint32sBuffer.buf), len(q.finalizers)
 }
+
+type CommandForTesting = command
+
+type CommandQueueManagerForTesting = commandQueueManager
+
+func (c *commandQueueManager) EnqueueCommandForTesting(command CommandForTesting) {
+	c.enqueueCommand(command)
+}
+
+func (c *commandQueueManager) FlushForTesting(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
+	return c.flush(graphicsDriver, mode)
+}
