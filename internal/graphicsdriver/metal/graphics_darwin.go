@@ -76,15 +76,6 @@ type Graphics struct {
 	pool cocoa.NSAutoreleasePool
 }
 
-type stencilMode int
-
-const (
-	noStencil stencilMode = iota
-	incrementStencil
-	invertStencil
-	drawWithStencil
-)
-
 var (
 	systemDefaultDevice    mtl.Device
 	systemDefaultDeviceErr error
@@ -499,9 +490,8 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		g.flushCommandBufferIfNeeded(false)
 	}
 
-	// When preparing a stencil buffer, flush the current render command encoder
-	// to make sure the stencil buffer is cleared when loading.
-	// TODO: What about clearing the stencil buffer by vertices?
+	// A render command encoder is bound to the render pass's destination texture,
+	// so switching the destination requires a new encoder.
 	if g.lastDst != dst {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
@@ -696,7 +686,6 @@ type Image struct {
 	height   int
 	screen   bool
 	texture  mtl.Texture
-	stencil  mtl.Texture
 }
 
 func (i *Image) ID() graphicsdriver.ImageID {
@@ -711,10 +700,6 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
-	if i.stencil != (mtl.Texture{}) {
-		i.stencil.Release()
-		i.stencil = mtl.Texture{}
-	}
 	if i.texture != (mtl.Texture{}) {
 		i.texture.Release()
 		i.texture = mtl.Texture{}
@@ -843,27 +828,6 @@ func (i *Image) mtlTexture() mtl.Texture {
 		return g.screenDrawable.Texture()
 	}
 	return i.texture
-}
-
-func (i *Image) ensureStencil() error {
-	if i.stencil != (mtl.Texture{}) {
-		return nil
-	}
-
-	td := mtl.TextureDescriptor{
-		TextureType: mtl.TextureType2D,
-		PixelFormat: mtl.PixelFormatStencil8,
-		Width:       graphics.InternalImageSize(i.width),
-		Height:      graphics.InternalImageSize(i.height),
-		StorageMode: mtl.StorageModePrivate,
-		Usage:       mtl.TextureUsageRenderTarget,
-	}
-	t, err := i.graphics.view.getMTLDevice().NewTextureWithDescriptor(td)
-	if err != nil {
-		return fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
-	}
-	i.stencil = t
-	return nil
 }
 
 // adjustUniformVariablesLayout returns adjusted uniform variables to match the Metal's memory layout.

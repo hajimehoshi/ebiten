@@ -319,32 +319,6 @@ const (
 	ColorWriteMaskAll   ColorWriteMask = 0xf
 )
 
-type StencilOperation uint8
-
-const (
-	StencilOperationKeep           StencilOperation = 0
-	StencilOperationZero           StencilOperation = 1
-	StencilOperationReplace        StencilOperation = 2
-	StencilOperationIncrementClamp StencilOperation = 3
-	StencilOperationDecrementClamp StencilOperation = 4
-	StencilOperationInvert         StencilOperation = 5
-	StencilOperationIncrementWrap  StencilOperation = 6
-	StencilOperationDecrementWrap  StencilOperation = 7
-)
-
-type CompareFunction uint8
-
-const (
-	CompareFunctionNever        CompareFunction = 0
-	CompareFunctionLess         CompareFunction = 1
-	CompareFunctionEqual        CompareFunction = 2
-	CompareFunctionLessEqual    CompareFunction = 3
-	CompareFunctionGreater      CompareFunction = 4
-	CompareFunctionNotEqual     CompareFunction = 5
-	CompareFunctionGreaterEqual CompareFunction = 6
-	CompareFunctionAlways       CompareFunction = 7
-)
-
 type CommandBufferStatus uint8
 
 const (
@@ -481,7 +455,6 @@ type Device struct {
 var (
 	class_MTLRenderPipelineDescriptor = objc.GetClass("MTLRenderPipelineDescriptor")
 	class_MTLTextureDescriptor        = objc.GetClass("MTLTextureDescriptor")
-	class_MTLDepthStencilDescriptor   = objc.GetClass("MTLDepthStencilDescriptor")
 	class_MTLRenderPassDescriptor     = objc.GetClass("MTLRenderPassDescriptor")
 )
 
@@ -548,20 +521,12 @@ var (
 	sel_setFragmentBytes_length_atIndex                                                                                               = objc.RegisterName("setFragmentBytes:length:atIndex:")
 	sel_setFragmentTexture_atIndex                                                                                                    = objc.RegisterName("setFragmentTexture:atIndex:")
 	sel_setBlendColorRed_green_blue_alpha                                                                                             = objc.RegisterName("setBlendColorRed:green:blue:alpha:")
-	sel_setDepthStencilState                                                                                                          = objc.RegisterName("setDepthStencilState:")
 	sel_drawPrimitives_vertexStart_vertexCount                                                                                        = objc.RegisterName("drawPrimitives:vertexStart:vertexCount:")
 	sel_drawIndexedPrimitives_indexCount_indexType_indexBuffer_indexBufferOffset                                                      = objc.RegisterName("drawIndexedPrimitives:indexCount:indexType:indexBuffer:indexBufferOffset:")
 	sel_synchronizeResource                                                                                                           = objc.RegisterName("synchronizeResource:")
 	sel_synchronizeTexture_slice_level                                                                                                = objc.RegisterName("synchronizeTexture:slice:level:")
 	sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin = objc.RegisterName("copyFromTexture:sourceSlice:sourceLevel:sourceOrigin:sourceSize:toTexture:destinationSlice:destinationLevel:destinationOrigin:")
 	sel_newFunctionWithName                                                                                                           = objc.RegisterName("newFunctionWithName:")
-	sel_backFaceStencil                                                                                                               = objc.RegisterName("backFaceStencil")
-	sel_frontFaceStencil                                                                                                              = objc.RegisterName("frontFaceStencil")
-	sel_setStencilFailureOperation                                                                                                    = objc.RegisterName("setStencilFailureOperation:")
-	sel_setDepthFailureOperation                                                                                                      = objc.RegisterName("setDepthFailureOperation:")
-	sel_setDepthStencilPassOperation                                                                                                  = objc.RegisterName("setDepthStencilPassOperation:")
-	sel_setStencilCompareFunction                                                                                                     = objc.RegisterName("setStencilCompareFunction:")
-	sel_newDepthStencilStateWithDescriptor                                                                                            = objc.RegisterName("newDepthStencilStateWithDescriptor:")
 	sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow                                                                               = objc.RegisterName("replaceRegion:mipmapLevel:withBytes:bytesPerRow:")
 	sel_getBytes_bytesPerRow_fromRegion_mipmapLevel                                                                                   = objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")
 	sel_respondsToSelector                                                                                                            = objc.RegisterName("respondsToSelector:")
@@ -761,28 +726,6 @@ func (d Device) NewTextureWithDescriptor(td TextureDescriptor) (Texture, error) 
 	return Texture{
 		texture: texture,
 	}, nil
-}
-
-// NewDepthStencilStateWithDescriptor creates a depth-stencil state instance.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtldevice/1433412-newdepthstencilstatewithdescript?language=objc.
-func (d Device) NewDepthStencilStateWithDescriptor(dsd DepthStencilDescriptor) DepthStencilState {
-	depthStencilDescriptor := objc.ID(class_MTLDepthStencilDescriptor).Send(sel_new)
-	backFaceStencil := depthStencilDescriptor.Send(sel_backFaceStencil)
-	backFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.BackFaceStencil.StencilFailureOperation))
-	backFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.BackFaceStencil.DepthFailureOperation))
-	backFaceStencil.Send(sel_setDepthStencilPassOperation, uintptr(dsd.BackFaceStencil.DepthStencilPassOperation))
-	backFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.BackFaceStencil.StencilCompareFunction))
-	frontFaceStencil := depthStencilDescriptor.Send(sel_frontFaceStencil)
-	frontFaceStencil.Send(sel_setStencilFailureOperation, uintptr(dsd.FrontFaceStencil.StencilFailureOperation))
-	frontFaceStencil.Send(sel_setDepthFailureOperation, uintptr(dsd.FrontFaceStencil.DepthFailureOperation))
-	frontFaceStencil.Send(sel_setDepthStencilPassOperation, uintptr(dsd.FrontFaceStencil.DepthStencilPassOperation))
-	frontFaceStencil.Send(sel_setStencilCompareFunction, uintptr(dsd.FrontFaceStencil.StencilCompareFunction))
-	depthStencilState := d.device.Send(sel_newDepthStencilStateWithDescriptor, depthStencilDescriptor)
-	depthStencilDescriptor.Send(sel_release)
-	return DepthStencilState{
-		depthStencilState: depthStencilState,
-	}
 }
 
 // CompileOptions specifies optional compilation settings for
@@ -988,13 +931,6 @@ func (rce RenderCommandEncoder) SetFragmentTexture(texture Texture, index int) {
 
 func (rce RenderCommandEncoder) SetBlendColor(red, green, blue, alpha float32) {
 	rce.commandEncoder.Send(sel_setBlendColorRed_green_blue_alpha, red, green, blue, alpha)
-}
-
-// SetDepthStencilState sets the depth and stencil test state.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1516119-setdepthstencilstate?language=objc.
-func (rce RenderCommandEncoder) SetDepthStencilState(depthStencilState DepthStencilState) {
-	rce.commandEncoder.Send(sel_setDepthStencilState, depthStencilState.depthStencilState)
 }
 
 // DrawPrimitives renders one instance of primitives using vertex data
@@ -1276,43 +1212,4 @@ type ScissorRect struct {
 	Y      int
 	Width  int
 	Height int
-}
-
-// DepthStencilState is a depth and stencil state object that specifies the depth and stencil configuration and operations used in a render pass.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtldepthstencilstate?language=objc.
-type DepthStencilState struct {
-	depthStencilState objc.ID
-}
-
-func (d DepthStencilState) Release() {
-	d.depthStencilState.Send(sel_release)
-}
-
-// DepthStencilDescriptor is an object that configures new MTLDepthStencilState objects.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtldepthstencildescriptor?language=objc.
-type DepthStencilDescriptor struct {
-	// BackFaceStencil is the stencil descriptor for back-facing primitives.
-	BackFaceStencil StencilDescriptor
-
-	// FrontFaceStencil is The stencil descriptor for front-facing primitives.
-	FrontFaceStencil StencilDescriptor
-}
-
-// StencilDescriptor is an object that defines the front-facing or back-facing stencil operations of a depth and stencil state object.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtlstencildescriptor?language=objc.
-type StencilDescriptor struct {
-	// StencilFailureOperation is the operation that is performed to update the values in the stencil attachment when the stencil test fails.
-	StencilFailureOperation StencilOperation
-
-	// DepthFailureOperation is the operation that is performed to update the values in the stencil attachment when the stencil test passes, but the depth test fails.
-	DepthFailureOperation StencilOperation
-
-	// DepthStencilPassOperation is the operation that is performed to update the values in the stencil attachment when both the stencil test and the depth test pass.
-	DepthStencilPassOperation StencilOperation
-
-	// StencilCompareFunction is the comparison that is performed between the masked reference value and a masked value in the stencil attachment.
-	StencilCompareFunction CompareFunction
 }
