@@ -331,8 +331,11 @@ func updateWindowHints(window *Window) {
 
 // updateNormalHints updates the normal hints according to the window
 // settings.
-func updateNormalHints(window *Window, width, height int) {
+func updateNormalHints(window *Window, width, height int) error {
 	hintsPtr := xAllocSizeHints()
+	if hintsPtr == 0 {
+		return fmt.Errorf("glfw: x11: failed to allocate size hints: %w", OutOfMemory)
+	}
 	defer xFree(hintsPtr)
 
 	hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
@@ -375,6 +378,7 @@ func updateNormalHints(window *Window, width, height int) {
 	xSetWMNormalHints(_glfw.platformWindow.display, window.platform.handle, hints)
 
 	updateWindowHints(window)
+	return nil
 }
 
 // updateWindowMode updates the full screen status of the window.
@@ -1164,7 +1168,9 @@ func processEvent(event *_XEvent) error {
 				_glfw.platformWindow.xkb.group = uint32(event.xkbState().Group)
 			}
 		case _XkbMapNotify:
-			createKeyTables()
+			if err := createKeyTables(); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -2084,6 +2090,9 @@ func (w *Window) platformSetWindowPos(xpos, ypos int) error {
 	if !w.platformWindowVisible() {
 		var supplied _Clong
 		hintsPtr := xAllocSizeHints()
+		if hintsPtr == 0 {
+			return fmt.Errorf("glfw: x11: failed to allocate size hints: %w", OutOfMemory)
+		}
 		hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
 		if xGetWMNormalHints(_glfw.platformWindow.display, w.platform.handle, hints, &supplied) != 0 {
@@ -2118,7 +2127,9 @@ func (w *Window) platformSetWindowSize(width, height int) error {
 		}
 	} else {
 		if !w.resizable {
-			updateNormalHints(w, width, height)
+			if err := updateNormalHints(w, width, height); err != nil {
+				return err
+			}
 		}
 
 		xResizeWindow(_glfw.platformWindow.display, w.platform.handle, uint32(width), uint32(height))
@@ -2133,7 +2144,9 @@ func (w *Window) platformSetWindowSizeLimits(minwidth, minheight, maxwidth, maxh
 	if err != nil {
 		return err
 	}
-	updateNormalHints(w, width, height)
+	if err := updateNormalHints(w, width, height); err != nil {
+		return err
+	}
 	xFlush(_glfw.platformWindow.display)
 	return nil
 }
@@ -2143,7 +2156,9 @@ func (w *Window) platformSetWindowAspectRatio(numer, denom int) error {
 	if err != nil {
 		return err
 	}
-	updateNormalHints(w, width, height)
+	if err := updateNormalHints(w, width, height); err != nil {
+		return err
+	}
 	xFlush(_glfw.platformWindow.display)
 	return nil
 }
@@ -2353,7 +2368,9 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 			}
 		} else {
 			if !w.resizable {
-				updateNormalHints(w, width, height)
+				if err := updateNormalHints(w, width, height); err != nil {
+					return err
+				}
 			}
 
 			xMoveResizeWindow(_glfw.platformWindow.display, w.platform.handle,
@@ -2375,7 +2392,9 @@ func (w *Window) platformSetWindowMonitor(monitor *Monitor, xpos, ypos, width, h
 	}
 
 	w.inputWindowMonitor(monitor)
-	updateNormalHints(w, width, height)
+	if err := updateNormalHints(w, width, height); err != nil {
+		return err
+	}
 
 	if w.monitor != nil {
 		if !w.platformWindowVisible() {
@@ -2487,8 +2506,7 @@ func (w *Window) platformSetWindowResizable(enabled bool) error {
 	if err != nil {
 		return err
 	}
-	updateNormalHints(w, width, height)
-	return nil
+	return updateNormalHints(w, width, height)
 }
 
 func (w *Window) platformSetWindowDecorated(enabled bool) error {
@@ -2571,6 +2589,9 @@ func (w *Window) platformSetWindowMousePassthrough(enabled bool) error {
 
 	if enabled {
 		region := xCreateRegion()
+		if region == 0 {
+			return fmt.Errorf("glfw: x11: failed to create a region: %w", OutOfMemory)
+		}
 		_glfw.platformWindow.xshape.CombineRegion(_glfw.platformWindow.display, w.platform.handle,
 			_ShapeInput, 0, 0, region, _ShapeSet)
 		xDestroyRegion(region)

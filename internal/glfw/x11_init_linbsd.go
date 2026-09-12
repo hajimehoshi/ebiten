@@ -444,7 +444,7 @@ func translateKeySyms(keysyms []_KeySym) Key {
 }
 
 // createKeyTables creates the key code translation tables.
-func createKeyTables() {
+func createKeyTables() error {
 	for i := range _glfw.platformWindow.keycodes {
 		_glfw.platformWindow.keycodes[i] = KeyUnknown
 	}
@@ -458,13 +458,24 @@ func createKeyTables() {
 		// current keyboard layout
 
 		descPtr := xkbGetMap(_glfw.platformWindow.display, 0, _XkbUseCoreKbd)
-		xkbGetNames(_glfw.platformWindow.display, _XkbKeyNamesMask|_XkbKeyAliasesMask, descPtr)
+		if descPtr == 0 {
+			return fmt.Errorf("glfw: x11: failed to allocate an XKB keyboard description: %w", OutOfMemory)
+		}
+		defer xkbFreeKeyboard(descPtr, 0, true)
+		defer xkbFreeNames(descPtr, _XkbKeyNamesMask, true)
+
+		if status := xkbGetNames(_glfw.platformWindow.display, _XkbKeyNamesMask|_XkbKeyAliasesMask, descPtr); status != _Success {
+			return fmt.Errorf("glfw: x11: XkbGetNames failed: status: %d", status)
+		}
 
 		desc := (*_XkbDescRec)(unsafe.Pointer(descPtr))
 		scancodeMin = int32(desc.MinKeyCode)
 		scancodeMax = int32(desc.MaxKeyCode)
 
 		names := (*_XkbNamesRec)(unsafe.Pointer(desc.Names))
+		if names.Keys == 0 {
+			return fmt.Errorf("glfw: x11: failed to allocate XKB key names: %w", OutOfMemory)
+		}
 		keyNames := unsafe.Slice((*_XkbKeyNameRec)(unsafe.Pointer(names.Keys)), int(scancodeMax)+1)
 		keyAliases := unsafe.Slice((*_XkbKeyAliasRec)(unsafe.Pointer(names.KeyAliases)), int(names.NumKeyAliases))
 
@@ -496,9 +507,6 @@ func createKeyTables() {
 
 			_glfw.platformWindow.keycodes[scancode] = key
 		}
-
-		xkbFreeNames(descPtr, _XkbKeyNamesMask, true)
-		xkbFreeKeyboard(descPtr, 0, true)
 	} else {
 		xDisplayKeycodes(_glfw.platformWindow.display, &scancodeMin, &scancodeMax)
 	}
@@ -509,6 +517,11 @@ func createKeyTables() {
 		scancodeMax-scancodeMin+1,
 		&width)
 	defer xFree(keysymsPtr)
+
+	// The mapping is unusable without at least one KeySym per key code.
+	if keysymsPtr == 0 || width <= 0 {
+		return fmt.Errorf("glfw: x11: XGetKeyboardMapping failed")
+	}
 
 	keysyms := unsafe.Slice((*_KeySym)(unsafe.Pointer(keysymsPtr)), int(scancodeMax-scancodeMin+1)*int(width))
 
@@ -525,6 +538,7 @@ func createKeyTables() {
 			_glfw.platformWindow.scancodes[key] = int(scancode)
 		}
 	}
+	return nil
 }
 
 // usableInputMethodStyle returns the input style to create input contexts
@@ -827,7 +841,9 @@ func initExtensions() error {
 	}
 
 	// Update the key code LUT
-	createKeyTables()
+	if err := createKeyTables(); err != nil {
+		return err
+	}
 
 	// String format atoms
 	_glfw.platformWindow.NULL_ = xInternAtom(display, "NULL", false)
