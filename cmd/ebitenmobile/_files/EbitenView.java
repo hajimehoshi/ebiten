@@ -248,11 +248,21 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         // See https://developer.android.com/reference/android/view/MotionEvent#getActionMasked().
         // For other pointers, treat their actions as MotionEvent.ACTION_MOVE.
         int touchIndex = e.getActionIndex();
+        final int actionMasked = e.getActionMasked();
+        // After ACTION_CANCEL, every pointer that was down must be considered lifted, not only the
+        // action-index pointer. Propagate the cancellation to all pointers, otherwise the remaining
+        // pointers would be forwarded as ACTION_MOVE and stay as ghost touches.
+        // See https://developer.android.com/reference/android/view/MotionEvent.html#ACTION_CANCEL
         for (int i = 0; i < e.getPointerCount(); i++) {
             int id = e.getPointerId(i);
             double x = e.getX(i);
             double y = e.getY(i);
-            int action = (i == touchIndex) ? e.getActionMasked() : MotionEvent.ACTION_MOVE;
+            int action;
+            if (actionMasked == MotionEvent.ACTION_CANCEL) {
+                action = MotionEvent.ACTION_CANCEL;
+            } else {
+                action = (i == touchIndex) ? actionMasked : MotionEvent.ACTION_MOVE;
+            }
             Ebitenmobileview.updateTouchesOnAndroid(action, id, pxToDp(x), pxToDp(y));
         }
         return true;
