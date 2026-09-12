@@ -57,10 +57,6 @@ uintptr_t Ebitengine_ID3D12CommandQueue_SuspendX(void* i, uint32_t flags) {
 	return static_cast<uintptr_t>(r);
 }
 
-void Ebitengine_ID3D12GraphicsCommandList_ClearDepthStencilView(void* i, uintptr_t depthStencilView, int32_t clearFlags, float depth, uint8_t stencil, uint32_t numRects, void* pRects) {
-    static_cast<ID3D12GraphicsCommandList*>(i)->ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE{ depthStencilView }, static_cast<D3D12_CLEAR_FLAGS>(clearFlags), depth, stencil, numRects, static_cast<D3D12_RECT*>(pRects));
-}
-
 void Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView(void* i, uintptr_t pRenderTargetView, void* colorRGBA, uint32_t numRects, void* pRects) {
     static_cast<ID3D12GraphicsCommandList*>(i)->ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE{ pRenderTargetView }, static_cast<FLOAT*>(colorRGBA), numRects, static_cast<D3D12_RECT*>(pRects));
 }
@@ -92,10 +88,6 @@ void Ebitengine_ID3D12GraphicsCommandList_IASetVertexBuffers(void* i, uint32_t s
 
 void Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(void* i, uint32_t numRenderTargetDescriptors, void* pRenderTargetDescriptors, int rtsSingleHandleToDescriptorRange, void* pDepthStencilDescriptor) {
     static_cast<ID3D12GraphicsCommandList*>(i)->OMSetRenderTargets(numRenderTargetDescriptors, static_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(pRenderTargetDescriptors), static_cast<BOOL>(rtsSingleHandleToDescriptorRange), static_cast<D3D12_CPU_DESCRIPTOR_HANDLE*>(pDepthStencilDescriptor));
-}
-
-void Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(void* i, uint32_t stencilRef) {
-    static_cast<ID3D12GraphicsCommandList*>(i)->OMSetStencilRef(stencilRef);
 }
 
 uint32_t Ebitengine_ID3D12GraphicsCommandList_Release(void* i) {
@@ -168,10 +160,6 @@ void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipel
 // #cgo nocallback Ebitengine_ID3D12CommandQueue_SuspendX
 // uintptr_t Ebitengine_ID3D12CommandQueue_SuspendX(void* i, uint32_t flags);
 //
-// #cgo noescape Ebitengine_ID3D12GraphicsCommandList_ClearDepthStencilView
-// #cgo nocallback Ebitengine_ID3D12GraphicsCommandList_ClearDepthStencilView
-// void Ebitengine_ID3D12GraphicsCommandList_ClearDepthStencilView(void* i, uintptr_t depthStencilView, int32_t clearFlags, float depth, uint8_t stencil, uint32_t numRects, void* pRects);
-//
 // #cgo noescape Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView
 // #cgo nocallback Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView
 // void Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView(void* i, uintptr_t pRenderTargetView, void* colorRGBA, uint32_t numRects, void* pRects);
@@ -203,10 +191,6 @@ void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipel
 // #cgo noescape Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets
 // #cgo nocallback Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets
 // void Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(void* i, uint32_t numRenderTargetDescriptors, void* pRenderTargetDescriptors, int rtsSingleHandleToDescriptorRange, void* pDepthStencilDescriptor);
-//
-// #cgo noescape Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef
-// #cgo nocallback Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef
-// void Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(void* i, uint32_t stencilRef);
 //
 // #cgo noescape Ebitengine_ID3D12GraphicsCommandList_Release
 // #cgo nocallback Ebitengine_ID3D12GraphicsCommandList_Release
@@ -287,14 +271,6 @@ func _ID3D12CommandQueue_SuspendX(i *_ID3D12CommandQueue, flags uint32) uintptr 
 	return uintptr(r)
 }
 
-func _ID3D12GraphicsCommandList_ClearDepthStencilView(i *_ID3D12GraphicsCommandList, depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, rects []_D3D12_RECT) {
-	var pRects *_D3D12_RECT
-	if len(rects) > 0 {
-		pRects = &rects[0]
-	}
-	C.Ebitengine_ID3D12GraphicsCommandList_ClearDepthStencilView(unsafe.Pointer(i), C.uintptr_t(depthStencilView.ptr), C.int32_t(clearFlags), C.float(depth), C.uint8_t(stencil), C.uint32_t(len(rects)), unsafe.Pointer(pRects))
-}
-
 func _ID3D12GraphicsCommandList_ClearRenderTargetView(i *_ID3D12GraphicsCommandList, pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, rects []_D3D12_RECT) {
 	var pRects *_D3D12_RECT
 	if len(rects) > 0 {
@@ -344,10 +320,6 @@ func _ID3D12GraphicsCommandList_OMSetRenderTargets(i *_ID3D12GraphicsCommandList
 		v = 1
 	}
 	C.Ebitengine_ID3D12GraphicsCommandList_OMSetRenderTargets(unsafe.Pointer(i), C.uint32_t(len(renderTargetDescriptors)), unsafe.Pointer(pRenderTargetDescriptors), C.int(v), unsafe.Pointer(pDepthStencilDescriptor))
-}
-
-func _ID3D12GraphicsCommandList_OMSetStencilRef(i *_ID3D12GraphicsCommandList, stencilRef uint32) {
-	C.Ebitengine_ID3D12GraphicsCommandList_OMSetStencilRef(unsafe.Pointer(i), C.uint32_t(stencilRef))
 }
 
 func _ID3D12GraphicsCommandList_Release(i *_ID3D12GraphicsCommandList) uint32 {

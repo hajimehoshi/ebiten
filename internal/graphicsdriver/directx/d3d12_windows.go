@@ -16,7 +16,6 @@ package directx
 
 import (
 	"fmt"
-	"math"
 	"runtime"
 	"structs"
 	"syscall"
@@ -35,8 +34,6 @@ const (
 	_D3D12_APPEND_ALIGNED_ELEMENT            = 0xffffffff
 	_D3D12_DEFAULT_DEPTH_BIAS                = 0
 	_D3D12_DEFAULT_DEPTH_BIAS_CLAMP          = 0.0
-	_D3D12_DEFAULT_STENCIL_READ_MASK         = 0xff
-	_D3D12_DEFAULT_STENCIL_WRITE_MASK        = 0xff
 	_D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS   = 0.0
 	_D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND    = 0xffffffff
 	_D3D12_MAX_DEPTH                         = 1.0
@@ -76,13 +73,6 @@ const (
 	_D3D12_BLEND_OP_REV_SUBTRACT _D3D12_BLEND_OP = 3
 	_D3D12_BLEND_OP_MIN          _D3D12_BLEND_OP = 4
 	_D3D12_BLEND_OP_MAX          _D3D12_BLEND_OP = 5
-)
-
-type _D3D12_CLEAR_FLAGS int32
-
-const (
-	_D3D12_CLEAR_FLAG_DEPTH   _D3D12_CLEAR_FLAGS = 0x1
-	_D3D12_CLEAR_FLAG_STENCIL _D3D12_CLEAR_FLAGS = 0x2
 )
 
 type _D3D12_COLOR_WRITE_ENABLE int32
@@ -181,26 +171,6 @@ const (
 	_D3D12_DESCRIPTOR_RANGE_TYPE_UAV
 	_D3D12_DESCRIPTOR_RANGE_TYPE_CBV
 	_D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER
-)
-
-type _D3D12_DSV_DIMENSION int32
-
-const (
-	_D3D12_DSV_DIMENSION_UNKNOWN          _D3D12_DSV_DIMENSION = 0
-	_D3D12_DSV_DIMENSION_TEXTURE1D        _D3D12_DSV_DIMENSION = 1
-	_D3D12_DSV_DIMENSION_TEXTURE1DARRAY   _D3D12_DSV_DIMENSION = 2
-	_D3D12_DSV_DIMENSION_TEXTURE2D        _D3D12_DSV_DIMENSION = 3
-	_D3D12_DSV_DIMENSION_TEXTURE2DARRAY   _D3D12_DSV_DIMENSION = 4
-	_D3D12_DSV_DIMENSION_TEXTURE2DMS      _D3D12_DSV_DIMENSION = 5
-	_D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY _D3D12_DSV_DIMENSION = 6
-)
-
-type _D3D12_DSV_FLAGS int32
-
-const (
-	_D3D12_DSV_FLAG_NONE              _D3D12_DSV_FLAGS = 0
-	_D3D12_DSV_FLAG_READ_ONLY_DEPTH   _D3D12_DSV_FLAGS = 0x1
-	_D3D12_DSV_FLAG_READ_ONLY_STENCIL _D3D12_DSV_FLAGS = 0x2
 )
 
 type _D3D12_FENCE_FLAGS int32
@@ -324,7 +294,6 @@ type _D3D12_RESOURCE_FLAGS int32
 const (
 	_D3D12_RESOURCE_FLAG_NONE                        _D3D12_RESOURCE_FLAGS = 0
 	_D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET         _D3D12_RESOURCE_FLAGS = 0x1
-	_D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL         _D3D12_RESOURCE_FLAGS = 0x2
 	_D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS      _D3D12_RESOURCE_FLAGS = 0x4
 	_D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE        _D3D12_RESOURCE_FLAGS = 0x8
 	_D3D12_RESOURCE_FLAG_ALLOW_CROSS_ADAPTER         _D3D12_RESOURCE_FLAGS = 0x10
@@ -797,11 +766,6 @@ type _D3D12_STREAM_OUTPUT_DESC struct {
 	pBufferStrides   *uint32
 	NumStrides       uint32
 	RasterizedStream uint32
-}
-
-type _D3D12_TEX2D_DSV struct {
-	_        structs.HostLayout
-	MipSlice uint32
 }
 
 type _D3D12_TEX2D_SRV struct {
@@ -1523,17 +1487,6 @@ func (i *_ID3D12Device) CreateDescriptorHeap(desc *_D3D12_DESCRIPTOR_HEAP_DESC) 
 	return descriptorHeap, nil
 }
 
-func (i *_ID3D12Device) CreateDepthStencilView(pResource *_ID3D12Resource, pDesc *_D3D12_DEPTH_STENCIL_VIEW_DESC, destDescriptor _D3D12_CPU_DESCRIPTOR_HANDLE) {
-	if pDesc != nil {
-		panic("directx: D3D12_DEPTH_STENCIL_VIEW_DESC with a non-nil desc is not implemented")
-	}
-	_, _, _ = syscall.Syscall6(i.vtbl.CreateDepthStencilView, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pResource)), uintptr(unsafe.Pointer(pDesc)), destDescriptor.ptr,
-		0, 0)
-	runtime.KeepAlive(pResource)
-	runtime.KeepAlive(pDesc)
-}
-
 func (i *_ID3D12Device) CreateFence(initialValue uint64, flags _D3D12_FENCE_FLAGS) (*_ID3D12Fence, error) {
 	var fence *_ID3D12Fence
 	var r uintptr
@@ -1793,22 +1746,6 @@ type _ID3D12GraphicsCommandList_Vtbl struct {
 	ExecuteIndirect                    uintptr
 }
 
-func (i *_ID3D12GraphicsCommandList) ClearDepthStencilView(depthStencilView _D3D12_CPU_DESCRIPTOR_HANDLE, clearFlags _D3D12_CLEAR_FLAGS, depth float32, stencil uint8, rects []_D3D12_RECT) {
-	if microsoftgdk.IsXbox() {
-		_ID3D12GraphicsCommandList_ClearDepthStencilView(i, depthStencilView, clearFlags, depth, stencil, rects)
-	} else {
-		var pRects *_D3D12_RECT
-		if len(rects) > 0 {
-			pRects = &rects[0]
-		}
-		_, _, _ = syscall.Syscall9(i.vtbl.ClearDepthStencilView, 7, uintptr(unsafe.Pointer(i)),
-			depthStencilView.ptr, uintptr(clearFlags), uintptr(math.Float32bits(depth)),
-			uintptr(stencil), uintptr(len(rects)), uintptr(unsafe.Pointer(pRects)),
-			0, 0)
-	}
-	runtime.KeepAlive(rects)
-}
-
 func (i *_ID3D12GraphicsCommandList) ClearRenderTargetView(pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, rects []_D3D12_RECT) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_ClearRenderTargetView(i, pRenderTargetView, colorRGBA, rects)
@@ -1924,14 +1861,6 @@ func (i *_ID3D12GraphicsCommandList) OMSetRenderTargets(renderTargetDescriptors 
 	}
 	runtime.KeepAlive(renderTargetDescriptors)
 	runtime.KeepAlive(pDepthStencilDescriptor)
-}
-
-func (i *_ID3D12GraphicsCommandList) OMSetStencilRef(stencilRef uint32) {
-	if microsoftgdk.IsXbox() {
-		_ID3D12GraphicsCommandList_OMSetStencilRef(i, stencilRef)
-		return
-	}
-	_, _, _ = syscall.Syscall(i.vtbl.OMSetStencilRef, 2, uintptr(unsafe.Pointer(i)), uintptr(stencilRef), 0)
 }
 
 func (i *_ID3D12GraphicsCommandList) Release() uint32 {

@@ -16,7 +16,6 @@ package directx
 
 import (
 	"fmt"
-	"math"
 	"runtime"
 	"structs"
 	"syscall"
@@ -29,10 +28,8 @@ import (
 // * https://github.com/wine-mirror/wine/blob/master/include/d3d11.idl
 
 const (
-	_D3D11_APPEND_ALIGNED_ELEMENT     = 0xffffffff
-	_D3D11_DEFAULT_STENCIL_READ_MASK  = 0xff
-	_D3D11_DEFAULT_STENCIL_WRITE_MASK = 0xff
-	_D3D11_SDK_VERSION                = 7
+	_D3D11_APPEND_ALIGNED_ELEMENT = 0xffffffff
+	_D3D11_SDK_VERSION            = 7
 )
 
 type _D3D11_BIND_FLAG int32
@@ -44,7 +41,6 @@ const (
 	_D3D11_BIND_SHADER_RESOURCE  _D3D11_BIND_FLAG = 0x8
 	_D3D11_BIND_STREAM_OUTPUT    _D3D11_BIND_FLAG = 0x10
 	_D3D11_BIND_RENDER_TARGET    _D3D11_BIND_FLAG = 0x20
-	_D3D11_BIND_DEPTH_STENCIL    _D3D11_BIND_FLAG = 0x40
 	_D3D11_BIND_UNORDERED_ACCESS _D3D11_BIND_FLAG = 0x80
 	_D3D11_BIND_DECODER          _D3D11_BIND_FLAG = 0x200
 	_D3D11_BIND_VIDEO_ENCODER    _D3D11_BIND_FLAG = 0x400
@@ -80,13 +76,6 @@ const (
 	_D3D11_BLEND_OP_REV_SUBTRACT _D3D11_BLEND_OP = 3
 	_D3D11_BLEND_OP_MIN          _D3D11_BLEND_OP = 4
 	_D3D11_BLEND_OP_MAX          _D3D11_BLEND_OP = 5
-)
-
-type _D3D11_CLEAR_FLAG int32
-
-const (
-	_D3D11_CLEAR_DEPTH   _D3D11_CLEAR_FLAG = 0x1
-	_D3D11_CLEAR_STENCIL _D3D11_CLEAR_FLAG = 0x2
 )
 
 type _D3D11_COLOR_WRITE_ENABLE int32
@@ -139,32 +128,6 @@ const (
 	_D3D11_CULL_NONE  _D3D11_CULL_MODE = 1
 	_D3D11_CULL_FRONT _D3D11_CULL_MODE = 2
 	_D3D11_CULL_BACK  _D3D11_CULL_MODE = 3
-)
-
-type _D3D11_DSV_FLAG int32
-
-const (
-	_D3D11_DSV_READ_ONLY_DEPTH   _D3D11_DSV_FLAG = 0x1
-	_D3D11_DSV_READ_ONLY_STENCIL _D3D11_DSV_FLAG = 0x2
-)
-
-type _D3D11_DEPTH_WRITE_MASK int32
-
-const (
-	_D3D11_DEPTH_WRITE_MASK_ZERO _D3D11_DEPTH_WRITE_MASK = 0
-	_D3D11_DEPTH_WRITE_MASK_ALL  _D3D11_DEPTH_WRITE_MASK = 1
-)
-
-type _D3D11_DSV_DIMENSION int32
-
-const (
-	_D3D11_DSV_DIMENSION_UNKNOWN          _D3D11_DSV_DIMENSION = 0
-	_D3D11_DSV_DIMENSION_TEXTURE1D        _D3D11_DSV_DIMENSION = 1
-	_D3D11_DSV_DIMENSION_TEXTURE1DARRAY   _D3D11_DSV_DIMENSION = 2
-	_D3D11_DSV_DIMENSION_TEXTURE2D        _D3D11_DSV_DIMENSION = 3
-	_D3D11_DSV_DIMENSION_TEXTURE2DARRAY   _D3D11_DSV_DIMENSION = 4
-	_D3D11_DSV_DIMENSION_TEXTURE2DMS      _D3D11_DSV_DIMENSION = 5
-	_D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY _D3D11_DSV_DIMENSION = 6
 )
 
 type _D3D11_FILL_MODE int32
@@ -264,19 +227,6 @@ const (
 	_D3D11_SRV_DIMENSION_BUFFEREX         _D3D11_SRV_DIMENSION = 11
 )
 
-type _D3D11_STENCIL_OP int32
-
-const (
-	_D3D11_STENCIL_OP_KEEP     _D3D11_STENCIL_OP = 1
-	_D3D11_STENCIL_OP_ZERO     _D3D11_STENCIL_OP = 2
-	_D3D11_STENCIL_OP_REPLACE  _D3D11_STENCIL_OP = 3
-	_D3D11_STENCIL_OP_INCR_SAT _D3D11_STENCIL_OP = 4
-	_D3D11_STENCIL_OP_DECR_SAT _D3D11_STENCIL_OP = 5
-	_D3D11_STENCIL_OP_INVERT   _D3D11_STENCIL_OP = 6
-	_D3D11_STENCIL_OP_INCR     _D3D11_STENCIL_OP = 7
-	_D3D11_STENCIL_OP_DECR     _D3D11_STENCIL_OP = 8
-)
-
 type _D3D11_TEXTURE_ADDRESS_MODE int32
 
 const (
@@ -325,34 +275,6 @@ type _D3D11_BUFFER_DESC struct {
 	CPUAccessFlags      uint32
 	MiscFlags           uint32
 	StructureByteStride uint32
-}
-
-type _D3D11_DEPTH_STENCIL_DESC struct {
-	_                structs.HostLayout
-	DepthEnable      _BOOL
-	DepthWriteMask   _D3D11_DEPTH_WRITE_MASK
-	DepthFunc        _D3D11_COMPARISON_FUNC
-	StencilEnable    _BOOL
-	StencilReadMask  uint8
-	StencilWriteMask uint8
-	FrontFace        _D3D11_DEPTH_STENCILOP_DESC
-	BackFace         _D3D11_DEPTH_STENCILOP_DESC
-}
-
-type _D3D11_DEPTH_STENCIL_VIEW_DESC struct {
-	_             structs.HostLayout
-	Format        _DXGI_FORMAT
-	ViewDimension _D3D11_DSV_DIMENSION
-	Flags         uint32
-	_             [3]uint32
-}
-
-type _D3D11_DEPTH_STENCILOP_DESC struct {
-	_                  structs.HostLayout
-	StencilFailOp      _D3D11_STENCIL_OP
-	StencilDepthFailOp _D3D11_STENCIL_OP
-	StencilPassOp      _D3D11_STENCIL_OP
-	StencilFunc        _D3D11_COMPARISON_FUNC
 }
 
 type _D3D11_INPUT_ELEMENT_DESC struct {
@@ -601,26 +523,6 @@ type _ID3D11ClassLinkage_Vtbl struct {
 	CreateClassInstance uintptr
 }
 
-type _ID3D11DepthStencilState struct {
-	_    structs.HostLayout
-	vtbl *_ID3D11DepthStencilState_Vtbl
-}
-
-type _ID3D11DepthStencilState_Vtbl struct {
-	_              structs.HostLayout
-	QueryInterface uintptr
-	AddRef         uintptr
-	Release        uintptr
-
-	// ID3D11DeviceChild
-	GetDevice               uintptr
-	GetPrivateData          uintptr
-	SetPrivateData          uintptr
-	SetPrivateDataInterface uintptr
-
-	GetDesc uintptr
-}
-
 type _ID3D11DepthStencilView struct {
 	_    structs.HostLayout
 	vtbl *_ID3D11DepthStencilView_Vtbl
@@ -728,29 +630,6 @@ func (i *_ID3D11Device) CreateBuffer(pDesc *_D3D11_BUFFER_DESC, pInitialData *_D
 		return nil, fmt.Errorf("directx: ID3D11Device::CreateBuffer failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return buffer, nil
-}
-
-func (i *_ID3D11Device) CreateDepthStencilState(pDepthStencilDesc *_D3D11_DEPTH_STENCIL_DESC) (*_ID3D11DepthStencilState, error) {
-	var dss *_ID3D11DepthStencilState
-	r, _, _ := syscall.Syscall(i.vtbl.CreateDepthStencilState, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pDepthStencilDesc)), uintptr(unsafe.Pointer(&dss)))
-	runtime.KeepAlive(pDepthStencilDesc)
-	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D11Device::CreateDepthStencilState failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return dss, nil
-}
-
-func (i *_ID3D11Device) CreateDepthStencilView(pResource unsafe.Pointer, pDesc *_D3D11_DEPTH_STENCIL_VIEW_DESC) (*_ID3D11DepthStencilView, error) {
-	var dsv *_ID3D11DepthStencilView
-	r, _, _ := syscall.Syscall6(i.vtbl.CreateDepthStencilView, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(pResource), uintptr(unsafe.Pointer(pDesc)), uintptr(unsafe.Pointer(&dsv)),
-		0, 0)
-	runtime.KeepAlive(pResource)
-	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D11Device::CreateDepthStencilView failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return dsv, nil
 }
 
 func (i *_ID3D11Device) CreateInputLayout(inputElementDescs []_D3D11_INPUT_ELEMENT_DESC, pShaderBytecodeWithInputSignature unsafe.Pointer, bytecodeLength uintptr) (*_ID3D11InputLayout, error) {
@@ -1001,13 +880,6 @@ func (i *_ID3D11DeviceContext) ClearState() {
 		0, 0)
 }
 
-func (i *_ID3D11DeviceContext) ClearDepthStencilView(pDepthStencilView *_ID3D11DepthStencilView, clearFlags uint8, depth float32, stencil uint8) {
-	_, _, _ = syscall.Syscall6(i.vtbl.ClearDepthStencilView, 5, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pDepthStencilView)), uintptr(clearFlags), uintptr(math.Float32bits(depth)),
-		uintptr(stencil), 0)
-	runtime.KeepAlive(pDepthStencilView)
-}
-
 func (i *_ID3D11DeviceContext) CopySubresourceRegion(pDstResource unsafe.Pointer, dstSubresource uint32, dstX uint32, dstY uint32, dstZ uint32, pSrcResource unsafe.Pointer, srcSubresource uint32, pSrcBox *_D3D11_BOX) {
 	_, _, _ = syscall.Syscall9(i.vtbl.CopySubresourceRegion, 9, uintptr(unsafe.Pointer(i)),
 		uintptr(pDstResource), uintptr(dstSubresource), uintptr(dstX),
@@ -1071,12 +943,6 @@ func (i *_ID3D11DeviceContext) OMSetBlendState(pBlendState *_ID3D11BlendState, b
 		uintptr(unsafe.Pointer(pBlendState)), uintptr(unsafe.Pointer(pBlendFactor)), uintptr(sampleMask),
 		0, 0)
 	runtime.KeepAlive(pBlendState)
-}
-
-func (i *_ID3D11DeviceContext) OMSetDepthStencilState(pDepthStencilState *_ID3D11DepthStencilState, stencilRef uint32) {
-	_, _, _ = syscall.Syscall(i.vtbl.OMSetDepthStencilState, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pDepthStencilState)), uintptr(stencilRef))
-	runtime.KeepAlive(pDepthStencilState)
 }
 
 func (i *_ID3D11DeviceContext) OMSetRenderTargets(renderTargetViews []*_ID3D11RenderTargetView, depthStencilView *_ID3D11DepthStencilView) {
