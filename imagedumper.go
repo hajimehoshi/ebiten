@@ -83,8 +83,6 @@ type imageDumper struct {
 	hasDumpInternalImagesKey bool
 	dumpInternalImagesKey    Key
 	toDumpInternalImages     bool
-
-	err error
 }
 
 func envScreenshotKey() string {
@@ -104,10 +102,6 @@ func envInternalImagesKey() string {
 }
 
 func (i *imageDumper) update() error {
-	if i.err != nil {
-		return i.err
-	}
-
 	// If keyState is nil, all values are not initialized.
 	if i.keyState == nil {
 		i.keyState = map[Key]int{}
