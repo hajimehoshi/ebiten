@@ -538,8 +538,8 @@ func bufferSizeInBytes(bufferSize time.Duration, bytesPerSample, sampleRate int)
 		return 0
 	}
 
-	size := mathutil.MulDiv(int64(bufferSize), int64(bytesPerSample)*int64(sampleRate), int64(time.Second))
-	if size > int64(math.MaxInt) {
+	size, ok := mathutil.MulDiv(int64(bufferSize), int64(bytesPerSample)*int64(sampleRate), int64(time.Second))
+	if !ok || size > int64(math.MaxInt) {
 		return 0
 	}
 	size = size / int64(bytesPerSample) * int64(bytesPerSample)
@@ -613,7 +613,11 @@ func (p *playerImpl) updatePosition() {
 	}
 
 	// Update the adjusted position every tick. This is necessary to keep the position accurate.
-	p.adjustedPosition = mathutil.MulDiv(samples, int64(time.Second), int64(p.factory.sampleRate)) + int64(adjustingTime)
+	position, ok := mathutil.MulDiv(samples, int64(time.Second), int64(p.factory.sampleRate))
+	if !ok {
+		panic("audio: position is out of range")
+	}
+	p.adjustedPosition = position + int64(adjustingTime)
 }
 
 type timeStream struct {
@@ -679,7 +683,10 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 
 func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	bytesPerSecond := int64(s.bytesPerSample) * int64(s.sampleRate)
-	o := mathutil.MulDiv(int64(offset), bytesPerSecond, int64(time.Second))
+	o, ok := mathutil.MulDiv(int64(offset), bytesPerSecond, int64(time.Second))
+	if !ok {
+		panic("audio: position is out of range")
+	}
 
 	// Align the byte position with the samples.
 	o -= o % int64(s.bytesPerSample)
@@ -694,5 +701,9 @@ func (s *timeStream) position() int64 {
 
 func (s *timeStream) positionInTimeDuration() time.Duration {
 	bytesPerSecond := int64(s.sampleRate) * int64(s.bytesPerSample)
-	return time.Duration(mathutil.MulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond))
+	position, ok := mathutil.MulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond)
+	if !ok {
+		panic("audio: position is out of range")
+	}
+	return time.Duration(position)
 }

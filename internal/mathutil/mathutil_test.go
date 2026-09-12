@@ -74,6 +74,11 @@ func TestMulDiv(t *testing.T) {
 		div int64
 	}{
 		{
+			x:   2,
+			mul: math.MaxInt64,
+			div: 1_000_000_000,
+		},
+		{
 			x:   0,
 			mul: 1e9,
 			div: 48000,
@@ -153,8 +158,41 @@ func TestMulDiv(t *testing.T) {
 		if !want.IsInt64() {
 			t.Fatalf("the test case MulDiv(%d, %d, %d) does not fit in int64", c.x, c.mul, c.div)
 		}
-		if got := mathutil.MulDiv(c.x, c.mul, c.div); got != want.Int64() {
-			t.Errorf("MulDiv(%d, %d, %d): got: %d, want: %d", c.x, c.mul, c.div, got, want.Int64())
+		if got, ok := mathutil.MulDiv(c.x, c.mul, c.div); !ok || got != want.Int64() {
+			t.Errorf("MulDiv(%d, %d, %d): got: (%d, %t), want: (%d, true)", c.x, c.mul, c.div, got, ok, want.Int64())
 		}
+	}
+}
+
+func TestMulDivBoundaries(t *testing.T) {
+	values := []int64{
+		math.MinInt64, math.MinInt64 + 1,
+		-1 << 32, -1_000_000_000, -3, -2, -1,
+		0, 1, 2, 3, 1_000_000_000, 1 << 32,
+		math.MaxInt64 - 1, math.MaxInt64,
+	}
+	for _, x := range values {
+		for _, mul := range values {
+			for _, div := range values {
+				testMulDiv(t, x, mul, div)
+			}
+		}
+	}
+}
+
+func testMulDiv(t *testing.T, x, mul, div int64) {
+	t.Helper()
+	var want big.Int
+	if div != 0 {
+		want.Mul(big.NewInt(x), big.NewInt(mul))
+		want.Quo(&want, big.NewInt(div))
+	}
+	wantOK := div != 0 && want.IsInt64()
+	var wantValue int64
+	if wantOK {
+		wantValue = want.Int64()
+	}
+	if got, ok := mathutil.MulDiv(x, mul, div); ok != wantOK || got != wantValue {
+		t.Errorf("MulDiv(%d, %d, %d): got: (%d, %t), want: (%d, %t)", x, mul, div, got, ok, wantValue, wantOK)
 	}
 }
