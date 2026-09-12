@@ -81,6 +81,16 @@ const (
 	virtualKeyboard = -1
 )
 
+// https://developer.android.com/reference/android/view/MotionEvent
+const (
+	_ACTION_DOWN         = 0x00
+	_ACTION_UP           = 0x01
+	_ACTION_MOVE         = 0x02
+	_ACTION_CANCEL       = 0x03
+	_ACTION_POINTER_DOWN = 0x05
+	_ACTION_POINTER_UP   = 0x06
+)
+
 // https://developer.android.com/reference/android/view/KeyEvent#getMetaState()
 const (
 	metaCapsLockOn = 0x00100000
@@ -134,7 +144,18 @@ var androidKeyToSDL = map[int]int{
 func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
 	inputMu.Lock()
 	defer inputMu.Unlock()
-	if updateTouchesAndroid(touches, action, id, x, y) {
+	switch action {
+	case _ACTION_DOWN, _ACTION_POINTER_DOWN, _ACTION_MOVE:
+		touches[ui.TouchID(id)] = position{x, y}
+		updateInput(nil)
+	case _ACTION_UP, _ACTION_POINTER_UP:
+		delete(touches, ui.TouchID(id))
+		updateInput(nil)
+	case _ACTION_CANCEL:
+		// ACTION_CANCEL cancels the whole gesture: every pointer that was down must be
+		// considered lifted, not only the action-index pointer.
+		// See https://developer.android.com/reference/android/view/MotionEvent.html#ACTION_CANCEL
+		clear(touches)
 		updateInput(nil)
 	}
 }
