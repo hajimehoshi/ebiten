@@ -29,7 +29,6 @@ type defaultContext struct {
 	gpBindAttribLocation       uintptr
 	gpBindBuffer               uintptr
 	gpBindFramebuffer          uintptr
-	gpBindRenderbuffer         uintptr
 	gpBindTexture              uintptr
 	gpBindVertexArray          uintptr
 	gpBlendEquationSeparate    uintptr
@@ -45,7 +44,6 @@ type defaultContext struct {
 	gpDeleteBuffers            uintptr
 	gpDeleteFramebuffers       uintptr
 	gpDeleteProgram            uintptr
-	gpDeleteRenderbuffers      uintptr
 	gpDeleteShader             uintptr
 	gpDeleteTextures           uintptr
 	gpDeleteVertexArrays       uintptr
@@ -56,11 +54,9 @@ type defaultContext struct {
 	gpEnableVertexAttribArray  uintptr
 	gpFinish                   uintptr
 	gpFlush                    uintptr
-	gpFramebufferRenderbuffer  uintptr
 	gpFramebufferTexture2D     uintptr
 	gpGenBuffers               uintptr
 	gpGenFramebuffers          uintptr
-	gpGenRenderbuffers         uintptr
 	gpGenTextures              uintptr
 	gpGenVertexArrays          uintptr
 	gpGetError                 uintptr
@@ -74,11 +70,8 @@ type defaultContext struct {
 	gpLinkProgram              uintptr
 	gpPixelStorei              uintptr
 	gpReadPixels               uintptr
-	gpRenderbufferStorage      uintptr
 	gpScissor                  uintptr
 	gpShaderSource             uintptr
-	gpStencilFunc              uintptr
-	gpStencilOpSeparate        uintptr
 	gpTexImage2D               uintptr
 	gpTexParameteri            uintptr
 	gpTexSubImage2D            uintptr
@@ -142,10 +135,6 @@ func (c *defaultContext) BindFramebuffer(target uint32, framebuffer uint32) {
 	purego.SyscallN(c.gpBindFramebuffer, uintptr(target), uintptr(framebuffer))
 }
 
-func (c *defaultContext) BindRenderbuffer(target uint32, renderbuffer uint32) {
-	purego.SyscallN(c.gpBindRenderbuffer, uintptr(target), uintptr(renderbuffer))
-}
-
 func (c *defaultContext) BindTexture(target uint32, texture uint32) {
 	purego.SyscallN(c.gpBindTexture, uintptr(target), uintptr(texture))
 }
@@ -205,12 +194,6 @@ func (c *defaultContext) CreateProgram() uint32 {
 	return uint32(ret)
 }
 
-func (c *defaultContext) CreateRenderbuffer() uint32 {
-	var renderbuffer uint32
-	purego.SyscallN(c.gpGenRenderbuffers, 1, uintptr(unsafe.Pointer(&renderbuffer)))
-	return renderbuffer
-}
-
 func (c *defaultContext) CreateShader(xtype uint32) uint32 {
 	ret, _, _ := purego.SyscallN(c.gpCreateShader, uintptr(xtype))
 	return uint32(ret)
@@ -242,10 +225,6 @@ func (c *defaultContext) DeleteProgram(program uint32) {
 		return
 	}
 	purego.SyscallN(c.gpDeleteProgram, uintptr(program))
-}
-
-func (c *defaultContext) DeleteRenderbuffer(renderbuffer uint32) {
-	purego.SyscallN(c.gpDeleteRenderbuffers, 1, uintptr(unsafe.Pointer(&renderbuffer)))
 }
 
 func (c *defaultContext) DeleteShader(shader uint32) {
@@ -286,10 +265,6 @@ func (c *defaultContext) Finish() {
 
 func (c *defaultContext) Flush() {
 	purego.SyscallN(c.gpFlush)
-}
-
-func (c *defaultContext) FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
-	purego.SyscallN(c.gpFramebufferRenderbuffer, uintptr(target), uintptr(attachment), uintptr(renderbuffertarget), uintptr(renderbuffer))
 }
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
@@ -368,10 +343,6 @@ func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, h
 	runtime.KeepAlive(dst)
 }
 
-func (c *defaultContext) RenderbufferStorage(target uint32, internalformat uint32, width int32, height int32) {
-	purego.SyscallN(c.gpRenderbufferStorage, uintptr(target), uintptr(internalformat), uintptr(width), uintptr(height))
-}
-
 func (c *defaultContext) Scissor(x int32, y int32, width int32, height int32) {
 	purego.SyscallN(c.gpScissor, uintptr(x), uintptr(y), uintptr(width), uintptr(height))
 }
@@ -380,14 +351,6 @@ func (c *defaultContext) ShaderSource(shader uint32, xstring string) {
 	cstring, free := cStr(xstring)
 	defer free()
 	purego.SyscallN(c.gpShaderSource, uintptr(shader), 1, uintptr(unsafe.Pointer(&cstring)), 0)
-}
-
-func (c *defaultContext) StencilFunc(xfunc uint32, ref int32, mask uint32) {
-	purego.SyscallN(c.gpStencilFunc, uintptr(xfunc), uintptr(ref), uintptr(mask))
-}
-
-func (c *defaultContext) StencilOpSeparate(face uint32, fail uint32, zfail uint32, zpass uint32) {
-	purego.SyscallN(c.gpStencilOpSeparate, uintptr(face), uintptr(fail), uintptr(zfail), uintptr(zpass))
 }
 
 func (c *defaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
@@ -487,7 +450,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpBindAttribLocation = g.get("glBindAttribLocation")
 	c.gpBindBuffer = g.get("glBindBuffer")
 	c.gpBindFramebuffer = g.get("glBindFramebuffer")
-	c.gpBindRenderbuffer = g.get("glBindRenderbuffer")
 	c.gpBindTexture = g.get("glBindTexture")
 	c.gpBindVertexArray = g.get("glBindVertexArray")
 	c.gpBlendEquationSeparate = g.get("glBlendEquationSeparate")
@@ -503,7 +465,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteBuffers = g.get("glDeleteBuffers")
 	c.gpDeleteFramebuffers = g.get("glDeleteFramebuffers")
 	c.gpDeleteProgram = g.get("glDeleteProgram")
-	c.gpDeleteRenderbuffers = g.get("glDeleteRenderbuffers")
 	c.gpDeleteShader = g.get("glDeleteShader")
 	c.gpDeleteTextures = g.get("glDeleteTextures")
 	c.gpDeleteVertexArrays = g.get("glDeleteVertexArrays")
@@ -514,11 +475,9 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")
 	c.gpFinish = g.get("glFinish")
 	c.gpFlush = g.get("glFlush")
-	c.gpFramebufferRenderbuffer = g.get("glFramebufferRenderbuffer")
 	c.gpFramebufferTexture2D = g.get("glFramebufferTexture2D")
 	c.gpGenBuffers = g.get("glGenBuffers")
 	c.gpGenFramebuffers = g.get("glGenFramebuffers")
-	c.gpGenRenderbuffers = g.get("glGenRenderbuffers")
 	c.gpGenTextures = g.get("glGenTextures")
 	c.gpGenVertexArrays = g.get("glGenVertexArrays")
 	c.gpGetError = g.get("glGetError")
@@ -532,11 +491,8 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpLinkProgram = g.get("glLinkProgram")
 	c.gpPixelStorei = g.get("glPixelStorei")
 	c.gpReadPixels = g.get("glReadPixels")
-	c.gpRenderbufferStorage = g.get("glRenderbufferStorage")
 	c.gpScissor = g.get("glScissor")
 	c.gpShaderSource = g.get("glShaderSource")
-	c.gpStencilFunc = g.get("glStencilFunc")
-	c.gpStencilOpSeparate = g.get("glStencilOpSeparate")
 	c.gpTexImage2D = g.get("glTexImage2D")
 	c.gpTexParameteri = g.get("glTexParameteri")
 	c.gpTexSubImage2D = g.get("glTexSubImage2D")

@@ -80,12 +80,11 @@ func convertBlendOperation(o graphicsdriver.BlendOperation) blendOperation {
 }
 
 type (
-	textureNative      uint32
-	renderbufferNative uint32
-	framebufferNative  uint32
-	shader             uint32
-	program            uint32
-	buffer             uint32
+	textureNative     uint32
+	framebufferNative uint32
+	shader            uint32
+	program           uint32
+	buffer            uint32
 )
 
 type (
@@ -104,7 +103,6 @@ type context struct {
 	screenFramebuffer               framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer                 framebufferNative
 	lastTexture                     textureNative
-	lastRenderbuffer                renderbufferNative
 	lastViewportWidth               int
 	lastViewportHeight              int
 	lastBlend                       graphicsdriver.Blend
@@ -121,14 +119,6 @@ func (c *context) bindTexture(t textureNative) {
 	}
 	c.ctx.BindTexture(gl.TEXTURE_2D, uint32(t))
 	c.lastTexture = t
-}
-
-func (c *context) bindRenderbuffer(r renderbufferNative) {
-	if c.lastRenderbuffer == r {
-		return
-	}
-	c.ctx.BindRenderbuffer(gl.RENDERBUFFER, uint32(r))
-	c.lastRenderbuffer = r
 }
 
 func (c *context) bindFramebuffer(f framebufferNative) {
@@ -281,50 +271,6 @@ func (c *context) deleteTexture(t textureNative) {
 	c.ctx.DeleteTexture(uint32(t))
 }
 
-func (c *context) newRenderbuffer(width, height int) (renderbufferNative, error) {
-	r := c.ctx.CreateRenderbuffer()
-	if r <= 0 {
-		return 0, errors.New("opengl: creating renderbuffer failed")
-	}
-
-	renderbuffer := renderbufferNative(r)
-	c.bindRenderbuffer(renderbuffer)
-
-	var stencilFormat uint32
-	if c.ctx.IsES() {
-		// https://docs.gl/es2/glRenderbufferStorage
-		// > Must be one of the following symbolic constants: GL_RGBA4, GL_RGB565, GL_RGB5_A1,
-		// > GL_DEPTH_COMPONENT16, or GL_STENCIL_INDEX8.
-		//
-		// https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/renderbufferStorage
-		// > A GLenum specifying the internal format of the renderbuffer. Possible values:
-		// > * gl.RGBA4: 4 red bits, 4 green bits, 4 blue bits 4 alpha bits.
-		// > * gl.RGB565: 5 red bits, 6 green bits, 5 blue bits.
-		// > * gl.RGB5_A1: 5 red bits, 5 green bits, 5 blue bits, 1 alpha bit.
-		// > * gl.DEPTH_COMPONENT16: 16 depth bits.
-		// > * gl.STENCIL_INDEX8: 8 stencil bits.
-		// > * gl.DEPTH_STENCIL
-		stencilFormat = gl.STENCIL_INDEX8
-	} else {
-		// GL_STENCIL_INDEX8 might not be available with OpenGL 2.1.
-		// https://www.khronos.org/opengl/wiki/Image_Format
-		// > There are only 2 depth/stencil formats, each providing 8 stencil bits: GL_DEPTH24_STENCIL8 and GL_DEPTH32F_STENCIL8.
-		// > [...]
-		// > Stencil formats can only be used for Textures if OpenGL 4.4 or ARB_texture_stencil8 is available.
-		stencilFormat = gl.DEPTH24_STENCIL8
-	}
-	c.ctx.RenderbufferStorage(gl.RENDERBUFFER, stencilFormat, int32(width), int32(height))
-
-	return renderbuffer, nil
-}
-
-func (c *context) deleteRenderbuffer(r renderbufferNative) {
-	if c.lastRenderbuffer == r {
-		c.lastRenderbuffer = 0
-	}
-	c.ctx.DeleteRenderbuffer(uint32(r))
-}
-
 func (c *context) newFramebuffer(texture textureNative, width, height int) (*framebuffer, error) {
 	f := c.ctx.CreateFramebuffer()
 	if f <= 0 {
@@ -354,20 +300,6 @@ func (c *context) newFramebuffer(texture textureNative, width, height int) (*fra
 		viewportWidth:  width,
 		viewportHeight: height,
 	}, nil
-}
-
-func (c *context) bindStencilBuffer(f framebufferNative, r renderbufferNative) error {
-	c.bindFramebuffer(f)
-
-	c.ctx.FramebufferRenderbuffer(gl.FRAMEBUFFER, gl.STENCIL_ATTACHMENT, gl.RENDERBUFFER, uint32(r))
-
-	if shouldCheckFramebufferStatus() {
-		if s := c.ctx.CheckFramebufferStatus(gl.FRAMEBUFFER); s != gl.FRAMEBUFFER_COMPLETE {
-			return fmt.Errorf("opengl: glFramebufferRenderbuffer failed: %d", s)
-		}
-	}
-
-	return nil
 }
 
 func (c *context) deleteFramebuffer(f framebufferNative) {
