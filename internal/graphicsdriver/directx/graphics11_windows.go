@@ -533,7 +533,7 @@ func (g *graphics11) removeShader(s *shader11) {
 
 func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32) error {
 	// Remove bound textures first. This is needed to avoid warnings on the debugger.
-	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil}, nil)
+	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil})
 	var srvs [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView
 	g.deviceContext.PSSetShaderResources(0, srvs[:])
 

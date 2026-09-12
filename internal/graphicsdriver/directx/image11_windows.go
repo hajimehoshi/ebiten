@@ -147,7 +147,7 @@ func (i *image11) setAsRenderTarget() error {
 		i.renderTargetView = rtv
 	}
 
-	i.graphics.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{i.renderTargetView}, nil)
+	i.graphics.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{i.renderTargetView})
 	return nil
 }
 

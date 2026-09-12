@@ -523,34 +523,6 @@ type _ID3D11ClassLinkage_Vtbl struct {
 	CreateClassInstance uintptr
 }
 
-type _ID3D11DepthStencilView struct {
-	_    structs.HostLayout
-	vtbl *_ID3D11DepthStencilView_Vtbl
-}
-
-type _ID3D11DepthStencilView_Vtbl struct {
-	_              structs.HostLayout
-	QueryInterface uintptr
-	AddRef         uintptr
-	Release        uintptr
-
-	// ID3D11DeviceChild
-	GetDevice               uintptr
-	GetPrivateData          uintptr
-	SetPrivateData          uintptr
-	SetPrivateDataInterface uintptr
-
-	// ID3D11View
-	GetResource uintptr
-
-	GetDesc uintptr
-}
-
-func (i *_ID3D11DepthStencilView) Release() uint32 {
-	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
-	return uint32(r)
-}
-
 type _ID3D11Device struct {
 	_    structs.HostLayout
 	vtbl *_ID3D11Device_Vtbl
@@ -945,13 +917,13 @@ func (i *_ID3D11DeviceContext) OMSetBlendState(pBlendState *_ID3D11BlendState, b
 	runtime.KeepAlive(pBlendState)
 }
 
-func (i *_ID3D11DeviceContext) OMSetRenderTargets(renderTargetViews []*_ID3D11RenderTargetView, depthStencilView *_ID3D11DepthStencilView) {
+func (i *_ID3D11DeviceContext) OMSetRenderTargets(renderTargetViews []*_ID3D11RenderTargetView) {
 	var ppRenderTargetViews **_ID3D11RenderTargetView
 	if len(renderTargetViews) > 0 {
 		ppRenderTargetViews = &renderTargetViews[0]
 	}
 	_, _, _ = syscall.Syscall6(i.vtbl.OMSetRenderTargets, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(len(renderTargetViews)), uintptr(unsafe.Pointer(ppRenderTargetViews)), uintptr(unsafe.Pointer(depthStencilView)),
+		uintptr(len(renderTargetViews)), uintptr(unsafe.Pointer(ppRenderTargetViews)), 0,
 		0, 0)
 	runtime.KeepAlive(renderTargetViews)
 }
