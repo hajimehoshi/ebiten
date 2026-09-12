@@ -670,7 +670,12 @@ func (u *glfwBackend) registerWindowPosCallback() error {
 			if f {
 				return
 			}
-			iconified, err := u.isWindowIconified()
+			// The iconification must not be cached here: on Windows, WM_MOVE can arrive before
+			// the WM_SIZE which reports the iconification, so the cached value can be stale in
+			// both directions. Then the iconified window position would be stored as the window
+			// position, or the position reported when the window is restored would be discarded.
+			// This callback is not called every tick, so the query is not harmful (#3318).
+			iconified, err := u.isWindowIconifiedUncached()
 			if err != nil {
 				u.setError(err)
 				return
@@ -745,7 +750,9 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 			if f {
 				return
 			}
-			iconified, err := u.isWindowIconified()
+			// The iconification must not be cached here, for the same reason as the window
+			// position callback above (#3318).
+			iconified, err := u.isWindowIconifiedUncached()
 			if err != nil {
 				u.setError(err)
 				return
@@ -1964,6 +1971,27 @@ func (u *glfwBackend) isWindowIconified() (bool, error) {
 	u.cachedIconified = a == glfw.True
 	u.nextIconifiedQuery = now.Add(windowStateQueryInterval)
 	return u.cachedIconified, nil
+}
+
+// isWindowIconifiedUncached reports whether the window is iconified, querying the window system
+// directly without using the cache.
+//
+// A GLFW window event callback must not use the cached iconification, because the callbacks of a
+// window state change are not ordered: on Windows, for example, WM_MOVE can arrive before the
+// WM_SIZE which reports the iconification, so the cached value can still be false for a window
+// which is being iconified. These callbacks are not called every tick, so the query is not harmful
+// (#3318).
+//
+// isWindowIconifiedUncached must be called on the main thread.
+func (u *glfwBackend) isWindowIconifiedUncached() (bool, error) {
+	if u.window == nil {
+		return false, nil
+	}
+	a, err := u.window.GetAttrib(glfw.Iconified)
+	if err != nil {
+		return false, err
+	}
+	return a == glfw.True, nil
 }
 
 // setCachedFocus records the window's focus reported by a GLFW callback.
