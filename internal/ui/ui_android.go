@@ -18,6 +18,15 @@ package ui
 #include <jni.h>
 #include <stdlib.h>
 
+// clearException clears a pending Java exception. A failed lookup like
+// FindClass or GetMethodID leaves an exception pending, and any further JNI
+// call made with an exception pending is undefined.
+static void clearException(JNIEnv* env) {
+  if ((*env)->ExceptionCheck(env)) {
+    (*env)->ExceptionClear(env);
+  }
+}
+
 // The following JNI code works as this pseudo Java code:
 //
 //     WindowService windowService = context.getSystemService(Context.WINDOW_SERVICE);
@@ -26,6 +35,7 @@ package ui
 //     display.getRealMetrics(displayMetrics);
 //     return displayMetrics.widthPixels, displayMetrics.heightPixels, displayMetrics.density;
 //
+// A failure leaves the default values set at the beginning.
 #cgo noescape displayInfo
 #cgo nocallback displayInfo
 static void displayInfo(int* width, int* height, float* scale, uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx) {
@@ -39,59 +49,129 @@ static void displayInfo(int* width, int* height, float* scale, uintptr_t java_vm
 
   const char* kWindowService = "window";
 
-  const jclass android_content_Context =
-      (*env)->FindClass(env, "android/content/Context");
-  const jclass android_view_WindowManager =
-      (*env)->FindClass(env, "android/view/WindowManager");
-  const jclass android_view_Display =
-      (*env)->FindClass(env, "android/view/Display");
-  const jclass android_util_DisplayMetrics =
-      (*env)->FindClass(env, "android/util/DisplayMetrics");
+  // Every local reference taken below is released at cleanup.
+  jclass android_content_Context = NULL;
+  jclass android_view_WindowManager = NULL;
+  jclass android_view_Display = NULL;
+  jclass android_util_DisplayMetrics = NULL;
+  jobject android_context_Context_WINDOW_SERVICE = NULL;
+  jobject windowManager = NULL;
+  jobject display = NULL;
+  jobject displayMetrics = NULL;
 
-  const jobject android_context_Context_WINDOW_SERVICE =
-      (*env)->GetStaticObjectField(
-          env, android_content_Context,
-          (*env)->GetStaticFieldID(env, android_content_Context, "WINDOW_SERVICE", "Ljava/lang/String;"));
+  android_content_Context = (*env)->FindClass(env, "android/content/Context");
+  if (!android_content_Context) {
+    goto cleanup;
+  }
 
-  const jobject windowManager =
-      (*env)->CallObjectMethod(
-          env, context,
-          (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
-          android_context_Context_WINDOW_SERVICE);
-  const jobject display =
-      (*env)->CallObjectMethod(
-          env, windowManager,
-          (*env)->GetMethodID(env, android_view_WindowManager, "getDefaultDisplay", "()Landroid/view/Display;"));
-  const jobject displayMetrics =
-      (*env)->NewObject(
-          env, android_util_DisplayMetrics,
-          (*env)->GetMethodID(env, android_util_DisplayMetrics, "<init>", "()V"));
-  (*env)->CallVoidMethod(
-      env, display,
-      (*env)->GetMethodID(env, android_view_Display, "getRealMetrics", "(Landroid/util/DisplayMetrics;)V"),
-      displayMetrics);
-  *width =
-      (*env)->GetIntField(
-          env, displayMetrics,
-          (*env)->GetFieldID(env, android_util_DisplayMetrics, "widthPixels", "I"));
-  *height =
-      (*env)->GetIntField(
-          env, displayMetrics,
-          (*env)->GetFieldID(env, android_util_DisplayMetrics, "heightPixels", "I"));
-  *scale =
-      (*env)->GetFloatField(
-          env, displayMetrics,
-          (*env)->GetFieldID(env, android_util_DisplayMetrics, "density", "F"));
+  android_view_WindowManager = (*env)->FindClass(env, "android/view/WindowManager");
+  if (!android_view_WindowManager) {
+    goto cleanup;
+  }
 
-  (*env)->DeleteLocalRef(env, android_content_Context);
-  (*env)->DeleteLocalRef(env, android_view_WindowManager);
-  (*env)->DeleteLocalRef(env, android_view_Display);
-  (*env)->DeleteLocalRef(env, android_util_DisplayMetrics);
+  android_view_Display = (*env)->FindClass(env, "android/view/Display");
+  if (!android_view_Display) {
+    goto cleanup;
+  }
 
-  (*env)->DeleteLocalRef(env, android_context_Context_WINDOW_SERVICE);
-  (*env)->DeleteLocalRef(env, windowManager);
-  (*env)->DeleteLocalRef(env, display);
+  android_util_DisplayMetrics = (*env)->FindClass(env, "android/util/DisplayMetrics");
+  if (!android_util_DisplayMetrics) {
+    goto cleanup;
+  }
+
+  const jfieldID windowServiceID =
+      (*env)->GetStaticFieldID(env, android_content_Context, "WINDOW_SERVICE", "Ljava/lang/String;");
+  if (!windowServiceID) {
+    goto cleanup;
+  }
+
+  const jmethodID getSystemServiceID =
+      (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+  if (!getSystemServiceID) {
+    goto cleanup;
+  }
+
+  const jmethodID getDefaultDisplayID =
+      (*env)->GetMethodID(env, android_view_WindowManager, "getDefaultDisplay", "()Landroid/view/Display;");
+  if (!getDefaultDisplayID) {
+    goto cleanup;
+  }
+
+  const jmethodID displayMetricsInitID =
+      (*env)->GetMethodID(env, android_util_DisplayMetrics, "<init>", "()V");
+  if (!displayMetricsInitID) {
+    goto cleanup;
+  }
+
+  const jmethodID getRealMetricsID =
+      (*env)->GetMethodID(env, android_view_Display, "getRealMetrics", "(Landroid/util/DisplayMetrics;)V");
+  if (!getRealMetricsID) {
+    goto cleanup;
+  }
+
+  const jfieldID widthPixelsID =
+      (*env)->GetFieldID(env, android_util_DisplayMetrics, "widthPixels", "I");
+  if (!widthPixelsID) {
+    goto cleanup;
+  }
+
+  const jfieldID heightPixelsID =
+      (*env)->GetFieldID(env, android_util_DisplayMetrics, "heightPixels", "I");
+  if (!heightPixelsID) {
+    goto cleanup;
+  }
+
+  const jfieldID densityID =
+      (*env)->GetFieldID(env, android_util_DisplayMetrics, "density", "F");
+  if (!densityID) {
+    goto cleanup;
+  }
+
+  android_context_Context_WINDOW_SERVICE =
+      (*env)->GetStaticObjectField(env, android_content_Context, windowServiceID);
+
+  // The result of a Java method call is invalid when the call throws, so an
+  // exception is checked ahead of the result. The context here is the
+  // application context, a non-visual context for which retrieving the window
+  // service is discouraged since API level 30 and can return null.
+  windowManager =
+      (*env)->CallObjectMethod(env, context, getSystemServiceID, android_context_Context_WINDOW_SERVICE);
+  if ((*env)->ExceptionCheck(env) || !windowManager) {
+    goto cleanup;
+  }
+
+  display = (*env)->CallObjectMethod(env, windowManager, getDefaultDisplayID);
+  if ((*env)->ExceptionCheck(env) || !display) {
+    goto cleanup;
+  }
+
+  displayMetrics = (*env)->NewObject(env, android_util_DisplayMetrics, displayMetricsInitID);
+  if ((*env)->ExceptionCheck(env) || !displayMetrics) {
+    goto cleanup;
+  }
+
+  (*env)->CallVoidMethod(env, display, getRealMetricsID, displayMetrics);
+  if ((*env)->ExceptionCheck(env)) {
+    goto cleanup;
+  }
+
+  *width = (*env)->GetIntField(env, displayMetrics, widthPixelsID);
+  *height = (*env)->GetIntField(env, displayMetrics, heightPixelsID);
+  *scale = (*env)->GetFloatField(env, displayMetrics, densityID);
+
+cleanup:
+  clearException(env);
+
+  // DeleteLocalRef ignores NULL on Android (ART and Dalvik), which the JNI
+  // specification leaves unspecified.
   (*env)->DeleteLocalRef(env, displayMetrics);
+  (*env)->DeleteLocalRef(env, display);
+  (*env)->DeleteLocalRef(env, windowManager);
+  (*env)->DeleteLocalRef(env, android_context_Context_WINDOW_SERVICE);
+  (*env)->DeleteLocalRef(env, android_util_DisplayMetrics);
+  (*env)->DeleteLocalRef(env, android_view_Display);
+  (*env)->DeleteLocalRef(env, android_view_WindowManager);
+  (*env)->DeleteLocalRef(env, android_content_Context);
 }
 */
 import "C"

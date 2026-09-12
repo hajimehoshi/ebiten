@@ -27,6 +27,7 @@ import android.graphics.Rect;
 import android.hardware.input.InputManager;
 import android.os.Build;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
@@ -123,8 +124,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     }
 
     private void updateDeviceScale() {
+        // A context can lack the window service, and a window manager can lack
+        // a default display. Keep the current scale then.
         WindowManager windowManager = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
+        if (windowManager == null) {
+            return;
+        }
         Display display = windowManager.getDefaultDisplay();
+        if (display == null) {
+            return;
+        }
         DisplayMetrics metrics = new DisplayMetrics();
         display.getRealMetrics(metrics);
         this.deviceScale = metrics.density;
@@ -165,10 +174,13 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         LayoutParams params = new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT);
         addView(this.ebitenSurfaceView, params);
 
+        // The input service can be missing. Gamepads are then unavailable.
         this.inputManager = (InputManager)context.getSystemService(Context.INPUT_SERVICE);
-        this.inputManager.registerInputDeviceListener(this, null);
-        for (int id : this.inputManager.getInputDeviceIds()) {
-            this.onInputDeviceAdded(id);
+        if (this.inputManager != null) {
+            this.inputManager.registerInputDeviceListener(this, null);
+            for (int id : this.inputManager.getInputDeviceIds()) {
+                this.onInputDeviceAdded(id);
+            }
         }
 
         this.editText = new EbitenEditText(context);
@@ -287,6 +299,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
     @Override
     public void onInputDeviceAdded(int deviceId) {
+        if (this.inputManager == null) {
+            return;
+        }
         InputDevice inputDevice = this.inputManager.getInputDevice(deviceId);
         // The InputDevice can be null on some deivces (#1342).
         if (inputDevice == null) {
@@ -494,7 +509,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     // It is recommended to call this when the application is being suspended e.g.,
     // Activity's onPause is called.
     public void suspendGame() {
-        this.inputManager.unregisterInputDeviceListener(this);
+        if (this.inputManager != null) {
+            this.inputManager.unregisterInputDeviceListener(this);
+        }
         this.ebitenSurfaceView.onPause();
         try {
             Ebitenmobileview.suspend();
@@ -507,7 +524,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     // It is recommended to call this when the application is being resumed e.g.,
     // Activity's onResume is called.
     public void resumeGame() {
-        this.inputManager.registerInputDeviceListener(this, null);
+        if (this.inputManager != null) {
+            this.inputManager.registerInputDeviceListener(this, null);
+        }
         this.ebitenSurfaceView.onResume();
         try {
             Ebitenmobileview.resume();
@@ -780,6 +799,9 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             return;
         }
         InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm == null) {
+            return;
+        }
         imm.showSoftInput(this.editText, 0);
     }
 
@@ -810,8 +832,13 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
                 // End text inputting first so that the keyboard hiding below
                 // is not reported as the user's dismissal.
                 textInputActive = false;
+                // This runs from a posted Runnable and can reach a detached
+                // view, whose window token is null.
                 InputMethodManager imm = (InputMethodManager)getContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(getWindowToken(), 0);
+                IBinder windowToken = getWindowToken();
+                if (imm != null && windowToken != null) {
+                    imm.hideSoftInputFromWindow(windowToken, 0);
+                }
                 // Programmatic clearing is not the user's input; do not report
                 // it.
                 suppressTextInputReports = true;

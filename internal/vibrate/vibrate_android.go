@@ -27,6 +27,15 @@ import (
 
 #include <android/log.h>
 
+// clearException clears a pending Java exception. A failed lookup like
+// FindClass or GetMethodID leaves an exception pending, and any further JNI
+// call made with an exception pending is undefined.
+static void clearException(JNIEnv* env) {
+  if ((*env)->ExceptionCheck(env)) {
+    (*env)->ExceptionClear(env);
+  }
+}
+
 // Basically the following code is equivalent to the following Java code:
 //
 //     Vibrator v;
@@ -52,6 +61,8 @@ import (
 //       v.vibrate(millisecond);
 //     }
 //
+// A lookup or a call that fails aborts the vibration silently.
+//
 // Note that this requires a manifest setting:
 //
 //     <uses-permission android:name="android.permission.VIBRATE"/>
@@ -66,10 +77,19 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
   static int apiLevel = 0;
   if (!apiLevel) {
     const jclass android_os_Build_VERSION = (*env)->FindClass(env, "android/os/Build$VERSION");
+    if (!android_os_Build_VERSION) {
+      clearException(env);
+      return;
+    }
 
-    apiLevel = (*env)->GetStaticIntField(
-        env, android_os_Build_VERSION,
-        (*env)->GetStaticFieldID(env, android_os_Build_VERSION, "SDK_INT", "I"));
+    const jfieldID sdkIntID = (*env)->GetStaticFieldID(env, android_os_Build_VERSION, "SDK_INT", "I");
+    if (!sdkIntID) {
+      clearException(env);
+      (*env)->DeleteLocalRef(env, android_os_Build_VERSION);
+      return;
+    }
+
+    apiLevel = (*env)->GetStaticIntField(env, android_os_Build_VERSION, sdkIntID);
 
     (*env)->DeleteLocalRef(env, android_os_Build_VERSION);
   }
@@ -79,140 +99,255 @@ static void vibrateOneShot(uintptr_t java_vm, uintptr_t jni_env, uintptr_t ctx, 
     return;
   }
 
-  const jclass android_content_Context = (*env)->FindClass(env, "android/content/Context");
-  const jclass android_os_Vibrator = (*env)->FindClass(env, "android/os/Vibrator");
-
+  // Every local reference taken below is released at cleanup.
+  jclass android_content_Context = NULL;
+  jclass android_os_Vibrator = NULL;
+  jclass android_os_VibratorManager = NULL;
+  jobject android_context_Context_VIBRATOR_MANAGER_SERVICE = NULL;
+  jobject vibratorManager = NULL;
+  jobject android_context_Context_VIBRATOR_SERVICE = NULL;
   jobject vibrator = NULL;
+  jclass android_os_VibrationEffect = NULL;
+  jobject vibrationEffect = NULL;
+  jclass android_os_VibrationAttributes = NULL;
+  jclass android_os_VibrationAttributes_Builder = NULL;
+  jclass android_media_AudioAttributes = NULL;
+  jclass android_media_AudioAttributes_Builder = NULL;
+  jobject attributesBuilder = NULL;
+  jobject vibrationAttributes = NULL;
+  jobject audioAttributes = NULL;
+
+  android_content_Context = (*env)->FindClass(env, "android/content/Context");
+  if (!android_content_Context) {
+    goto cleanup;
+  }
+
+  android_os_Vibrator = (*env)->FindClass(env, "android/os/Vibrator");
+  if (!android_os_Vibrator) {
+    goto cleanup;
+  }
+
   if (apiLevel >= 31) {
-    const jclass android_os_VibratorManager = (*env)->FindClass(env, "android/os/VibratorManager");
+    android_os_VibratorManager = (*env)->FindClass(env, "android/os/VibratorManager");
+    if (!android_os_VibratorManager) {
+      goto cleanup;
+    }
 
-    const jobject android_context_Context_VIBRATOR_MANAGER_SERVICE =
-        (*env)->GetStaticObjectField(
-            env, android_content_Context,
-            (*env)->GetStaticFieldID(env, android_content_Context, "VIBRATOR_MANAGER_SERVICE", "Ljava/lang/String;"));
+    const jfieldID vibratorManagerServiceID =
+        (*env)->GetStaticFieldID(env, android_content_Context, "VIBRATOR_MANAGER_SERVICE", "Ljava/lang/String;");
+    if (!vibratorManagerServiceID) {
+      goto cleanup;
+    }
 
-    const jobject vibratorManager =
-        (*env)->CallObjectMethod(
-            env, context,
-            (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
-            android_context_Context_VIBRATOR_MANAGER_SERVICE);
+    const jmethodID getSystemServiceID =
+        (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+    if (!getSystemServiceID) {
+      goto cleanup;
+    }
 
-    vibrator =
-        (*env)->CallObjectMethod(
-            env, vibratorManager,
-            (*env)->GetMethodID(env, android_os_VibratorManager, "getDefaultVibrator", "()Landroid/os/Vibrator;"));
+    const jmethodID getDefaultVibratorID =
+        (*env)->GetMethodID(env, android_os_VibratorManager, "getDefaultVibrator", "()Landroid/os/Vibrator;");
+    if (!getDefaultVibratorID) {
+      goto cleanup;
+    }
 
-    (*env)->DeleteLocalRef(env, vibratorManager);
-    (*env)->DeleteLocalRef(env, android_context_Context_VIBRATOR_MANAGER_SERVICE);
-    (*env)->DeleteLocalRef(env, android_os_VibratorManager);
+    android_context_Context_VIBRATOR_MANAGER_SERVICE =
+        (*env)->GetStaticObjectField(env, android_content_Context, vibratorManagerServiceID);
+
+    // The result of a Java method call is invalid when the call throws, so an
+    // exception is checked ahead of the result. getSystemService returns null
+    // for a service that is not registered.
+    vibratorManager =
+        (*env)->CallObjectMethod(env, context, getSystemServiceID, android_context_Context_VIBRATOR_MANAGER_SERVICE);
+    if ((*env)->ExceptionCheck(env) || !vibratorManager) {
+      goto cleanup;
+    }
+
+    vibrator = (*env)->CallObjectMethod(env, vibratorManager, getDefaultVibratorID);
   } else {
-    const jobject android_context_Context_VIBRATOR_SERVICE =
-        (*env)->GetStaticObjectField(
-            env, android_content_Context,
-            (*env)->GetStaticFieldID(env, android_content_Context, "VIBRATOR_SERVICE", "Ljava/lang/String;"));
+    const jfieldID vibratorServiceID =
+        (*env)->GetStaticFieldID(env, android_content_Context, "VIBRATOR_SERVICE", "Ljava/lang/String;");
+    if (!vibratorServiceID) {
+      goto cleanup;
+    }
+
+    const jmethodID getSystemServiceID =
+        (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;");
+    if (!getSystemServiceID) {
+      goto cleanup;
+    }
+
+    android_context_Context_VIBRATOR_SERVICE =
+        (*env)->GetStaticObjectField(env, android_content_Context, vibratorServiceID);
 
     vibrator =
-        (*env)->CallObjectMethod(
-            env, context,
-            (*env)->GetMethodID(env, android_content_Context, "getSystemService", "(Ljava/lang/String;)Ljava/lang/Object;"),
-            android_context_Context_VIBRATOR_SERVICE);
+        (*env)->CallObjectMethod(env, context, getSystemServiceID, android_context_Context_VIBRATOR_SERVICE);
+  }
 
-    (*env)->DeleteLocalRef(env, android_context_Context_VIBRATOR_SERVICE);
+  // getSystemService returns null for a service that is not registered, and
+  // getDefaultVibrator can likewise fail.
+  if ((*env)->ExceptionCheck(env) || !vibrator) {
+    goto cleanup;
   }
 
   if (apiLevel >= 26) {
-    const jclass android_os_VibrationEffect = (*env)->FindClass(env, "android/os/VibrationEffect");
+    android_os_VibrationEffect = (*env)->FindClass(env, "android/os/VibrationEffect");
+    if (!android_os_VibrationEffect) {
+      goto cleanup;
+    }
 
-    const jobject vibrationEffect =
-        (*env)->CallStaticObjectMethod(
-            env, android_os_VibrationEffect,
-            (*env)->GetStaticMethodID(env, android_os_VibrationEffect, "createOneShot", "(JI)Landroid/os/VibrationEffect;"),
-            milliseconds, amplitude);
+    const jmethodID createOneShotID =
+        (*env)->GetStaticMethodID(env, android_os_VibrationEffect, "createOneShot", "(JI)Landroid/os/VibrationEffect;");
+    if (!createOneShotID) {
+      goto cleanup;
+    }
 
-    if ((*env)->ExceptionCheck(env)) {
-      (*env)->DeleteLocalRef(env, android_os_VibrationEffect);
-      (*env)->DeleteLocalRef(env, vibrator);
-      (*env)->DeleteLocalRef(env, android_content_Context);
-      (*env)->DeleteLocalRef(env, android_os_Vibrator);
-      return;
+    vibrationEffect =
+        (*env)->CallStaticObjectMethod(env, android_os_VibrationEffect, createOneShotID, milliseconds, amplitude);
+    if ((*env)->ExceptionCheck(env) || !vibrationEffect) {
+      goto cleanup;
     }
 
     if (apiLevel >= 33) {
-      const jclass android_os_VibrationAttributes = (*env)->FindClass(env, "android/os/VibrationAttributes");
-      const jclass android_os_VibrationAttributes_Builder = (*env)->FindClass(env, "android/os/VibrationAttributes$Builder");
+      android_os_VibrationAttributes = (*env)->FindClass(env, "android/os/VibrationAttributes");
+      if (!android_os_VibrationAttributes) {
+        goto cleanup;
+      }
 
-      const jobject attributesBuilder =
-          (*env)->NewObject(
-              env, android_os_VibrationAttributes_Builder,
-              (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "<init>", "()V"));
+      android_os_VibrationAttributes_Builder = (*env)->FindClass(env, "android/os/VibrationAttributes$Builder");
+      if (!android_os_VibrationAttributes_Builder) {
+        goto cleanup;
+      }
+
+      const jmethodID builderInitID =
+          (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "<init>", "()V");
+      if (!builderInitID) {
+        goto cleanup;
+      }
+
+      const jmethodID setUsageID =
+          (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "setUsage", "(I)Landroid/os/VibrationAttributes$Builder;");
+      if (!setUsageID) {
+        goto cleanup;
+      }
+
+      const jmethodID buildID =
+          (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "build", "()Landroid/os/VibrationAttributes;");
+      if (!buildID) {
+        goto cleanup;
+      }
+
+      const jmethodID vibrateID =
+          (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(Landroid/os/VibrationEffect;Landroid/os/VibrationAttributes;)V");
+      if (!vibrateID) {
+        goto cleanup;
+      }
+
+      attributesBuilder = (*env)->NewObject(env, android_os_VibrationAttributes_Builder, builderInitID);
+      if ((*env)->ExceptionCheck(env) || !attributesBuilder) {
+        goto cleanup;
+      }
 
       // A purpose for games and media are integrated into VibrationAttributes.USAGE_MEDIA.
       const jint USAGE_MEDIA = 19;
-      (*env)->CallObjectMethod(
-          env, attributesBuilder,
-          (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "setUsage", "(I)Landroid/os/VibrationAttributes$Builder;"),
-          USAGE_MEDIA);
+      (*env)->CallObjectMethod(env, attributesBuilder, setUsageID, USAGE_MEDIA);
+      if ((*env)->ExceptionCheck(env)) {
+        goto cleanup;
+      }
 
-      const jobject vibrationAttributes =
-          (*env)->CallObjectMethod(
-              env, attributesBuilder,
-              (*env)->GetMethodID(env, android_os_VibrationAttributes_Builder, "build", "()Landroid/os/VibrationAttributes;"));
+      vibrationAttributes = (*env)->CallObjectMethod(env, attributesBuilder, buildID);
+      if ((*env)->ExceptionCheck(env) || !vibrationAttributes) {
+        goto cleanup;
+      }
 
-      (*env)->CallVoidMethod(
-          env, vibrator,
-          (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(Landroid/os/VibrationEffect;Landroid/os/VibrationAttributes;)V"),
-          vibrationEffect, vibrationAttributes);
-
-      (*env)->DeleteLocalRef(env, vibrationAttributes);
-      (*env)->DeleteLocalRef(env, attributesBuilder);
-      (*env)->DeleteLocalRef(env, android_os_VibrationAttributes_Builder);
-      (*env)->DeleteLocalRef(env, android_os_VibrationAttributes);
+      (*env)->CallVoidMethod(env, vibrator, vibrateID, vibrationEffect, vibrationAttributes);
     } else {
-      const jclass android_media_AudioAttributes = (*env)->FindClass(env, "android/media/AudioAttributes");
-      const jclass android_media_AudioAttributes_Builder = (*env)->FindClass(env, "android/media/AudioAttributes$Builder");
+      android_media_AudioAttributes = (*env)->FindClass(env, "android/media/AudioAttributes");
+      if (!android_media_AudioAttributes) {
+        goto cleanup;
+      }
 
-      const jobject attributesBuilder =
-          (*env)->NewObject(
-              env, android_media_AudioAttributes_Builder,
-              (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "<init>", "()V"));
+      android_media_AudioAttributes_Builder = (*env)->FindClass(env, "android/media/AudioAttributes$Builder");
+      if (!android_media_AudioAttributes_Builder) {
+        goto cleanup;
+      }
+
+      const jmethodID builderInitID =
+          (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "<init>", "()V");
+      if (!builderInitID) {
+        goto cleanup;
+      }
+
+      const jmethodID setUsageID =
+          (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "setUsage", "(I)Landroid/media/AudioAttributes$Builder;");
+      if (!setUsageID) {
+        goto cleanup;
+      }
+
+      const jmethodID buildID =
+          (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "build", "()Landroid/media/AudioAttributes;");
+      if (!buildID) {
+        goto cleanup;
+      }
+
+      const jmethodID vibrateID =
+          (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(Landroid/os/VibrationEffect;Landroid/media/AudioAttributes;)V");
+      if (!vibrateID) {
+        goto cleanup;
+      }
+
+      attributesBuilder = (*env)->NewObject(env, android_media_AudioAttributes_Builder, builderInitID);
+      if ((*env)->ExceptionCheck(env) || !attributesBuilder) {
+        goto cleanup;
+      }
 
       // Use AudioAttributes.USAGE_GAME as most applications with Ebitengine are games.
       const jint USAGE_GAME = 14;
-      (*env)->CallObjectMethod(
-          env, attributesBuilder,
-          (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "setUsage", "(I)Landroid/media/AudioAttributes$Builder;"),
-          USAGE_GAME);
+      (*env)->CallObjectMethod(env, attributesBuilder, setUsageID, USAGE_GAME);
+      if ((*env)->ExceptionCheck(env)) {
+        goto cleanup;
+      }
 
-      const jobject audioAttributes =
-          (*env)->CallObjectMethod(
-              env, attributesBuilder,
-              (*env)->GetMethodID(env, android_media_AudioAttributes_Builder, "build", "()Landroid/media/AudioAttributes;"));
+      audioAttributes = (*env)->CallObjectMethod(env, attributesBuilder, buildID);
+      if ((*env)->ExceptionCheck(env) || !audioAttributes) {
+        goto cleanup;
+      }
 
-      (*env)->CallVoidMethod(
-          env, vibrator,
-          (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(Landroid/os/VibrationEffect;Landroid/media/AudioAttributes;)V"),
-          vibrationEffect, audioAttributes);
-
-      (*env)->DeleteLocalRef(env, audioAttributes);
-      (*env)->DeleteLocalRef(env, attributesBuilder);
-      (*env)->DeleteLocalRef(env, android_media_AudioAttributes_Builder);
-      (*env)->DeleteLocalRef(env, android_media_AudioAttributes);
+      (*env)->CallVoidMethod(env, vibrator, vibrateID, vibrationEffect, audioAttributes);
+    }
+  } else {
+    const jmethodID vibrateID = (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(J)V");
+    if (!vibrateID) {
+      goto cleanup;
     }
 
-    (*env)->DeleteLocalRef(env, vibrationEffect);
-    (*env)->DeleteLocalRef(env, android_os_VibrationEffect);
-  } else {
-    (*env)->CallVoidMethod(
-        env, vibrator,
-        (*env)->GetMethodID(env, android_os_Vibrator, "vibrate", "(J)V"),
-        milliseconds);
+    (*env)->CallVoidMethod(env, vibrator, vibrateID, milliseconds);
   }
 
-  (*env)->DeleteLocalRef(env, vibrator);
-  (*env)->DeleteLocalRef(env, android_content_Context);
-  (*env)->DeleteLocalRef(env, android_os_Vibrator);
-}
+cleanup:
+  // A failed lookup or call leaves an exception pending, and a vibrate call
+  // throws e.g. without the VIBRATE permission.
+  clearException(env);
 
+  // DeleteLocalRef ignores NULL on Android (ART and Dalvik), which the JNI
+  // specification leaves unspecified.
+  (*env)->DeleteLocalRef(env, audioAttributes);
+  (*env)->DeleteLocalRef(env, vibrationAttributes);
+  (*env)->DeleteLocalRef(env, attributesBuilder);
+  (*env)->DeleteLocalRef(env, android_media_AudioAttributes_Builder);
+  (*env)->DeleteLocalRef(env, android_media_AudioAttributes);
+  (*env)->DeleteLocalRef(env, android_os_VibrationAttributes_Builder);
+  (*env)->DeleteLocalRef(env, android_os_VibrationAttributes);
+  (*env)->DeleteLocalRef(env, vibrationEffect);
+  (*env)->DeleteLocalRef(env, android_os_VibrationEffect);
+  (*env)->DeleteLocalRef(env, vibrator);
+  (*env)->DeleteLocalRef(env, android_context_Context_VIBRATOR_SERVICE);
+  (*env)->DeleteLocalRef(env, vibratorManager);
+  (*env)->DeleteLocalRef(env, android_context_Context_VIBRATOR_MANAGER_SERVICE);
+  (*env)->DeleteLocalRef(env, android_os_VibratorManager);
+  (*env)->DeleteLocalRef(env, android_os_Vibrator);
+  (*env)->DeleteLocalRef(env, android_content_Context);
+}
 */
 import "C"
 
