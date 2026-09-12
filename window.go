@@ -301,13 +301,12 @@ func IsWindowMinimized() bool {
 
 // RestoreWindow restores the window from its maximized or minimized state.
 //
-// RestoreWindow panics when the window is not maximized nor minimized.
+// RestoreWindow panics when the window is not maximized nor minimized on desktops.
+//
+// RestoreWindow does nothing if the platform is not a desktop.
 //
 // RestoreWindow is concurrent-safe.
 func RestoreWindow() {
-	if !IsWindowMaximized() && !IsWindowMinimized() {
-		panic("ebiten: RestoreWindow must be called on a maximized or a minimized window")
-	}
 	ui.Get().Window().Restore()
 }
 
