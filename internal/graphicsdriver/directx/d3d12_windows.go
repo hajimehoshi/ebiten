@@ -1847,20 +1847,19 @@ func (i *_ID3D12GraphicsCommandList) IASetVertexBuffers(startSlot uint32, views 
 	runtime.KeepAlive(views)
 }
 
-func (i *_ID3D12GraphicsCommandList) OMSetRenderTargets(renderTargetDescriptors []_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool, pDepthStencilDescriptor *_D3D12_CPU_DESCRIPTOR_HANDLE) {
+func (i *_ID3D12GraphicsCommandList) OMSetRenderTargets(renderTargetDescriptors []_D3D12_CPU_DESCRIPTOR_HANDLE, rtsSingleHandleToDescriptorRange bool) {
 	if microsoftgdk.IsXbox() {
-		_ID3D12GraphicsCommandList_OMSetRenderTargets(i, renderTargetDescriptors, rtsSingleHandleToDescriptorRange, pDepthStencilDescriptor)
+		_ID3D12GraphicsCommandList_OMSetRenderTargets(i, renderTargetDescriptors, rtsSingleHandleToDescriptorRange, nil)
 	} else {
 		var pRenderTargetDescriptors *_D3D12_CPU_DESCRIPTOR_HANDLE
 		if len(renderTargetDescriptors) > 0 {
 			pRenderTargetDescriptors = &renderTargetDescriptors[0]
 		}
 		_, _, _ = syscall.Syscall6(i.vtbl.OMSetRenderTargets, 5, uintptr(unsafe.Pointer(i)),
-			uintptr(len(renderTargetDescriptors)), uintptr(unsafe.Pointer(pRenderTargetDescriptors)), boolToUintptr(rtsSingleHandleToDescriptorRange), uintptr(unsafe.Pointer(pDepthStencilDescriptor)),
+			uintptr(len(renderTargetDescriptors)), uintptr(unsafe.Pointer(pRenderTargetDescriptors)), boolToUintptr(rtsSingleHandleToDescriptorRange), 0,
 			0)
 	}
 	runtime.KeepAlive(renderTargetDescriptors)
-	runtime.KeepAlive(pDepthStencilDescriptor)
 }
 
 func (i *_ID3D12GraphicsCommandList) Release() uint32 {
