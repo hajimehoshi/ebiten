@@ -702,8 +702,8 @@ func (u *glfwBackend) registerWindowPosCallback() error {
 	return nil
 }
 
-// registerWindowFocusAndIconifyCallbacks must be called from the main thread.
-func (u *glfwBackend) registerWindowFocusAndIconifyCallbacks() error {
+// registerWindowFocusCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowFocusCallback() error {
 	if u.focusCallback == nil {
 		u.focusCallback = func(_ *glfw.Window, focused bool) {
 			u.setCachedFocus(focused)
@@ -712,7 +712,11 @@ func (u *glfwBackend) registerWindowFocusAndIconifyCallbacks() error {
 	if _, err := u.window.SetFocusCallback(u.focusCallback); err != nil {
 		return err
 	}
+	return nil
+}
 
+// registerWindowIconifyCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowIconifyCallback() error {
 	if u.iconifyCallback == nil {
 		u.iconifyCallback = func(_ *glfw.Window, iconified bool) {
 			u.setCachedIconified(iconified)
@@ -721,9 +725,7 @@ func (u *glfwBackend) registerWindowFocusAndIconifyCallbacks() error {
 	if _, err := u.window.SetIconifyCallback(u.iconifyCallback); err != nil {
 		return err
 	}
-
-	// Refresh the caches so that the states are known before the first focus or iconify callback.
-	return u.refreshCachedWindowStates()
+	return nil
 }
 
 // registerWindowFramebufferSizeCallback must be called from the main thread.
@@ -1083,7 +1085,15 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	if err := u.registerWindowCloseCallback(); err != nil {
 		return err
 	}
-	if err := u.registerWindowFocusAndIconifyCallbacks(); err != nil {
+	if err := u.registerWindowFocusCallback(); err != nil {
+		return err
+	}
+	if err := u.registerWindowIconifyCallback(); err != nil {
+		return err
+	}
+	// Refresh the cached window states so that they are known before the first focus or iconify
+	// callback.
+	if err := u.refreshCachedWindowStates(); err != nil {
 		return err
 	}
 	if err := u.registerWindowPosCallback(); err != nil {
