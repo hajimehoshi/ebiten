@@ -409,6 +409,9 @@ func (m *Monitor) setVideoModeNS(desired *VidMode) error {
 	if err != nil {
 		return err
 	}
+	if best == nil {
+		return nil
+	}
 	current := m.platformGetVideoMode()
 	if best.equals(current) {
 		return nil
