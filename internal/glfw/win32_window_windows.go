@@ -469,9 +469,21 @@ func (w *Window) fitToMonitor() error {
 	return nil
 }
 
-func (w *Window) acquireMonitor() error {
+func (w *Window) acquireMonitor() (err error) {
 	if _glfw.platformWindow.acquiredMonitorCount == 0 {
 		_SetThreadExecutionState(_ES_CONTINUOUS | _ES_DISPLAY_REQUIRED)
+		var restoreMouseTrails bool
+		defer func() {
+			if err == nil {
+				return
+			}
+			_SetThreadExecutionState(_ES_CONTINUOUS)
+			if restoreMouseTrails {
+				if restoreErr := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, _glfw.platformWindow.mouseTrailSize, 0, 0); restoreErr != nil {
+					err = errors.Join(err, restoreErr)
+				}
+			}
+		}()
 
 		// HACK: When mouse trails are enabled the cursor becomes invisible when
 		//       the OpenGL ICD switches to page flipping
@@ -479,6 +491,7 @@ func (w *Window) acquireMonitor() error {
 			if err := _SystemParametersInfoW(_SPI_GETMOUSETRAILS, 0, uintptr(unsafe.Pointer(&_glfw.platformWindow.mouseTrailSize)), 0); err != nil {
 				return err
 			}
+			restoreMouseTrails = true
 			if err := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, 0, 0, 0); err != nil {
 				return err
 			}
@@ -487,6 +500,11 @@ func (w *Window) acquireMonitor() error {
 
 	if w.monitor.window == nil {
 		_glfw.platformWindow.acquiredMonitorCount++
+		defer func() {
+			if err != nil {
+				_glfw.platformWindow.acquiredMonitorCount--
+			}
+		}()
 	}
 
 	if err := w.monitor.setVideoModeWin32(&w.videoMode); err != nil {
@@ -500,6 +518,10 @@ func (w *Window) releaseMonitor() error {
 	if w.monitor.window != w {
 		return nil
 	}
+	defer func() {
+		w.monitor.inputMonitorWindow(nil)
+		w.monitor.restoreVideoModeWin32()
+	}()
 
 	_glfw.platformWindow.acquiredMonitorCount--
 	if _glfw.platformWindow.acquiredMonitorCount == 0 {
@@ -513,8 +535,6 @@ func (w *Window) releaseMonitor() error {
 		}
 	}
 
-	w.monitor.inputMonitorWindow(nil)
-	w.monitor.restoreVideoModeWin32()
 	return nil
 }
 
