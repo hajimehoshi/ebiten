@@ -88,7 +88,9 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 
 	ents, err := os.ReadDir(dirName)
 	if err != nil {
-		return fmt.Errorf("gamepad: ReadDir(%s) failed: %w", dirName, err)
+		// Directory enumeration can fail even when Stat succeeds.
+		// Keep any active inotify watch for later gamepad detection.
+		return nil
 	}
 	for _, ent := range ents {
 		if ent.IsDir() {
