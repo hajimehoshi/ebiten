@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -35,6 +36,13 @@ import (
 var class_EbitengineWindowDelegate objc.Class
 
 func (u *UserInterface) initializePlatform() error {
+	invalidateFullscreen := func(transition bool) {
+		if b, ok := u.runningBackend().(*glfwBackend); ok {
+			b.nativeFullscreenTransition = transition
+			b.nativeFullscreenCache.invalidate()
+			b.layoutSizeCache.invalidate()
+		}
+	}
 	pushResizableState := func(id, win objc.ID) {
 		window := cocoa.NSWindow{ID: win}
 		id.Send(sel_setOrigResizable, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
@@ -117,12 +125,16 @@ func (u *UserInterface) initializePlatform() error {
 			{
 				Cmd: sel_windowDidChangeOcclusionState,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					if b, ok := u.runningBackend().(*glfwBackend); ok {
+						b.occlusionCache.invalidate()
+					}
 					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(true)
 					// The window delegate methods are invoked only while a GLFW window exists,
 					// so the running backend is the GLFW backend.
 					b, ok := u.runningBackend().(*glfwBackend)
@@ -139,12 +151,14 @@ func (u *UserInterface) initializePlatform() error {
 			{
 				Cmd: sel_windowDidEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(false)
 					popResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 				},
 			},
 			{
 				Cmd: sel_windowWillExitFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(true)
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 					// Even a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
 					// In this case, the window size limitation is disabled temporarily.
@@ -162,8 +176,21 @@ func (u *UserInterface) initializePlatform() error {
 				},
 			},
 			{
+				Cmd: objc.RegisterName("windowDidFailToEnterFullScreen:"),
+				Fn: func(id objc.ID, cmd objc.SEL, window objc.ID) {
+					invalidateFullscreen(false)
+				},
+			},
+			{
+				Cmd: objc.RegisterName("windowDidFailToExitFullScreen:"),
+				Fn: func(id objc.ID, cmd objc.SEL, window objc.ID) {
+					invalidateFullscreen(false)
+				},
+			},
+			{
 				Cmd: sel_windowDidExitFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(false)
 					popResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 					// Do not call setFrame here (#2295). setFrame here causes unexpected results.
 				},
@@ -422,11 +449,20 @@ func (u *glfwBackend) nativeWindow() (uintptr, error) {
 
 // isWindowOccluded reports whether no part of the window is visible on the screen.
 func (u *glfwBackend) isWindowOccluded() (bool, error) {
+	if occluded, ok := u.occlusionCache.get(time.Now()); ok {
+		return occluded, nil
+	}
+	return u.refreshCachedOcclusion()
+}
+
+func (u *glfwBackend) refreshCachedOcclusion() (bool, error) {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return false, err
 	}
-	return cocoa.NSWindow{ID: objc.ID(w)}.OcclusionState()&cocoa.NSWindowOcclusionStateVisible == 0, nil
+	occluded := cocoa.NSWindow{ID: objc.ID(w)}.OcclusionState()&cocoa.NSWindowOcclusionStateVisible == 0
+	u.occlusionCache.set(occluded, time.Now())
+	return occluded, nil
 }
 
 func (u *glfwBackend) isNativeFullscreen() (bool, error) {
@@ -444,6 +480,10 @@ func (u *glfwBackend) isNativeFullscreenAvailable() bool {
 }
 
 func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
+	defer func() {
+		u.nativeFullscreenCache.invalidate()
+		u.layoutSizeCache.invalidate()
+	}()
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	if err := glfw.WaitEventsTimeout(0.1); err != nil {
 		return err
@@ -532,7 +572,8 @@ func (u *glfwBackend) setDocumentEdited(edited bool) error {
 }
 
 func (u *glfwBackend) afterWindowCreation() error {
-	return nil
+	_, err := u.refreshCachedOcclusion()
+	return err
 }
 
 var (

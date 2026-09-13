@@ -60,6 +60,12 @@ type glfwBackend struct {
 
 	lastDeviceScaleFactor float64
 
+	// These caches are accessed only on the main thread.
+	layoutSizeCache            windowPropertyCache[windowSizes]
+	nativeFullscreenCache      windowPropertyCache[bool]
+	nativeFullscreenTransition bool
+	occlusionCache             windowPropertyCache[bool]
+
 	initUnfocused bool
 
 	// bufferOnceSwapped must be accessed from the main thread.
@@ -115,6 +121,8 @@ type glfwBackend struct {
 
 	closeCallback                  glfw.CloseCallback
 	posCallback                    glfw.PosCallback
+	sizeCallback                   glfw.SizeCallback
+	contentScaleCallback           glfw.ContentScaleCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
 	dropCallback                   glfw.DropCallback
@@ -269,6 +277,9 @@ func (u *UserInterface) ensureGLFWInit() error {
 			return
 		}
 		if _, err := glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+			if b, ok := u.runningBackend().(*glfwBackend); ok {
+				b.layoutSizeCache.invalidate()
+			}
 			if err := theMonitors.update(); err != nil {
 				u.setError(err)
 			}
@@ -651,6 +662,7 @@ func (u *glfwBackend) registerWindowCloseCallback() error {
 func (u *glfwBackend) registerWindowPosCallback() error {
 	if u.posCallback == nil {
 		u.posCallback = func(_ *glfw.Window, x, y int) {
+			u.layoutSizeCache.invalidate()
 			f, err := u.isFullscreen()
 			if err != nil {
 				u.setError(err)
@@ -708,6 +720,7 @@ func (u *glfwBackend) registerWindowFocusCallback() error {
 func (u *glfwBackend) registerWindowIconifyCallback() error {
 	if u.iconifyCallback == nil {
 		u.iconifyCallback = func(_ *glfw.Window, iconified bool) {
+			u.layoutSizeCache.invalidate()
 			u.setCachedIconified(iconified)
 		}
 	}
@@ -717,6 +730,28 @@ func (u *glfwBackend) registerWindowIconifyCallback() error {
 	return nil
 }
 
+// registerWindowSizeCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowSizeCallback() error {
+	if u.sizeCallback == nil {
+		u.sizeCallback = func(_ *glfw.Window, _, _ int) {
+			u.layoutSizeCache.invalidate()
+		}
+	}
+	_, err := u.window.SetSizeCallback(u.sizeCallback)
+	return err
+}
+
+// registerWindowContentScaleCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowContentScaleCallback() error {
+	if u.contentScaleCallback == nil {
+		u.contentScaleCallback = func(_ *glfw.Window, _, _ float32) {
+			u.layoutSizeCache.invalidate()
+		}
+	}
+	_, err := u.window.SetContentScaleCallback(u.contentScaleCallback)
+	return err
+}
+
 // registerWindowFramebufferSizeCallback must be called from the main thread.
 func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 	if u.defaultFramebufferSizeCallback == nil {
@@ -724,6 +759,7 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 		// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
 		// This event is the only way to handle the size change at least on i3 window manager.
 		u.defaultFramebufferSizeCallback = func(_ *glfw.Window, w, h int) {
+			u.layoutSizeCache.invalidate()
 			f, err := u.isFullscreen()
 			if err != nil {
 				u.setError(err)
@@ -859,10 +895,13 @@ func (u *glfwBackend) registerDropCallback() error {
 //
 // waitForFramebufferSizeCallback must be called from the main thread.
 func (u *glfwBackend) waitForFramebufferSizeCallback(window *glfw.Window, f func() error) error {
+	// The temporary callback suppresses normal resize handling, including on timeout.
+	defer u.layoutSizeCache.invalidate()
 	u.framebufferSizeCallbackCh = make(chan struct{}, 1)
 
 	if u.framebufferSizeCallback == nil {
 		u.framebufferSizeCallback = func(_ *glfw.Window, _, _ int) {
+			u.layoutSizeCache.invalidate()
 			// This callback can be invoked multiple times by one PollEvents in theory (#1618).
 			// Allow the case when the channel is full.
 			select {
@@ -1088,7 +1127,19 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	if err := u.registerWindowPosCallback(); err != nil {
 		return err
 	}
+	if err := u.registerWindowSizeCallback(); err != nil {
+		return err
+	}
+	if err := u.registerWindowContentScaleCallback(); err != nil {
+		return err
+	}
 	if err := u.registerWindowFramebufferSizeCallback(); err != nil {
+		return err
+	}
+	if _, err := u.refreshCachedWindowSizes(time.Now()); err != nil {
+		return err
+	}
+	if _, err := u.refreshCachedNativeFullscreen(); err != nil {
 		return err
 	}
 	if err := u.registerInputCallbacks(); err != nil {
@@ -1136,6 +1187,48 @@ func (c *windowPropertyCache[T]) set(value T, now time.Time) {
 	c.nextQuery = now.Add(windowStateQueryInterval)
 }
 
+type windowSizes struct {
+	window, framebuffer image.Point
+}
+
+func (u *glfwBackend) refreshCachedWindowSizes(now time.Time) (windowSizes, error) {
+	ww, wh, err := u.window.GetSize()
+	if err != nil {
+		return windowSizes{}, err
+	}
+	fw, fh, err := u.window.GetFramebufferSize()
+	if err != nil {
+		return windowSizes{}, err
+	}
+	sizes := windowSizes{
+		window:      image.Pt(ww, wh),
+		framebuffer: image.Pt(fw, fh),
+	}
+	u.layoutSizeCache.set(sizes, now)
+	return sizes, nil
+}
+
+func (u *glfwBackend) refreshCachedNativeFullscreen() (bool, error) {
+	fullscreen, err := u.isNativeFullscreen()
+	if err != nil {
+		return false, err
+	}
+	u.nativeFullscreenCache.set(fullscreen, time.Now())
+	return fullscreen, nil
+}
+
+func (u *glfwBackend) nativeFullscreenForLayout() (bool, error) {
+	if runtime.GOOS != "darwin" {
+		return u.isNativeFullscreen()
+	}
+	// AppKit changes the style mask asynchronously during a fullscreen transition.
+	// Keep observing it until the completion notification, including failed transitions.
+	if fullscreen, ok := u.nativeFullscreenCache.get(time.Now()); ok && !u.nativeFullscreenTransition {
+		return fullscreen, nil
+	}
+	return u.refreshCachedNativeFullscreen()
+}
+
 // layoutSizes returns the size to give the game's Layout, in device-independent pixels, and the
 // size of the final rendering destination, in pixels.
 //
@@ -1154,21 +1247,26 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
-	nf, err := u.isNativeFullscreen()
+	nf, err := u.nativeFullscreenForLayout()
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
 	fullscreen := wf || nf
-
-	// The framebuffer size is the exact pixel count of the rendering destination on every platform,
-	// including macOS where a GLFW pixel is a point. Read it rather than predicting it from the
-	// monitor: a window manager settles the fullscreen size asynchronously, and a desktop that
-	// reconfigures its screen on the transition leaves the monitor's size describing the old
-	// configuration (#2225).
-	fw, fh, err := u.window.GetFramebufferSize()
-	if err != nil {
-		return 0, 0, 0, 0, err
+	if u.nativeFullscreenTransition {
+		u.layoutSizeCache.invalidate()
 	}
+
+	// Query actual sizes together after callbacks have finished. Neither callback ordering
+	// nor requested sizes determine the native window's final rendering destination (#2225).
+	now := time.Now()
+	sizes, ok := u.layoutSizeCache.get(now)
+	if !ok {
+		sizes, err = u.refreshCachedWindowSizes(now)
+		if err != nil {
+			return 0, 0, 0, 0, err
+		}
+	}
+	fw, fh := sizes.framebuffer.X, sizes.framebuffer.Y
 
 	iconified, err := u.isWindowIconified()
 	if err != nil {
@@ -1196,10 +1294,7 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 		return w, h, fw, fh, nil
 	}
 
-	ww, wh, err := u.window.GetSize()
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
+	ww, wh := sizes.window.X, sizes.window.Y
 	w, h := outsideSizeInDIP(ww, wh, u.windowWidthInDIP, u.windowHeightInDIP, fullscreen, s)
 	return w, h, fw, fh, nil
 }
@@ -1274,7 +1369,9 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		}
 	} else {
 		u.pollingEvents = true
-		err := glfw.WaitEvents()
+		// A bounded wait lets caches recover from missed native notifications even
+		// when the game requests frames only in response to events.
+		err := glfw.WaitEventsTimeout(windowStateQueryInterval.Seconds())
 		u.pollingEvents = false
 		if err != nil {
 			return 0, 0, 0, 0, err
@@ -1537,6 +1634,7 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 
 // updateWindowSizeLimits must be called from the main thread.
 func (u *glfwBackend) updateWindowSizeLimits() error {
+	defer u.layoutSizeCache.invalidate()
 	m, err := u.currentMonitor()
 	if err != nil {
 		return err
@@ -1696,6 +1794,7 @@ func (u *glfwBackend) captureWindowPosToRestore() error {
 
 // setFullscreen must be called from the main thread.
 func (u *glfwBackend) setFullscreen(fullscreen bool) error {
+	defer u.layoutSizeCache.invalidate()
 	f, err := u.isFullscreen()
 	if err != nil {
 		return err
@@ -2062,6 +2161,8 @@ func (u *glfwBackend) setCachedIconified(iconified bool) {
 //
 // invalidateCachedWindowStates must be called on the main thread.
 func (u *glfwBackend) invalidateCachedWindowStates() {
+	u.layoutSizeCache.invalidate()
+	u.occlusionCache.invalidate()
 	u.focusedCache.invalidate()
 	u.visibleCache.invalidate()
 	u.iconifiedCache.invalidate()
