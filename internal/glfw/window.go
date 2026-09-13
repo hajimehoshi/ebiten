@@ -141,11 +141,11 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 		denom:     DontCare,
 	}
 	window.inputWindowMonitor(monitor)
-	defer func() {
+	defer func(window *Window) {
 		if ferr != nil {
 			_ = window.Destroy()
 		}
-	}()
+	}(window)
 	_glfw.windows = append(_glfw.windows, window)
 
 	// Open the actual window and create its context
