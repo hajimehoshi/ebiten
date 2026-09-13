@@ -321,6 +321,9 @@ func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	}
 	p.buf = p.buf[:0]
 	p.eof = false
+	// A seek makes the player readable again also after a source error, as finishedLocked
+	// documents.
+	p.err = nil
 	return n, nil
 }
 
