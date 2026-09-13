@@ -319,7 +319,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         }
 
         // A fingerprint reader is unexpectedly recognized as a joystick. Skip this (#1542).
-        if (inputDevice.getName().equals("uinput-fpc")) {
+        if ("uinput-fpc".equals(inputDevice.getName())) {
             return;
         }
 
