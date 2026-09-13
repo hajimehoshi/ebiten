@@ -123,22 +123,11 @@ type glfwBackend struct {
 	cachedCurrentMonitor     *Monitor
 	cachedCurrentMonitorTime int64
 
-	// cachedFocused, cachedVisible and cachedIconified cache the window's focus, visibility and
-	// iconification so that they are not queried from the window system on every tick (#3318). They
-	// are updated from GLFW's callbacks and the places that change the states themselves, and
-	// re-queried periodically as a safety net.
-	cachedFocused   bool
-	cachedVisible   bool
-	cachedIconified bool
-
-	// nextFocusedQuery, nextVisibleQuery and nextIconifiedQuery are the times at which the cached
-	// states must be re-queried at the latest. A zero value forces a query on the next access, so
-	// the caches are queried before they are used for the first time.
-	// time.Time's monotonic reading is used, so the re-queries do not depend on the game ticks and
-	// work even when the ticks are paused.
-	nextFocusedQuery   time.Time
-	nextVisibleQuery   time.Time
-	nextIconifiedQuery time.Time
+	// Window states are updated by callbacks and native operations, with periodic queries
+	// to recover from missed notifications (#3318). Access is confined to the main thread.
+	focusedCache   windowPropertyCache[bool]
+	visibleCache   windowPropertyCache[bool]
+	iconifiedCache windowPropertyCache[bool]
 
 	focusCallback   glfw.FocusCallback
 	iconifyCallback glfw.IconifyCallback
@@ -1127,6 +1116,26 @@ func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, reques
 	return dipFromGLFWPixel(float64(windowWidth), deviceScaleFactor), dipFromGLFWPixel(float64(windowHeight), deviceScaleFactor)
 }
 
+type windowPropertyCache[T any] struct {
+	value     T
+	nextQuery time.Time
+}
+
+func (c *windowPropertyCache[T]) invalidate() {
+	c.nextQuery = time.Time{}
+}
+
+func (c *windowPropertyCache[T]) get(now time.Time) (T, bool) {
+	// The zero deadline forces initialization on first access. Monotonic time keeps
+	// expiry independent of game ticks, including while the game is paused.
+	return c.value, !now.After(c.nextQuery)
+}
+
+func (c *windowPropertyCache[T]) set(value T, now time.Time) {
+	c.value = value
+	c.nextQuery = now.Add(windowStateQueryInterval)
+}
+
 // layoutSizes returns the size to give the game's Layout, in device-independent pixels, and the
 // size of the final rendering destination, in pixels.
 //
@@ -1920,16 +1929,16 @@ func (u *glfwBackend) isWindowFocused() (bool, error) {
 		return false, nil
 	}
 	now := time.Now()
-	if !now.After(u.nextFocusedQuery) {
-		return u.cachedFocused, nil
+	if focused, ok := u.focusedCache.get(now); ok {
+		return focused, nil
 	}
 	a, err := u.window.GetAttrib(glfw.Focused)
 	if err != nil {
 		return false, err
 	}
-	u.cachedFocused = a == glfw.True
-	u.nextFocusedQuery = now.Add(windowStateQueryInterval)
-	return u.cachedFocused, nil
+	focused := a == glfw.True
+	u.focusedCache.set(focused, now)
+	return focused, nil
 }
 
 // isWindowVisible reports whether the window is visible.
@@ -1943,16 +1952,16 @@ func (u *glfwBackend) isWindowVisible() (bool, error) {
 		return false, nil
 	}
 	now := time.Now()
-	if !now.After(u.nextVisibleQuery) {
-		return u.cachedVisible, nil
+	if visible, ok := u.visibleCache.get(now); ok {
+		return visible, nil
 	}
 	a, err := u.window.GetAttrib(glfw.Visible)
 	if err != nil {
 		return false, err
 	}
-	u.cachedVisible = a == glfw.True
-	u.nextVisibleQuery = now.Add(windowStateQueryInterval)
-	return u.cachedVisible, nil
+	visible := a == glfw.True
+	u.visibleCache.set(visible, now)
+	return visible, nil
 }
 
 // isWindowIconified reports whether the window is iconified.
@@ -1965,16 +1974,16 @@ func (u *glfwBackend) isWindowIconified() (bool, error) {
 		return false, nil
 	}
 	now := time.Now()
-	if !now.After(u.nextIconifiedQuery) {
-		return u.cachedIconified, nil
+	if iconified, ok := u.iconifiedCache.get(now); ok {
+		return iconified, nil
 	}
 	a, err := u.window.GetAttrib(glfw.Iconified)
 	if err != nil {
 		return false, err
 	}
-	u.cachedIconified = a == glfw.True
-	u.nextIconifiedQuery = now.Add(windowStateQueryInterval)
-	return u.cachedIconified, nil
+	iconified := a == glfw.True
+	u.iconifiedCache.set(iconified, now)
+	return iconified, nil
 }
 
 // isWindowIconifiedUncached reports whether the window is iconified, querying the window system
@@ -2021,12 +2030,9 @@ func (u *glfwBackend) refreshCachedWindowStates() error {
 		return err
 	}
 
-	u.cachedFocused = focused == glfw.True
-	u.cachedVisible = visible == glfw.True
-	u.cachedIconified = iconified == glfw.True
-	u.nextFocusedQuery = now.Add(windowStateQueryInterval)
-	u.nextVisibleQuery = now.Add(windowStateQueryInterval)
-	u.nextIconifiedQuery = now.Add(windowStateQueryInterval)
+	u.focusedCache.set(focused == glfw.True, now)
+	u.visibleCache.set(visible == glfw.True, now)
+	u.iconifiedCache.set(iconified == glfw.True, now)
 	return nil
 }
 
@@ -2034,8 +2040,7 @@ func (u *glfwBackend) refreshCachedWindowStates() error {
 //
 // setCachedFocus must be called on the main thread.
 func (u *glfwBackend) setCachedFocus(focused bool) {
-	u.cachedFocused = focused
-	u.nextFocusedQuery = time.Now().Add(windowStateQueryInterval)
+	u.focusedCache.set(focused, time.Now())
 }
 
 // setCachedIconified records the window's iconification reported by a GLFW callback.
@@ -2045,9 +2050,8 @@ func (u *glfwBackend) setCachedFocus(focused bool) {
 //
 // setCachedIconified must be called on the main thread.
 func (u *glfwBackend) setCachedIconified(iconified bool) {
-	u.cachedIconified = iconified
-	u.nextIconifiedQuery = time.Now().Add(windowStateQueryInterval)
-	u.nextVisibleQuery = time.Time{}
+	u.iconifiedCache.set(iconified, time.Now())
+	u.visibleCache.invalidate()
 }
 
 // invalidateCachedWindowStates forces the cached window states to be re-queried on the next access.
@@ -2058,9 +2062,9 @@ func (u *glfwBackend) setCachedIconified(iconified bool) {
 //
 // invalidateCachedWindowStates must be called on the main thread.
 func (u *glfwBackend) invalidateCachedWindowStates() {
-	u.nextFocusedQuery = time.Time{}
-	u.nextVisibleQuery = time.Time{}
-	u.nextIconifiedQuery = time.Time{}
+	u.focusedCache.invalidate()
+	u.visibleCache.invalidate()
+	u.iconifiedCache.invalidate()
 }
 
 func (u *glfwBackend) readInputState(inputState *InputState) {
