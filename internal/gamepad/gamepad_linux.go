@@ -440,6 +440,9 @@ func (g *nativeGamepadImpl) pollAbsState() error {
 }
 
 func (g *nativeGamepadImpl) handleAbsEvent(code int, value int32) {
+	if code < 0 || code >= len(g.absMap) {
+		return
+	}
 	index := g.absMap[code]
 	if index < 0 {
 		return
