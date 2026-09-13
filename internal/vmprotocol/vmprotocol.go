@@ -14,7 +14,7 @@
 
 // Package vmprotocol is the message protocol connecting a host process to a guest process.
 //
-// On connect, both ends exchange a handshake to confirm a matching ProtocolVersion before
+// On connect, both ends exchange a handshake to confirm matching Ebitengine major and minor versions before
 // interpreting the stream. Messages are named by their sender. The host sends one HostMessage
 // operation at a time; the guest sends back a sequence of GuestMessages belonging to that operation
 // — graphics-command batches, audio control and data, and queries, concluded by a done message — in
@@ -44,7 +44,7 @@ import (
 type HostMessageKind int
 
 // The values follow iota: adding, inserting, or reordering kinds is a wire-affecting change (see
-// ProtocolVersion).
+// VersionMajor and VersionMinor).
 const (
 	HostMessageKindSetOutsideSize HostMessageKind = iota
 	HostMessageKindAdvanceTick
@@ -177,7 +177,7 @@ type GamepadStandardButtonState struct {
 type GuestMessageKind int
 
 // The values follow iota: adding, inserting, or reordering kinds is a wire-affecting change (see
-// ProtocolVersion).
+// VersionMajor and VersionMinor).
 const (
 	// GuestMessageKindDone concludes the guest's message sequence for an operation and carries the
 	// operation's outcome (Err and Terminated). Exactly one concludes each operation, after any
@@ -433,14 +433,13 @@ type GuestMessageEncoder interface {
 	EncodeGuestMessage(*GuestMessage) error
 }
 
-// ProtocolVersion identifies the wire protocol. PerformHandshake asserts on connect that both ends
-// hold the same value; a mismatched pair refuses to talk (there is no negotiation or fallback).
-//
-// The wire format is frozen within a patch series: builds sharing the same Ebitengine minor version
-// (x.y) always agree on this value and so are always compatible. A change that affects the wire — the
-// HostMessage/GuestMessage kinds or fields, or the GraphicsCommand schema or its semantics — bumps this
-// value and may only land in a minor or major release.
-const ProtocolVersion = 2
+const (
+	// VersionMajor is the Ebitengine major version supported by the protocol.
+	VersionMajor = 2
+
+	// VersionMinor is the Ebitengine minor version supported by the protocol.
+	VersionMinor = 11
+)
 
 // handshakeMagic prefixes the handshake so a peer that isn't a vmguest (or speaks an incompatible
 // preamble) is rejected with a clear error instead of misreading the stream.
@@ -477,13 +476,14 @@ func PerformHandshake(conn io.ReadWriter, initiator bool) error {
 }
 
 func writeHandshake(w io.Writer) error {
-	return writeHandshakeVersion(w, ProtocolVersion)
+	return writeHandshakeVersion(w, VersionMajor, VersionMinor)
 }
 
-func writeHandshakeVersion(w io.Writer, version uint32) error {
+func writeHandshakeVersion(w io.Writer, major, minor uint16) error {
 	var buf [8]byte
 	copy(buf[0:4], handshakeMagic)
-	binary.BigEndian.PutUint32(buf[4:8], version)
+	binary.BigEndian.PutUint16(buf[4:6], major)
+	binary.BigEndian.PutUint16(buf[6:8], minor)
 	_, err := w.Write(buf[:])
 	return err
 }
@@ -498,8 +498,10 @@ func validateHandshake(buf [8]byte) error {
 	if string(buf[0:4]) != handshakeMagic {
 		return fmt.Errorf("vmprotocol: not a vmguest connection (magic %q)", buf[0:4])
 	}
-	if v := binary.BigEndian.Uint32(buf[4:8]); v != ProtocolVersion {
-		return fmt.Errorf("vmprotocol: protocol version mismatch: local %d, peer %d", ProtocolVersion, v)
+	major := binary.BigEndian.Uint16(buf[4:6])
+	minor := binary.BigEndian.Uint16(buf[6:8])
+	if major != VersionMajor || minor != VersionMinor {
+		return fmt.Errorf("vmprotocol: Ebitengine version mismatch: local %d.%d, peer %d.%d", VersionMajor, VersionMinor, major, minor)
 	}
 	return nil
 }

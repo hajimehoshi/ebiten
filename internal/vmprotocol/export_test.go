@@ -18,6 +18,6 @@ import "io"
 
 // WriteHandshakeForTesting writes a handshake preamble (with the real magic) announcing the given
 // protocol version, so tests can simulate a peer on a different version.
-func WriteHandshakeForTesting(w io.Writer, version uint32) error {
-	return writeHandshakeVersion(w, version)
+func WriteHandshakeForTesting(w io.Writer, major, minor uint16) error {
+	return writeHandshakeVersion(w, major, minor)
 }
