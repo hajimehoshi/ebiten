@@ -1845,6 +1845,11 @@ func (u *glfwBackend) Window() backendWindow {
 	return &u.backendWindow
 }
 
+// windowStateTimeout is the maximum duration to wait for the window manager to reflect
+// a requested maximize, iconify, or restore in the window attributes.
+// Some window managers ignore such requests, and waiting forever would hang the main thread.
+const windowStateTimeout = time.Second
+
 // GLFW's functions to manipulate a window can invoke the SetSize callback (#1576, #1585, #1606).
 // As the callback must not be called in the frame (between BeginFrame and EndFrame),
 // disable the callback temporarily.
@@ -1865,12 +1870,16 @@ func (u *glfwBackend) maximizeWindow() error {
 
 	// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
 	// Do not check this in the fullscreen since apparently the condition can never be true.
+	deadline := time.Now().Add(windowStateTimeout)
 	for {
 		a, err := u.window.GetAttrib(glfw.Maximized)
 		if err != nil {
 			return err
 		}
 		if a == glfw.True {
+			break
+		}
+		if time.Now().After(deadline) {
 			break
 		}
 		if err := glfw.PollEvents(); err != nil {
@@ -1897,12 +1906,16 @@ func (u *glfwBackend) iconifyWindow() error {
 	}
 
 	// On Linux/UNIX, iconifying might not finish even though Iconify returns. Just wait for its finish.
+	deadline := time.Now().Add(windowStateTimeout)
 	for {
 		a, err := u.window.GetAttrib(glfw.Iconified)
 		if err != nil {
 			return err
 		}
 		if a == glfw.True {
+			break
+		}
+		if time.Now().After(deadline) {
 			break
 		}
 		if err := glfw.PollEvents(); err != nil {
@@ -1922,6 +1935,7 @@ func (u *glfwBackend) restoreWindow() error {
 	// On Linux/UNIX, restoring might not finish even though Restore returns (#1608). Just wait for its finish.
 	// On macOS, the restoring state might be the same as the maximized state. Skip this.
 	if runtime.GOOS != "darwin" {
+		deadline := time.Now().Add(windowStateTimeout)
 		for {
 			maximized, err := u.window.GetAttrib(glfw.Maximized)
 			if err != nil {
@@ -1932,6 +1946,9 @@ func (u *glfwBackend) restoreWindow() error {
 				return err
 			}
 			if maximized == glfw.False && iconified == glfw.False {
+				break
+			}
+			if time.Now().After(deadline) {
 				break
 			}
 			if err := glfw.PollEvents(); err != nil {
