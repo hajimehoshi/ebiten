@@ -118,10 +118,10 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	// Fall back to read-only when write access is not permitted: the gamepad
 	// still works, without rumble.
 	writable := true
-	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK, 0)
+	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 	if err == unix.EACCES || err == unix.EPERM {
 		writable = false
-		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK, 0)
+		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
 	}
 	if err != nil {
 		if err == unix.EACCES {
