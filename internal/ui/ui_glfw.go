@@ -722,17 +722,8 @@ func (u *glfwBackend) registerWindowFocusAndIconifyCallbacks() error {
 		return err
 	}
 
-	// Seed the caches so that the states are known before the first focus or iconify callback.
-	if _, err := u.isWindowFocused(); err != nil {
-		return err
-	}
-	if _, err := u.isWindowVisible(); err != nil {
-		return err
-	}
-	if _, err := u.isWindowIconified(); err != nil {
-		return err
-	}
-	return nil
+	// Refresh the caches so that the states are known before the first focus or iconify callback.
+	return u.refreshCachedWindowStates()
 }
 
 // registerWindowFramebufferSizeCallback must be called from the main thread.
@@ -1995,6 +1986,38 @@ func (u *glfwBackend) isWindowIconifiedUncached() (bool, error) {
 		return false, err
 	}
 	return a == glfw.True, nil
+}
+
+// refreshCachedWindowStates queries the window's focus, visibility and iconification from the
+// window system and updates the caches with the actual values.
+//
+// refreshCachedWindowStates must be called on the main thread.
+func (u *glfwBackend) refreshCachedWindowStates() error {
+	if u.window == nil {
+		return nil
+	}
+
+	now := time.Now()
+	focused, err := u.window.GetAttrib(glfw.Focused)
+	if err != nil {
+		return err
+	}
+	visible, err := u.window.GetAttrib(glfw.Visible)
+	if err != nil {
+		return err
+	}
+	iconified, err := u.window.GetAttrib(glfw.Iconified)
+	if err != nil {
+		return err
+	}
+
+	u.cachedFocused = focused == glfw.True
+	u.cachedVisible = visible == glfw.True
+	u.cachedIconified = iconified == glfw.True
+	u.nextFocusedQuery = now.Add(windowStateQueryInterval)
+	u.nextVisibleQuery = now.Add(windowStateQueryInterval)
+	u.nextIconifiedQuery = now.Add(windowStateQueryInterval)
+	return nil
 }
 
 // setCachedFocus records the window's focus reported by a GLFW callback.
