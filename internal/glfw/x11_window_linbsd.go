@@ -1416,7 +1416,10 @@ func acquireMonitor(window *Window) error {
 	if window.platform.overrideRedirect {
 		// Manually position the window over its monitor
 		xpos, ypos, _ := window.monitor.platformGetMonitorPos()
-		mode := window.monitor.platformGetVideoMode()
+		mode, err := window.monitor.platformGetVideoMode()
+		if err != nil {
+			return err
+		}
 
 		xMoveResizeWindow(_glfw.platformWindow.display, window.platform.handle,
 			int32(xpos), int32(ypos), uint32(mode.Width), uint32(mode.Height))

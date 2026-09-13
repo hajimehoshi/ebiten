@@ -1028,7 +1028,10 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	// Determine the content rect.
 	var contentRect cocoa.NSRect
 	if window.monitor != nil {
-		mode := window.monitor.platformGetVideoMode()
+		mode, err := window.monitor.platformGetVideoMode()
+		if err != nil {
+			return err
+		}
 		xpos, ypos, _ := window.monitor.platformGetMonitorPos()
 		contentRect = cocoa.NSRect{
 			Origin: cocoa.NSPoint{X: float64(xpos), Y: float64(ypos)},

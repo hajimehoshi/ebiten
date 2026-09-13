@@ -412,7 +412,10 @@ func (m *Monitor) setVideoModeNS(desired *VidMode) error {
 	if best == nil {
 		return nil
 	}
-	current := m.platformGetVideoMode()
+	current, err := m.platformGetVideoMode()
+	if err != nil {
+		return err
+	}
 	if best.equals(current) {
 		return nil
 	}
@@ -556,15 +559,15 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	return monitors, nil
 }
 
-func (m *Monitor) platformGetVideoMode() *VidMode {
+func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 	mode := cgDisplayCopyDisplayMode(m.platform.displayID)
 	if mode == 0 {
-		return &VidMode{}
+		return nil, fmt.Errorf("glfw: failed to query display mode: %w", PlatformError)
 	}
 	defer cfRelease(mode)
 
 	vm := vidmodeFromCGDisplayMode(mode, m.platform.fallbackRefreshRate)
-	return &vm
+	return &vm, nil
 }
 
 func (m *Monitor) platformGetGammaRamp() (GammaRamp, error) {

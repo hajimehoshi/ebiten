@@ -8,6 +8,7 @@
 package glfw
 
 import (
+	"fmt"
 	"math"
 	"unsafe"
 )
@@ -222,8 +223,11 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 	if best == nil {
 		return nil
 	}
-	current := monitor.platformGetVideoMode()
-	if current != nil && current.equals(best) {
+	current, err := monitor.platformGetVideoMode()
+	if err != nil {
+		return err
+	}
+	if current.equals(best) {
 		return nil
 	}
 
@@ -445,7 +449,11 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	result := monitors
 
 	if !_glfw.platformWindow.randr.available || _glfw.platformWindow.randr.monitorBroken {
-		return append(result, m.platformGetVideoMode()), nil
+		mode, err := m.platformGetVideoMode()
+		if err != nil {
+			return nil, err
+		}
+		return append(result, mode), nil
 	}
 
 	display := _glfw.platformWindow.display
@@ -500,7 +508,7 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	return result, nil
 }
 
-func (m *Monitor) platformGetVideoMode() *VidMode {
+func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 	display := _glfw.platformWindow.display
 
 	var mode VidMode
@@ -513,27 +521,29 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 		mode.RedBits, mode.GreenBits, mode.BlueBits =
 			splitBPP(int(xDefaultDepth(display, int32(_glfw.platformWindow.screen))))
 
-		return &mode
+		return &mode, nil
 	}
 
 	randr := &_glfw.platformWindow.randr
 
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 	if srPtr == 0 {
-		return &mode
+		return nil, fmt.Errorf("glfw: failed to query screen resources: %w", PlatformError)
 	}
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
 	ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc)
-	if ciPtr != 0 {
-		defer randr.FreeCrtcInfo(ciPtr)
-		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
-		// mi can be nil if the monitor has been disconnected
-		if mi := getModeInfo(sr, ci.Mode); mi != nil {
-			mode = *vidmodeFromModeInfo(mi, ci)
-		}
+	if ciPtr == 0 {
+		return nil, fmt.Errorf("glfw: failed to query CRTC info: %w", PlatformError)
 	}
+	defer randr.FreeCrtcInfo(ciPtr)
+	ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
-	return &mode
+	// The mode can be missing if the monitor has been disconnected.
+	mi := getModeInfo(sr, ci.Mode)
+	if mi == nil {
+		return nil, fmt.Errorf("glfw: failed to query video mode: %w", PlatformError)
+	}
+	return vidmodeFromModeInfo(mi, ci), nil
 }
