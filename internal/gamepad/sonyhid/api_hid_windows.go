@@ -14,11 +14,16 @@
 
 package sonyhid
 
-import "golang.org/x/sys/windows"
+import (
+	"structs"
+
+	"golang.org/x/sys/windows"
+)
 
 const _HIDP_STATUS_SUCCESS = 0x00110000
 
 type _HIDP_CAPS struct {
+	_                         structs.HostLayout
 	Usage                     uint16
 	UsagePage                 uint16
 	InputReportByteLength     uint16

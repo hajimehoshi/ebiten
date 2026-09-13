@@ -449,20 +449,26 @@ type _XVisualInfo struct {
 }
 
 type _XSizeHints struct {
-	_          structs.HostLayout
-	Flags      _Clong
-	X          int32
-	Y          int32
-	Width      int32
-	Height     int32
-	MinWidth   int32
-	MinHeight  int32
-	MaxWidth   int32
-	MaxHeight  int32
-	WidthInc   int32
-	HeightInc  int32
-	MinAspect  struct{ X, Y int32 }
-	MaxAspect  struct{ X, Y int32 }
+	_         structs.HostLayout
+	Flags     _Clong
+	X         int32
+	Y         int32
+	Width     int32
+	Height    int32
+	MinWidth  int32
+	MinHeight int32
+	MaxWidth  int32
+	MaxHeight int32
+	WidthInc  int32
+	HeightInc int32
+	MinAspect struct {
+		_    structs.HostLayout
+		X, Y int32
+	}
+	MaxAspect struct {
+		_    structs.HostLayout
+		X, Y int32
+	}
 	BaseWidth  int32
 	BaseHeight int32
 	WinGravity int32

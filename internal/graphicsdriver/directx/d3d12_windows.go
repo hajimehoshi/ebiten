@@ -1415,6 +1415,7 @@ func (i *_ID3D12Device) CreateCommandList(nodeMask uint32, typ _D3D12_COMMAND_LI
 	var r uintptr
 	if microsoftgdk.IsXbox() {
 		desc := struct {
+			_       structs.HostLayout
 			Member1 _D3D12_COMMAND_LIST_TYPE
 			Member2 int32
 			Member3 uint32
