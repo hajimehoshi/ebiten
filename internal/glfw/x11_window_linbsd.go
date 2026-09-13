@@ -1392,7 +1392,7 @@ func getSelectionString(selection _Atom) (string, error) {
 }
 
 // acquireMonitor makes the window and its video mode active on its monitor.
-func acquireMonitor(window *Window) error {
+func acquireMonitor(window *Window) (err error) {
 	if _glfw.platformWindow.saver.count == 0 {
 		// Remember old screen saver settings
 		xGetScreenSaver(_glfw.platformWindow.display,
@@ -1407,6 +1407,11 @@ func acquireMonitor(window *Window) error {
 
 	if window.monitor.window == nil {
 		_glfw.platformWindow.saver.count++
+		defer func() {
+			if err != nil {
+				releaseScreenSaver()
+			}
+		}()
 	}
 
 	if err := setVideoModeX11(window.monitor, &window.videoMode); err != nil {
@@ -1438,6 +1443,10 @@ func releaseMonitor(window *Window) {
 	window.monitor.inputMonitorWindow(nil)
 	restoreVideoModeX11(window.monitor)
 
+	releaseScreenSaver()
+}
+
+func releaseScreenSaver() {
 	_glfw.platformWindow.saver.count--
 
 	if _glfw.platformWindow.saver.count == 0 {
