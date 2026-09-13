@@ -2684,6 +2684,35 @@ func (w *Window) platformShowWindow() {
 		return
 	}
 
+	if w.floating && _glfw.platformWindow.NET_WM_STATE != 0 && _glfw.platformWindow.NET_WM_STATE_ABOVE != 0 {
+		var statesPtr uintptr
+		count := getWindowPropertyX11(w.platform.handle,
+			_glfw.platformWindow.NET_WM_STATE,
+			_XA_ATOM,
+			&statesPtr)
+
+		// The window manager may remove the state property when hiding the window.
+		var states []_Atom
+		if statesPtr != 0 {
+			defer xFree(statesPtr)
+			states = unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
+		}
+
+		var i int
+		for ; i < len(states); i++ {
+			if states[i] == _glfw.platformWindow.NET_WM_STATE_ABOVE {
+				break
+			}
+		}
+
+		if i == len(states) {
+			xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
+				_glfw.platformWindow.NET_WM_STATE, _XA_ATOM,
+				_PropModeAppend,
+				[]_Atom{_glfw.platformWindow.NET_WM_STATE_ABOVE})
+		}
+	}
+
 	xMapWindow(_glfw.platformWindow.display, w.platform.handle)
 	waitForVisibilityNotify(w)
 }
@@ -2889,14 +2918,18 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 			int(_glfw.platformWindow.NET_WM_STATE_ABOVE),
 			0, 1, 0)
 	} else {
+		// The above state is added when the window is shown.
+		if enabled {
+			return nil
+		}
+
 		var statesPtr uintptr
 		count := getWindowPropertyX11(w.platform.handle,
 			_glfw.platformWindow.NET_WM_STATE,
 			_XA_ATOM,
 			&statesPtr)
 
-		// NOTE: We don't check for failure as this property may not exist yet
-		//       and that's fine (and we'll create it implicitly with append)
+		// The state property may be absent on a hidden window.
 
 		var states []_Atom
 		if statesPtr != 0 {
@@ -2904,21 +2937,7 @@ func (w *Window) platformSetWindowFloating(enabled bool) error {
 			states = unsafe.Slice((*_Atom)(unsafe.Pointer(statesPtr)), int(count))
 		}
 
-		if enabled {
-			var i int
-			for ; i < len(states); i++ {
-				if states[i] == _glfw.platformWindow.NET_WM_STATE_ABOVE {
-					break
-				}
-			}
-
-			if i == len(states) {
-				xChangePropertyGeneric(_glfw.platformWindow.display, w.platform.handle,
-					_glfw.platformWindow.NET_WM_STATE, _XA_ATOM,
-					_PropModeAppend,
-					[]_Atom{_glfw.platformWindow.NET_WM_STATE_ABOVE})
-			}
-		} else if states != nil {
+		if states != nil {
 			var i int
 			for ; i < len(states); i++ {
 				if states[i] == _glfw.platformWindow.NET_WM_STATE_ABOVE {
