@@ -882,6 +882,10 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		height = int(float32(height) * _glfw.platformWindow.contentScaleY)
 	}
 
+	// X11 requires nonzero dimensions.
+	width = max(1, width)
+	height = max(1, height)
+
 	// Create a colormap based on the visual used by the current context
 	window.platform.colormap = xCreateColormap(_glfw.platformWindow.display,
 		_glfw.platformWindow.root,
@@ -2440,6 +2444,10 @@ func (w *Window) platformGetWindowSize() (width, height int, err error) {
 }
 
 func (w *Window) platformSetWindowSize(width, height int) error {
+	// X11 requires nonzero dimensions.
+	width = max(1, width)
+	height = max(1, height)
+
 	if w.monitor != nil {
 		if w.monitor.window == w {
 			if err := acquireMonitor(w); err != nil {

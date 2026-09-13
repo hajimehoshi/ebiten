@@ -1287,9 +1287,8 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 		w := float64(u.windowWidthInDIP)
 		h := float64(u.windowHeightInDIP)
 		if fw == 0 || fh == 0 {
-			// setWindowSizeInDIP rounds the product, so round it here as well to predict the
-			// same pixel count.
-			fw, fh = int(math.Round(w*s)), int(math.Round(h*s))
+			// The framebuffer needs at least one pixel in each dimension.
+			fw, fh = max(1, int(math.Round(w*s))), max(1, int(math.Round(h*s)))
 		}
 		return w, h, fw, fh, nil
 	}
@@ -1648,24 +1647,24 @@ func (u *glfwBackend) updateWindowSizeLimits() error {
 		if err != nil {
 			return err
 		}
-		minw = int(math.Round(dipToGLFWPixel(float64(mw), s)))
+		minw = max(1, int(math.Round(dipToGLFWPixel(float64(mw), s))))
 	} else {
-		minw = int(math.Round(dipToGLFWPixel(float64(minw), s)))
+		minw = max(1, int(math.Round(dipToGLFWPixel(float64(minw), s))))
 	}
 	if minh < 0 {
 		minh = glfw.DontCare
 	} else {
-		minh = int(math.Round(dipToGLFWPixel(float64(minh), s)))
+		minh = max(1, int(math.Round(dipToGLFWPixel(float64(minh), s))))
 	}
 	if maxw < 0 {
 		maxw = glfw.DontCare
 	} else {
-		maxw = int(math.Round(dipToGLFWPixel(float64(maxw), s)))
+		maxw = max(1, int(math.Round(dipToGLFWPixel(float64(maxw), s))))
 	}
 	if maxh < 0 {
 		maxh = glfw.DontCare
 	} else {
-		maxh = int(math.Round(dipToGLFWPixel(float64(maxh), s)))
+		maxh = max(1, int(math.Round(dipToGLFWPixel(float64(maxh), s))))
 	}
 	if err := u.window.SetSizeLimits(minw, minh, maxw, maxh); err != nil {
 		return err
@@ -1690,7 +1689,8 @@ func (u *glfwBackend) disableWindowSizeLimits() error {
 // windowSizeInGLFWPixels returns the window size in GLFW pixels for the given size in
 // device-independent pixels.
 func windowSizeInGLFWPixels(widthInDIP, heightInDIP int, deviceScaleFactor float64) (int, int) {
-	return int(math.Round(dipToGLFWPixel(float64(widthInDIP), deviceScaleFactor))), int(math.Round(dipToGLFWPixel(float64(heightInDIP), deviceScaleFactor)))
+	// Native window dimensions must stay positive even at a low content scale.
+	return max(1, int(math.Round(dipToGLFWPixel(float64(widthInDIP), deviceScaleFactor)))), max(1, int(math.Round(dipToGLFWPixel(float64(heightInDIP), deviceScaleFactor))))
 }
 
 // windowSizeToRestore returns the size to give the window on leaving fullscreen, in GLFW pixels.
