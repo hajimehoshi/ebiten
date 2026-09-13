@@ -847,8 +847,6 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	if theGPUResourcesState.isSavingGPUResourcesRequested() {
-		defer theGPUResourcesState.finishSavingGPUResources()
-
 		flushDeferred()
 		for _, b := range theBackends {
 			if b.backendImage == nil {
@@ -875,6 +873,8 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 						err = b.backendImage.ReadPixels(graphicsDriver, args)
 					})
 					if err != nil {
+						// The saved pixels are incomplete, so the resources cannot be restored from them.
+						theGPUResourcesState.finishSavingGPUResources(false)
 						return err
 					}
 				}
@@ -886,6 +886,7 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 				region: region,
 			}
 		}
+		theGPUResourcesState.finishSavingGPUResources(true)
 	}
 
 	return nil
