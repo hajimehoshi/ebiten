@@ -1420,6 +1420,18 @@ func (w *Window) platformMaximizeWindow() error {
 	return nil
 }
 
+func (w *Window) platformMaximizeSupported() bool {
+	return true
+}
+
+func (w *Window) platformIconifySupported() bool {
+	return true
+}
+
+func (w *Window) platformRestoreSupported() bool {
+	return true
+}
+
 func (w *Window) platformShowWindow() {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()

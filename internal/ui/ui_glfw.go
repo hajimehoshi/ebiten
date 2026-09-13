@@ -1864,6 +1864,14 @@ func (u *glfwBackend) maximizeWindow() error {
 		return nil
 	}
 
+	supported, err := u.window.MaximizeSupported()
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return nil
+	}
+
 	if err := u.window.Maximize(); err != nil {
 		return err
 	}
@@ -1901,6 +1909,14 @@ func (u *glfwBackend) iconifyWindow() error {
 		return nil
 	}
 
+	supported, err := u.window.IconifySupported()
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return nil
+	}
+
 	if err := u.window.Iconify(); err != nil {
 		return err
 	}
@@ -1928,6 +1944,14 @@ func (u *glfwBackend) iconifyWindow() error {
 
 // restoreWindow must be called from the main thread.
 func (u *glfwBackend) restoreWindow() error {
+	supported, err := u.window.RestoreSupported()
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return nil
+	}
+
 	if err := u.window.Restore(); err != nil {
 		return err
 	}

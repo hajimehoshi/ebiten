@@ -2641,6 +2641,24 @@ func (w *Window) platformMaximizeWindow() error {
 	return nil
 }
 
+func (w *Window) platformMaximizeSupported() bool {
+	// Maximizing goes through _NET_WM_STATE, so it requires a window manager
+	// that advertises the maximized state atoms
+	return _glfw.platformWindow.NET_WM_STATE != 0 &&
+		_glfw.platformWindow.NET_WM_STATE_MAXIMIZED_VERT != 0 &&
+		_glfw.platformWindow.NET_WM_STATE_MAXIMIZED_HORZ != 0
+}
+
+func (w *Window) platformIconifySupported() bool {
+	// Override-redirect windows cannot be iconified or restored, as those
+	// tasks are performed by the window manager
+	return !w.platform.overrideRedirect
+}
+
+func (w *Window) platformRestoreSupported() bool {
+	return !w.platform.overrideRedirect
+}
+
 func (w *Window) platformShowWindow() {
 	if w.platformWindowVisible() {
 		return

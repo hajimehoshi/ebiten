@@ -587,6 +587,33 @@ func (w *Window) Maximize() error {
 	return nil
 }
 
+// MaximizeSupported reports whether Maximize can take effect on the window.
+func (w *Window) MaximizeSupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	if w.monitor != nil {
+		return false, nil
+	}
+	return w.platformMaximizeSupported(), nil
+}
+
+// IconifySupported reports whether Iconify can take effect on the window.
+func (w *Window) IconifySupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	return w.platformIconifySupported(), nil
+}
+
+// RestoreSupported reports whether Restore can take effect on the window.
+func (w *Window) RestoreSupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	return w.platformRestoreSupported(), nil
+}
+
 func (w *Window) Show() error {
 	if !_glfw.initialized {
 		return NotInitialized
