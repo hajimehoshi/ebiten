@@ -156,6 +156,9 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		if !f.Truthy() {
 			f = canvas.Get("webkitRequestFullscreen")
 		}
+		if !f.Truthy() {
+			return
+		}
 		f.Call("bind", canvas).Invoke()
 		return
 	}
@@ -163,6 +166,9 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	f := document.Get("exitFullscreen")
 	if !f.Truthy() {
 		f = document.Get("webkitExitFullscreen")
+	}
+	if !f.Truthy() {
+		return
 	}
 	f.Call("bind", document).Invoke()
 }
