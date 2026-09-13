@@ -65,25 +65,26 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 		return nil
 	}
 
-	inotify, err := unix.InotifyInit1(unix.IN_NONBLOCK | unix.IN_CLOEXEC)
-	if err != nil {
-		return fmt.Errorf("gamepad: InotifyInit1 failed: %w", err)
+	// Another program of the same user can exhaust the inotify limits (#3304). That only costs
+	// hotplug detection, so it is not fatal here, and GLFW ignores the same errors.
+	if inotify, err := unix.InotifyInit1(unix.IN_NONBLOCK | unix.IN_CLOEXEC); err == nil {
+		g.inotifyPlus1 = inotify + 1
+
+		// Register for IN_ATTRIB to get notified when udev is done.
+		// This works well in practice but the true way is libudev.
+		if watch, err := unix.InotifyAddWatch(g.inotifyPlus1-1, dirName, unix.IN_CREATE|unix.IN_ATTRIB|unix.IN_DELETE); err == nil {
+			g.watch = watch
+		} else {
+			_ = unix.Close(g.inotifyPlus1 - 1)
+			g.inotifyPlus1 = 0
+		}
 	}
-	g.inotifyPlus1 = inotify + 1
 	defer func() {
-		if err != nil {
+		if err != nil && g.inotifyPlus1 != 0 {
 			_ = unix.Close(g.inotifyPlus1 - 1)
 			g.inotifyPlus1 = 0
 		}
 	}()
-
-	// Register for IN_ATTRIB to get notified when udev is done.
-	// This works well in practice but the true way is libudev.
-	watch, err := unix.InotifyAddWatch(g.inotifyPlus1-1, dirName, unix.IN_CREATE|unix.IN_ATTRIB|unix.IN_DELETE)
-	if err != nil {
-		return fmt.Errorf("gamepad: InotifyAddWatch failed: %w", err)
-	}
-	g.watch = watch
 
 	ents, err := os.ReadDir(dirName)
 	if err != nil {
