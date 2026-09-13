@@ -777,6 +777,8 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 		u.forcingFrame = false
 	}()
 
+	u.input.setContentSize(outsideWidth, outsideHeight)
+
 	// Run the frame on another goroutine, as the game's Update and Draw must not run on the main
 	// thread. Keep processing main-thread calls in a nested loop until the frame ends, since
 	// running a frame can request them.
@@ -1336,6 +1338,7 @@ func (u *glfwBackend) updateGame() error {
 		if err != nil {
 			return
 		}
+		u.input.setContentSize(outsideWidth, outsideHeight)
 		var m *Monitor
 		m, err = u.currentMonitor()
 		if err != nil {

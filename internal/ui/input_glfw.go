@@ -53,6 +53,16 @@ type glfwInput struct {
 	lastWheelOffsetY float64
 	lastWheelTime    time.Time
 
+	// scrollPagesX and scrollPagesY are scroll amounts in pages awaiting conversion to pixels, which
+	// needs the window's content size.
+	scrollPagesX float64
+	scrollPagesY float64
+
+	// contentWidth and contentHeight are the window's content size in device-independent pixels, as
+	// last given to the game's Layout. They are 0 until a frame runs.
+	contentWidth  float64
+	contentHeight float64
+
 	mu sync.Mutex
 }
 
@@ -96,10 +106,24 @@ func (i *glfwInput) appendRune(r rune) {
 	i.state.appendRune(r)
 }
 
-// handleScroll records a wheel offset reported by GLFW, dropping an anomalous value.
-func (i *glfwInput) handleScroll(xoff, yoff float64) {
+// handleScroll records a wheel offset and a scroll amount reported by GLFW, dropping an anomalous
+// value.
+func (i *glfwInput) handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY float64, unit glfw.ScrollUnit) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	var pagesX, pagesY float64
+	switch unit {
+	case glfw.ScrollUnitNotch:
+		scrollDeltaX *= pixelsPerScrollNotch
+		scrollDeltaY *= pixelsPerScrollNotch
+	case glfw.ScrollUnitLine:
+		scrollDeltaX *= pixelsPerScrollLine
+		scrollDeltaY *= pixelsPerScrollLine
+	case glfw.ScrollUnitPage:
+		pagesX, pagesY = scrollDeltaX, scrollDeltaY
+		scrollDeltaX, scrollDeltaY = 0, 0
+	}
 
 	now := time.Now()
 
@@ -111,34 +135,59 @@ func (i *glfwInput) handleScroll(xoff, yoff float64) {
 			rapidReversalThreshold = 0.75
 			spikeThreshold         = 50
 		)
-		if math.Abs(xoff) >= 1 && i.lastWheelOffsetX != 0 {
-			rate := math.Abs(xoff) / math.Abs(i.lastWheelOffsetX)
-			sb := i.lastWheelOffsetX*xoff > 0
-			if rate >= spikeThreshold && sb {
-				xoff = 0
-			}
-			if rate >= rapidReversalThreshold && !sb {
-				xoff = 0
+		if math.Abs(wheelX) >= 1 && i.lastWheelOffsetX != 0 {
+			rate := math.Abs(wheelX) / math.Abs(i.lastWheelOffsetX)
+			sb := i.lastWheelOffsetX*wheelX > 0
+			if (rate >= spikeThreshold && sb) || (rate >= rapidReversalThreshold && !sb) {
+				wheelX = 0
+				scrollDeltaX = 0
+				pagesX = 0
 			}
 		}
-		if math.Abs(yoff) >= 1 && i.lastWheelOffsetY != 0 {
-			rate := math.Abs(yoff) / math.Abs(i.lastWheelOffsetY)
-			sb := i.lastWheelOffsetY*yoff > 0
-			if rate >= spikeThreshold && sb {
-				yoff = 0
-			}
-			if rate >= rapidReversalThreshold && !sb {
-				yoff = 0
+		if math.Abs(wheelY) >= 1 && i.lastWheelOffsetY != 0 {
+			rate := math.Abs(wheelY) / math.Abs(i.lastWheelOffsetY)
+			sb := i.lastWheelOffsetY*wheelY > 0
+			if (rate >= spikeThreshold && sb) || (rate >= rapidReversalThreshold && !sb) {
+				wheelY = 0
+				scrollDeltaY = 0
+				pagesY = 0
 			}
 		}
 	}
 
-	i.lastWheelOffsetX = xoff
-	i.lastWheelOffsetY = yoff
+	i.lastWheelOffsetX = wheelX
+	i.lastWheelOffsetY = wheelY
 	i.lastWheelTime = now
 
-	i.state.WheelX += xoff
-	i.state.WheelY += yoff
+	i.state.WheelX += wheelX
+	i.state.WheelY += wheelY
+	i.state.ScrollDeltaX += scrollDeltaX
+	i.state.ScrollDeltaY += scrollDeltaY
+	i.scrollPagesX += pagesX
+	i.scrollPagesY += pagesY
+}
+
+// setContentSize records the window's content size in device-independent pixels.
+func (i *glfwInput) setContentSize(width, height float64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	i.contentWidth = width
+	i.contentHeight = height
+}
+
+// convertScrollPages converts the pending scroll amounts in pages with the content size. The amounts
+// stay pending while the size is unknown.
+//
+// convertScrollPages must be called with mu held.
+func (i *glfwInput) convertScrollPages() {
+	if i.contentWidth <= 0 || i.contentHeight <= 0 {
+		return
+	}
+	i.state.ScrollDeltaX += i.scrollPagesX * i.contentWidth
+	i.state.ScrollDeltaY += i.scrollPagesY * i.contentHeight
+	i.scrollPagesX = 0
+	i.scrollPagesY = 0
 }
 
 // syncModKeys reconciles the modifier key state against mods.
@@ -179,6 +228,9 @@ func (i *glfwInput) read(dst *InputState) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
+	// A tick can run outside the regular frame, during event polling; converting here makes every
+	// tick see the pages scrolled before it.
+	i.convertScrollPages()
 	i.state.copyAndReset(dst)
 }
 
@@ -275,8 +327,8 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		return err
 	}
 
-	if _, err := u.window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
-		u.input.handleScroll(xoff, yoff)
+	if _, err := u.window.SetScrollCallback(func(w *glfw.Window, wheelX float64, wheelY float64, scrollDeltaX float64, scrollDeltaY float64, unit glfw.ScrollUnit) {
+		u.input.handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY, unit)
 	}); err != nil {
 		return err
 	}

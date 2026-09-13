@@ -523,6 +523,11 @@ func enableRawMouseMotion(window *Window) {
 }
 
 func disableRawMouseMotion(window *Window) {
+	// Raw motion also carries the scroll deltas; it stays selected while they are in use.
+	if _glfw.platformWindow.xi.scrollAvailable {
+		return
+	}
+
 	mask := make([]byte, 1)
 
 	em := _XIEventMask{
@@ -532,6 +537,302 @@ func disableRawMouseMotion(window *Window) {
 	}
 	_glfw.platformWindow.xi.SelectEvents(_glfw.platformWindow.display, _glfw.platformWindow.root, &em, 1)
 	runtime.KeepAlive(mask)
+}
+
+// xiScrollAxis is one scroll axis of an input device. A raw motion event's delta on the axis, divided
+// by the increment, is the scroll amount in wheel notches.
+type xiScrollAxis struct {
+	number     int32
+	scrollType int32
+	increment  float64
+}
+
+// selectXIEvents routes the window's pointer button and motion events through XInput2, and selects
+// raw motion, whose scroll axis deltas are the scrolling amounts: they are reported as posted by the
+// device, so scrolling needs no counter baseline. The device motion event of the same input report
+// decides the window they scroll.
+func selectXIEvents(window *Window) {
+	if !_glfw.platformWindow.xi.scrollAvailable {
+		return
+	}
+
+	enableRawMouseMotion(window)
+
+	pointerMask := make([]byte, xiMaskLen(_XI_Motion))
+	xiSetMask(pointerMask, _XI_ButtonPress)
+	xiSetMask(pointerMask, _XI_ButtonRelease)
+	xiSetMask(pointerMask, _XI_Motion)
+
+	deviceMask := make([]byte, xiMaskLen(_XI_DeviceChanged))
+	xiSetMask(deviceMask, _XI_DeviceChanged)
+
+	em := []_XIEventMask{
+		{
+			Deviceid: _XIAllMasterDevices,
+			MaskLen:  int32(len(pointerMask)),
+			Mask:     uintptr(unsafe.Pointer(&pointerMask[0])),
+		},
+		{
+			Deviceid: _XIAllDevices,
+			MaskLen:  int32(len(deviceMask)),
+			Mask:     uintptr(unsafe.Pointer(&deviceMask[0])),
+		},
+	}
+	_glfw.platformWindow.xi.SelectEvents(_glfw.platformWindow.display, window.platform.handle, &em[0], int32(len(em)))
+	runtime.KeepAlive(pointerMask)
+	runtime.KeepAlive(deviceMask)
+}
+
+// xiScrollAxesFromClasses reads the scroll axes out of a device class list (from XIQueryDevice or an
+// XIDeviceChanged event) into dst, keyed by the source device ID the classes belong to.
+func xiScrollAxesFromClasses(numClasses int32, classes uintptr, dst map[int32][]xiScrollAxis) {
+	if numClasses <= 0 || classes == 0 {
+		return
+	}
+
+	ptrs := unsafe.Slice((*uintptr)(unsafe.Pointer(classes)), numClasses)
+
+	axesBySource := map[int32][]xiScrollAxis{}
+	for _, p := range ptrs {
+		if (*_XIAnyClassInfo)(unsafe.Pointer(p)).Type != _XIScrollClass {
+			continue
+		}
+		c := (*_XIScrollClassInfo)(unsafe.Pointer(p))
+		axesBySource[c.Sourceid] = append(axesBySource[c.Sourceid], xiScrollAxis{
+			number:     c.Number,
+			scrollType: c.ScrollType,
+			increment:  c.Increment,
+		})
+	}
+	for sourceid, axes := range axesBySource {
+		dst[sourceid] = axes
+	}
+}
+
+// refreshXIScrollAxes rebuilds the scroll axes of all input devices.
+func refreshXIScrollAxes() {
+	xi := &_glfw.platformWindow.xi
+
+	var n int32
+	grabErrorHandlerX11()
+	infos := xi.QueryDevice(_glfw.platformWindow.display, _XIAllDevices, &n)
+	releaseErrorHandlerX11()
+	if infos == 0 {
+		return
+	}
+
+	m := map[int32][]xiScrollAxis{}
+	for _, info := range unsafe.Slice((*_XIDeviceInfo)(unsafe.Pointer(infos)), n) {
+		xiScrollAxesFromClasses(info.NumClasses, info.Classes, m)
+	}
+	xi.FreeDeviceInfo(infos)
+	xi.scrollAxes = m
+}
+
+// refreshXIScrollAxesForDevice rebuilds the scroll axes of the device identified by deviceid,
+// returning its axes (nil when the device is gone or has none).
+func refreshXIScrollAxesForDevice(deviceid int32) []xiScrollAxis {
+	xi := &_glfw.platformWindow.xi
+
+	var n int32
+	grabErrorHandlerX11()
+	infos := xi.QueryDevice(_glfw.platformWindow.display, deviceid, &n)
+	releaseErrorHandlerX11()
+	if infos == 0 {
+		xi.scrollAxes[deviceid] = nil
+		return nil
+	}
+
+	for _, info := range unsafe.Slice((*_XIDeviceInfo)(unsafe.Pointer(infos)), n) {
+		xiScrollAxesFromClasses(info.NumClasses, info.Classes, xi.scrollAxes)
+	}
+	xi.FreeDeviceInfo(infos)
+
+	// Record a device without scroll axes too, so its motion events don't re-query it.
+	if _, ok := xi.scrollAxes[deviceid]; !ok {
+		xi.scrollAxes[deviceid] = nil
+	}
+	return xi.scrollAxes[deviceid]
+}
+
+// xiScrollAxisOffset converts a raw motion delta on the scroll axis numbered number to scroll offsets
+// in notches.
+func xiScrollAxisOffset(axes []xiScrollAxis, number int32, delta float64) (xoff, yoff float64) {
+	for _, axis := range axes {
+		if axis.number != number || axis.increment == 0 {
+			continue
+		}
+		ticks := delta / axis.increment
+		// A positive delta scrolls down or right, which emulates Button5 or Button7, reported as a
+		// negative offset.
+		switch axis.scrollType {
+		case _XIScrollTypeVertical:
+			return 0, -ticks
+		case _XIScrollTypeHorizontal:
+			return -ticks, 0
+		}
+		return 0, 0
+	}
+	return 0, 0
+}
+
+// xiPendingScroll is the scroll offsets of a device's latest raw motion event, in notches, with the
+// event's time.
+type xiPendingScroll struct {
+	time _Time
+	xoff float64
+	yoff float64
+}
+
+// xiRecordPendingScroll records the scroll offsets of a device's raw motion event, replacing the
+// offsets of the device's previous one.
+func xiRecordPendingScroll(pending map[int32]xiPendingScroll, sourceid int32, time _Time, xoff, yoff float64) {
+	pending[sourceid] = xiPendingScroll{time: time, xoff: xoff, yoff: yoff}
+}
+
+// xiTakePendingScroll returns and clears the scroll offsets recorded for the device's raw motion
+// event of the input report at time.
+//
+// The pairing relies on event order: the server generates the raw motion event of an input report
+// before the report's device motion event, so the entry a device motion event finds is the one of
+// its own report, or of a later report whose device motion event was delivered elsewhere. The
+// timestamps alone do not identify a report; matching them rejects only an entry left by a raw
+// motion event whose device motion event never arrived.
+func xiTakePendingScroll(pending map[int32]xiPendingScroll, sourceid int32, time _Time) (xoff, yoff float64) {
+	p, ok := pending[sourceid]
+	if !ok {
+		return 0, 0
+	}
+	delete(pending, sourceid)
+	if p.time != time {
+		return 0, 0
+	}
+	return p.xoff, p.yoff
+}
+
+// xiRawMotionScroll records the scroll offsets of a raw motion event for the device motion event of
+// the same input report, whose window delivery decides which window they scroll.
+func xiRawMotionScroll(re *_XIRawEvent) {
+	xi := &_glfw.platformWindow.xi
+	if !xi.scrollAvailable {
+		return
+	}
+
+	axes, ok := xi.scrollAxes[re.Sourceid]
+	if !ok {
+		axes = refreshXIScrollAxesForDevice(re.Sourceid)
+	}
+	if len(axes) == 0 {
+		return
+	}
+
+	var xoff, yoff float64
+	// The server emulates a motion, flagged as such, from a legacy scroll button press that it
+	// delivers as well; that press carries the scroll.
+	if re.Flags&_XIPointerEmulated == 0 && re.Valuators.MaskLen > 0 {
+		mask := unsafe.Slice((*byte)(unsafe.Pointer(re.Valuators.Mask)), re.Valuators.MaskLen)
+		values := re.RawValues
+		for i := 0; i < int(re.Valuators.MaskLen)*8; i++ {
+			if !xiMaskIsSet(mask, i) {
+				continue
+			}
+			delta := *(*float64)(unsafe.Pointer(values))
+			values += unsafe.Sizeof(float64(0))
+
+			dx, dy := xiScrollAxisOffset(axes, int32(i), delta)
+			xoff += dx
+			yoff += dy
+		}
+	}
+	xiRecordPendingScroll(xi.pendingScroll, re.Sourceid, re.Time, xoff, yoff)
+}
+
+// xiMotionEvent handles an XI_Motion event: the scrolling of the input report, recorded from its raw
+// motion event, then the cursor position in the same way as the core MotionNotify handler.
+func xiMotionEvent(e *_XIDeviceEvent) {
+	window := _glfw.platformWindow.windowsByXID[e.Event]
+	if window == nil {
+		return
+	}
+
+	if xi := &_glfw.platformWindow.xi; xi.scrollAvailable {
+		if xoff, yoff := xiTakePendingScroll(xi.pendingScroll, e.Sourceid, e.Time); xoff != 0 || yoff != 0 {
+			window.inputScroll(xoff, yoff, xoff, yoff, ScrollUnitNotch)
+		}
+	}
+
+	x := int(e.EventX)
+	y := int(e.EventY)
+
+	if x != window.platform.warpCursorPosX ||
+		y != window.platform.warpCursorPosY {
+		// The cursor was moved by something other than GLFW
+
+		if window.cursorMode == CursorDisabled {
+			if _glfw.platformWindow.disabledCursorWindow != window {
+				return
+			}
+			if window.rawMouseMotion {
+				return
+			}
+
+			dx := x - window.platform.lastCursorPosX
+			dy := y - window.platform.lastCursorPosY
+
+			window.inputCursorPos(window.virtualCursorPosX+float64(dx),
+				window.virtualCursorPosY+float64(dy))
+		} else {
+			window.inputCursorPos(float64(x), float64(y))
+		}
+	}
+
+	window.platform.lastCursorPosX = x
+	window.platform.lastCursorPosY = y
+}
+
+// xiButtonEvent handles an XI_ButtonPress or XI_ButtonRelease event in the same way as the core
+// ButtonPress and ButtonRelease handlers.
+func xiButtonEvent(e *_XIDeviceEvent, action Action) {
+	window := _glfw.platformWindow.windowsByXID[e.Event]
+	if window == nil {
+		return
+	}
+
+	mods := translateState(uint32(e.Mods.Effective))
+	button := int(e.Detail)
+
+	switch {
+	case button >= _Button4 && button <= _Button7:
+		if action != Press {
+			return
+		}
+		// A scroll from a device with scroll axes arrives through the motion valuators; the legacy
+		// button press the server emulates alongside it must not be counted again.
+		if e.Flags&_XIPointerEmulated != 0 {
+			return
+		}
+		switch button {
+		case _Button4:
+			window.inputScroll(0, 1, 0, 1, ScrollUnitNotch)
+		case _Button5:
+			window.inputScroll(0, -1, 0, -1, ScrollUnitNotch)
+		case _Button6:
+			window.inputScroll(1, 0, 1, 0, ScrollUnitNotch)
+		case _Button7:
+			window.inputScroll(-1, 0, -1, 0, ScrollUnitNotch)
+		}
+	case button == _Button1:
+		window.inputMouseClick(MouseButtonLeft, action, mods)
+	case button == _Button2:
+		window.inputMouseClick(MouseButtonMiddle, action, mods)
+	case button == _Button3:
+		window.inputMouseClick(MouseButtonRight, action, mods)
+	default:
+		// Additional buttons after 7 are treated as regular buttons
+		// The gap left by the scroll input above is filled by
+		// subtracting 4
+		window.inputMouseClick(MouseButton(button-_Button1-4), action, mods)
+	}
 }
 
 // disableCursor applies disabled cursor mode to a focused window.
@@ -617,6 +918,8 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	}
 
 	_glfw.platformWindow.windowsByXID[window.platform.handle] = window
+
+	selectXIEvents(window)
 
 	if !wndconfig.decorated {
 		if err := window.platformSetWindowDecorated(false); err != nil {
@@ -1178,31 +1481,49 @@ func processEvent(event *_XEvent) error {
 
 	if event.EventType() == _GenericEvent {
 		if _glfw.platformWindow.xi.available {
-			window := _glfw.platformWindow.disabledCursorWindow
 			cookie := event.xcookie()
 
-			if window != nil &&
-				window.rawMouseMotion &&
-				cookie.Extension == _glfw.platformWindow.xi.majorOpcode &&
-				xGetEventData(_glfw.platformWindow.display, cookie) &&
-				cookie.Evtype == _XI_RawMotion {
-				re := (*_XIRawEvent)(unsafe.Pointer(cookie.Data))
-				if re.Valuators.MaskLen != 0 {
-					mask := unsafe.Slice((*byte)(unsafe.Pointer(re.Valuators.Mask)), re.Valuators.MaskLen)
-					values := re.RawValues
-					xpos := window.virtualCursorPosX
-					ypos := window.virtualCursorPosY
+			if cookie.Extension == _glfw.platformWindow.xi.majorOpcode &&
+				xGetEventData(_glfw.platformWindow.display, cookie) {
+				switch cookie.Evtype {
+				case _XI_RawMotion:
+					re := (*_XIRawEvent)(unsafe.Pointer(cookie.Data))
+					xiRawMotionScroll(re)
+					window := _glfw.platformWindow.disabledCursorWindow
+					if window != nil && window.rawMouseMotion {
+						if re.Valuators.MaskLen != 0 {
+							mask := unsafe.Slice((*byte)(unsafe.Pointer(re.Valuators.Mask)), re.Valuators.MaskLen)
+							values := re.RawValues
+							xpos := window.virtualCursorPosX
+							ypos := window.virtualCursorPosY
 
-					if xiMaskIsSet(mask, 0) {
-						xpos += *(*float64)(unsafe.Pointer(values))
-						values += unsafe.Sizeof(float64(0))
+							if xiMaskIsSet(mask, 0) {
+								xpos += *(*float64)(unsafe.Pointer(values))
+								values += unsafe.Sizeof(float64(0))
+							}
+
+							if xiMaskIsSet(mask, 1) {
+								ypos += *(*float64)(unsafe.Pointer(values))
+							}
+
+							window.inputCursorPos(xpos, ypos)
+						}
 					}
 
-					if xiMaskIsSet(mask, 1) {
-						ypos += *(*float64)(unsafe.Pointer(values))
-					}
+				case _XI_Motion:
+					xiMotionEvent((*_XIDeviceEvent)(unsafe.Pointer(cookie.Data)))
 
-					window.inputCursorPos(xpos, ypos)
+				case _XI_ButtonPress:
+					xiButtonEvent((*_XIDeviceEvent)(unsafe.Pointer(cookie.Data)), Press)
+
+				case _XI_ButtonRelease:
+					xiButtonEvent((*_XIDeviceEvent)(unsafe.Pointer(cookie.Data)), Release)
+
+				case _XI_DeviceChanged:
+					// The event carries the changed device's new classes; rebuild its scroll axes
+					// from them.
+					e := (*_XIDeviceChangedEvent)(unsafe.Pointer(cookie.Data))
+					xiScrollAxesFromClasses(e.NumClasses, e.Classes, _glfw.platformWindow.xi.scrollAxes)
 				}
 			}
 
@@ -1352,13 +1673,13 @@ func processEvent(event *_XEvent) error {
 
 		// Modern X provides scroll events as mouse button presses
 		case _Button4:
-			window.inputScroll(0, 1)
+			window.inputScroll(0, 1, 0, 1, ScrollUnitNotch)
 		case _Button5:
-			window.inputScroll(0, -1)
+			window.inputScroll(0, -1, 0, -1, ScrollUnitNotch)
 		case _Button6:
-			window.inputScroll(1, 0)
+			window.inputScroll(1, 0, 1, 0, ScrollUnitNotch)
 		case _Button7:
-			window.inputScroll(-1, 0)
+			window.inputScroll(-1, 0, -1, 0, ScrollUnitNotch)
 
 		default:
 			// Additional buttons after 7 are treated as regular buttons

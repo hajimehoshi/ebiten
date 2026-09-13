@@ -576,13 +576,19 @@ func registerGLFWClasses() error {
 					deltaX := objc.Send[float64](event, sel_scrollingDeltaX)
 					deltaY := objc.Send[float64](event, sel_scrollingDeltaY)
 
+					// AppKit's contract for scrollingDeltaX/Y: with precise deltas the values are in
+					// points, which are device-independent pixels; otherwise they are to be multiplied
+					// by a line height.
+					scrollDeltaX, scrollDeltaY := deltaX, deltaY
+					unit := ScrollUnitLine
 					if objc.Send[bool](event, sel_hasPreciseScrollingDeltas) {
+						unit = ScrollUnitPixel
 						deltaX *= 0.1
 						deltaY *= 0.1
 					}
 
 					if deltaX != 0 || deltaY != 0 {
-						window.inputScroll(deltaX, deltaY)
+						window.inputScroll(deltaX, deltaY, scrollDeltaX, scrollDeltaY, unit)
 					}
 				},
 			},

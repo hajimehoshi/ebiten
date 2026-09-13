@@ -73,4 +73,12 @@ type (
 	XIEventMask            = _XIEventMask
 	XIValuatorState        = _XIValuatorState
 	XIRawEvent             = _XIRawEvent
+	XIButtonState          = _XIButtonState
+	XIModifierState        = _XIModifierState
+	XIDeviceEvent          = _XIDeviceEvent
+	XIDeviceChangedEvent   = _XIDeviceChangedEvent
+	XIAnyClassInfo         = _XIAnyClassInfo
+	XIValuatorClassInfo    = _XIValuatorClassInfo
+	XIScrollClassInfo      = _XIScrollClassInfo
+	XIDeviceInfo           = _XIDeviceInfo
 )

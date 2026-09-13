@@ -30,6 +30,17 @@ const (
 	MouseButtonMax = MouseButton4
 )
 
+// pixelsPerScrollNotch is the estimated scroll amount in device-independent pixels for one notch of a
+// typical mouse wheel. It is the amount Chromium scrolls per notch with the Windows default settings.
+const pixelsPerScrollNotch = 100
+
+// scrollLinesPerNotch is the number of text lines one notch of a typical mouse wheel scrolls. It is the
+// Windows default of SPI_GETWHEELSCROLLLINES.
+const scrollLinesPerNotch = 3
+
+// pixelsPerScrollLine is the estimated scroll amount in device-independent pixels for one line of text.
+const pixelsPerScrollLine = float64(pixelsPerScrollNotch) / scrollLinesPerNotch
+
 type TouchID int
 
 type Touch struct {
@@ -66,6 +77,8 @@ type InputState struct {
 	CursorY           float64
 	WheelX            float64
 	WheelY            float64
+	ScrollDeltaX      float64
+	ScrollDeltaY      float64
 	Touches           []Touch
 	Runes             []rune
 	WindowBeingClosed bool
@@ -294,6 +307,8 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	dst.CursorY = i.CursorY
 	dst.WheelX = i.WheelX
 	dst.WheelY = i.WheelY
+	dst.ScrollDeltaX = i.ScrollDeltaX
+	dst.ScrollDeltaY = i.ScrollDeltaY
 	dst.Touches = append(dst.Touches[:0], i.Touches...)
 	dst.Runes = append(dst.Runes[:0], i.Runes...)
 	dst.WindowBeingClosed = i.WindowBeingClosed
@@ -304,6 +319,8 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	// Reset the members that are updated by deltas, rather than absolute values.
 	i.WheelX = 0
 	i.WheelY = 0
+	i.ScrollDeltaX = 0
+	i.ScrollDeltaY = 0
 	i.Runes = i.Runes[:0]
 
 	// Reset the members that are never reset until they are explicitly done.

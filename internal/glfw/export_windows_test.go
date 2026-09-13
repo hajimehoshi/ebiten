@@ -17,3 +17,9 @@ package glfw
 func PackPoint64(x, y int32) uint64 {
 	return (_POINT{x: x, y: y}).pack64()
 }
+
+const WheelPageScroll = _WHEEL_PAGESCROLL
+
+func WheelScrollAmount(notches float64, setting uint32) (float64, ScrollUnit) {
+	return wheelScrollAmount(notches, setting)
+}

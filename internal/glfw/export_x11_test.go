@@ -108,3 +108,32 @@ func SmokeTestX11() error {
 
 	return nil
 }
+
+type XIScrollAxis = xiScrollAxis
+
+const (
+	XIScrollTypeVertical   = _XIScrollTypeVertical
+	XIScrollTypeHorizontal = _XIScrollTypeHorizontal
+)
+
+func NewXIScrollAxis(number, scrollType int32, increment float64) XIScrollAxis {
+	return xiScrollAxis{
+		number:     number,
+		scrollType: scrollType,
+		increment:  increment,
+	}
+}
+
+func XIScrollAxisOffset(axes []XIScrollAxis, number int32, delta float64) (xoff, yoff float64) {
+	return xiScrollAxisOffset(axes, number, delta)
+}
+
+type XIPendingScrolls = map[int32]xiPendingScroll
+
+func XIRecordPendingScroll(pending XIPendingScrolls, sourceid int32, time uint, xoff, yoff float64) {
+	xiRecordPendingScroll(pending, sourceid, _Time(time), xoff, yoff)
+}
+
+func XITakePendingScroll(pending XIPendingScrolls, sourceid int32, time uint) (xoff, yoff float64) {
+	return xiTakePendingScroll(pending, sourceid, _Time(time))
+}

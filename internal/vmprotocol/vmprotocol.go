@@ -81,6 +81,10 @@ const (
 	// HostMessageKindEndTextInput ends the guest text-input session identified by TextInputID from the
 	// host side (e.g. on focus loss). A committed TextInputState ends the session without this message.
 	HostMessageKindEndTextInput
+
+	// HostMessageKindScroll injects a scroll movement in device-independent pixels, feeding the guest's
+	// scroll-delta values as HostMessageKindScrollWheel feeds the guest's wheel values.
+	HostMessageKindScroll
 )
 
 // HostMessage is a message the host sends to a guest: an operation to perform, or the answer to a
@@ -103,7 +107,7 @@ type HostMessage struct {
 	// PressTouch/MoveTouch/ReleaseTouch carry a ui.TouchID.
 	Code int
 
-	// MoveCursor and ScrollWheel; also PressTouch and MoveTouch carry the touch position.
+	// MoveCursor, ScrollWheel, and Scroll; also PressTouch and MoveTouch carry the touch position.
 	X float64
 	Y float64
 
@@ -436,7 +440,7 @@ type GuestMessageEncoder interface {
 // (x.y) always agree on this value and so are always compatible. A change that affects the wire — the
 // HostMessage/GuestMessage kinds or fields, or the GraphicsCommand schema or its semantics — bumps this
 // value and may only land in a minor or major release.
-const ProtocolVersion = 1
+const ProtocolVersion = 2
 
 // handshakeMagic prefixes the handshake so a peer that isn't a vmguest (or speaks an incompatible
 // preamble) is rejected with a clear error instead of misreading the stream.

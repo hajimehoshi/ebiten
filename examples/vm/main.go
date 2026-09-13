@@ -470,6 +470,9 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		if wx, wy := ebiten.Wheel(); wx != 0 || wy != 0 {
 			s.ScrollWheel(wx, wy)
 		}
+		if sx, sy := ebiten.ScrollDelta(); sx != 0 || sy != 0 {
+			s.ScrollBy(sx, sy)
+		}
 	}
 
 	// Mouse button releases are forwarded regardless of hover, like the key releases above: a drag

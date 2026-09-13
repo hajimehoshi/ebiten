@@ -1110,6 +1110,17 @@ func (g *GuestSession) ScrollWheel(x, y float64) {
 	g.postMessage(msg)
 }
 
+// ScrollBy injects a scroll movement by x and y device-independent pixels.
+// ScrollBy feeds the guest's [ebiten.ScrollDelta] values, while [GuestSession.ScrollWheel] feeds the
+// guest's [ebiten.Wheel] values.
+func (g *GuestSession) ScrollBy(x, y float64) {
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindScroll
+	msg.X = x
+	msg.Y = y
+	g.postMessage(msg)
+}
+
 // TypeRune injects a typed character.
 func (g *GuestSession) TypeRune(r rune) {
 	msg := g.takeMessage()

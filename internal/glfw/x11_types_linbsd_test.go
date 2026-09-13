@@ -370,6 +370,53 @@ func TestXlibStructLayouts(t *testing.T) {
 		{"XIMPreeditCaretCB.Direction", unsafe.Offsetof(glfw.XIMPreeditCaretCB{}.Direction), 4},
 		{"XIMPreeditCaretCB.Style", unsafe.Offsetof(glfw.XIMPreeditCaretCB{}.Style), 8},
 		{"sizeof XIMPreeditCaretCB", unsafe.Sizeof(glfw.XIMPreeditCaretCB{}), 12},
+
+		{"XIModifierState.Effective", unsafe.Offsetof(glfw.XIModifierState{}.Effective), 12},
+		{"sizeof XIModifierState", unsafe.Sizeof(glfw.XIModifierState{}), 16},
+
+		{"XIDeviceEvent.Evtype", unsafe.Offsetof(glfw.XIDeviceEvent{}.Evtype), 36},
+		{"XIDeviceEvent.Time", unsafe.Offsetof(glfw.XIDeviceEvent{}.Time), 40},
+		{"XIDeviceEvent.Deviceid", unsafe.Offsetof(glfw.XIDeviceEvent{}.Deviceid), 48},
+		{"XIDeviceEvent.Sourceid", unsafe.Offsetof(glfw.XIDeviceEvent{}.Sourceid), 52},
+		{"XIDeviceEvent.Detail", unsafe.Offsetof(glfw.XIDeviceEvent{}.Detail), 56},
+		{"XIDeviceEvent.Root", unsafe.Offsetof(glfw.XIDeviceEvent{}.Root), 64},
+		{"XIDeviceEvent.Event", unsafe.Offsetof(glfw.XIDeviceEvent{}.Event), 72},
+		{"XIDeviceEvent.EventX", unsafe.Offsetof(glfw.XIDeviceEvent{}.EventX), 104},
+		{"XIDeviceEvent.EventY", unsafe.Offsetof(glfw.XIDeviceEvent{}.EventY), 112},
+		{"XIDeviceEvent.Flags", unsafe.Offsetof(glfw.XIDeviceEvent{}.Flags), 120},
+		{"XIDeviceEvent.Buttons", unsafe.Offsetof(glfw.XIDeviceEvent{}.Buttons), 128},
+		{"XIDeviceEvent.Valuators", unsafe.Offsetof(glfw.XIDeviceEvent{}.Valuators), 144},
+		{"XIDeviceEvent.Mods", unsafe.Offsetof(glfw.XIDeviceEvent{}.Mods), 168},
+		{"XIDeviceEvent.Group", unsafe.Offsetof(glfw.XIDeviceEvent{}.Group), 184},
+		{"sizeof XIDeviceEvent", unsafe.Sizeof(glfw.XIDeviceEvent{}), 200},
+
+		{"XIDeviceChangedEvent.Sourceid", unsafe.Offsetof(glfw.XIDeviceChangedEvent{}.Sourceid), 52},
+		{"XIDeviceChangedEvent.Reason", unsafe.Offsetof(glfw.XIDeviceChangedEvent{}.Reason), 56},
+		{"XIDeviceChangedEvent.NumClasses", unsafe.Offsetof(glfw.XIDeviceChangedEvent{}.NumClasses), 60},
+		{"XIDeviceChangedEvent.Classes", unsafe.Offsetof(glfw.XIDeviceChangedEvent{}.Classes), 64},
+		{"sizeof XIDeviceChangedEvent", unsafe.Sizeof(glfw.XIDeviceChangedEvent{}), 72},
+
+		{"XIAnyClassInfo.Sourceid", unsafe.Offsetof(glfw.XIAnyClassInfo{}.Sourceid), 4},
+		{"sizeof XIAnyClassInfo", unsafe.Sizeof(glfw.XIAnyClassInfo{}), 8},
+
+		{"XIValuatorClassInfo.Number", unsafe.Offsetof(glfw.XIValuatorClassInfo{}.Number), 8},
+		{"XIValuatorClassInfo.Label", unsafe.Offsetof(glfw.XIValuatorClassInfo{}.Label), 16},
+		{"XIValuatorClassInfo.Value", unsafe.Offsetof(glfw.XIValuatorClassInfo{}.Value), 40},
+		{"XIValuatorClassInfo.Mode", unsafe.Offsetof(glfw.XIValuatorClassInfo{}.Mode), 52},
+		{"sizeof XIValuatorClassInfo", unsafe.Sizeof(glfw.XIValuatorClassInfo{}), 56},
+
+		{"XIScrollClassInfo.Number", unsafe.Offsetof(glfw.XIScrollClassInfo{}.Number), 8},
+		{"XIScrollClassInfo.ScrollType", unsafe.Offsetof(glfw.XIScrollClassInfo{}.ScrollType), 12},
+		{"XIScrollClassInfo.Increment", unsafe.Offsetof(glfw.XIScrollClassInfo{}.Increment), 16},
+		{"XIScrollClassInfo.Flags", unsafe.Offsetof(glfw.XIScrollClassInfo{}.Flags), 24},
+		{"sizeof XIScrollClassInfo", unsafe.Sizeof(glfw.XIScrollClassInfo{}), 32},
+
+		{"XIDeviceInfo.Name", unsafe.Offsetof(glfw.XIDeviceInfo{}.Name), 8},
+		{"XIDeviceInfo.Use", unsafe.Offsetof(glfw.XIDeviceInfo{}.Use), 16},
+		{"XIDeviceInfo.Enabled", unsafe.Offsetof(glfw.XIDeviceInfo{}.Enabled), 24},
+		{"XIDeviceInfo.NumClasses", unsafe.Offsetof(glfw.XIDeviceInfo{}.NumClasses), 28},
+		{"XIDeviceInfo.Classes", unsafe.Offsetof(glfw.XIDeviceInfo{}.Classes), 32},
+		{"sizeof XIDeviceInfo", unsafe.Sizeof(glfw.XIDeviceInfo{}), 40},
 	} {
 		if tt.got != tt.want {
 			t.Errorf("%s: got %d, want %d", tt.name, tt.got, tt.want)

@@ -995,13 +995,17 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		return 0
 
 	case _WM_MOUSEWHEEL:
-		window.inputScroll(0, float64(int16(_HIWORD(uint32(wParam))))/_WHEEL_DELTA)
+		notches := float64(int16(_HIWORD(uint32(wParam)))) / _WHEEL_DELTA
+		amount, unit := wheelScrollAmount(notches, wheelScrollSetting(_SPI_GETWHEELSCROLLLINES))
+		window.inputScroll(0, notches, 0, amount, unit)
 		return 0
 
 	case _WM_MOUSEHWHEEL:
 		// This message is only sent on Windows Vista and later
 		// NOTE: The X-axis is inverted for consistency with macOS and X11
-		window.inputScroll(float64(-(int16(_HIWORD(uint32(wParam))))/_WHEEL_DELTA), 0)
+		notches := -float64(int16(_HIWORD(uint32(wParam)))) / _WHEEL_DELTA
+		amount, unit := wheelScrollAmount(notches, wheelScrollSetting(_SPI_GETWHEELSCROLLCHARS))
+		window.inputScroll(notches, 0, amount, 0, unit)
 		return 0
 
 	case _WM_ENTERSIZEMOVE, _WM_ENTERMENULOOP:
@@ -2569,4 +2573,26 @@ func (w *Window) GetWin32Window() (windows.HWND, error) {
 		return 0, NotInitialized
 	}
 	return w.platform.handle, nil
+}
+
+// wheelScrollSetting returns the system's scroll amount per wheel notch for action, which is
+// _SPI_GETWHEELSCROLLLINES (lines) or _SPI_GETWHEELSCROLLCHARS (characters). The Windows default
+// applies when the query fails.
+func wheelScrollSetting(action uint32) uint32 {
+	var n uint32
+	if err := _SystemParametersInfoW(action, 0, uintptr(unsafe.Pointer(&n)), 0); err != nil {
+		return 3
+	}
+	return n
+}
+
+// wheelScrollAmount converts wheel notches to a scroll amount under a system scroll setting: a count
+// of lines (or characters) per notch, 0 for no scrolling, or _WHEEL_PAGESCROLL for a page per notch.
+// A character counts as a line. _WHEEL_PAGESCROLL is documented for the line setting; the character
+// setting reads it the same way.
+func wheelScrollAmount(notches float64, setting uint32) (float64, ScrollUnit) {
+	if setting == _WHEEL_PAGESCROLL {
+		return notches, ScrollUnitPage
+	}
+	return notches * float64(setting), ScrollUnitLine
 }

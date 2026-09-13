@@ -297,6 +297,8 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 			r.releaseMouseButton(MouseButton(msg.Code))
 		case vmprotocol.HostMessageKindScrollWheel:
 			r.scrollWheel(msg.X, msg.Y)
+		case vmprotocol.HostMessageKindScroll:
+			r.scroll(msg.X, msg.Y)
 		case vmprotocol.HostMessageKindTypeRune:
 			r.typeRune(msg.Rune)
 		case vmprotocol.HostMessageKindReadAudio:
@@ -532,6 +534,15 @@ func (r *remoteBackend) scrollWheel(x, y float64) {
 	defer r.mu.Unlock()
 	r.inputState.WheelX += x
 	r.inputState.WheelY += y
+}
+
+// scroll injects a scroll movement in device-independent pixels (accumulated until the next tick
+// reads it).
+func (r *remoteBackend) scroll(x, y float64) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.inputState.ScrollDeltaX += x
+	r.inputState.ScrollDeltaY += y
 }
 
 // typeRune injects a typed character.

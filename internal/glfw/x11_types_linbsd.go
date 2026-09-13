@@ -770,3 +770,101 @@ type _XIRawEvent struct {
 	Valuators _XIValuatorState
 	RawValues uintptr // *float64
 }
+
+type _XIButtonState struct {
+	_       structs.HostLayout
+	MaskLen int32
+	Mask    uintptr // *byte
+}
+
+type _XIModifierState struct {
+	_         structs.HostLayout
+	Base      int32
+	Latched   int32
+	Locked    int32
+	Effective int32
+}
+
+type _XIGroupState = _XIModifierState
+
+type _XIDeviceEvent struct {
+	_         structs.HostLayout
+	Type      int32
+	Serial    _Culong
+	SendEvent int32
+	Display   uintptr
+	Extension int32
+	Evtype    int32
+	Time      _Time
+	Deviceid  int32
+	Sourceid  int32
+	Detail    int32
+	Root      _XID
+	Event     _XID
+	Child     _XID
+	RootX     float64
+	RootY     float64
+	EventX    float64
+	EventY    float64
+	Flags     int32
+	Buttons   _XIButtonState
+	Valuators _XIValuatorState
+	Mods      _XIModifierState
+	Group     _XIGroupState
+}
+
+type _XIDeviceChangedEvent struct {
+	_          structs.HostLayout
+	Type       int32
+	Serial     _Culong
+	SendEvent  int32
+	Display    uintptr
+	Extension  int32
+	Evtype     int32
+	Time       _Time
+	Deviceid   int32
+	Sourceid   int32
+	Reason     int32
+	NumClasses int32
+	Classes    uintptr // **_XIAnyClassInfo
+}
+
+type _XIAnyClassInfo struct {
+	_        structs.HostLayout
+	Type     int32
+	Sourceid int32
+}
+
+type _XIValuatorClassInfo struct {
+	_          structs.HostLayout
+	Type       int32
+	Sourceid   int32
+	Number     int32
+	Label      _Atom
+	Min        float64
+	Max        float64
+	Value      float64
+	Resolution int32
+	Mode       int32
+}
+
+type _XIScrollClassInfo struct {
+	_          structs.HostLayout
+	Type       int32
+	Sourceid   int32
+	Number     int32
+	ScrollType int32
+	Increment  float64
+	Flags      int32
+}
+
+type _XIDeviceInfo struct {
+	_          structs.HostLayout
+	Deviceid   int32
+	Name       uintptr // *byte
+	Use        int32
+	Attachment int32
+	Enabled    int32
+	NumClasses int32
+	Classes    uintptr // **_XIAnyClassInfo
+}

@@ -688,12 +688,22 @@ func initExtensions() error {
 		xi.handle = handle
 		purego.RegisterLibFunc(&xi.QueryVersion, handle, "XIQueryVersion")
 		purego.RegisterLibFunc(&xi.SelectEvents, handle, "XISelectEvents")
+		purego.RegisterLibFunc(&xi.QueryDevice, handle, "XIQueryDevice")
+		purego.RegisterLibFunc(&xi.FreeDeviceInfo, handle, "XIFreeDeviceInfo")
 
 		if xQueryExtension(display, "XInputExtension", &xi.majorOpcode, &xi.eventBase, &xi.errorBase) {
+			// The server clamps the version down to what it supports, so requesting 2.1 keeps
+			// working on servers that only offer the 2.0 features (raw motion).
 			xi.major = 2
-			xi.minor = 0
+			xi.minor = 1
 			if xi.QueryVersion(display, &xi.major, &xi.minor) == _Success {
 				xi.available = true
+				if xi.major > 2 || xi.minor >= 1 {
+					xi.scrollAvailable = true
+					xi.scrollAxes = map[int32][]xiScrollAxis{}
+					xi.pendingScroll = map[int32]xiPendingScroll{}
+					refreshXIScrollAxes()
+				}
 			}
 		}
 	}
