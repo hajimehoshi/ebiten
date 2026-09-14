@@ -273,7 +273,8 @@ func (a commandQueueFlushArgs) flush() error {
 }
 
 func (a commandQueueFlushArgs) flushAsync() {
-	a.flush()
+	// Asynchronous flush errors are reported to the manager.
+	_ = a.flush()
 }
 
 // flush must be called the render thread.
