@@ -72,6 +72,7 @@ type Graphics struct {
 	transparent  bool
 	maxImageSize int
 	tmpTextures  []mtl.Texture
+	tmpUniforms  []uint32
 
 	pool cocoa.NSAutoreleasePool
 }
@@ -539,7 +540,13 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	g.rce.SetVertexBuffer(g.vb, 0, 0)
 
 	if len(uniforms) > 0 {
-		uniforms := adjustUniformVariablesLayout(shader.ir.Uniforms, uniforms)
+		g.tmpUniforms = appendUniformVariables(g.tmpUniforms[:0], shader.ir.Uniforms, uniforms)
+		uniforms := g.tmpUniforms
+		// Both setBytes calls copy the data into Metal-managed storage before returning.
+		// The scratch buffer can be reused after both calls, before GPU execution.
+		// See the bytes parameter documentation: each method copies the data to an MTLBuffer.
+		// https://developer.apple.com/documentation/metal/mtlrendercommandencoder/setvertexbytes(_:length:index:)
+		// https://developer.apple.com/documentation/metal/mtlrendercommandencoder/setfragmentbytes(_:length:index:)
 		head := unsafe.SliceData(uniforms)
 		g.rce.SetVertexBytes(unsafe.Pointer(head), unsafe.Sizeof(uniforms[0])*uintptr(len(uniforms)), 1)
 		g.rce.SetFragmentBytes(unsafe.Pointer(head), unsafe.Sizeof(uniforms[0])*uintptr(len(uniforms)), 0)
@@ -830,12 +837,11 @@ func (i *Image) mtlTexture() mtl.Texture {
 	return i.texture
 }
 
-// adjustUniformVariablesLayout returns adjusted uniform variables to match the Metal's memory layout.
-func adjustUniformVariablesLayout(uniformTypes []shaderir.Type, uniforms []uint32) []uint32 {
+// appendUniformVariables appends uniform variables in Metal's memory layout to values.
+func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, uniforms []uint32) []uint32 {
 	// Each type's alignment is defined by the specification.
 	// See https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf
 
-	var values []uint32
 	fillZerosToFitAlignment := func(values []uint32, align int) []uint32 {
 		if len(values) == 0 {
 			return values
