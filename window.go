@@ -45,6 +45,8 @@ const (
 
 // IsWindowDecorated reports whether the window is decorated.
 //
+// IsWindowDecorated always returns false if the platform is not a desktop.
+//
 // IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
 	return ui.Get().Window().IsDecorated()
