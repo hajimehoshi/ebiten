@@ -411,6 +411,9 @@ func (w *desktopWindow) Minimize() {
 }
 
 func (w *desktopWindow) Restore() {
+	if !w.IsMaximized() && !w.IsMinimized() {
+		panic("ebiten: RestoreWindow must be called on a maximized or a minimized window")
+	}
 	if w.ui.isTerminated() {
 		return
 	}
