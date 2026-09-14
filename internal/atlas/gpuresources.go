@@ -94,19 +94,24 @@ func (a *gpuResourcesState) isSavingGPUResourcesRequested() bool {
 }
 
 // finishSavingGPUResources finishes saving GPU resources.
+// succeeded reports whether the resources were actually saved.
 //
 // finishSavingGPUResources is invoked from the rendering thread.
-func (a *gpuResourcesState) finishSavingGPUResources() bool {
+func (a *gpuResourcesState) finishSavingGPUResources(succeeded bool) bool {
 	a.m.Lock()
 	defer a.m.Unlock()
 
-	slog.Debug("atlas: finishSavingGPUResources was called", "phase", a.phase)
+	slog.Debug("atlas: finishSavingGPUResources was called", "phase", a.phase, "succeeded", succeeded)
 
 	origPhase := a.phase
 	switch a.phase {
 	case gpuResourcesStatePhaseNone:
 	case gpuResourcesStatePhaseSaveRequested:
-		a.phase = gpuResourcesStatePhaseSaved
+		if succeeded {
+			a.phase = gpuResourcesStatePhaseSaved
+		} else {
+			a.phase = gpuResourcesStatePhaseNone
+		}
 		return true
 	case gpuResourcesStatePhaseSaved:
 	case gpuResourcesStatePhaseRestoreRequested:

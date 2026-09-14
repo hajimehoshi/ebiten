@@ -225,3 +225,26 @@ func TestWindowPositionInGLFWPixelsIsNearestPosition(t *testing.T) {
 		}
 	}
 }
+
+func TestSmallWindowSizeAtLowContentScale(t *testing.T) {
+	for _, scale := range []float64{0.1, 0.25, 0.49, 0.5, 0.958333} {
+		for _, size := range []image.Point{image.Pt(1, 1), image.Pt(1, 20), image.Pt(20, 1)} {
+			w, h := ui.WindowSizeInGLFWPixelsForTest(size.X, size.Y, scale)
+			if w < 1 || h < 1 {
+				t.Errorf("scale %v, size %v: got (%d, %d); want positive dimensions", scale, size, w, h)
+			}
+			// The actual native size must still report the requested DIP size.
+			actualW := max(1, w)
+			actualH := max(1, h)
+			dw, dh := ui.OutsideSizeInDIPForTest(actualW, actualH, size.X, size.Y, false, scale)
+			if dw != float64(size.X) || dh != float64(size.Y) {
+				t.Errorf("scale %v, size %v: reported (%v, %v)", scale, size, dw, dh)
+			}
+			m := ui.NewMonitorForTest(image.Rect(0, 0, 1920, 1080), scale)
+			rw, rh := ui.WindowSizeToRestoreForTest(ui.InvalidSizeForTest, ui.InvalidSizeForTest, nil, size.X, size.Y, m)
+			if rw != actualW || rh != actualH {
+				t.Errorf("scale %v, size %v: restore size (%d, %d); want (%d, %d)", scale, size, rw, rh, actualW, actualH)
+			}
+		}
+	}
+}

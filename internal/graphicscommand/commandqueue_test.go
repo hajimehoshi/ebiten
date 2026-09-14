@@ -15,6 +15,8 @@
 package graphicscommand_test
 
 import (
+	"errors"
+	"sync/atomic"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -73,5 +75,62 @@ func TestCompleteFramesWithoutPresenting(t *testing.T) {
 	}
 	if driver.frames != frames+1 || driver.presents != 1 {
 		t.Errorf("after presentation resumes: frames = %d, presents = %d; want %d, 1", driver.frames, driver.presents, frames+1)
+	}
+}
+
+var errFlushForTesting = errors.New("graphicscommand: an error for testing")
+
+// failingCommand is a command that fails and needs no synchronization.
+type failingCommand struct{}
+
+func (*failingCommand) Exec(commandQueue *graphicscommand.CommandQueueForTesting, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
+	return errFlushForTesting
+}
+
+func (*failingCommand) NeedsSync() bool {
+	return false
+}
+
+func (*failingCommand) String() string {
+	return "failing"
+}
+
+type asyncFlushDriver struct {
+	graphicsdriver.Graphics
+	// ends is incremented on the render thread.
+	ends atomic.Int32
+}
+
+func (*asyncFlushDriver) Begin() error {
+	return nil
+}
+
+func (g *asyncFlushDriver) End(mode graphicsdriver.FlushMode) error {
+	g.ends.Add(1)
+	return nil
+}
+
+func (*asyncFlushDriver) SetVsyncEnabled(enabled bool) {
+}
+
+func TestAsynchronousFlushError(t *testing.T) {
+	// A flush is asynchronous only when vsync is disabled.
+	graphicscommand.SetVsyncEnabled(false)
+	defer graphicscommand.SetVsyncEnabled(true)
+
+	var manager graphicscommand.CommandQueueManagerForTesting
+	var driver asyncFlushDriver
+
+	manager.EnqueueCommandForTesting(&failingCommand{})
+	err := manager.FlushForTesting(&driver, graphicsdriver.FlushModePresent)
+	if err == nil {
+		// An asynchronous flush reports its error at the next flush at the latest.
+		err = manager.FlushForTesting(&driver, graphicsdriver.FlushModePresent)
+	}
+	if !errors.Is(err, errFlushForTesting) {
+		t.Errorf("the error of an asynchronous flush was not reported: got %v, want %v", err, errFlushForTesting)
+	}
+	if driver.ends.Load() == 0 {
+		t.Errorf("End was not called for a failing flush")
 	}
 }

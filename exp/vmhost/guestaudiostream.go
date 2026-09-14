@@ -112,7 +112,11 @@ func (p *GuestAudioStream) Position() time.Duration {
 		return 0
 	}
 	samples := p.readBytes / 8
-	return time.Duration(mathutil.MulDiv(samples, int64(time.Second), int64(p.rate)))
+	position, ok := mathutil.MulDiv(samples, int64(time.Second), int64(p.rate))
+	if !ok {
+		panic("vmhost: audio position is out of range")
+	}
+	return time.Duration(position)
 }
 
 // StartTick returns the guest's [ebiten.Tick] during the tick the stream started, i.e. the guest's

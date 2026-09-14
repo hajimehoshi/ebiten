@@ -141,11 +141,11 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 		denom:     DontCare,
 	}
 	window.inputWindowMonitor(monitor)
-	defer func() {
+	defer func(window *Window) {
 		if ferr != nil {
 			_ = window.Destroy()
 		}
-	}()
+	}(window)
 	_glfw.windows = append(_glfw.windows, window)
 
 	// Open the actual window and create its context
@@ -585,6 +585,33 @@ func (w *Window) Maximize() error {
 		return err
 	}
 	return nil
+}
+
+// MaximizeSupported reports whether Maximize can take effect on the window.
+func (w *Window) MaximizeSupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	if w.monitor != nil {
+		return false, nil
+	}
+	return w.platformMaximizeSupported(), nil
+}
+
+// IconifySupported reports whether Iconify can take effect on the window.
+func (w *Window) IconifySupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	return w.platformIconifySupported(), nil
+}
+
+// RestoreSupported reports whether Restore can take effect on the window.
+func (w *Window) RestoreSupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	return w.platformRestoreSupported(), nil
 }
 
 func (w *Window) Show() error {

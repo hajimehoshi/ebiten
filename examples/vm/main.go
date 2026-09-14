@@ -470,6 +470,9 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		if wx, wy := ebiten.Wheel(); wx != 0 || wy != 0 {
 			s.ScrollWheel(wx, wy)
 		}
+		if sx, sy := ebiten.ScrollDelta(); sx != 0 || sy != 0 {
+			s.ScrollBy(sx, sy)
+		}
 	}
 
 	// Mouse button releases are forwarded regardless of hover, like the key releases above: a drag
@@ -890,7 +893,7 @@ func startGuest(bin, sock, pkg string) (gp *guestProcess, err error) {
 
 		// Mirror each vibration the guest requests onto the host's own gamepad. The guest's gamepad IDs
 		// match the host's, because the host forwards its own gamepads to the guest.
-		OnGamepadVibration: func(v vmhost.GamepadVibration) {
+		OnGamepadVibration: func(v vmhost.GuestGamepadVibration) {
 			ebiten.VibrateGamepad(v.GamepadID, &ebiten.VibrateGamepadOptions{
 				Duration:        v.Duration,
 				StrongMagnitude: v.StrongMagnitude,
@@ -898,7 +901,7 @@ func startGuest(bin, sock, pkg string) (gp *guestProcess, err error) {
 			})
 		},
 		// Mirror the device vibration the guest requests onto the host's own device.
-		OnVibration: func(v vmhost.Vibration) {
+		OnVibration: func(v vmhost.GuestVibration) {
 			ebiten.Vibrate(&ebiten.VibrateOptions{
 				Duration:  v.Duration,
 				Magnitude: v.Magnitude,

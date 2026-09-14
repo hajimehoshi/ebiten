@@ -11,6 +11,7 @@ import (
 	"image"
 	"log/slog"
 	"math"
+	"math/bits"
 	"runtime"
 	"unsafe"
 
@@ -468,9 +469,21 @@ func (w *Window) fitToMonitor() error {
 	return nil
 }
 
-func (w *Window) acquireMonitor() error {
+func (w *Window) acquireMonitor() (err error) {
 	if _glfw.platformWindow.acquiredMonitorCount == 0 {
 		_SetThreadExecutionState(_ES_CONTINUOUS | _ES_DISPLAY_REQUIRED)
+		var restoreMouseTrails bool
+		defer func() {
+			if err == nil {
+				return
+			}
+			_SetThreadExecutionState(_ES_CONTINUOUS)
+			if restoreMouseTrails {
+				if restoreErr := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, _glfw.platformWindow.mouseTrailSize, 0, 0); restoreErr != nil {
+					err = errors.Join(err, restoreErr)
+				}
+			}
+		}()
 
 		// HACK: When mouse trails are enabled the cursor becomes invisible when
 		//       the OpenGL ICD switches to page flipping
@@ -478,6 +491,7 @@ func (w *Window) acquireMonitor() error {
 			if err := _SystemParametersInfoW(_SPI_GETMOUSETRAILS, 0, uintptr(unsafe.Pointer(&_glfw.platformWindow.mouseTrailSize)), 0); err != nil {
 				return err
 			}
+			restoreMouseTrails = true
 			if err := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, 0, 0, 0); err != nil {
 				return err
 			}
@@ -486,6 +500,11 @@ func (w *Window) acquireMonitor() error {
 
 	if w.monitor.window == nil {
 		_glfw.platformWindow.acquiredMonitorCount++
+		defer func() {
+			if err != nil {
+				_glfw.platformWindow.acquiredMonitorCount--
+			}
+		}()
 	}
 
 	if err := w.monitor.setVideoModeWin32(&w.videoMode); err != nil {
@@ -499,6 +518,10 @@ func (w *Window) releaseMonitor() error {
 	if w.monitor.window != w {
 		return nil
 	}
+	defer func() {
+		w.monitor.inputMonitorWindow(nil)
+		w.monitor.restoreVideoModeWin32()
+	}()
 
 	_glfw.platformWindow.acquiredMonitorCount--
 	if _glfw.platformWindow.acquiredMonitorCount == 0 {
@@ -512,8 +535,6 @@ func (w *Window) releaseMonitor() error {
 		}
 	}
 
-	w.monitor.inputMonitorWindow(nil)
-	w.monitor.restoreVideoModeWin32()
 	return nil
 }
 
@@ -911,19 +932,32 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 			_glfw.errors = append(_glfw.errors, err)
 			return 0
 		}
+		// The size comes from the device driver, and a report shorter than
+		// _RAWINPUT cannot be interpreted as a mouse event.
+		if size < uint32(unsafe.Sizeof(_RAWINPUT{})) {
+			break
+		}
 		if size > uint32(len(_glfw.platformWindow.rawInput)) {
 			_glfw.platformWindow.rawInput = make([]byte, size)
 		}
 
 		size = uint32(len(_glfw.platformWindow.rawInput))
-		if _, err := _GetRawInputData(ri, _RID_INPUT, unsafe.Pointer(&_glfw.platformWindow.rawInput[0]), &size); err != nil {
+		n, err := _GetRawInputData(ri, _RID_INPUT, unsafe.Pointer(&_glfw.platformWindow.rawInput[0]), &size)
+		if err != nil {
 			_glfw.errors = append(_glfw.errors, err)
 			return 0
 			// TODO: break?
 		}
+		if n < uint32(unsafe.Sizeof(_RAWINPUT{})) {
+			break
+		}
+
+		data := (*_RAWINPUT)(unsafe.Pointer(&_glfw.platformWindow.rawInput[0]))
+		if data.header.dwType != _RIM_TYPEMOUSE {
+			break
+		}
 
 		var dx, dy int
-		data := (*_RAWINPUT)(unsafe.Pointer(&_glfw.platformWindow.rawInput[0]))
 		if data.mouse.usFlags&_MOUSE_MOVE_ABSOLUTE != 0 {
 			if _glfw.platformWindow.isRemoteSession {
 				// Remote Desktop Mode
@@ -981,13 +1015,17 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		return 0
 
 	case _WM_MOUSEWHEEL:
-		window.inputScroll(0, float64(int16(_HIWORD(uint32(wParam))))/_WHEEL_DELTA)
+		notches := float64(int16(_HIWORD(uint32(wParam)))) / _WHEEL_DELTA
+		amount, unit := wheelScrollAmount(notches, wheelScrollSetting(_SPI_GETWHEELSCROLLLINES))
+		window.inputScroll(0, notches, 0, amount, unit)
 		return 0
 
 	case _WM_MOUSEHWHEEL:
 		// This message is only sent on Windows Vista and later
 		// NOTE: The X-axis is inverted for consistency with macOS and X11
-		window.inputScroll(float64(-(int16(_HIWORD(uint32(wParam))))/_WHEEL_DELTA), 0)
+		notches := -float64(int16(_HIWORD(uint32(wParam)))) / _WHEEL_DELTA
+		amount, unit := wheelScrollAmount(notches, wheelScrollSetting(_SPI_GETWHEELSCROLLCHARS))
+		window.inputScroll(notches, 0, amount, 0, unit)
 		return 0
 
 	case _WM_ENTERSIZEMOVE, _WM_ENTERMENULOOP:
@@ -1239,7 +1277,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 	return uintptr(_DefWindowProcW(hWnd, uMsg, wParam, lParam))
 }
 
-var windowProcPtr = windows.NewCallbackCDecl(windowProc)
+var windowProcPtr = windows.NewCallback(windowProc)
 
 // handleToWindow is accessed only from the OS thread that created the windows: it is written when
 // a window is created or destroyed, and it is read in windowProc and in platformPollEvents. Win32
@@ -1621,6 +1659,24 @@ func (w *Window) platformSetWindowTitle(title string) error {
 	return _SetWindowTextW(w.platform.handle, title)
 }
 
+// classIcon returns the icon handle stored in the window class of hWnd at nIndex, or 0 when the
+// class has no such icon.
+func classIcon(hWnd windows.HWND, nIndex int32) (_HICON, error) {
+	// GetClassLongPtrW is not exported on 32-bit Windows, where it is a macro for GetClassLongW.
+	if bits.UintSize == 64 {
+		i, err := _GetClassLongPtrW(hWnd, nIndex)
+		if err != nil {
+			return 0, err
+		}
+		return _HICON(i), nil
+	}
+	i, err := _GetClassLongW(hWnd, nIndex)
+	if err != nil {
+		return 0, err
+	}
+	return _HICON(i), nil
+}
+
 func (w *Window) platformSetWindowIcon(images []*Image) error {
 	var bigIcon, smallIcon _HICON
 
@@ -1655,16 +1711,18 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 			return err
 		}
 	} else {
-		i, err := _GetClassLongPtrW(w.platform.handle, _GCLP_HICON)
+		// A class icon can be 0, e.g. when the class sets no small icon. A 0 handle is valid
+		// for WM_SETICON and leaves the class icon in place.
+		i, err := classIcon(w.platform.handle, _GCLP_HICON)
 		if err != nil {
 			return err
 		}
-		bigIcon = _HICON(i)
-		i, err = _GetClassLongPtrW(w.platform.handle, _GCLP_HICONSM)
+		bigIcon = i
+		i, err = classIcon(w.platform.handle, _GCLP_HICONSM)
 		if err != nil {
 			return err
 		}
-		smallIcon = _HICON(i)
+		smallIcon = i
 	}
 
 	_SendMessageW(w.platform.handle, _WM_SETICON, _ICON_BIG, _LPARAM(bigIcon))
@@ -1864,6 +1922,18 @@ func (w *Window) platformMaximizeWindow() error {
 		}
 	}
 	return nil
+}
+
+func (w *Window) platformMaximizeSupported() bool {
+	return true
+}
+
+func (w *Window) platformIconifySupported() bool {
+	return true
+}
+
+func (w *Window) platformRestoreSupported() bool {
+	return true
 }
 
 func (w *Window) platformShowWindow() {
@@ -2535,4 +2605,26 @@ func (w *Window) GetWin32Window() (windows.HWND, error) {
 		return 0, NotInitialized
 	}
 	return w.platform.handle, nil
+}
+
+// wheelScrollSetting returns the system's scroll amount per wheel notch for action, which is
+// _SPI_GETWHEELSCROLLLINES (lines) or _SPI_GETWHEELSCROLLCHARS (characters). The Windows default
+// applies when the query fails.
+func wheelScrollSetting(action uint32) uint32 {
+	var n uint32
+	if err := _SystemParametersInfoW(action, 0, uintptr(unsafe.Pointer(&n)), 0); err != nil {
+		return 3
+	}
+	return n
+}
+
+// wheelScrollAmount converts wheel notches to a scroll amount under a system scroll setting: a count
+// of lines (or characters) per notch, 0 for no scrolling, or _WHEEL_PAGESCROLL for a page per notch.
+// A character counts as a line. _WHEEL_PAGESCROLL is documented for the line setting; the character
+// setting reads it the same way.
+func wheelScrollAmount(notches float64, setting uint32) (float64, ScrollUnit) {
+	if setting == _WHEEL_PAGESCROLL {
+		return notches, ScrollUnitPage
+	}
+	return notches * float64(setting), ScrollUnitLine
 }

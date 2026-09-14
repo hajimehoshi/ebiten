@@ -60,6 +60,12 @@ type glfwBackend struct {
 
 	lastDeviceScaleFactor float64
 
+	// These caches are accessed only on the main thread.
+	layoutSizeCache            windowPropertyCache[windowSizes]
+	nativeFullscreenCache      windowPropertyCache[bool]
+	nativeFullscreenTransition bool
+	occlusionCache             windowPropertyCache[bool]
+
 	initUnfocused bool
 
 	// bufferOnceSwapped must be accessed from the main thread.
@@ -115,6 +121,8 @@ type glfwBackend struct {
 
 	closeCallback                  glfw.CloseCallback
 	posCallback                    glfw.PosCallback
+	sizeCallback                   glfw.SizeCallback
+	contentScaleCallback           glfw.ContentScaleCallback
 	framebufferSizeCallback        glfw.FramebufferSizeCallback
 	defaultFramebufferSizeCallback glfw.FramebufferSizeCallback
 	dropCallback                   glfw.DropCallback
@@ -122,6 +130,15 @@ type glfwBackend struct {
 
 	cachedCurrentMonitor     *Monitor
 	cachedCurrentMonitorTime int64
+
+	// Window states are updated by callbacks and native operations, with periodic queries
+	// to recover from missed notifications (#3318). Access is confined to the main thread.
+	focusedCache   windowPropertyCache[bool]
+	visibleCache   windowPropertyCache[bool]
+	iconifiedCache windowPropertyCache[bool]
+
+	focusCallback   glfw.FocusCallback
+	iconifyCallback glfw.IconifyCallback
 
 	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
@@ -260,6 +277,9 @@ func (u *UserInterface) ensureGLFWInit() error {
 			return
 		}
 		if _, err := glfw.SetMonitorCallback(func(monitor *glfw.Monitor, event glfw.PeripheralEvent) {
+			if b, ok := u.runningBackend().(*glfwBackend); ok {
+				b.layoutSizeCache.invalidate()
+			}
 			if err := theMonitors.update(); err != nil {
 				u.setError(err)
 			}
@@ -427,12 +447,12 @@ func (u *glfwBackend) IsFocused() bool {
 		if u.isTerminated() {
 			return
 		}
-		a, err := u.window.GetAttrib(glfw.Focused)
+		f, err := u.isWindowFocused()
 		if err != nil {
 			u.setError(err)
 			return
 		}
-		focused = a == glfw.True
+		focused = f
 	})
 	return focused
 }
@@ -642,6 +662,7 @@ func (u *glfwBackend) registerWindowCloseCallback() error {
 func (u *glfwBackend) registerWindowPosCallback() error {
 	if u.posCallback == nil {
 		u.posCallback = func(_ *glfw.Window, x, y int) {
+			u.layoutSizeCache.invalidate()
 			f, err := u.isFullscreen()
 			if err != nil {
 				u.setError(err)
@@ -650,12 +671,17 @@ func (u *glfwBackend) registerWindowPosCallback() error {
 			if f {
 				return
 			}
-			a, err := u.window.GetAttrib(glfw.Iconified)
+			// The iconification must not be cached here: on Windows, WM_MOVE can arrive before
+			// the WM_SIZE which reports the iconification, so the cached value can be stale in
+			// both directions. Then the iconified window position would be stored as the window
+			// position, or the position reported when the window is restored would be discarded.
+			// This callback is not called every tick, so the query is not harmful (#3318).
+			iconified, err := u.isWindowIconifiedUncached()
 			if err != nil {
 				u.setError(err)
 				return
 			}
-			if a == glfw.True {
+			if iconified {
 				return
 			}
 
@@ -677,6 +703,55 @@ func (u *glfwBackend) registerWindowPosCallback() error {
 	return nil
 }
 
+// registerWindowFocusCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowFocusCallback() error {
+	if u.focusCallback == nil {
+		u.focusCallback = func(_ *glfw.Window, focused bool) {
+			u.setCachedFocus(focused)
+		}
+	}
+	if _, err := u.window.SetFocusCallback(u.focusCallback); err != nil {
+		return err
+	}
+	return nil
+}
+
+// registerWindowIconifyCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowIconifyCallback() error {
+	if u.iconifyCallback == nil {
+		u.iconifyCallback = func(_ *glfw.Window, iconified bool) {
+			u.layoutSizeCache.invalidate()
+			u.setCachedIconified(iconified)
+		}
+	}
+	if _, err := u.window.SetIconifyCallback(u.iconifyCallback); err != nil {
+		return err
+	}
+	return nil
+}
+
+// registerWindowSizeCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowSizeCallback() error {
+	if u.sizeCallback == nil {
+		u.sizeCallback = func(_ *glfw.Window, _, _ int) {
+			u.layoutSizeCache.invalidate()
+		}
+	}
+	_, err := u.window.SetSizeCallback(u.sizeCallback)
+	return err
+}
+
+// registerWindowContentScaleCallback must be called from the main thread.
+func (u *glfwBackend) registerWindowContentScaleCallback() error {
+	if u.contentScaleCallback == nil {
+		u.contentScaleCallback = func(_ *glfw.Window, _, _ float32) {
+			u.layoutSizeCache.invalidate()
+		}
+	}
+	_, err := u.window.SetContentScaleCallback(u.contentScaleCallback)
+	return err
+}
+
 // registerWindowFramebufferSizeCallback must be called from the main thread.
 func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 	if u.defaultFramebufferSizeCallback == nil {
@@ -684,6 +759,7 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 		// manager), glfw sends a framebuffer size callback which we need to handle (#1960).
 		// This event is the only way to handle the size change at least on i3 window manager.
 		u.defaultFramebufferSizeCallback = func(_ *glfw.Window, w, h int) {
+			u.layoutSizeCache.invalidate()
 			f, err := u.isFullscreen()
 			if err != nil {
 				u.setError(err)
@@ -692,12 +768,14 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 			if f {
 				return
 			}
-			a, err := u.window.GetAttrib(glfw.Iconified)
+			// The iconification must not be cached here, for the same reason as the window
+			// position callback above (#3318).
+			iconified, err := u.isWindowIconifiedUncached()
 			if err != nil {
 				u.setError(err)
 				return
 			}
-			if a == glfw.True {
+			if iconified {
 				return
 			}
 
@@ -777,6 +855,8 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 		u.forcingFrame = false
 	}()
 
+	u.input.setContentSize(outsideWidth, outsideHeight)
+
 	// Run the frame on another goroutine, as the game's Update and Draw must not run on the main
 	// thread. Keep processing main-thread calls in a nested loop until the frame ends, since
 	// running a frame can request them.
@@ -815,10 +895,13 @@ func (u *glfwBackend) registerDropCallback() error {
 //
 // waitForFramebufferSizeCallback must be called from the main thread.
 func (u *glfwBackend) waitForFramebufferSizeCallback(window *glfw.Window, f func() error) error {
+	// The temporary callback suppresses normal resize handling, including on timeout.
+	defer u.layoutSizeCache.invalidate()
 	u.framebufferSizeCallbackCh = make(chan struct{}, 1)
 
 	if u.framebufferSizeCallback == nil {
 		u.framebufferSizeCallback = func(_ *glfw.Window, _, _ int) {
+			u.layoutSizeCache.invalidate()
 			// This callback can be invoked multiple times by one PollEvents in theory (#1618).
 			// Allow the case when the channel is full.
 			select {
@@ -1030,10 +1113,33 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	if err := u.registerWindowCloseCallback(); err != nil {
 		return err
 	}
+	if err := u.registerWindowFocusCallback(); err != nil {
+		return err
+	}
+	if err := u.registerWindowIconifyCallback(); err != nil {
+		return err
+	}
+	// Refresh the cached window states so that they are known before the first focus or iconify
+	// callback.
+	if err := u.refreshCachedWindowStates(); err != nil {
+		return err
+	}
 	if err := u.registerWindowPosCallback(); err != nil {
 		return err
 	}
+	if err := u.registerWindowSizeCallback(); err != nil {
+		return err
+	}
+	if err := u.registerWindowContentScaleCallback(); err != nil {
+		return err
+	}
 	if err := u.registerWindowFramebufferSizeCallback(); err != nil {
+		return err
+	}
+	if _, err := u.refreshCachedWindowSizes(time.Now()); err != nil {
+		return err
+	}
+	if _, err := u.refreshCachedNativeFullscreen(); err != nil {
 		return err
 	}
 	if err := u.registerInputCallbacks(); err != nil {
@@ -1061,6 +1167,68 @@ func outsideSizeInDIP(windowWidth, windowHeight int, requestedWidthInDIP, reques
 	return dipFromGLFWPixel(float64(windowWidth), deviceScaleFactor), dipFromGLFWPixel(float64(windowHeight), deviceScaleFactor)
 }
 
+type windowPropertyCache[T any] struct {
+	value     T
+	nextQuery time.Time
+}
+
+func (c *windowPropertyCache[T]) invalidate() {
+	c.nextQuery = time.Time{}
+}
+
+func (c *windowPropertyCache[T]) get(now time.Time) (T, bool) {
+	// The zero deadline forces initialization on first access. Monotonic time keeps
+	// expiry independent of game ticks, including while the game is paused.
+	return c.value, !now.After(c.nextQuery)
+}
+
+func (c *windowPropertyCache[T]) set(value T, now time.Time) {
+	c.value = value
+	c.nextQuery = now.Add(windowStateQueryInterval)
+}
+
+type windowSizes struct {
+	window, framebuffer image.Point
+}
+
+func (u *glfwBackend) refreshCachedWindowSizes(now time.Time) (windowSizes, error) {
+	ww, wh, err := u.window.GetSize()
+	if err != nil {
+		return windowSizes{}, err
+	}
+	fw, fh, err := u.window.GetFramebufferSize()
+	if err != nil {
+		return windowSizes{}, err
+	}
+	sizes := windowSizes{
+		window:      image.Pt(ww, wh),
+		framebuffer: image.Pt(fw, fh),
+	}
+	u.layoutSizeCache.set(sizes, now)
+	return sizes, nil
+}
+
+func (u *glfwBackend) refreshCachedNativeFullscreen() (bool, error) {
+	fullscreen, err := u.isNativeFullscreen()
+	if err != nil {
+		return false, err
+	}
+	u.nativeFullscreenCache.set(fullscreen, time.Now())
+	return fullscreen, nil
+}
+
+func (u *glfwBackend) nativeFullscreenForLayout() (bool, error) {
+	if runtime.GOOS != "darwin" {
+		return u.isNativeFullscreen()
+	}
+	// AppKit changes the style mask asynchronously during a fullscreen transition.
+	// Keep observing it until the completion notification, including failed transitions.
+	if fullscreen, ok := u.nativeFullscreenCache.get(time.Now()); ok && !u.nativeFullscreenTransition {
+		return fullscreen, nil
+	}
+	return u.refreshCachedNativeFullscreen()
+}
+
 // layoutSizes returns the size to give the game's Layout, in device-independent pixels, and the
 // size of the final rendering destination, in pixels.
 //
@@ -1079,27 +1247,32 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
-	nf, err := u.isNativeFullscreen()
+	nf, err := u.nativeFullscreenForLayout()
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
 	fullscreen := wf || nf
+	if u.nativeFullscreenTransition {
+		u.layoutSizeCache.invalidate()
+	}
 
-	// The framebuffer size is the exact pixel count of the rendering destination on every platform,
-	// including macOS where a GLFW pixel is a point. Read it rather than predicting it from the
-	// monitor: a window manager settles the fullscreen size asynchronously, and a desktop that
-	// reconfigures its screen on the transition leaves the monitor's size describing the old
-	// configuration (#2225).
-	fw, fh, err := u.window.GetFramebufferSize()
+	// Query actual sizes together after callbacks have finished. Neither callback ordering
+	// nor requested sizes determine the native window's final rendering destination (#2225).
+	now := time.Now()
+	sizes, ok := u.layoutSizeCache.get(now)
+	if !ok {
+		sizes, err = u.refreshCachedWindowSizes(now)
+		if err != nil {
+			return 0, 0, 0, 0, err
+		}
+	}
+	fw, fh := sizes.framebuffer.X, sizes.framebuffer.Y
+
+	iconified, err := u.isWindowIconified()
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
-
-	a, err := u.window.GetAttrib(glfw.Iconified)
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
-	if a == glfw.True {
+	if iconified {
 		// An iconified window has no size to lay out for; use the size it is restored to, which is
 		// the monitor's size in fullscreen and the requested size otherwise. A minimized window
 		// reports no client area on Windows, so the rendering destination comes from that same
@@ -1114,17 +1287,13 @@ func (u *glfwBackend) layoutSizes() (outsideWidth, outsideHeight float64, screen
 		w := float64(u.windowWidthInDIP)
 		h := float64(u.windowHeightInDIP)
 		if fw == 0 || fh == 0 {
-			// setWindowSizeInDIP rounds the product, so round it here as well to predict the
-			// same pixel count.
-			fw, fh = int(math.Round(w*s)), int(math.Round(h*s))
+			// The framebuffer needs at least one pixel in each dimension.
+			fw, fh = max(1, int(math.Round(w*s))), max(1, int(math.Round(h*s)))
 		}
 		return w, h, fw, fh, nil
 	}
 
-	ww, wh, err := u.window.GetSize()
-	if err != nil {
-		return 0, 0, 0, 0, err
-	}
+	ww, wh := sizes.window.X, sizes.window.Y
 	w, h := outsideSizeInDIP(ww, wh, u.windowWidthInDIP, u.windowHeightInDIP, fullscreen, s)
 	return w, h, fw, fh, nil
 }
@@ -1199,7 +1368,9 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		}
 	} else {
 		u.pollingEvents = true
-		err := glfw.WaitEvents()
+		// A bounded wait lets caches recover from missed native notifications even
+		// when the game requests frames only in response to events.
+		err := glfw.WaitEventsTimeout(windowStateQueryInterval.Seconds())
 		u.pollingEvents = false
 		if err != nil {
 			return 0, 0, 0, 0, err
@@ -1218,19 +1389,19 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 			return 0, 0, 0, 0, err
 		}
 		// In the initial state on macOS, the window is not shown (#2620).
-		visible, err := u.window.GetAttrib(glfw.Visible)
+		visible, err := u.isWindowVisible()
 		if err != nil {
 			return 0, 0, 0, 0, err
 		}
-		if visible == glfw.False {
+		if !visible {
 			break
 		}
 
-		focused, err := u.window.GetAttrib(glfw.Focused)
+		focused, err := u.isWindowFocused()
 		if err != nil {
 			return 0, 0, 0, 0, err
 		}
-		if focused != glfw.False {
+		if focused {
 			break
 		}
 
@@ -1312,15 +1483,15 @@ func (u *glfwBackend) updateGame() error {
 		// On Windows, even if a window is in another workspace, vsync seems to work.
 		// Then let's assume the window is always 'focused' as a workaround.
 		if runtime.GOOS != "windows" {
-			a, e := u.window.GetAttrib(glfw.Focused)
+			focused, e := u.isWindowFocused()
 			if e != nil {
 				err = e
 				return
 			}
-			unfocused = a == glfw.False
+			unfocused = !focused
 		}
 
-		visible, e := u.window.GetAttrib(glfw.Visible)
+		visible, e := u.isWindowVisible()
 		if e != nil {
 			err = e
 			return
@@ -1330,12 +1501,13 @@ func (u *glfwBackend) updateGame() error {
 			err = e
 			return
 		}
-		present = shouldPresentFrame(visible == glfw.True && !occluded, u.bufferOnceSwapped, u.desktopWindow.isWindowVisible())
+		present = shouldPresentFrame(visible && !occluded, u.bufferOnceSwapped, u.desktopWindow.isWindowVisible())
 
 		outsideWidth, outsideHeight, screenWidth, screenHeight, err = u.update()
 		if err != nil {
 			return
 		}
+		u.input.setContentSize(outsideWidth, outsideHeight)
 		var m *Monitor
 		m, err = u.currentMonitor()
 		if err != nil {
@@ -1461,6 +1633,7 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 
 // updateWindowSizeLimits must be called from the main thread.
 func (u *glfwBackend) updateWindowSizeLimits() error {
+	defer u.layoutSizeCache.invalidate()
 	m, err := u.currentMonitor()
 	if err != nil {
 		return err
@@ -1474,24 +1647,24 @@ func (u *glfwBackend) updateWindowSizeLimits() error {
 		if err != nil {
 			return err
 		}
-		minw = int(math.Round(dipToGLFWPixel(float64(mw), s)))
+		minw = max(1, int(math.Round(dipToGLFWPixel(float64(mw), s))))
 	} else {
-		minw = int(math.Round(dipToGLFWPixel(float64(minw), s)))
+		minw = max(1, int(math.Round(dipToGLFWPixel(float64(minw), s))))
 	}
 	if minh < 0 {
 		minh = glfw.DontCare
 	} else {
-		minh = int(math.Round(dipToGLFWPixel(float64(minh), s)))
+		minh = max(1, int(math.Round(dipToGLFWPixel(float64(minh), s))))
 	}
 	if maxw < 0 {
 		maxw = glfw.DontCare
 	} else {
-		maxw = int(math.Round(dipToGLFWPixel(float64(maxw), s)))
+		maxw = max(1, int(math.Round(dipToGLFWPixel(float64(maxw), s))))
 	}
 	if maxh < 0 {
 		maxh = glfw.DontCare
 	} else {
-		maxh = int(math.Round(dipToGLFWPixel(float64(maxh), s)))
+		maxh = max(1, int(math.Round(dipToGLFWPixel(float64(maxh), s))))
 	}
 	if err := u.window.SetSizeLimits(minw, minh, maxw, maxh); err != nil {
 		return err
@@ -1516,7 +1689,8 @@ func (u *glfwBackend) disableWindowSizeLimits() error {
 // windowSizeInGLFWPixels returns the window size in GLFW pixels for the given size in
 // device-independent pixels.
 func windowSizeInGLFWPixels(widthInDIP, heightInDIP int, deviceScaleFactor float64) (int, int) {
-	return int(math.Round(dipToGLFWPixel(float64(widthInDIP), deviceScaleFactor))), int(math.Round(dipToGLFWPixel(float64(heightInDIP), deviceScaleFactor)))
+	// Native window dimensions must stay positive even at a low content scale.
+	return max(1, int(math.Round(dipToGLFWPixel(float64(widthInDIP), deviceScaleFactor)))), max(1, int(math.Round(dipToGLFWPixel(float64(heightInDIP), deviceScaleFactor))))
 }
 
 // windowSizeToRestore returns the size to give the window on leaving fullscreen, in GLFW pixels.
@@ -1620,6 +1794,7 @@ func (u *glfwBackend) captureWindowPosToRestore() error {
 
 // setFullscreen must be called from the main thread.
 func (u *glfwBackend) setFullscreen(fullscreen bool) error {
+	defer u.layoutSizeCache.invalidate()
 	f, err := u.isFullscreen()
 	if err != nil {
 		return err
@@ -1834,6 +2009,165 @@ func (u *glfwBackend) currentMonitorImpl() (*Monitor, error) {
 	return u.getRequestedMonitor(), nil
 }
 
+// windowStateQueryInterval is how long a cached window state is trusted before it is re-queried as
+// a safety net against a missed GLFW callback. One second bounds any divergence while leaving
+// almost every tick query-free. The deadline is measured on a monotonic clock, so that the fallback
+// works independently of the game ticks, which do not advance with TPS 0 or while the game is
+// paused (#3318).
+const windowStateQueryInterval = time.Second
+
+// isWindowFocused reports whether the window has input focus.
+//
+// The result is cached to avoid querying the window system every tick (#3318). GLFW's focus
+// callback and the places that change the focus update the cache, and the periodic re-query bounds
+// any divergence.
+//
+// isWindowFocused must be called on the main thread.
+func (u *glfwBackend) isWindowFocused() (bool, error) {
+	if u.window == nil {
+		return false, nil
+	}
+	now := time.Now()
+	if focused, ok := u.focusedCache.get(now); ok {
+		return focused, nil
+	}
+	a, err := u.window.GetAttrib(glfw.Focused)
+	if err != nil {
+		return false, err
+	}
+	focused := a == glfw.True
+	u.focusedCache.set(focused, now)
+	return focused, nil
+}
+
+// isWindowVisible reports whether the window is visible.
+//
+// The result is cached like isWindowFocused. GLFW's visible attribute reflects iconification on
+// some platforms, so the iconify callback also refreshes it (#3318).
+//
+// isWindowVisible must be called on the main thread.
+func (u *glfwBackend) isWindowVisible() (bool, error) {
+	if u.window == nil {
+		return false, nil
+	}
+	now := time.Now()
+	if visible, ok := u.visibleCache.get(now); ok {
+		return visible, nil
+	}
+	a, err := u.window.GetAttrib(glfw.Visible)
+	if err != nil {
+		return false, err
+	}
+	visible := a == glfw.True
+	u.visibleCache.set(visible, now)
+	return visible, nil
+}
+
+// isWindowIconified reports whether the window is iconified.
+//
+// The result is cached like isWindowFocused (#3318).
+//
+// isWindowIconified must be called on the main thread.
+func (u *glfwBackend) isWindowIconified() (bool, error) {
+	if u.window == nil {
+		return false, nil
+	}
+	now := time.Now()
+	if iconified, ok := u.iconifiedCache.get(now); ok {
+		return iconified, nil
+	}
+	a, err := u.window.GetAttrib(glfw.Iconified)
+	if err != nil {
+		return false, err
+	}
+	iconified := a == glfw.True
+	u.iconifiedCache.set(iconified, now)
+	return iconified, nil
+}
+
+// isWindowIconifiedUncached reports whether the window is iconified, querying the window system
+// directly without using the cache.
+//
+// A GLFW window event callback must not use the cached iconification, because the callbacks of a
+// window state change are not ordered: on Windows, for example, WM_MOVE can arrive before the
+// WM_SIZE which reports the iconification, so the cached value can still be false for a window
+// which is being iconified. These callbacks are not called every tick, so the query is not harmful
+// (#3318).
+//
+// isWindowIconifiedUncached must be called on the main thread.
+func (u *glfwBackend) isWindowIconifiedUncached() (bool, error) {
+	if u.window == nil {
+		return false, nil
+	}
+	a, err := u.window.GetAttrib(glfw.Iconified)
+	if err != nil {
+		return false, err
+	}
+	return a == glfw.True, nil
+}
+
+// refreshCachedWindowStates queries the window's focus, visibility and iconification from the
+// window system and updates the caches with the actual values.
+//
+// refreshCachedWindowStates must be called on the main thread.
+func (u *glfwBackend) refreshCachedWindowStates() error {
+	if u.window == nil {
+		return nil
+	}
+
+	now := time.Now()
+	focused, err := u.window.GetAttrib(glfw.Focused)
+	if err != nil {
+		return err
+	}
+	visible, err := u.window.GetAttrib(glfw.Visible)
+	if err != nil {
+		return err
+	}
+	iconified, err := u.window.GetAttrib(glfw.Iconified)
+	if err != nil {
+		return err
+	}
+
+	u.focusedCache.set(focused == glfw.True, now)
+	u.visibleCache.set(visible == glfw.True, now)
+	u.iconifiedCache.set(iconified == glfw.True, now)
+	return nil
+}
+
+// setCachedFocus records the window's focus reported by a GLFW callback.
+//
+// setCachedFocus must be called on the main thread.
+func (u *glfwBackend) setCachedFocus(focused bool) {
+	u.focusedCache.set(focused, time.Now())
+}
+
+// setCachedIconified records the window's iconification reported by a GLFW callback.
+//
+// GLFW's visible attribute reflects iconification on some platforms, but no visibility callback
+// reports the change there, so the cached visibility is invalidated here (#3318).
+//
+// setCachedIconified must be called on the main thread.
+func (u *glfwBackend) setCachedIconified(iconified bool) {
+	u.iconifiedCache.set(iconified, time.Now())
+	u.visibleCache.invalidate()
+}
+
+// invalidateCachedWindowStates forces the cached window states to be re-queried on the next access.
+// It is used where a change is expected but its new value is not known here, like a programmatic
+// show or hide: GLFW reports the requested state only after the window system has applied it, and
+// some calls are no-ops in some states, so the requested value must not be cached as the actual one
+// (#3318).
+//
+// invalidateCachedWindowStates must be called on the main thread.
+func (u *glfwBackend) invalidateCachedWindowStates() {
+	u.layoutSizeCache.invalidate()
+	u.occlusionCache.invalidate()
+	u.focusedCache.invalidate()
+	u.visibleCache.invalidate()
+	u.iconifiedCache.invalidate()
+}
+
 func (u *glfwBackend) readInputState(inputState *InputState) {
 	u.input.read(inputState)
 }
@@ -1841,6 +2175,11 @@ func (u *glfwBackend) readInputState(inputState *InputState) {
 func (u *glfwBackend) Window() backendWindow {
 	return &u.backendWindow
 }
+
+// windowStateTimeout is the maximum duration to wait for the window manager to reflect
+// a requested maximize, iconify, or restore in the window attributes.
+// Some window managers ignore such requests, and waiting forever would hang the main thread.
+const windowStateTimeout = time.Second
 
 // GLFW's functions to manipulate a window can invoke the SetSize callback (#1576, #1585, #1606).
 // As the callback must not be called in the frame (between BeginFrame and EndFrame),
@@ -1856,18 +2195,30 @@ func (u *glfwBackend) maximizeWindow() error {
 		return nil
 	}
 
+	supported, err := u.window.MaximizeSupported()
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return nil
+	}
+
 	if err := u.window.Maximize(); err != nil {
 		return err
 	}
 
 	// On Linux/UNIX, maximizing might not finish even though Maximize returns. Just wait for its finish.
 	// Do not check this in the fullscreen since apparently the condition can never be true.
+	deadline := time.Now().Add(windowStateTimeout)
 	for {
 		a, err := u.window.GetAttrib(glfw.Maximized)
 		if err != nil {
 			return err
 		}
 		if a == glfw.True {
+			break
+		}
+		if time.Now().After(deadline) {
 			break
 		}
 		if err := glfw.PollEvents(); err != nil {
@@ -1889,17 +2240,29 @@ func (u *glfwBackend) iconifyWindow() error {
 		return nil
 	}
 
+	supported, err := u.window.IconifySupported()
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return nil
+	}
+
 	if err := u.window.Iconify(); err != nil {
 		return err
 	}
 
 	// On Linux/UNIX, iconifying might not finish even though Iconify returns. Just wait for its finish.
+	deadline := time.Now().Add(windowStateTimeout)
 	for {
 		a, err := u.window.GetAttrib(glfw.Iconified)
 		if err != nil {
 			return err
 		}
 		if a == glfw.True {
+			break
+		}
+		if time.Now().After(deadline) {
 			break
 		}
 		if err := glfw.PollEvents(); err != nil {
@@ -1912,6 +2275,14 @@ func (u *glfwBackend) iconifyWindow() error {
 
 // restoreWindow must be called from the main thread.
 func (u *glfwBackend) restoreWindow() error {
+	supported, err := u.window.RestoreSupported()
+	if err != nil {
+		return err
+	}
+	if !supported {
+		return nil
+	}
+
 	if err := u.window.Restore(); err != nil {
 		return err
 	}
@@ -1919,6 +2290,7 @@ func (u *glfwBackend) restoreWindow() error {
 	// On Linux/UNIX, restoring might not finish even though Restore returns (#1608). Just wait for its finish.
 	// On macOS, the restoring state might be the same as the maximized state. Skip this.
 	if runtime.GOOS != "darwin" {
+		deadline := time.Now().Add(windowStateTimeout)
 		for {
 			maximized, err := u.window.GetAttrib(glfw.Maximized)
 			if err != nil {
@@ -1929,6 +2301,9 @@ func (u *glfwBackend) restoreWindow() error {
 				return err
 			}
 			if maximized == glfw.False && iconified == glfw.False {
+				break
+			}
+			if time.Now().After(deadline) {
 				break
 			}
 			if err := glfw.PollEvents(); err != nil {
@@ -1948,11 +2323,22 @@ func (u *glfwBackend) setWindowVisible(visible bool) error {
 	}
 
 	if !visible {
-		return u.window.Hide()
+		if err := u.window.Hide(); err != nil {
+			return err
+		}
+		// GLFW's callbacks do not report programmatic show or hide, and Hide can be a no-op
+		// in GLFW fullscreen. Do not cache the requested state as the actual one, but
+		// re-query the window system on the next access (#3318).
+		u.invalidateCachedWindowStates()
+		return nil
 	}
 	if err := u.window.Show(); err != nil {
 		return err
 	}
+	// The window became visible, but GLFW's callbacks do not report programmatic show or hide.
+	// Re-query the states on the next access so that the game loop presents without waiting
+	// for the periodic re-query (#3318).
+	u.invalidateCachedWindowStates()
 	var err error
 	u.showWindowOnce.Do(func() {
 		if !u.initUnfocused {

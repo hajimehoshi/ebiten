@@ -258,16 +258,27 @@ type platformLibraryWindowState struct {
 	}
 
 	xi struct {
-		available   bool
-		handle      uintptr
-		majorOpcode int32
-		eventBase   int32
-		errorBase   int32
-		major       int32
-		minor       int32
+		available bool
+		// scrollAvailable reports XI 2.1 smooth scrolling: pointer events are routed through XInput2
+		// and scroll arrives as fractional valuator deltas rather than whole-notch button presses.
+		scrollAvailable bool
+		handle          uintptr
+		majorOpcode     int32
+		eventBase       int32
+		errorBase       int32
+		major           int32
+		minor           int32
 
-		QueryVersion func(display uintptr, majorVersionInOut, minorVersionInOut *int32) int32
-		SelectEvents func(display uintptr, window _XID, masks *_XIEventMask, numMasks int32) int32
+		// scrollAxes tracks the scroll axes of each input device, keyed by the source device ID.
+		scrollAxes map[int32][]xiScrollAxis
+		// pendingScroll holds the scroll offsets of each device's latest raw motion event, keyed by
+		// the source device ID, until the device motion event of the same input report takes them.
+		pendingScroll map[int32]xiPendingScroll
+
+		QueryVersion   func(display uintptr, majorVersionInOut, minorVersionInOut *int32) int32
+		SelectEvents   func(display uintptr, window _XID, masks *_XIEventMask, numMasks int32) int32
+		QueryDevice    func(display uintptr, deviceid int32, ndevicesReturn *int32) uintptr
+		FreeDeviceInfo func(info uintptr)
 	}
 
 	xrender struct {

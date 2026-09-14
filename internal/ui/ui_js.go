@@ -156,6 +156,9 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		if !f.Truthy() {
 			f = canvas.Get("webkitRequestFullscreen")
 		}
+		if !f.Truthy() {
+			return
+		}
 		f.Call("bind", canvas).Invoke()
 		return
 	}
@@ -163,6 +166,9 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	f := document.Get("exitFullscreen")
 	if !f.Truthy() {
 		f = document.Get("webkitExitFullscreen")
+	}
+	if !f.Truthy() {
+		return
 	}
 	f.Call("bind", document).Invoke()
 }
@@ -702,6 +708,15 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		}
 		return nil
 	}))
+	v.Call("addEventListener", "touchcancel", js.FuncOf(func(this js.Value, args []js.Value) any {
+		e := args[0]
+		e.Call("preventDefault")
+		if err := u.updateInputFromEvent(e); err != nil {
+			u.setError(err)
+			return nil
+		}
+		return nil
+	}))
 	v.Call("addEventListener", "touchmove", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
@@ -762,7 +777,20 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":
-			entries = append(entries, items.Index(i).Call("webkitGetAsEntry").Get("filesystem").Get("root"))
+			// webkitGetAsEntry can return null even for a "file" item, depending on the drag source.
+			entry := items.Index(i).Call("webkitGetAsEntry")
+			if !entry.Truthy() {
+				continue
+			}
+			filesystem := entry.Get("filesystem")
+			if !filesystem.Truthy() {
+				continue
+			}
+			root := filesystem.Get("root")
+			if !root.Truthy() {
+				continue
+			}
+			entries = append(entries, root)
 		}
 	}
 	if len(entries) > 0 {

@@ -32,7 +32,6 @@ type Context interface {
 	BindAttribLocation(program uint32, index uint32, name string)
 	BindBuffer(target uint32, buffer uint32)
 	BindFramebuffer(target uint32, framebuffer uint32)
-	BindRenderbuffer(target uint32, renderbuffer uint32)
 	BindTexture(target uint32, texture uint32)
 	BindVertexArray(array uint32)
 	BlendEquationSeparate(modeRGB uint32, modeAlpha uint32)
@@ -46,14 +45,12 @@ type Context interface {
 	CreateBuffer() uint32
 	CreateFramebuffer() uint32
 	CreateProgram() uint32
-	CreateRenderbuffer() uint32
 	CreateShader(xtype uint32) uint32
 	CreateTexture() uint32
 	CreateVertexArray() uint32
 	DeleteBuffer(buffer uint32)
 	DeleteFramebuffer(framebuffer uint32)
 	DeleteProgram(program uint32)
-	DeleteRenderbuffer(renderbuffer uint32)
 	DeleteShader(shader uint32)
 	DeleteTexture(texture uint32)
 	DeleteVertexArray(array uint32)
@@ -64,7 +61,6 @@ type Context interface {
 	EnableVertexAttribArray(index uint32)
 	Finish()
 	Flush()
-	FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32)
 	FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32)
 	GetError() uint32
 	GetExtension(name string) any
@@ -78,11 +74,8 @@ type Context interface {
 	LinkProgram(program uint32)
 	PixelStorei(pname uint32, param int32)
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)
-	RenderbufferStorage(target uint32, internalFormat uint32, width int32, height int32)
 	Scissor(x, y, width, height int32)
 	ShaderSource(shader uint32, xstring string)
-	StencilFunc(func_ uint32, ref int32, mask uint32)
-	StencilOpSeparate(face, sfail, dpfail, dppass uint32)
 	TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)
 	TexParameteri(target uint32, pname uint32, param int32)
 	TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte)

@@ -182,7 +182,7 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 
 	// Start the engine.
 	var nsError objc.ID
-	engine.Send(sel_startAndReturnError, uintptr(unsafe.Pointer(&nsError)))
+	engine.Send(sel_startAndReturnError, unsafe.Pointer(&nsError))
 	if nsError != 0 {
 		return nil
 	}
@@ -215,7 +215,7 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 		sel_initWithEvents_parameters_error,
 		eventArray,
 		emptyArray,
-		uintptr(unsafe.Pointer(&nsError)),
+		unsafe.Pointer(&nsError),
 	)
 	event.Send(sel_release)
 	if nsError != 0 {
@@ -228,7 +228,7 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 
 	// Create player.
 	nsError = 0
-	player := engine.Send(sel_createPlayerWithPattern_error, pattern, uintptr(unsafe.Pointer(&nsError)))
+	player := engine.Send(sel_createPlayerWithPattern_error, pattern, unsafe.Pointer(&nsError))
 	pattern.Send(sel_release)
 	if nsError != 0 {
 		engine.Send(sel_stopWithCompletionHandler, uintptr(0))
@@ -244,7 +244,7 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 // makeNSArray creates an NSArray containing a single object.
 func makeNSArray(obj objc.ID) objc.ID {
 	objects := [1]uintptr{uintptr(obj)}
-	return objc.ID(class_NSArray).Send(sel_arrayWithObjects_count, uintptr(unsafe.Pointer(&objects[0])), 1)
+	return objc.ID(class_NSArray).Send(sel_arrayWithObjects_count, unsafe.Pointer(&objects[0]), 1)
 }
 
 func releaseGCRumbleMotor(motor *rumbleMotor) {
@@ -257,7 +257,7 @@ func releaseGCRumbleMotor(motor *rumbleMotor) {
 
 	if motor.active {
 		var nsError objc.ID
-		motor.player.Send(sel_stopAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
+		motor.player.Send(sel_stopAtTime_error, float64(0), unsafe.Pointer(&nsError))
 	}
 	motor.engine.Send(sel_stopWithCompletionHandler, uintptr(0))
 	motor.player.Send(sel_release)
@@ -282,7 +282,7 @@ func vibrateMotor(motor *rumbleMotor, intensity float64) {
 
 	if intensity <= 0 {
 		if motor.active {
-			motor.player.Send(sel_stopAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
+			motor.player.Send(sel_stopAtTime_error, float64(0), unsafe.Pointer(&nsError))
 			motor.active = false
 		}
 	} else {
@@ -294,10 +294,10 @@ func vibrateMotor(motor *rumbleMotor, intensity float64) {
 			float64(0), // relativeTime
 		)
 		paramArray := makeNSArray(param)
-		motor.player.Send(sel_sendParameters_atTime_error, paramArray, float64(0), uintptr(unsafe.Pointer(&nsError)))
+		motor.player.Send(sel_sendParameters_atTime_error, paramArray, float64(0), unsafe.Pointer(&nsError))
 		param.Send(sel_release)
 		if !motor.active {
-			motor.player.Send(sel_startAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
+			motor.player.Send(sel_startAtTime_error, float64(0), unsafe.Pointer(&nsError))
 			motor.active = true
 		}
 	}

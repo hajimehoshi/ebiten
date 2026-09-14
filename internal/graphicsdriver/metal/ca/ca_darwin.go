@@ -65,6 +65,7 @@ var (
 	sel_invalidate                 = objc.RegisterName("invalidate")
 	sel_drawable                   = objc.RegisterName("drawable")
 	sel_release                    = objc.RegisterName("release")
+	sel_retain                     = objc.RegisterName("retain")
 	sel_addPresentedHandler        = objc.RegisterName("addPresentedHandler:")
 	sel_respondsToSelector         = objc.RegisterName("respondsToSelector:")
 	sel_flush                      = objc.RegisterName("flush")
@@ -251,6 +252,16 @@ func (ml MetalLayer) SetFramebufferOnly(framebufferOnly bool) {
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldrawable?language=objc.
 type MetalDrawable struct {
 	metalDrawable objc.ID
+}
+
+// Retain increments the drawable's reference count.
+func (md MetalDrawable) Retain() {
+	md.metalDrawable.Send(sel_retain)
+}
+
+// Release decrements the drawable's reference count.
+func (md MetalDrawable) Release() {
+	md.metalDrawable.Send(sel_release)
 }
 
 // Drawable implements the mtl.Drawable interface.

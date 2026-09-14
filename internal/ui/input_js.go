@@ -26,15 +26,16 @@ var (
 	stringMeta    = js.ValueOf("Meta")
 	stringShift   = js.ValueOf("Shift")
 
-	stringKeydown    = js.ValueOf("keydown")
-	stringKeyup      = js.ValueOf("keyup")
-	stringMousedown  = js.ValueOf("mousedown")
-	stringMouseup    = js.ValueOf("mouseup")
-	stringMousemove  = js.ValueOf("mousemove")
-	stringWheel      = js.ValueOf("wheel")
-	stringTouchstart = js.ValueOf("touchstart")
-	stringTouchend   = js.ValueOf("touchend")
-	stringTouchmove  = js.ValueOf("touchmove")
+	stringKeydown     = js.ValueOf("keydown")
+	stringKeyup       = js.ValueOf("keyup")
+	stringMousedown   = js.ValueOf("mousedown")
+	stringMouseup     = js.ValueOf("mouseup")
+	stringMousemove   = js.ValueOf("mousemove")
+	stringWheel       = js.ValueOf("wheel")
+	stringTouchstart  = js.ValueOf("touchstart")
+	stringTouchend    = js.ValueOf("touchend")
+	stringTouchmove   = js.ValueOf("touchmove")
+	stringTouchcancel = js.ValueOf("touchcancel")
 
 	stringCapsLock = js.ValueOf("CapsLock")
 	stringNumLock  = js.ValueOf("NumLock")
@@ -161,10 +162,31 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	case t.Equal(stringMousemove):
 		u.setMouseCursorFromEvent(e)
 	case t.Equal(stringWheel):
-		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
-		u.inputState.WheelX += -e.Get("deltaX").Float()
-		u.inputState.WheelY += -e.Get("deltaY").Float()
-	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
+		dx := -e.Get("deltaX").Float()
+		dy := -e.Get("deltaY").Float()
+		u.inputState.WheelX += dx
+		u.inputState.WheelY += dy
+
+		// deltaMode indicates the unit of deltaX and deltaY.
+		const (
+			domDeltaPixel = 0
+			domDeltaLine  = 1
+			domDeltaPage  = 2
+		)
+		switch e.Get("deltaMode").Int() {
+		case domDeltaPixel:
+			// CSS pixels are device-independent pixels.
+			u.inputState.ScrollDeltaX += dx
+			u.inputState.ScrollDeltaY += dy
+		case domDeltaLine:
+			u.inputState.ScrollDeltaX += dx * pixelsPerScrollLine
+			u.inputState.ScrollDeltaY += dy * pixelsPerScrollLine
+		case domDeltaPage:
+			window := js.Global().Get("window")
+			u.inputState.ScrollDeltaX += dx * window.Get("innerWidth").Float()
+			u.inputState.ScrollDeltaY += dy * window.Get("innerHeight").Float()
+		}
+	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove) || t.Equal(stringTouchcancel):
 		u.updateTouchesFromEvent(e)
 	}
 

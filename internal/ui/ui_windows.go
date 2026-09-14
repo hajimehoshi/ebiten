@@ -190,22 +190,27 @@ func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 	if err != nil {
 		return nil, err
 	}
-	return monitorFromWin32Window(window), nil
+	m, err := monitorFromWin32Window(window)
+	if err != nil {
+		// The Win32 monitor lookup can fail on Wine, or transiently when the monitor topology changes.
+		// Return nil so that the caller falls back to the window position.
+		return nil, nil
+	}
+	return m, nil
 }
 
-func monitorFromWin32Window(w windows.HWND) *Monitor {
+func monitorFromWin32Window(w windows.HWND) (*Monitor, error) {
 	// Get the current monitor by the window handle instead of the window position. It is because the window
 	// position is not reliable in some cases e.g. when the window is put across multiple monitors.
 
 	m := _MonitorFromWindow(w, _MONITOR_DEFAULTTONEAREST)
 	if m == 0 {
-		// monitorFromWindow can return error on Wine. Ignore this.
-		return nil
+		return nil, fmt.Errorf("ui: MonitorFromWindow failed")
 	}
 
 	mi, err := _GetMonitorInfoW(m)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	x, y := int(mi.rcMonitor.left), int(mi.rcMonitor.top)
@@ -213,10 +218,10 @@ func monitorFromWin32Window(w windows.HWND) *Monitor {
 		mx := m.boundsInGLFWPixels.Min.X
 		my := m.boundsInGLFWPixels.Min.Y
 		if mx == x && my == y {
-			return m
+			return m, nil
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 func (u *glfwBackend) nativeWindow() (uintptr, error) {
@@ -264,6 +269,9 @@ func (u *glfwBackend) skipTaskbar() error {
 
 	t := (*_ITaskbarList)(ptr)
 	defer t.Release()
+	if err := t.HrInit(); err != nil {
+		return err
+	}
 
 	w, err := u.window.GetWin32Window()
 	if err != nil {

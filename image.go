@@ -117,7 +117,11 @@ func (i *Image) Size() (width, height int) {
 }
 
 func (i *Image) isDisposed() bool {
-	return i.image == nil
+	if i.image == nil {
+		return true
+	}
+	// A sub-image shares its pixels with the original, so it is disposed when the original is.
+	return i.original != nil && i.original.isDisposed()
 }
 
 func (i *Image) isSubImage() bool {
@@ -1377,6 +1381,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 // However, calling Dispose explicitly is helpful if memory usage matters.
 //
 // If the image is a sub-image, Dispose does nothing.
+// Disposing an image also disposes its sub-images.
 //
 // If the image is disposed, Dispose does nothing.
 //

@@ -17,6 +17,7 @@
 package gamepad
 
 import (
+	"structs"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -106,6 +107,10 @@ func _EVIOCGBIT(ev, len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x20+ev, len)
 }
 
+func _EVIOCGKEY(len uint) uint {
+	return _IOC(_IOC_READ, 'E', 0x18, len)
+}
+
 func _EVIOCGID() uint {
 	return _IOR('E', 0x02, uint(unsafe.Sizeof(input_id{})))
 }
@@ -119,6 +124,7 @@ func _EVIOCSFF() uint {
 }
 
 type ff_envelope struct {
+	_             structs.HostLayout
 	attack_length uint16
 	attack_level  uint16
 	fade_length   uint16
@@ -126,16 +132,19 @@ type ff_envelope struct {
 }
 
 type ff_rumble_effect struct {
+	_                structs.HostLayout
 	strong_magnitude uint16
 	weak_magnitude   uint16
 }
 
 type ff_trigger struct {
+	_        structs.HostLayout
 	button   uint16
 	interval uint16
 }
 
 type ff_replay struct {
+	_      structs.HostLayout
 	length uint16
 	delay  uint16
 }
@@ -145,6 +154,7 @@ type ff_replay struct {
 // union the size and alignment of the kernel's largest union member,
 // ff_periodic_effect.
 type ff_effect_union struct {
+	_      structs.HostLayout
 	rumble ff_rumble_effect
 	_      [6]byte
 	_      ff_envelope
@@ -153,6 +163,7 @@ type ff_effect_union struct {
 }
 
 type ff_effect struct {
+	_         structs.HostLayout
 	typ       uint16
 	id        int16
 	direction uint16
@@ -162,6 +173,7 @@ type ff_effect struct {
 }
 
 type input_absinfo struct {
+	_          structs.HostLayout
 	value      int32
 	minimum    int32
 	maximum    int32
@@ -171,6 +183,7 @@ type input_absinfo struct {
 }
 
 type input_event struct {
+	_     structs.HostLayout
 	time  unix.Timeval
 	typ   uint16
 	code  uint16
@@ -178,6 +191,7 @@ type input_event struct {
 }
 
 type input_id struct {
+	_       structs.HostLayout
 	bustype uint16
 	vendor  uint16
 	product uint16

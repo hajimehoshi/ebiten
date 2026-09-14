@@ -101,6 +101,14 @@ func TestXlibStructSizes(t *testing.T) {
 		{"XIEventMask", unsafe.Sizeof(_XIEventMask{}), sizeofXIEventMask},
 		{"XIValuatorState", unsafe.Sizeof(_XIValuatorState{}), sizeofXIValuatorState},
 		{"XIRawEvent", unsafe.Sizeof(_XIRawEvent{}), sizeofXIRawEvent},
+		{"XIButtonState", unsafe.Sizeof(_XIButtonState{}), sizeofXIButtonState},
+		{"XIModifierState", unsafe.Sizeof(_XIModifierState{}), sizeofXIModifierState},
+		{"XIDeviceEvent", unsafe.Sizeof(_XIDeviceEvent{}), sizeofXIDeviceEvent},
+		{"XIDeviceChangedEvent", unsafe.Sizeof(_XIDeviceChangedEvent{}), sizeofXIDeviceChangedEvent},
+		{"XIAnyClassInfo", unsafe.Sizeof(_XIAnyClassInfo{}), sizeofXIAnyClassInfo},
+		{"XIValuatorClassInfo", unsafe.Sizeof(_XIValuatorClassInfo{}), sizeofXIValuatorClassInfo},
+		{"XIScrollClassInfo", unsafe.Sizeof(_XIScrollClassInfo{}), sizeofXIScrollClassInfo},
+		{"XIDeviceInfo", unsafe.Sizeof(_XIDeviceInfo{}), sizeofXIDeviceInfo},
 	}
 
 	// XkbStateNotifyEvent is a view into the XEvent union; its Go mirror

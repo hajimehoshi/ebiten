@@ -1852,6 +1852,105 @@ func TestImageAtAfterDeallocateSubImage(t *testing.T) {
 	}
 }
 
+// A sub-image whose original image has been disposed behaves as a disposed image.
+func TestImageSubImageOfDisposedImage(t *testing.T) {
+	newSub := func() *ebiten.Image {
+		img := ebiten.NewImage(16, 16)
+		img.Fill(color.White)
+		sub := img.SubImage(image.Rect(0, 0, 8, 8)).(*ebiten.Image)
+		img.Dispose()
+		return sub
+	}
+
+	mustPanic := func(t *testing.T, name string, f func()) {
+		t.Helper()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("%s on a sub-image of a disposed image must panic", name)
+			}
+		}()
+		f()
+	}
+
+	t.Run("DrawImage", func(t *testing.T) {
+		sub := newSub()
+		src := ebiten.NewImage(4, 4)
+		src.Fill(color.White)
+		// DrawImage must not panic.
+		sub.DrawImage(src, nil)
+	})
+
+	t.Run("DrawImageSource", func(t *testing.T) {
+		sub := newSub()
+		dst := ebiten.NewImage(16, 16)
+		mustPanic(t, "DrawImage with the sub-image as the source", func() {
+			dst.DrawImage(sub, nil)
+		})
+	})
+
+	t.Run("Fill", func(t *testing.T) {
+		sub := newSub()
+		// Fill must not panic.
+		sub.Fill(color.White)
+	})
+
+	t.Run("At", func(t *testing.T) {
+		sub := newSub()
+		// The color is transparent (color.RGBA{}).
+		// Note that the value's type must be color.RGBA.
+		got := sub.At(0, 0)
+		var want color.RGBA
+		if got != want {
+			t.Errorf("sub.At(0, 0) got: %v, want: %v", got, want)
+		}
+		got64 := sub.RGBA64At(0, 0)
+		var want64 color.RGBA64
+		if got64 != want64 {
+			t.Errorf("sub.RGBA64At(0, 0) got: %v, want: %v", got64, want64)
+		}
+	})
+
+	t.Run("Set", func(t *testing.T) {
+		sub := newSub()
+		// Set must not panic.
+		sub.Set(0, 0, color.White)
+	})
+
+	t.Run("WritePixels", func(t *testing.T) {
+		sub := newSub()
+		// WritePixels must not panic.
+		sub.WritePixels(make([]byte, 4*8*8))
+	})
+
+	t.Run("ReadPixels", func(t *testing.T) {
+		sub := newSub()
+		mustPanic(t, "ReadPixels", func() {
+			sub.ReadPixels(make([]byte, 4*8*8))
+		})
+	})
+
+	t.Run("Bounds", func(t *testing.T) {
+		sub := newSub()
+		mustPanic(t, "Bounds", func() {
+			sub.Bounds()
+		})
+	})
+
+	t.Run("SubImage", func(t *testing.T) {
+		sub := newSub()
+		if got := sub.SubImage(image.Rect(0, 0, 4, 4)); got != nil {
+			t.Errorf("sub.SubImage got: %v, want: nil", got)
+		}
+	})
+
+	t.Run("Dispose", func(t *testing.T) {
+		sub := newSub()
+		// Dispose and Deallocate must not panic.
+		sub.Dispose()
+		sub.Deallocate()
+	})
+}
+
 func TestImageSubImageSubImage(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)

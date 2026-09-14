@@ -451,9 +451,12 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 }
 
 func (p *pipelineStates) releaseConstantBuffers(frameIndex int) {
-	for i := range p.constantBuffers[frameIndex] {
-		p.constantBuffers[frameIndex][i].Unmap(0, nil)
-		p.constantBuffers[frameIndex][i].Release()
+	// An entry can be nil when drawTriangles failed to create a buffer.
+	for i, cb := range p.constantBuffers[frameIndex] {
+		if cb != nil {
+			cb.Unmap(0, nil)
+			cb.Release()
+		}
 		p.constantBuffers[frameIndex][i] = nil
 		p.constantBufferMaps[frameIndex][i] = 0
 	}

@@ -43,7 +43,7 @@ var (
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
 		graphicsLibraryInitCh: make(chan struct{}),
-		errCh:                 make(chan error),
+		errCh:                 make(chan error, 1),
 	}
 	// Give a default outside size so that the game can start without initializing them.
 	u.userInterfaceImpl.outsideSize.Store(&pointF{x: 640, y: 480})
@@ -72,7 +72,13 @@ func (u *UserInterface) Update() error {
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
 
-	renderCh <- struct{}{}
+	// The game loop goroutine exits after reporting an error, so waiting only on renderCh would
+	// block forever if the error arrived after the check above.
+	select {
+	case renderCh <- struct{}{}:
+	case err := <-u.errCh:
+		return err
+	}
 	go func() {
 		<-renderEndCh
 		cancel()

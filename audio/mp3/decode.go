@@ -19,6 +19,7 @@
 package mp3
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -38,6 +39,7 @@ type Stream struct {
 	readSeeker io.ReadSeeker
 	length     int64
 	sampleRate int
+	seekable   bool
 }
 
 // Read is implementation of io.Reader's Read.
@@ -46,7 +48,13 @@ func (s *Stream) Read(buf []byte) (int, error) {
 }
 
 // Seek is implementation of io.Seeker's Seek.
+//
+// Seek returns an error wrapping [errors.ErrUnsupported] when the source is not an io.Seeker.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
+	if !s.seekable {
+		return 0, fmt.Errorf("mp3: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
+	}
+
 	// Resolve the position here: the underlying decoder panics for a negative position.
 	var pos int64
 	switch whence {
@@ -70,7 +78,12 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 }
 
 // Length returns the size of decoded stream in bytes.
+//
+// Length returns -1 when the source is not an io.Seeker.
 func (s *Stream) Length() int64 {
+	if !s.seekable {
+		return -1
+	}
 	return s.length
 }
 
@@ -92,11 +105,13 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, seekable := src.(io.Seeker)
 	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(d)
 	s := &Stream{
 		readSeeker: r,
 		length:     d.Length() / bitDepthInBytesInt16 * bitDepthInBytesFloat32,
 		sampleRate: d.SampleRate(),
+		seekable:   seekable,
 	}
 	return s, nil
 }
@@ -114,10 +129,12 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, seekable := src.(io.Seeker)
 	s := &Stream{
 		readSeeker: d,
 		length:     d.Length(),
 		sampleRate: d.SampleRate(),
+		seekable:   seekable,
 	}
 	return s, nil
 }
@@ -140,6 +157,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	if err != nil {
 		return nil, err
 	}
+	_, seekable := src.(io.Seeker)
 
 	var r io.ReadSeeker = d
 	length := d.Length()
@@ -152,6 +170,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 		readSeeker: r,
 		length:     length,
 		sampleRate: sampleRate,
+		seekable:   seekable,
 	}
 	return s, nil
 }

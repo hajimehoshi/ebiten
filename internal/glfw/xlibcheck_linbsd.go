@@ -102,6 +102,14 @@ var (
 	sizeofXIEventMask            = uintptr(C.sizeof_XIEventMask)
 	sizeofXIValuatorState        = uintptr(C.sizeof_XIValuatorState)
 	sizeofXIRawEvent             = uintptr(C.sizeof_XIRawEvent)
+	sizeofXIButtonState          = uintptr(C.sizeof_XIButtonState)
+	sizeofXIModifierState        = uintptr(C.sizeof_XIModifierState)
+	sizeofXIDeviceEvent          = uintptr(C.sizeof_XIDeviceEvent)
+	sizeofXIDeviceChangedEvent   = uintptr(C.sizeof_XIDeviceChangedEvent)
+	sizeofXIAnyClassInfo         = uintptr(C.sizeof_XIAnyClassInfo)
+	sizeofXIValuatorClassInfo    = uintptr(C.sizeof_XIValuatorClassInfo)
+	sizeofXIScrollClassInfo      = uintptr(C.sizeof_XIScrollClassInfo)
+	sizeofXIDeviceInfo           = uintptr(C.sizeof_XIDeviceInfo)
 )
 
 // offsetof* report offsetof of the read fields of XkbStateNotifyEvent, whose

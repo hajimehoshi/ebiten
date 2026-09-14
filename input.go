@@ -125,9 +125,26 @@ func CursorPositionF() (x, y float64) {
 // Wheel returns x and y offsets of the mouse wheel or touchpad scroll.
 // It returns 0 if the wheel isn't being rolled.
 //
+// The unit of the offsets varies among platforms and devices.
+// For amounts estimated in device-independent pixels, use [ScrollDelta].
+//
 // Wheel is concurrent-safe.
 func Wheel() (xoff, yoff float64) {
 	return inputstate.Get().Wheel()
+}
+
+// ScrollDelta returns x and y scrolling amounts of the mouse wheel, a touchpad, or other scroll devices,
+// estimated in device-independent pixels.
+// It returns 0 if no scrolling is being done.
+//
+// The amounts follow the platform's scrolling settings, so the same gesture can scroll different
+// distances depending on the platform, the device, and the user's settings, even though the unit is
+// the same everywhere.
+// The sign convention is the same as [Wheel]'s.
+//
+// ScrollDelta is concurrent-safe.
+func ScrollDelta() (x, y float64) {
+	return inputstate.Get().ScrollDelta()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.

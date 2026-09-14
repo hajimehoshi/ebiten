@@ -72,18 +72,10 @@ type Graphics struct {
 	transparent  bool
 	maxImageSize int
 	tmpTextures  []mtl.Texture
+	tmpUniforms  []uint32
 
 	pool cocoa.NSAutoreleasePool
 }
-
-type stencilMode int
-
-const (
-	noStencil stencilMode = iota
-	incrementStencil
-	invertStencil
-	drawWithStencil
-)
 
 var (
 	systemDefaultDevice    mtl.Device
@@ -225,20 +217,27 @@ loop:
 	}
 }
 
-func (g *Graphics) ensureCommandBuffer() {
+func (g *Graphics) ensureCommandBuffer() error {
 	if g.cb != (mtl.CommandBuffer{}) {
-		return
+		return nil
 	}
-	g.cb = g.cq.CommandBuffer()
+	cb, err := g.cq.CommandBuffer()
+	if err != nil {
+		return fmt.Errorf("metal: cq.CommandBuffer failed: %w", err)
+	}
+	g.cb = cb
 	if g.frameToCB == nil {
 		g.frameToCB = map[int64][]mtl.CommandBuffer{}
 	}
 	g.frameToCB[g.frame] = append(g.frameToCB[g.frame], g.cb)
 	g.cb.Retain()
+	return nil
 }
 
-func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
-	g.ensureCommandBuffer()
+func (g *Graphics) availableBuffer(length uintptr) (mtl.Buffer, error) {
+	if err := g.ensureCommandBuffer(); err != nil {
+		return mtl.Buffer{}, err
+	}
 
 	var newBuf mtl.Buffer
 	for b := range g.unusedBuffers {
@@ -250,24 +249,36 @@ func (g *Graphics) availableBuffer(length uintptr) mtl.Buffer {
 	}
 
 	if newBuf == (mtl.Buffer{}) {
-		newBuf = g.view.getMTLDevice().NewBufferWithLength(pow2(length), resourceStorageMode)
+		b, err := g.view.getMTLDevice().NewBufferWithLength(pow2(length), resourceStorageMode)
+		if err != nil {
+			return mtl.Buffer{}, fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
+		}
+		newBuf = b
 	}
 
 	if g.buffers == nil {
 		g.buffers = map[int64][]mtl.Buffer{}
 	}
 	g.buffers[g.frame] = append(g.buffers[g.frame], newBuf)
-	return newBuf
+	return newBuf, nil
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 	vbSize := unsafe.Sizeof(vertices[0]) * uintptr(len(vertices))
 	ibSize := unsafe.Sizeof(indices[0]) * uintptr(len(indices))
 
-	g.vb = g.availableBuffer(vbSize)
+	vb, err := g.availableBuffer(vbSize)
+	if err != nil {
+		return err
+	}
+	g.vb = vb
 	g.vb.CopyToContents(unsafe.Pointer(&vertices[0]), vbSize)
 
-	g.ib = g.availableBuffer(ibSize)
+	ib, err := g.availableBuffer(ibSize)
+	if err != nil {
+		return err
+	}
+	g.ib = ib
 	g.ib.CopyToContents(unsafe.Pointer(&indices[0]), ibSize)
 
 	return nil
@@ -292,7 +303,6 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 		} else {
 			g.view.presentDrawable(g.cb, g.screenDrawable)
 		}
-		g.screenDrawable = ca.MetalDrawable{}
 		presented = true
 	}
 
@@ -310,6 +320,8 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 	g.cb = mtl.CommandBuffer{}
 
 	if presented {
+		g.screenDrawable.Release()
+		g.screenDrawable = ca.MetalDrawable{}
 		g.view.finishDrawableUsage()
 	}
 }
@@ -350,7 +362,10 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		StorageMode: storageMode,
 		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
-	t := g.view.getMTLDevice().NewTextureWithDescriptor(td)
+	t, err := g.view.getMTLDevice().NewTextureWithDescriptor(td)
+	if err != nil {
+		return nil, fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
+	}
 	i := &Image{
 		id:       g.genNextImageID(),
 		graphics: g,
@@ -451,7 +466,11 @@ func (g *Graphics) Initialize() error {
 	// [1] https://developer.apple.com/documentation/quartzcore/calayer/isopaque?language=objc
 	g.view.ml.SetOpaque(!g.transparent)
 
-	g.cq = g.view.getMTLDevice().NewCommandQueue()
+	cq, err := g.view.getMTLDevice().NewCommandQueue()
+	if err != nil {
+		return fmt.Errorf("metal: device.NewCommandQueue failed: %w", err)
+	}
+	g.cq = cq
 	return nil
 }
 
@@ -472,9 +491,8 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		g.flushCommandBufferIfNeeded(false)
 	}
 
-	// When preparing a stencil buffer, flush the current render command encoder
-	// to make sure the stencil buffer is cleared when loading.
-	// TODO: What about clearing the stencil buffer by vertices?
+	// A render command encoder is bound to the render pass's destination texture,
+	// so switching the destination requires a new encoder.
 	if g.lastDst != dst {
 		g.flushRenderCommandEncoderIfNeeded()
 	}
@@ -500,8 +518,14 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 		rpd.ColorAttachments[0].Texture = t
 		rpd.ColorAttachments[0].ClearColor = mtl.ClearColor{}
 
-		g.ensureCommandBuffer()
-		g.rce = g.cb.RenderCommandEncoderWithDescriptor(rpd)
+		if err := g.ensureCommandBuffer(); err != nil {
+			return err
+		}
+		rce, err := g.cb.RenderCommandEncoderWithDescriptor(rpd)
+		if err != nil {
+			return fmt.Errorf("metal: cb.RenderCommandEncoderWithDescriptor failed: %w", err)
+		}
+		g.rce = rce
 	}
 
 	w, h := dst.internalSize()
@@ -516,7 +540,13 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	g.rce.SetVertexBuffer(g.vb, 0, 0)
 
 	if len(uniforms) > 0 {
-		uniforms := adjustUniformVariablesLayout(shader.ir.Uniforms, uniforms)
+		g.tmpUniforms = appendUniformVariables(g.tmpUniforms[:0], shader.ir.Uniforms, uniforms)
+		uniforms := g.tmpUniforms
+		// Both setBytes calls copy the data into Metal-managed storage before returning.
+		// The scratch buffer can be reused after both calls, before GPU execution.
+		// See the bytes parameter documentation: each method copies the data to an MTLBuffer.
+		// https://developer.apple.com/documentation/metal/mtlrendercommandencoder/setvertexbytes(_:length:index:)
+		// https://developer.apple.com/documentation/metal/mtlrendercommandencoder/setfragmentbytes(_:length:index:)
 		head := unsafe.SliceData(uniforms)
 		g.rce.SetVertexBytes(unsafe.Pointer(head), unsafe.Sizeof(uniforms[0])*uintptr(len(uniforms)), 1)
 		g.rce.SetFragmentBytes(unsafe.Pointer(head), unsafe.Sizeof(uniforms[0])*uintptr(len(uniforms)), 0)
@@ -663,7 +693,6 @@ type Image struct {
 	height   int
 	screen   bool
 	texture  mtl.Texture
-	stencil  mtl.Texture
 }
 
 func (i *Image) ID() graphicsdriver.ImageID {
@@ -678,10 +707,6 @@ func (i *Image) internalSize() (int, int) {
 }
 
 func (i *Image) Dispose() {
-	if i.stencil != (mtl.Texture{}) {
-		i.stencil.Release()
-		i.stencil = mtl.Texture{}
-	}
 	if i.texture != (mtl.Texture{}) {
 		i.texture.Release()
 		i.texture = mtl.Texture{}
@@ -689,7 +714,7 @@ func (i *Image) Dispose() {
 	i.graphics.removeImage(i)
 }
 
-func (i *Image) syncTexture() {
+func (i *Image) syncTexture() error {
 	i.graphics.flushCommandBufferIfNeeded(false)
 
 	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
@@ -698,18 +723,27 @@ func (i *Image) syncTexture() {
 		panic("metal: command buffer must be empty at syncTexture")
 	}
 
-	cb := i.graphics.cq.CommandBuffer()
-	bce := cb.BlitCommandEncoder()
+	cb, err := i.graphics.cq.CommandBuffer()
+	if err != nil {
+		return fmt.Errorf("metal: cq.CommandBuffer failed: %w", err)
+	}
+	bce, err := cb.BlitCommandEncoder()
+	if err != nil {
+		return fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
+	}
 	bce.SynchronizeTexture(i.texture, 0, 0)
 	bce.EndEncoding()
 
 	cb.Commit()
 	// TODO: Are fences available here?
 	cb.WaitUntilCompleted()
+	return nil
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	i.syncTexture()
+	if err := i.syncTexture(); err != nil {
+		return err
+	}
 
 	for _, arg := range args {
 		if got, want := len(arg.Pixels), 4*arg.Region.Dx()*arg.Region.Dy(); got != want {
@@ -748,7 +782,10 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		StorageMode: storageMode,
 		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
 	}
-	t := g.view.getMTLDevice().NewTextureWithDescriptor(td)
+	t, err := g.view.getMTLDevice().NewTextureWithDescriptor(td)
+	if err != nil {
+		return fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
+	}
 	g.tmpTextures = append(g.tmpTextures, t)
 
 	for _, a := range args {
@@ -760,8 +797,13 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		}
 	}
 
-	g.ensureCommandBuffer()
-	bce := g.cb.BlitCommandEncoder()
+	if err := g.ensureCommandBuffer(); err != nil {
+		return err
+	}
+	bce, err := g.cb.BlitCommandEncoder()
+	if err != nil {
+		return fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
+	}
 	for _, a := range args {
 		so := mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0}
 		ss := mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1}
@@ -781,6 +823,8 @@ func (i *Image) mtlTexture() mtl.Texture {
 			if drawable == (ca.MetalDrawable{}) {
 				return mtl.Texture{}
 			}
+			// Keep the drawable alive across flushes that drain the autorelease pool without presenting (#3704).
+			drawable.Retain()
 			g.screenDrawable = drawable
 			// After nextDrawable, it is expected some command buffers are completed.
 			g.gcBuffers()
@@ -793,28 +837,11 @@ func (i *Image) mtlTexture() mtl.Texture {
 	return i.texture
 }
 
-func (i *Image) ensureStencil() {
-	if i.stencil != (mtl.Texture{}) {
-		return
-	}
-
-	td := mtl.TextureDescriptor{
-		TextureType: mtl.TextureType2D,
-		PixelFormat: mtl.PixelFormatStencil8,
-		Width:       graphics.InternalImageSize(i.width),
-		Height:      graphics.InternalImageSize(i.height),
-		StorageMode: mtl.StorageModePrivate,
-		Usage:       mtl.TextureUsageRenderTarget,
-	}
-	i.stencil = i.graphics.view.getMTLDevice().NewTextureWithDescriptor(td)
-}
-
-// adjustUniformVariablesLayout returns adjusted uniform variables to match the Metal's memory layout.
-func adjustUniformVariablesLayout(uniformTypes []shaderir.Type, uniforms []uint32) []uint32 {
+// appendUniformVariables appends uniform variables in Metal's memory layout to values.
+func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, uniforms []uint32) []uint32 {
 	// Each type's alignment is defined by the specification.
 	// See https://developer.apple.com/metal/Metal-Shading-Language-Specification.pdf
 
-	var values []uint32
 	fillZerosToFitAlignment := func(values []uint32, align int) []uint32 {
 		if len(values) == 0 {
 			return values

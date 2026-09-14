@@ -16,7 +16,11 @@
 
 package ui
 
-import "image"
+import (
+	"image"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+)
 
 func NewMonitorForTest(boundsInGLFWPixels image.Rectangle, deviceScaleFactor float64) *Monitor {
 	return &Monitor{
@@ -53,4 +57,20 @@ func WindowPositionInGLFWPixelsForTest(xInDIP, yInDIP int, monitor *Monitor) (in
 
 func WindowPositionInDIPForTest(windowX, windowY int, xInDIP, yInDIP int, monitor *Monitor) (int, int) {
 	return windowPositionInDIP(windowX, windowY, xInDIP, yInDIP, monitor)
+}
+
+func NewGLFWInputForTest() *glfwInput {
+	return &glfwInput{}
+}
+
+func (i *glfwInput) HandleScrollForTest(wheelX, wheelY, scrollDeltaX, scrollDeltaY float64, unit glfw.ScrollUnit) {
+	i.handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY, unit)
+}
+
+func (i *glfwInput) SetContentSizeForTest(width, height float64) {
+	i.setContentSize(width, height)
+}
+
+func (i *glfwInput) ReadForTest(dst *InputState) {
+	i.read(dst)
 }

@@ -16,20 +16,7 @@
 
 package directx
 
-import (
-	"structs"
-	"unsafe"
-)
-
-type _D3D12_DEPTH_STENCIL_VIEW_DESC struct {
-	_             structs.HostLayout
-	Format        _DXGI_FORMAT
-	ViewDimension _D3D12_DSV_DIMENSION
-	Flags         _D3D12_DSV_FLAGS
-	_             [4]byte                                      // Padding
-	Texture2D     _D3D12_TEX2D_DSV                             // Union
-	_             [12 - unsafe.Sizeof(_D3D12_TEX2D_DSV{})]byte // Padding for union
-}
+import "structs"
 
 type _D3D12_RESOURCE_DESC struct {
 	_                structs.HostLayout

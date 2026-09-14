@@ -576,13 +576,19 @@ func registerGLFWClasses() error {
 					deltaX := objc.Send[float64](event, sel_scrollingDeltaX)
 					deltaY := objc.Send[float64](event, sel_scrollingDeltaY)
 
+					// AppKit's contract for scrollingDeltaX/Y: with precise deltas the values are in
+					// points, which are device-independent pixels; otherwise they are to be multiplied
+					// by a line height.
+					scrollDeltaX, scrollDeltaY := deltaX, deltaY
+					unit := ScrollUnitLine
 					if objc.Send[bool](event, sel_hasPreciseScrollingDeltas) {
+						unit = ScrollUnitPixel
 						deltaX *= 0.1
 						deltaY *= 0.1
 					}
 
 					if deltaX != 0 || deltaY != 0 {
-						window.inputScroll(deltaX, deltaY)
+						window.inputScroll(deltaX, deltaY, scrollDeltaX, scrollDeltaY, unit)
 					}
 				},
 			},
@@ -1022,7 +1028,10 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	// Determine the content rect.
 	var contentRect cocoa.NSRect
 	if window.monitor != nil {
-		mode := window.monitor.platformGetVideoMode()
+		mode, err := window.monitor.platformGetVideoMode()
+		if err != nil {
+			return err
+		}
 		xpos, ypos, _ := window.monitor.platformGetMonitorPos()
 		contentRect = cocoa.NSRect{
 			Origin: cocoa.NSPoint{X: float64(xpos), Y: float64(ypos)},
@@ -1412,6 +1421,18 @@ func (w *Window) platformMaximizeWindow() error {
 		w.platform.object.Send(sel_zoom, 0)
 	}
 	return nil
+}
+
+func (w *Window) platformMaximizeSupported() bool {
+	return true
+}
+
+func (w *Window) platformIconifySupported() bool {
+	return true
+}
+
+func (w *Window) platformRestoreSupported() bool {
+	return true
 }
 
 func (w *Window) platformShowWindow() {
@@ -2086,8 +2107,13 @@ func platformGetScancodeName(scancode int) (string, error) {
 
 	length := cfStringGetLength(str)
 	size := cfStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8)
+	if size < 0 {
+		return "", nil
+	}
 	buf := make([]byte, size+1)
-	cfStringGetCString(str, &buf[0], size+1, kCFStringEncodingUTF8)
+	if !cfStringGetCString(str, &buf[0], len(buf), kCFStringEncodingUTF8) {
+		return "", nil
+	}
 
 	// Find the null terminator.
 	name := cStringToGoString(buf)

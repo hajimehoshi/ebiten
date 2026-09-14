@@ -22,12 +22,62 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
+func TestClamp01(t *testing.T) {
+	cases := []struct {
+		in   float64
+		want float64
+	}{
+		{
+			in:   math.NaN(),
+			want: 0,
+		},
+		{
+			in:   math.Inf(-1),
+			want: 0,
+		},
+		{
+			in:   -1,
+			want: 0,
+		},
+		{
+			in:   0,
+			want: 0,
+		},
+		{
+			in:   0.5,
+			want: 0.5,
+		},
+		{
+			in:   1,
+			want: 1,
+		},
+		{
+			in:   2,
+			want: 1,
+		},
+		{
+			in:   math.Inf(1),
+			want: 1,
+		},
+	}
+	for _, c := range cases {
+		if got := mathutil.Clamp01(c.in); got != c.want {
+			t.Errorf("mathutil.Clamp01(%v): got: %v, want: %v", c.in, got, c.want)
+		}
+	}
+}
+
 func TestMulDiv(t *testing.T) {
 	cases := []struct {
 		x   int64
 		mul int64
 		div int64
 	}{
+		{
+			x:   2,
+			mul: math.MaxInt64,
+			div: 1_000_000_000,
+		},
 		{
 			x:   0,
 			mul: 1e9,
@@ -108,8 +158,41 @@ func TestMulDiv(t *testing.T) {
 		if !want.IsInt64() {
 			t.Fatalf("the test case MulDiv(%d, %d, %d) does not fit in int64", c.x, c.mul, c.div)
 		}
-		if got := mathutil.MulDiv(c.x, c.mul, c.div); got != want.Int64() {
-			t.Errorf("MulDiv(%d, %d, %d): got: %d, want: %d", c.x, c.mul, c.div, got, want.Int64())
+		if got, ok := mathutil.MulDiv(c.x, c.mul, c.div); !ok || got != want.Int64() {
+			t.Errorf("MulDiv(%d, %d, %d): got: (%d, %t), want: (%d, true)", c.x, c.mul, c.div, got, ok, want.Int64())
 		}
+	}
+}
+
+func TestMulDivBoundaries(t *testing.T) {
+	values := []int64{
+		math.MinInt64, math.MinInt64 + 1,
+		-1 << 32, -1_000_000_000, -3, -2, -1,
+		0, 1, 2, 3, 1_000_000_000, 1 << 32,
+		math.MaxInt64 - 1, math.MaxInt64,
+	}
+	for _, x := range values {
+		for _, mul := range values {
+			for _, div := range values {
+				testMulDiv(t, x, mul, div)
+			}
+		}
+	}
+}
+
+func testMulDiv(t *testing.T, x, mul, div int64) {
+	t.Helper()
+	var want big.Int
+	if div != 0 {
+		want.Mul(big.NewInt(x), big.NewInt(mul))
+		want.Quo(&want, big.NewInt(div))
+	}
+	wantOK := div != 0 && want.IsInt64()
+	var wantValue int64
+	if wantOK {
+		wantValue = want.Int64()
+	}
+	if got, ok := mathutil.MulDiv(x, mul, div); ok != wantOK || got != wantValue {
+		t.Errorf("MulDiv(%d, %d, %d): got: (%d, %t), want: (%d, %t)", x, mul, div, got, ok, wantValue, wantOK)
 	}
 }

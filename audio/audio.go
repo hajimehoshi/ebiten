@@ -184,10 +184,9 @@ func CurrentContext() *Context {
 }
 
 func (c *Context) setError(err error) {
-	// TODO: What if c.err already exists?
 	c.m.Lock()
-	c.err = err
-	c.m.Unlock()
+	defer c.m.Unlock()
+	c.err = errors.Join(c.err, err)
 }
 
 func (c *Context) error() error {
@@ -230,7 +229,7 @@ func (c *Context) addPlayingPlayer(p *playerImpl) {
 			continue
 		}
 		if playingIdent == ident {
-			c.err = errors.New("audio: the same source must not be used by multiple Player objects")
+			c.err = errors.Join(c.err, errors.New("audio: the same source must not be used by multiple Player objects"))
 			return
 		}
 	}

@@ -15,7 +15,6 @@
 package ebitenmobileview
 
 import (
-	"fmt"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -88,8 +87,10 @@ func UpdateTouchesOnIOS(phase int, ptr int64, x, y float64) {
 		delete(ptrToID, ptr)
 		delete(touches, ui.TouchID(id))
 		updateInput(nil)
+	case C.UITouchPhaseRegionEntered, C.UITouchPhaseRegionMoved, C.UITouchPhaseRegionExited:
+		// A region phase reports hovering over the view without contact.
 	default:
-		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
+		// UIKit can add phases: ignore unknown ones instead of crashing.
 	}
 }
 
@@ -114,13 +115,11 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 			keyPressedTimes[key] = ui.Get().InputTime()
 		}
 		var runes []rune
-		if phase == C.UITouchPhaseBegan {
-			for _, r := range keyString {
-				if !unicode.IsPrint(r) {
-					continue
-				}
-				runes = append(runes, r)
+		for _, r := range keyString {
+			if !unicode.IsPrint(r) {
+				continue
 			}
+			runes = append(runes, r)
 		}
 		updateInput(runes)
 	case C.UIPressPhaseEnded, C.UIPressPhaseCancelled:
@@ -129,7 +128,8 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 		}
 		updateInput(nil)
 	default:
-		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
+		// UIKit can add phases like UIPressPhaseChanged, which reports a force
+		// change rather than a new key: ignore unknown ones instead of crashing.
 	}
 }
 

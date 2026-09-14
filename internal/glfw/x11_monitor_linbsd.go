@@ -8,6 +8,7 @@
 package glfw
 
 import (
+	"fmt"
 	"math"
 	"unsafe"
 )
@@ -91,7 +92,12 @@ func pollMonitorsX11() error {
 	display := _glfw.platformWindow.display
 	randr := &_glfw.platformWindow.randr
 
+	// Keep the known monitors when the screen resources are gone (#3094):
+	// reporting them as disconnected would tear down their fullscreen windows.
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
+	if srPtr == 0 {
+		return nil
+	}
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
@@ -217,12 +223,18 @@ func setVideoModeX11(monitor *Monitor, desired *VidMode) error {
 	if best == nil {
 		return nil
 	}
-	current := monitor.platformGetVideoMode()
-	if current != nil && current.equals(best) {
+	current, err := monitor.platformGetVideoMode()
+	if err != nil {
+		return err
+	}
+	if current.equals(best) {
 		return nil
 	}
 
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
+	if srPtr == 0 {
+		return nil
+	}
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
@@ -290,6 +302,9 @@ func restoreVideoModeX11(monitor *Monitor) {
 	randr := &_glfw.platformWindow.randr
 
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
+	if srPtr == 0 {
+		return
+	}
 	defer randr.FreeScreenResources(srPtr)
 
 	ciPtr := getCrtcInfoX11(srPtr, monitor.platform.crtc)
@@ -320,6 +335,9 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 	randr := &_glfw.platformWindow.randr
 
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
+	if srPtr == 0 {
+		return 0, 0, false
+	}
 	defer randr.FreeScreenResources(srPtr)
 
 	ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc)
@@ -345,27 +363,28 @@ func (m *Monitor) platformGetMonitorWorkarea() (xpos, ypos, width, height int) {
 	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {
 		randr := &_glfw.platformWindow.randr
 
-		srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
-		defer randr.FreeScreenResources(srPtr)
-		sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
+		if srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root); srPtr != 0 {
+			defer randr.FreeScreenResources(srPtr)
+			sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
-		if ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc); ciPtr != 0 {
-			defer randr.FreeCrtcInfo(ciPtr)
-			ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
+			if ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc); ciPtr != 0 {
+				defer randr.FreeCrtcInfo(ciPtr)
+				ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
-			// mi can be nil if the monitor has been disconnected.
-			if mi := getModeInfo(sr, ci.Mode); mi != nil {
-				areaX = ci.X
-				areaY = ci.Y
+				// mi can be nil if the monitor has been disconnected.
+				if mi := getModeInfo(sr, ci.Mode); mi != nil {
+					areaX = ci.X
+					areaY = ci.Y
 
-				if ci.Rotation == _RR_Rotate_90 || ci.Rotation == _RR_Rotate_270 {
-					areaWidth = int32(mi.Height)
-					areaHeight = int32(mi.Width)
-				} else {
-					areaWidth = int32(mi.Width)
-					areaHeight = int32(mi.Height)
+					if ci.Rotation == _RR_Rotate_90 || ci.Rotation == _RR_Rotate_270 {
+						areaWidth = int32(mi.Height)
+						areaHeight = int32(mi.Width)
+					} else {
+						areaWidth = int32(mi.Width)
+						areaHeight = int32(mi.Height)
+					}
+					areaFromCrtc = true
 				}
-				areaFromCrtc = true
 			}
 		}
 	}
@@ -430,13 +449,20 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	result := monitors
 
 	if !_glfw.platformWindow.randr.available || _glfw.platformWindow.randr.monitorBroken {
-		return append(result, m.platformGetVideoMode()), nil
+		mode, err := m.platformGetVideoMode()
+		if err != nil {
+			return nil, err
+		}
+		return append(result, mode), nil
 	}
 
 	display := _glfw.platformWindow.display
 	randr := &_glfw.platformWindow.randr
 
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
+	if srPtr == 0 {
+		return result, nil
+	}
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
@@ -482,7 +508,7 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	return result, nil
 }
 
-func (m *Monitor) platformGetVideoMode() *VidMode {
+func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 	display := _glfw.platformWindow.display
 
 	var mode VidMode
@@ -495,24 +521,29 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 		mode.RedBits, mode.GreenBits, mode.BlueBits =
 			splitBPP(int(xDefaultDepth(display, int32(_glfw.platformWindow.screen))))
 
-		return &mode
+		return &mode, nil
 	}
 
 	randr := &_glfw.platformWindow.randr
 
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
+	if srPtr == 0 {
+		return nil, fmt.Errorf("glfw: failed to query screen resources: %w", PlatformError)
+	}
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
 	ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc)
-	if ciPtr != 0 {
-		defer randr.FreeCrtcInfo(ciPtr)
-		ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
-		// mi can be nil if the monitor has been disconnected
-		if mi := getModeInfo(sr, ci.Mode); mi != nil {
-			mode = *vidmodeFromModeInfo(mi, ci)
-		}
+	if ciPtr == 0 {
+		return nil, fmt.Errorf("glfw: failed to query CRTC info: %w", PlatformError)
 	}
+	defer randr.FreeCrtcInfo(ciPtr)
+	ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
 
-	return &mode
+	// The mode can be missing if the monitor has been disconnected.
+	mi := getModeInfo(sr, ci.Mode)
+	if mi == nil {
+		return nil, fmt.Errorf("glfw: failed to query video mode: %w", PlatformError)
+	}
+	return vidmodeFromModeInfo(mi, ci), nil
 }

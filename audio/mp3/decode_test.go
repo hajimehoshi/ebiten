@@ -16,6 +16,7 @@ package mp3_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"testing"
 
@@ -99,6 +100,78 @@ func TestSeekInvalidWhence(t *testing.T) {
 				if _, err := s.Seek(0, whence); err == nil {
 					t.Errorf("Seek(0, %d): got no error, want an error", whence)
 				}
+			}
+		})
+	}
+}
+
+// readerOnly hides the Seek method of the wrapped reader.
+type readerOnly struct {
+	io.Reader
+}
+
+func TestSeekNonSeekableSource(t *testing.T) {
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			s, err := decode.f(readerOnly{bytes.NewReader(resources.Ragtime_mp3)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := s.Length(), int64(-1); got != want {
+				t.Errorf("Length(): got: %d, want: %d", got, want)
+			}
+			for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+				if _, err := s.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
+					t.Errorf("Seek(0, %d): got %v, want an error matching errors.ErrUnsupported", whence, err)
+				}
+			}
+
+			// The stream must still be readable after the rejected seeks.
+			buf := make([]byte, 64)
+			if _, err := io.ReadFull(s, buf); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestSeekSeekableSource(t *testing.T) {
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			s, err := decode.f(bytes.NewReader(resources.Ragtime_mp3))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if s.Length() <= 0 {
+				t.Fatalf("Length(): got: %d, want a positive value", s.Length())
+			}
+
+			// Read the head of the stream, seek back to the start, and read it again.
+			// The two reads must be the same.
+			want := make([]byte, 1024)
+			if _, err := io.ReadFull(s, want); err != nil {
+				t.Fatal(err)
+			}
+			pos, err := s.Seek(0, io.SeekStart)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pos != 0 {
+				t.Errorf("Seek(0, io.SeekStart): got: %d, want: 0", pos)
+			}
+			got := make([]byte, len(want))
+			if _, err := io.ReadFull(s, got); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Error("the data read after Seek(0, io.SeekStart) differs from the first read")
+			}
+			pos, err = s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(len(want)); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got: %d, want: %d", got, want)
 			}
 		})
 	}
