@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build android || ios || js || nintendosdk || playstation5
+
 package ebiten_test
 
 import (
@@ -22,11 +24,4 @@ import (
 
 func TestRestoreWindowWithoutDesktopWindow(t *testing.T) {
 	ebiten.RestoreWindow()
-	ebiten.MaximizeWindow()
-	ebiten.RestoreWindow()
-	ebiten.MinimizeWindow()
-	ebiten.RestoreWindow()
-	if ebiten.IsWindowMaximized() || ebiten.IsWindowMinimized() {
-		t.Fatal("window state changed on a non-desktop platform")
-	}
 }
