@@ -99,6 +99,8 @@ func isCAMetalDisplayLinkAvailable() bool {
 var class_EbitengineCAMetalDisplayLinkDelegate objc.Class
 
 func (v *view) initCAMetalDisplayLink() error {
+	v.completionChannelPool.New = func() any { return make(chan struct{}, 1) }
+	v.metalDisplayLinkChannelPool.New = func() any { return make(chan uintptr, 1) }
 	v.drawableCh = make(chan ca.MetalDrawable)
 	v.drawableDoneCh = make(chan struct{})
 	v.metalDisplayLinkRunLoop = createThreadWithRunLoop()
@@ -180,11 +182,12 @@ func (v *view) updateMetalDisplayLink() {
 			v.drawableDoneCh <- struct{}{}
 		}
 
-		done := make(chan struct{})
+		done := v.completionChannelPool.Get().(chan struct{})
+		defer v.completionChannelPool.Put(done)
 		b := objc.NewBlock(func(block objc.Block) {
 			dl.Invalidate()
 			dl.Release()
-			close(done)
+			done <- struct{}{}
 		})
 		defer b.Release()
 		v.metalDisplayLinkRunLoop.PerformBlock(b)
@@ -214,14 +217,14 @@ func (v *view) updateMetalDisplayLink() {
 		v.metalDisplayLinkDelegate = objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new"))
 	}
 
-	ch := make(chan uintptr)
+	ch := v.metalDisplayLinkChannelPool.Get().(chan uintptr)
+	defer v.metalDisplayLinkChannelPool.Put(ch)
 	b := objc.NewBlock(func(block objc.Block) {
 		dl := ca.NewMetalDisplayLink(v.ml)
 		dl.SetDelegate(v.metalDisplayLinkDelegate)
 		dl.AddToRunLoop(v.metalDisplayLinkRunLoop, cocoa.NSDefaultRunLoopMode)
 		dl.SetPaused(false)
 		ch <- uintptr(dl.ID)
-		close(ch)
 	})
 	defer b.Release()
 	v.metalDisplayLinkRunLoop.PerformBlock(b)

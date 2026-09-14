@@ -71,6 +71,8 @@ type GuestSession struct {
 	// It is set at construction and never modified, so it is read without a lock.
 	idleConn *idleTimeoutConn
 
+	audioReadResultChannelPool sync.Pool
+
 	// The following fields are owned by the session goroutine; no lock guards them.
 	enc *vmprotocol.Encoder
 	dec *vmprotocol.Decoder
@@ -312,6 +314,9 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		// The guest reports its requested TPS only when it changes; until then it runs at the standard
 		// default, so report that rather than a meaningless zero.
 		requestedTPS: clock.DefaultTPS,
+		audioReadResultChannelPool: sync.Pool{
+			New: func() any { return make(chan audioReadResult, 1) },
+		},
 	}
 	if options != nil {
 		// Set before the session goroutine starts, so they are read without a lock.
@@ -1526,11 +1531,10 @@ type audioReadResult struct {
 }
 
 // runReadAudio reads one audio player's samples from the guest and delivers them to the waiting
-// GuestAudioStream.Read. It must be called without g.mu held. It always closes o.audioResp before
-// returning: the result is sent first on success, while a connection error closes it without sending,
-// so the reader reports end-of-stream.
+// GuestAudioStream.Read. It must be called without g.mu held.
 func (g *GuestSession) runReadAudio(o op) error {
-	defer close(o.audioResp)
+	result := audioReadResult{eof: true}
+	defer func() { o.audioResp <- result }()
 	g.audioReadPCM = nil
 	g.audioReadEOF = false
 	if err := g.sendAndReceive(&vmprotocol.HostMessage{
@@ -1540,23 +1544,22 @@ func (g *GuestSession) runReadAudio(o op) error {
 	}); err != nil {
 		return err
 	}
-	o.audioResp <- audioReadResult{
+	result = audioReadResult{
 		pcm: g.audioReadPCM,
 		eof: g.audioReadEOF,
 	}
 	return nil
 }
 
-// drainQueuedReads closes the response channel of every audio read still queued when the session ends,
-// so its waiting GuestAudioStream.Read reports end-of-stream. It runs once the session loop has stopped,
-// so g.closed or g.err is set and no further read can be queued; a read already in flight is closed by
-// runReadAudio instead, so the two never close the same channel.
+// drainQueuedReads reports end-of-stream to every audio read still queued when the session ends.
 func (g *GuestSession) drainQueuedReads() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	// The session loop has stopped and no further read can be queued. An in-flight read
+	// has already received its result from runReadAudio and is no longer in g.ops.
 	for _, o := range g.ops {
 		if o.kind == opReadAudio {
-			close(o.audioResp)
+			o.audioResp <- audioReadResult{eof: true}
 		}
 	}
 	g.ops = nil
@@ -1680,12 +1683,10 @@ func (g *GuestSession) readGuestAudio(id int64, b []byte) (n int, eof bool) {
 		return 0, true
 	}
 
-	// The session goroutine sends the result, or closes resp without sending when the session ends before
-	// the read completes; a closed resp reports end-of-stream.
-	res, ok := <-resp
-	if !ok {
-		return 0, true
-	}
+	// Each accepted read receives one result, including end-of-stream on shutdown.
+	// Only the reader returns the channel, after consuming that result.
+	defer g.audioReadResultChannelPool.Put(resp)
+	res := <-resp
 	return copy(b, res.pcm), res.eof
 }
 
@@ -1698,7 +1699,7 @@ func (g *GuestSession) queueReadAudio(id int64, maxLenInBytes int) (resp chan au
 	if g.closed || g.err != nil {
 		return nil, false
 	}
-	resp = make(chan audioReadResult, 1)
+	resp = g.audioReadResultChannelPool.Get().(chan audioReadResult)
 	g.queueOpLocked(op{
 		kind:               opReadAudio,
 		audioID:            id,

@@ -17,6 +17,7 @@ package ui
 import (
 	"errors"
 	"math"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -88,7 +89,8 @@ type context struct {
 	// presentationSkipped keeps a redraw pending until an ordinary frame can be presented.
 	presentationSkipped bool
 
-	funcsInFrameCh chan func()
+	funcsInFrameCh        chan func()
+	completionChannelPool sync.Pool
 }
 
 func newContext(game Game, screenTransparent bool) *context {
@@ -96,6 +98,9 @@ func newContext(game Game, screenTransparent bool) *context {
 		game:              game,
 		screenTransparent: screenTransparent,
 		funcsInFrameCh:    make(chan func()),
+		completionChannelPool: sync.Pool{
+			New: func() any { return make(chan struct{}, 1) },
+		},
 	}
 }
 
@@ -549,9 +554,10 @@ func (u *UserInterface) LogicalPositionToClientPositionInDIPs(x, y float64) (flo
 }
 
 func (c *context) runInFrame(f func()) {
-	ch := make(chan struct{})
+	ch := c.completionChannelPool.Get().(chan struct{})
+	defer c.completionChannelPool.Put(ch)
 	c.funcsInFrameCh <- func() {
-		defer close(ch)
+		defer func() { ch <- struct{}{} }()
 		f()
 	}
 	<-ch

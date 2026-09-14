@@ -97,12 +97,14 @@ type view struct {
 	runOnMainThread func(f func())
 
 	// The following members are used only with CAMetalDisplayLink.
-	drawableCh               chan ca.MetalDrawable
-	drawableDoneCh           chan struct{}
-	drawableTimer            *time.Timer
-	drawableFromDisplayLink  bool
-	metalDisplayLinkRunLoop  cocoa.NSRunLoop
-	metalDisplayLinkDelegate objc.ID
+	drawableCh                  chan ca.MetalDrawable
+	drawableDoneCh              chan struct{}
+	drawableTimer               *time.Timer
+	drawableFromDisplayLink     bool
+	metalDisplayLinkRunLoop     cocoa.NSRunLoop
+	metalDisplayLinkDelegate    objc.ID
+	completionChannelPool       sync.Pool
+	metalDisplayLinkChannelPool sync.Pool
 
 	// The following members are used only with CADisplayLink.
 	handleToSelf viewHandle

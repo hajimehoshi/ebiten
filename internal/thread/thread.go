@@ -158,7 +158,7 @@ func CallAsync[A any](t Thread, f func(A), arg A) {
 type queueItem struct {
 	f callable
 
-	// done is closed when the execution of f is completed. done is nil for an asynchronous call.
+	// done receives a signal when the execution of f is completed. done is nil for an asynchronous call.
 	//
 	// done must be dedicated to one queue item. With NestedLoop, multiple synchronous calls can
 	// be in flight at the same time, and a completion signal on a shared channel could be
@@ -168,7 +168,8 @@ type queueItem struct {
 
 // OSThread represents an OS thread.
 type OSThread struct {
-	funcs chan queueItem
+	funcs                 chan queueItem
+	completionChannelPool sync.Pool
 
 	// stopped is closed at stop.
 	stopped  chan struct{}
@@ -180,6 +181,9 @@ func NewOSThread() *OSThread {
 	return &OSThread{
 		funcs:   make(chan queueItem),
 		stopped: make(chan struct{}),
+		completionChannelPool: sync.Pool{
+			New: func() any { return make(chan struct{}, 1) },
+		},
 	}
 }
 
@@ -228,7 +232,7 @@ func (t *OSThread) loop(ctx context.Context) error {
 		case item := <-t.funcs:
 			func() {
 				if item.done != nil {
-					defer close(item.done)
+					defer func() { item.done <- struct{}{} }()
 				}
 				item.f.call()
 			}()
@@ -250,7 +254,9 @@ func (t *OSThread) stop() {
 func (t *OSThread) call(f callable, sync bool) bool {
 	var done chan struct{}
 	if sync {
-		done = make(chan struct{})
+		done = t.completionChannelPool.Get().(chan struct{})
+		// The caller owns done until its signal is consumed or the request is rejected.
+		defer t.completionChannelPool.Put(done)
 	}
 	select {
 	case t.funcs <- queueItem{f: f, done: done}:

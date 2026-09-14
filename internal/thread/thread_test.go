@@ -121,6 +121,11 @@ func TestCalls(t *testing.T) {
 			if !called {
 				t.Error("Call did not execute its callback")
 			}
+			for _, want := range []error{context.Canceled, nil} {
+				if got := thread.CallWithArgAndResult(th, func(err error) error { return err }, want); got != want {
+					t.Errorf("Call error result = %v, want %v", got, want)
+				}
+			}
 			cancel()
 			<-done
 			if err := th.LoopAndStop(ctx); err != nil && err != context.Canceled {
@@ -192,6 +197,15 @@ func TestConcurrentTypedCalls(t *testing.T) {
 				thread.CallAsync(th, func(value int) { completed.Add(1) }, value)
 				if got := thread.CallWithArgAndResult(th, f, value); got != value*2 {
 					t.Errorf("Call(%d) = %d, want %d", value, got, value*2)
+				}
+				var got int
+				thread.CallWithArg(th, func(value int) { got = value }, value)
+				if got != value {
+					t.Errorf("CallWithArg(%d) wrote %d", value, got)
+				}
+				thread.Call(th, func() { got++ })
+				if got != value+1 {
+					t.Errorf("Call wrote %d, want %d", got, value+1)
 				}
 			}
 		})
