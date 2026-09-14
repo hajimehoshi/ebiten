@@ -15,12 +15,14 @@
 package graphicscommand_test
 
 import (
+	"context"
 	"errors"
 	"sync/atomic"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type frameDriver struct {
@@ -132,5 +134,25 @@ func TestAsynchronousFlushError(t *testing.T) {
 	}
 	if driver.ends.Load() == 0 {
 		t.Errorf("End was not called for a failing flush")
+	}
+}
+
+func TestFlushStoppedNoopThread(t *testing.T) {
+	renderThread := thread.NewNoopThread()
+	if err := renderThread.LoopAndStop(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	defer graphicscommand.SetRenderThreadForTesting(renderThread)()
+	defer graphicscommand.SetVsyncEnabled(true)
+	for _, vsync := range []bool{false, true} {
+		graphicscommand.SetVsyncEnabled(vsync)
+		var q graphicscommand.CommandQueueForTesting
+		var manager graphicscommand.CommandQueueManagerForTesting
+		q.Enqueue(&failingCommand{})
+		q.AddFinalizerForTesting(func() { t.Error("finalizer executed after stopping") })
+		// A stopped thread must not access the nil graphics driver.
+		if err := q.Flush(&manager, nil, graphicsdriver.FlushModePresent); err != nil {
+			t.Error(err)
+		}
 	}
 }

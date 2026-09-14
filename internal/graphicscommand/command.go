@@ -374,46 +374,34 @@ func (c *newShaderCommand) NeedsSync() bool {
 }
 
 // InitializeGraphicsDriverState initialize the current graphics driver state.
-func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
-	runOnRenderThread(func() {
-		err = graphicsDriver.Initialize()
-	}, true)
-	return
+func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
+	return runOnRenderThread(graphicsdriver.Graphics.Initialize, graphicsDriver)
 }
 
 // ResetGraphicsDriverState resets the current graphics driver state.
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
-func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
+func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
 	if r, ok := graphicsDriver.(graphicsdriver.Resetter); ok {
-		runOnRenderThread(func() {
-			err = r.Reset()
-		}, true)
+		return runOnRenderThread(graphicsdriver.Resetter.Reset, r)
 	}
-	return
+	return nil
 }
 
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
-	var size int
-	runOnRenderThread(func() {
-		size = graphicsDriver.MaxImageSize()
-	}, true)
-	return size
+	return runOnRenderThread(graphicsdriver.Graphics.MaxImageSize, graphicsDriver)
 }
 
 // FinishForcedFrame waits for a frame forced while the game loop is blocked to finish.
 // If the graphics driver doesn't have an API to wait, FinishForcedFrame does nothing.
 func FinishForcedFrame(graphicsDriver graphicsdriver.Graphics) error {
-	f, ok := graphicsDriver.(interface{ FinishForcedFrame() error })
+	type frameFinisher interface{ FinishForcedFrame() error }
+	f, ok := graphicsDriver.(frameFinisher)
 	if !ok {
 		return nil
 	}
 
 	// Run this on the render thread so that it is ordered after the frame's flush, which can be
 	// asynchronous.
-	var err error
-	runOnRenderThread(func() {
-		err = f.FinishForcedFrame()
-	}, true)
-	return err
+	return runOnRenderThread(frameFinisher.FinishForcedFrame, f)
 }

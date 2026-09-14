@@ -233,32 +233,47 @@ func (q *commandQueue) Flush(manager *commandQueueManager, graphicsDriver graphi
 		}
 	}
 
-	logger := debug.SwitchFrameLogger()
-
-	var flushErr error
-	runOnRenderThread(func() {
-		defer logger.Flush()
-
-		applyVsyncEnabledIfNeeded(graphicsDriver)
-
-		if err := q.flush(graphicsDriver, mode, logger); err != nil {
-			if sync {
-				flushErr = err
-				return
-			}
-			// The queue is not returned to the pool, as an error stops any further flush.
-			manager.setError(err)
-			return
-		}
-
-		manager.putCommandQueue(q)
-	}, sync)
-
-	if sync && flushErr != nil {
-		return flushErr
+	args := commandQueueFlushArgs{
+		queue:          q,
+		manager:        manager,
+		graphicsDriver: graphicsDriver,
+		mode:           mode,
+		logger:         debug.SwitchFrameLogger(),
+		sync:           sync,
 	}
-
+	if sync {
+		return runOnRenderThread(commandQueueFlushArgs.flush, args)
+	}
+	runOnRenderThreadAsync(commandQueueFlushArgs.flushAsync, args)
 	return nil
+}
+
+type commandQueueFlushArgs struct {
+	queue          *commandQueue
+	manager        *commandQueueManager
+	graphicsDriver graphicsdriver.Graphics
+	mode           graphicsdriver.FlushMode
+	logger         debug.FrameLogger
+	sync           bool
+}
+
+func (a commandQueueFlushArgs) flush() error {
+	defer a.logger.Flush()
+	applyVsyncEnabledIfNeeded(a.graphicsDriver)
+	if err := a.queue.flush(a.graphicsDriver, a.mode, a.logger); err != nil {
+		if a.sync {
+			return err
+		}
+		// The queue is not returned to the pool, as an error stops any further flush.
+		a.manager.setError(err)
+		return nil
+	}
+	a.manager.putCommandQueue(a.queue)
+	return nil
+}
+
+func (a commandQueueFlushArgs) flushAsync() {
+	a.flush()
 }
 
 // flush must be called the render thread.

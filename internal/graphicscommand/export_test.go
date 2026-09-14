@@ -20,6 +20,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type WritePixelsCommandArgs = writePixelsCommandArgs
@@ -60,4 +61,10 @@ func (c *commandQueueManager) EnqueueCommandForTesting(command CommandForTesting
 
 func (c *commandQueueManager) FlushForTesting(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
 	return c.flush(graphicsDriver, mode)
+}
+
+func SetRenderThreadForTesting(t thread.Thread) func() {
+	previous := theRenderThread
+	theRenderThread = t
+	return func() { theRenderThread = previous }
 }

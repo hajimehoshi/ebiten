@@ -31,17 +31,17 @@ func LoopRenderThread(ctx context.Context) {
 	_ = theRenderThread.Loop(ctx)
 }
 
-// runOnRenderThread calls f on the rendering thread.
-func runOnRenderThread(f func(), sync bool) {
-	if sync {
-		theRenderThread.Call(f)
-		return
-	}
+// runOnRenderThread calls f with arg on the rendering thread and returns its result.
+func runOnRenderThread[A, R any](f func(A) R, arg A) R {
+	return thread.Call(theRenderThread, f, arg)
+}
 
+// runOnRenderThreadAsync queues f with arg on the rendering thread.
+func runOnRenderThreadAsync[A any](f func(A), arg A) {
 	// As the current thread doesn't have a capacity in a channel,
 	// CallAsync should block when the previously-queued task is not executed yet.
 	// This blocking is expected as double-buffering is used.
-	theRenderThread.CallAsync(f)
+	thread.CallAsync(theRenderThread, f, arg)
 }
 
 func Terminate() {

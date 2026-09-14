@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -28,14 +29,103 @@ import (
 type Thread interface {
 	Loop(ctx context.Context) error
 	LoopAndStop(ctx context.Context) error
+
+	// TODO: Migrate remaining callers to the generic Call and CallAsync functions
+	// and remove these methods.
 	Call(f func())
 	CallAsync(f func())
 
-	private()
+	call(f callable, sync bool) bool
+}
+
+type callable interface {
+	call()
+}
+
+type funcCall func()
+
+func (f funcCall) call() {
+	f()
+}
+
+var callPools sync.Map
+
+type syncCall[A, R any] struct {
+	f      func(A) R
+	arg    A
+	result R
+}
+
+func (c *syncCall[A, R]) call() {
+	// The waiting caller needs c.result intact and releases c after copying the result.
+	c.result = c.f(c.arg)
+}
+
+type asyncCall[A any] struct {
+	pool *sync.Pool
+	f    func(A)
+	arg  A
+}
+
+func (c *asyncCall[A]) call() {
+	defer releaseCall(c, c.pool)
+	c.f(c.arg)
+}
+
+func getCall[C any]() (*C, *sync.Pool) {
+	key := reflect.TypeFor[C]()
+	p, ok := callPools.Load(key)
+	if !ok {
+		p, _ = callPools.LoadOrStore(key, &sync.Pool{
+			New: func() any { return new(C) },
+		})
+	}
+	pool := p.(*sync.Pool)
+	return pool.Get().(*C), pool
+}
+
+func releaseCall[C any](c *C, pool *sync.Pool) {
+	var zero C
+	*c = zero
+	pool.Put(c)
+}
+
+// Call calls f with arg on t and returns its result, or the zero value if t has stopped.
+// The same blocking restrictions as t.Call apply.
+func Call[A, R any](t Thread, f func(A) R, arg A) R {
+	if t, ok := t.(*NoopThread); ok {
+		var result R
+		t.Call(func() { result = f(arg) })
+		return result
+	}
+	c, pool := getCall[syncCall[A, R]]()
+	defer releaseCall(c, pool)
+	c.f = f
+	c.arg = arg
+	t.call(c, true)
+	return c.result
+}
+
+// CallAsync queues f with arg on t.
+// The same blocking and stopped-state behavior as t.CallAsync applies.
+func CallAsync[A any](t Thread, f func(A), arg A) {
+	if t, ok := t.(*NoopThread); ok {
+		t.CallAsync(func() { f(arg) })
+		return
+	}
+	c, pool := getCall[asyncCall[A]]()
+	c.pool = pool
+	c.f = f
+	c.arg = arg
+	// A successful enqueue transfers ownership to the worker, which releases c after execution.
+	// The worker may still be using c when t.call returns, so only a discarded call can be released here.
+	if !t.call(c, false) {
+		releaseCall(c, pool)
+	}
 }
 
 type queueItem struct {
-	f func()
+	f callable
 
 	// done is closed when the execution of f is completed. done is nil for an asynchronous call.
 	//
@@ -109,7 +199,7 @@ func (t *OSThread) loop(ctx context.Context) error {
 				if item.done != nil {
 					defer close(item.done)
 				}
-				item.f()
+				item.f.call()
 			}()
 		case <-ctx.Done():
 			return ctx.Err()
@@ -134,17 +224,24 @@ func (t *OSThread) stop() {
 //
 // Call blocks if Loop is not called.
 func (t *OSThread) Call(f func()) {
-	done := make(chan struct{})
+	t.call(funcCall(f), true)
+}
+
+func (t *OSThread) call(f callable, sync bool) bool {
+	var done chan struct{}
+	if sync {
+		done = make(chan struct{})
+	}
 	select {
 	case t.funcs <- queueItem{f: f, done: done}:
 	case <-t.stopped:
 		logDiscardedCall()
-		return
+		return false
 	}
-	<-done
-}
-
-func (t *OSThread) private() {
+	if sync {
+		<-done
+	}
+	return true
 }
 
 // CallAsync tries to queue f.
@@ -155,11 +252,7 @@ func (t *OSThread) private() {
 //
 // Do not call CallAsync from the same thread. CallAsync would block forever.
 func (t *OSThread) CallAsync(f func()) {
-	select {
-	case t.funcs <- queueItem{f: f}:
-	case <-t.stopped:
-		logDiscardedCall()
-	}
+	t.call(funcCall(f), false)
 }
 
 // NoopThread is used to disable threading.
@@ -214,7 +307,13 @@ func (t *NoopThread) CallAsync(f func()) {
 	f()
 }
 
-func (t *NoopThread) private() {
+func (t *NoopThread) call(f callable, sync bool) bool {
+	if t.stopped.Load() {
+		logDiscardedCall()
+		return false
+	}
+	f.call()
+	return true
 }
 
 // logDiscardedCall records a call that was not executed as the thread was stopped.

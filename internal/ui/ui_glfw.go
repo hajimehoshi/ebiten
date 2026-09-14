@@ -296,19 +296,17 @@ func (u *glfwBackend) Monitor() *Monitor {
 	if p := u.requestedMonitor.pending(); p != nil {
 		return *p
 	}
-	var monitor *Monitor
-	u.mainThread.Call(func() {
+	return thread.Call(u.mainThread, func(u *glfwBackend) *Monitor {
 		if u.isTerminated() {
-			return
+			return nil
 		}
 		m, err := u.currentMonitor()
 		if err != nil {
 			u.setError(err)
-			return
+			return nil
 		}
-		monitor = m
-	})
-	return monitor
+		return m
+	}, u)
 }
 
 // setWindowMonitor must be called on the main thread.
