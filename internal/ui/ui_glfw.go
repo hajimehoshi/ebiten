@@ -296,7 +296,7 @@ func (u *glfwBackend) Monitor() *Monitor {
 	if p := u.requestedMonitor.pending(); p != nil {
 		return *p
 	}
-	return thread.Call(u.mainThread, func(u *glfwBackend) *Monitor {
+	return thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) *Monitor {
 		if u.isTerminated() {
 			return nil
 		}
@@ -404,23 +404,26 @@ func (u *glfwBackend) isFullscreen() (bool, error) {
 }
 
 func (u *glfwBackend) IsFullscreen() bool {
-	var fullscreen bool
-	u.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) bool {
 		if u.isTerminated() {
-			return
+			return false
 		}
 		b, err := u.isFullscreen()
 		if err != nil {
 			u.setError(err)
-			return
+			return false
 		}
-		fullscreen = b
-	})
-	return fullscreen
+		return b
+	}, u)
 }
 
 func (u *glfwBackend) SetFullscreen(fullscreen bool) {
-	u.mainThread.Call(func() {
+	type args struct {
+		u          *glfwBackend
+		fullscreen bool
+	}
+	thread.CallWithArg(u.mainThread, func(a args) {
+		u, fullscreen := a.u, a.fullscreen
 		if u.isTerminated() {
 			return
 		}
@@ -436,27 +439,25 @@ func (u *glfwBackend) SetFullscreen(fullscreen bool) {
 			u.setError(err)
 			return
 		}
-	})
+	}, args{u: u, fullscreen: fullscreen})
 }
 
 func (u *glfwBackend) IsFocused() bool {
-	var focused bool
-	u.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) bool {
 		if u.isTerminated() {
-			return
+			return false
 		}
 		f, err := u.isWindowFocused()
 		if err != nil {
 			u.setError(err)
-			return
+			return false
 		}
-		focused = f
-	})
-	return focused
+		return f
+	}, u)
 }
 
 func (u *glfwBackend) applyFPSMode() {
-	u.mainThread.Call(func() {
+	thread.CallWithArg(u.mainThread, func(u *glfwBackend) {
 		if u.isTerminated() {
 			return
 		}
@@ -464,7 +465,7 @@ func (u *glfwBackend) applyFPSMode() {
 			u.setError(err)
 			return
 		}
-	})
+	}, u)
 }
 
 func (u *glfwBackend) ScheduleFrame() {
@@ -484,32 +485,35 @@ func (u *glfwBackend) ScheduleFrame() {
 }
 
 func (u *glfwBackend) CursorMode() CursorMode {
-	var v CursorMode
-	u.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) CursorMode {
 		if u.isTerminated() {
-			return
+			return 0
 		}
 		mode, err := u.window.GetInputMode(glfw.CursorMode)
 		if err != nil {
 			u.setError(err)
-			return
+			return 0
 		}
 		switch mode {
 		case glfw.CursorNormal:
-			v = CursorModeVisible
+			return CursorModeVisible
 		case glfw.CursorHidden:
-			v = CursorModeHidden
+			return CursorModeHidden
 		case glfw.CursorDisabled:
-			v = CursorModeCaptured
+			return CursorModeCaptured
 		default:
 			panic(fmt.Sprintf("ui: invalid GLFW cursor mode: %d", mode))
 		}
-	})
-	return v
+	}, u)
 }
 
 func (u *glfwBackend) SetCursorMode(mode CursorMode) {
-	u.mainThread.Call(func() {
+	type args struct {
+		u    *glfwBackend
+		mode CursorMode
+	}
+	thread.CallWithArg(u.mainThread, func(a args) {
+		u, mode := a.u, a.mode
 		if u.isTerminated() {
 			return
 		}
@@ -523,11 +527,11 @@ func (u *glfwBackend) SetCursorMode(mode CursorMode) {
 				return
 			}
 		}
-	})
+	}, args{u: u, mode: mode})
 }
 
 func (u *glfwBackend) applyCursorShape() {
-	u.mainThread.Call(func() {
+	thread.CallWithArg(u.mainThread, func(u *glfwBackend) {
 		if u.isTerminated() {
 			return
 		}
@@ -535,7 +539,7 @@ func (u *glfwBackend) applyCursorShape() {
 			u.setError(err)
 			return
 		}
-	})
+	}, u)
 }
 
 // createWindow creates a GLFW window.
@@ -1103,7 +1107,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 	}
 
 	if g, ok := u.graphicsDriver.(interface{ SetMainThreadRunner(func(func())) }); ok {
-		g.SetMainThreadRunner(u.mainThread.Call)
+		g.SetMainThreadRunner(u.RunOnMainThread)
 	}
 
 	// Register callbacks after the window initialization done.
@@ -1431,14 +1435,13 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 func (u *glfwBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
-		u.mainThread.Call(func() {
-			// Mark the termination before terminating GLFW so that a concurrent-safe API
-			// like ScheduleFrame stops touching GLFW's state before it is destroyed.
+		if glfwErr := thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) error {
+			// Mark termination before destroying GLFW so concurrent APIs stop accessing it.
 			u.setTerminated()
-			if glfwErr := glfw.Terminate(); glfwErr != nil {
-				err = errors.Join(err, glfwErr)
-			}
-		})
+			return glfw.Terminate()
+		}, u); glfwErr != nil {
+			err = errors.Join(err, glfwErr)
+		}
 	}()
 
 	for {
@@ -1468,93 +1471,99 @@ func shouldPresentFrame(windowOnScreen, bufferOnceSwapped, windowVisible bool) b
 }
 
 func (u *glfwBackend) updateGame() error {
-	var unfocused bool
-	var present bool
-	var monitorChanged bool
+	type result struct {
+		unfocused      bool
+		present        bool
+		monitorChanged bool
 
-	var outsideWidth, outsideHeight float64
-	var screenWidth, screenHeight int
-	var deviceScaleFactor float64
-	var err error
-	if u.mainThread.Call(func() {
+		outsideWidth, outsideHeight float64
+		screenWidth, screenHeight   int
+		deviceScaleFactor           float64
+		err                         error
+	}
+	r := thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) result {
+		var r result
+
 		// On Windows, the focusing state might be always false (#987).
 		// On Windows, even if a window is in another workspace, vsync seems to work.
 		// Then let's assume the window is always 'focused' as a workaround.
 		if runtime.GOOS != "windows" {
 			focused, e := u.isWindowFocused()
 			if e != nil {
-				err = e
-				return
+				r.err = e
+				return r
 			}
-			unfocused = !focused
+			r.unfocused = !focused
 		}
 
 		visible, e := u.isWindowVisible()
 		if e != nil {
-			err = e
-			return
+			r.err = e
+			return r
 		}
 		occluded, e := u.isWindowOccluded()
 		if e != nil && !errors.Is(e, errors.ErrUnsupported) {
-			err = e
-			return
+			r.err = e
+			return r
 		}
-		present = shouldPresentFrame(visible && !occluded, u.bufferOnceSwapped, u.desktopWindow.isWindowVisible())
+		r.present = shouldPresentFrame(visible && !occluded, u.bufferOnceSwapped, u.desktopWindow.isWindowVisible())
 
-		outsideWidth, outsideHeight, screenWidth, screenHeight, err = u.update()
-		if err != nil {
-			return
+		r.outsideWidth, r.outsideHeight, r.screenWidth, r.screenHeight, r.err = u.update()
+		if r.err != nil {
+			return r
 		}
-		u.input.setContentSize(outsideWidth, outsideHeight)
+		u.input.setContentSize(r.outsideWidth, r.outsideHeight)
 		var m *Monitor
-		m, err = u.currentMonitor()
-		if err != nil {
-			return
+		m, r.err = u.currentMonitor()
+		if r.err != nil {
+			return r
 		}
-		deviceScaleFactor = m.DeviceScaleFactor()
+		r.deviceScaleFactor = m.DeviceScaleFactor()
 		u.setRefreshRate(m.RefreshRate())
-		monitorChanged = m != u.lastFrameMonitor
+		r.monitorChanged = m != u.lastFrameMonitor
 		u.lastFrameMonitor = m
 
 		// Pre-fetch cursor position and update gamepads to avoid
-		// a second mainThread.Call round-trip in updateInputStateForFrame.
+		// a second thread.CallWithArgAndResult round-trip in updateInputStateForFrame.
 		var cx, cy float64
-		cx, cy, err = u.window.GetCursorPos()
-		if err != nil {
-			return
+		cx, cy, r.err = u.window.GetCursorPos()
+		if r.err != nil {
+			return r
 		}
 		u.input.setRawCursorPos(cx, cy)
 		var nativeWindow uintptr
-		nativeWindow, err = u.nativeWindow()
-		if err != nil {
-			return
+		nativeWindow, r.err = u.nativeWindow()
+		if r.err != nil {
+			return r
 		}
-		if err = gamepad.Update(nativeWindow, nil); err != nil {
-			return
+		if r.err = gamepad.Update(nativeWindow, nil); r.err != nil {
+			return r
 		}
-	}); err != nil {
-		return err
+		return r
+	}, u)
+	if r.err != nil {
+		return r.err
 	}
 
 	// Whether swapping buffers waits for the display can differ per monitor, e.g. when the monitors
 	// are driven by different GPUs. Measure it again on the new monitor.
-	if monitorChanged {
+	if r.monitorChanged {
 		u.context.resetVsyncDetection()
 	}
 
-	if err := u.context.updateFrame(u.graphicsDriver, outsideWidth, outsideHeight, screenWidth, screenHeight, deviceScaleFactor, u.UserInterface, present); err != nil {
+	if err := u.context.updateFrame(u.graphicsDriver, r.outsideWidth, r.outsideHeight, r.screenWidth, r.screenHeight, r.deviceScaleFactor, u.UserInterface, r.present); err != nil {
 		return err
 	}
 
 	u.bufferOnceSwappedOnce.Do(func() {
-		u.mainThread.Call(func() {
+		thread.CallWithArg(u.mainThread, func(u *glfwBackend) {
 			u.bufferOnceSwapped = true
-		})
+		}, u)
 	})
 
 	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
 	// Mitigate this by sleeping (#982, #2521).
-	if unfocused {
+	if r.unfocused {
 		const wait = time.Second / 60
 		now := time.Now()
 		if next := u.unfocusedNextWake.Add(wait); next.After(now) {
@@ -1601,32 +1610,30 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 		return err
 	}
 
-	var err error
-	u.mainThread.Call(func() {
+	type args struct {
+		u       *glfwBackend
+		imgs    *[]image.Image
+		newImgs []image.Image
+	}
+	return thread.CallWithArgAndResult(u.mainThread, func(a args) error {
+		u := a.u
 		if u.isTerminated() {
-			return
+			return nil
 		}
-		// In the fullscreen mode, SetIcon fails (#1578).
-		// Keep the icon images pending and retry them later.
-		f, e := u.isFullscreen()
-		if e != nil {
-			err = e
-			return
+		// Keep icon images pending while fullscreen, where SetIcon fails (#1578).
+		f, err := u.isFullscreen()
+		if err != nil {
+			return err
 		}
 		if f {
-			return
+			return nil
 		}
-		if e := u.window.SetIcon(newImgs); e != nil {
-			err = e
-			return
+		if err := u.window.SetIcon(a.newImgs); err != nil {
+			return err
 		}
-		u.desktopWindow.resetIconImages(imgs)
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
+		u.desktopWindow.resetIconImages(a.imgs)
+		return nil
+	}, args{u: u, imgs: imgs, newImgs: newImgs})
 }
 
 // updateWindowSizeLimits must be called from the main thread.
@@ -2551,7 +2558,7 @@ func IsScreenTransparentAvailable() bool {
 }
 
 func (u *glfwBackend) RunOnMainThread(f func()) {
-	u.mainThread.Call(f)
+	thread.Call(u.mainThread, f)
 }
 
 func (u *glfwBackend) run(game Game, options *RunOptions) error {
@@ -2584,13 +2591,13 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		var err error
-		u.mainThread.Call(func() {
-			if mainErr := u.initOnMainThread(options); mainErr != nil {
-				err = mainErr
-			}
-		})
-		if err != nil {
+		type args struct {
+			u       *glfwBackend
+			options *RunOptions
+		}
+		if err := thread.CallWithArgAndResult(u.mainThread, func(a args) error {
+			return a.u.initOnMainThread(a.options)
+		}, args{u: u, options: options}); err != nil {
 			return err
 		}
 

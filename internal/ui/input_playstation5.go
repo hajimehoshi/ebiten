@@ -18,14 +18,11 @@ package ui
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
-	var err error
-	u.mainThread.Call(func() {
-		err = u.updateInputStateForFrameImpl()
-	})
-	return err
+	return thread.CallWithArgAndResult(u.mainThread, (*UserInterface).updateInputStateForFrameImpl, u)
 }
 
 // updateInputStateForFrameImpl must be called from the main thread.

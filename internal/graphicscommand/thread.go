@@ -33,7 +33,7 @@ func LoopRenderThread(ctx context.Context) {
 
 // runOnRenderThread calls f with arg on the rendering thread and returns its result.
 func runOnRenderThread[A, R any](f func(A) R, arg A) R {
-	return thread.Call(theRenderThread, f, arg)
+	return thread.CallWithArgAndResult(theRenderThread, f, arg)
 }
 
 // runOnRenderThreadAsync queues f with arg on the rendering thread.
@@ -47,5 +47,5 @@ func runOnRenderThreadAsync[A any](f func(A), arg A) {
 func Terminate() {
 	// Post a task to the render thread to ensure all the queued functions are executed.
 	// This is necessary especially for GLFW. glfw.Terminate will remove the context and any graphics calls after that will be invalidated.
-	theRenderThread.Call(func() {})
+	thread.Call(theRenderThread, func() {})
 }

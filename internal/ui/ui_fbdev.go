@@ -97,12 +97,14 @@ func (b *fbdevBackend) run(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		var initErr error
-		b.mainThread.Call(func() {
-			initErr = b.initOnMainThread(options)
-		})
-		if initErr != nil {
-			return initErr
+		type args struct {
+			b       *fbdevBackend
+			options *RunOptions
+		}
+		if err := thread.CallWithArgAndResult(b.mainThread, func(a args) error {
+			return a.b.initOnMainThread(a.options)
+		}, args{b: b, options: options}); err != nil {
+			return err
 		}
 
 		defer b.setRunningBackend(nil)
@@ -152,13 +154,23 @@ func (b *fbdevBackend) initOnMainThread(options *RunOptions) error {
 func (b *fbdevBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
-		b.mainThread.Call(func() {
+		type result struct {
+			closed bool
+			err    error
+		}
+		r := thread.CallWithArgAndResult(b.mainThread, func(b *fbdevBackend) result {
+			var r result
 			if b.eglContext != nil {
-				err = errors.Join(err, b.eglContext.Close())
+				r.closed = true
+				r.err = b.eglContext.Close()
 				b.eglContext = nil
 			}
 			b.setTerminated()
-		})
+			return r
+		}, b)
+		if r.closed {
+			err = errors.Join(err, r.err)
+		}
 	}()
 
 	for {
@@ -281,5 +293,5 @@ func (b *fbdevBackend) appendMonitors(monitors []*Monitor) []*Monitor {
 }
 
 func (b *fbdevBackend) RunOnMainThread(f func()) {
-	b.mainThread.Call(f)
+	thread.Call(b.mainThread, f)
 }

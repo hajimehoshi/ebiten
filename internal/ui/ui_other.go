@@ -58,13 +58,13 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		var err error
-		u.mainThread.Call(func() {
-			if mainErr := u.initOnMainThread(options); mainErr != nil {
-				err = mainErr
-			}
-		})
-		if err != nil {
+		type args struct {
+			u       *UserInterface
+			options *RunOptions
+		}
+		if err := thread.CallWithArgAndResult(u.mainThread, func(a args) error {
+			return a.u.initOnMainThread(a.options)
+		}, args{u: u, options: options}); err != nil {
 			return err
 		}
 

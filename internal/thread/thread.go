@@ -30,22 +30,11 @@ type Thread interface {
 	Loop(ctx context.Context) error
 	LoopAndStop(ctx context.Context) error
 
-	// TODO: Migrate remaining callers to the generic Call and CallAsync functions
-	// and remove these methods.
-	Call(f func())
-	CallAsync(f func())
-
 	call(f callable, sync bool) bool
 }
 
 type callable interface {
 	call()
-}
-
-type funcCall func()
-
-func (f funcCall) call() {
-	f()
 }
 
 var callPools sync.Map
@@ -59,6 +48,15 @@ type syncCall[A, R any] struct {
 func (c *syncCall[A, R]) call() {
 	// The waiting caller needs c.result intact and releases c after copying the result.
 	c.result = c.f(c.arg)
+}
+
+type voidCall[A any] struct {
+	f   func(A)
+	arg A
+}
+
+func (c *voidCall[A]) call() {
+	c.f(c.arg)
 }
 
 type asyncCall[A any] struct {
@@ -90,13 +88,23 @@ func releaseCall[C any](c *C, pool *sync.Pool) {
 	pool.Put(c)
 }
 
-// Call calls f with arg on t and returns its result, or the zero value if t has stopped.
-// The same blocking restrictions as t.Call apply.
-func Call[A, R any](t Thread, f func(A) R, arg A) R {
+// Call calls f on t and waits for completion, or does nothing if t has stopped.
+// On an OSThread, Call blocks until Loop executes f and must not be called from that thread.
+// On a NoopThread, Call executes f immediately.
+func Call(t Thread, f func()) {
+	CallWithArg(t, func(f func()) { f() }, f)
+}
+
+// CallWithArgAndResult calls f with arg on t and returns its result, or the zero value if t has stopped.
+// The same blocking restrictions as Call apply.
+func CallWithArgAndResult[A, R any](t Thread, f func(A) R, arg A) R {
 	if t, ok := t.(*NoopThread); ok {
-		var result R
-		t.Call(func() { result = f(arg) })
-		return result
+		if t.stopped.Load() {
+			logDiscardedCall()
+			var zero R
+			return zero
+		}
+		return f(arg)
 	}
 	c, pool := getCall[syncCall[A, R]]()
 	defer releaseCall(c, pool)
@@ -106,11 +114,34 @@ func Call[A, R any](t Thread, f func(A) R, arg A) R {
 	return c.result
 }
 
+// CallWithArg calls f with arg on t and waits for completion, or does nothing if t has stopped.
+// The same blocking restrictions as Call apply.
+func CallWithArg[A any](t Thread, f func(A), arg A) {
+	if t, ok := t.(*NoopThread); ok {
+		if t.stopped.Load() {
+			logDiscardedCall()
+			return
+		}
+		f(arg)
+		return
+	}
+	c, pool := getCall[voidCall[A]]()
+	defer releaseCall(c, pool)
+	c.f = f
+	c.arg = arg
+	t.call(c, true)
+}
+
 // CallAsync queues f with arg on t.
-// The same blocking and stopped-state behavior as t.CallAsync applies.
+// On an OSThread, CallAsync blocks until Loop accepts f and must not be called from that thread.
+// On a NoopThread, CallAsync executes f immediately. It does nothing if t has stopped.
 func CallAsync[A any](t Thread, f func(A), arg A) {
 	if t, ok := t.(*NoopThread); ok {
-		t.CallAsync(func() { f(arg) })
+		if t.stopped.Load() {
+			logDiscardedCall()
+			return
+		}
+		f(arg)
 		return
 	}
 	c, pool := getCall[asyncCall[A]]()
@@ -216,17 +247,6 @@ func (t *OSThread) stop() {
 	})
 }
 
-// Call calls f on the thread.
-//
-// Call does nothing after LoopAndStop returns.
-//
-// Do not call Call from the same thread. Call would block forever.
-//
-// Call blocks if Loop is not called.
-func (t *OSThread) Call(f func()) {
-	t.call(funcCall(f), true)
-}
-
 func (t *OSThread) call(f callable, sync bool) bool {
 	var done chan struct{}
 	if sync {
@@ -242,17 +262,6 @@ func (t *OSThread) call(f callable, sync bool) bool {
 		<-done
 	}
 	return true
-}
-
-// CallAsync tries to queue f.
-// CallAsync returns immediately if f can be queued.
-// CallAsync blocks if f cannot be queued.
-//
-// CallAsync does nothing after LoopAndStop returns.
-//
-// Do not call CallAsync from the same thread. CallAsync would block forever.
-func (t *OSThread) CallAsync(f func()) {
-	t.call(funcCall(f), false)
 }
 
 // NoopThread is used to disable threading.
@@ -283,28 +292,6 @@ func (t *NoopThread) LoopAndStop(ctx context.Context) error {
 // stop can be called multiple times.
 func (t *NoopThread) stop() {
 	t.stopped.Store(true)
-}
-
-// Call executes the func immediately.
-//
-// Call does nothing after LoopAndStop returns.
-func (t *NoopThread) Call(f func()) {
-	if t.stopped.Load() {
-		logDiscardedCall()
-		return
-	}
-	f()
-}
-
-// CallAsync executes the func immediately.
-//
-// CallAsync does nothing after LoopAndStop returns.
-func (t *NoopThread) CallAsync(f func()) {
-	if t.stopped.Load() {
-		logDiscardedCall()
-		return
-	}
-	f()
 }
 
 func (t *NoopThread) call(f callable, sync bool) bool {

@@ -67,7 +67,7 @@ func BenchmarkFlushThread(b *testing.B) {
 							b.Fatal(err)
 						}
 					}
-					renderThread.Call(func() {})
+					thread.Call(renderThread, func() {})
 					b.ReportAllocs()
 					b.ResetTimer()
 					for i := 0; i < b.N; i++ {
@@ -76,7 +76,7 @@ func BenchmarkFlushThread(b *testing.B) {
 						}
 					}
 					b.StopTimer()
-					renderThread.Call(func() {})
+					thread.Call(renderThread, func() {})
 				})
 			}
 		})

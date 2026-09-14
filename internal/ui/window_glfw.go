@@ -21,6 +21,7 @@ import (
 	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 type glfwWindow struct {
@@ -33,77 +34,69 @@ func (w *glfwWindow) IsDecorated() bool {
 	if p := w.ui.desktopWindow.windowDecorated.pending(); p != nil {
 		return *p
 	}
-	var v bool
-	w.ui.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) bool {
 		if w.ui.isTerminated() {
-			return
+			return false
 		}
 		a, err := w.ui.window.GetAttrib(glfw.Decorated)
 		if err != nil {
 			w.ui.setError(err)
-			return
+			return false
 		}
-		v = a == glfw.True
-	})
-	return v
+		return a == glfw.True
+	}, w)
 }
 
 func (w *glfwWindow) IsVisible() bool {
 	if p := w.ui.desktopWindow.windowVisible.pending(); p != nil {
 		return *p
 	}
-	var v bool
-	w.ui.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) bool {
 		if w.ui.isTerminated() {
-			return
+			return false
 		}
 		visible, err := w.ui.isWindowVisible()
 		if err != nil {
 			w.ui.setError(err)
-			return
+			return false
 		}
-		v = visible
-	})
-	return v
+		return visible
+	}, w)
 }
 
 func (w *glfwWindow) IsFloating() bool {
 	if p := w.ui.desktopWindow.windowFloating.pending(); p != nil {
 		return *p
 	}
-	var v bool
-	w.ui.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) bool {
 		if w.ui.isTerminated() {
-			return
+			return false
 		}
 		a, err := w.ui.window.GetAttrib(glfw.Floating)
 		if err != nil {
 			w.ui.setError(err)
-			return
+			return false
 		}
-		v = a == glfw.True
-	})
-	return v
+		return a == glfw.True
+	}, w)
 }
 
 func (w *glfwWindow) IsMaximized() bool {
-	var v bool
-	w.ui.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) bool {
 		if w.ui.isTerminated() {
-			return
+			return false
 		}
 		m, err := w.ui.isWindowMaximized()
 		if err != nil {
 			w.ui.setError(err)
-			return
+			return false
 		}
-		v = m
-	})
-	return v
+		return m
+	}, w)
 }
 
 func (w *glfwWindow) Maximize() {
-	w.ui.mainThread.Call(func() {
+	thread.CallWithArg(w.ui.mainThread, func(w *glfwWindow) {
 		if w.ui.isTerminated() {
 			return
 		}
@@ -115,27 +108,25 @@ func (w *glfwWindow) Maximize() {
 			w.ui.setError(err)
 			return
 		}
-	})
+	}, w)
 }
 
 func (w *glfwWindow) IsMinimized() bool {
-	var v bool
-	w.ui.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) bool {
 		if w.ui.isTerminated() {
-			return
+			return false
 		}
 		iconified, err := w.ui.isWindowIconified()
 		if err != nil {
 			w.ui.setError(err)
-			return
+			return false
 		}
-		v = iconified
-	})
-	return v
+		return iconified
+	}, w)
 }
 
 func (w *glfwWindow) Minimize() {
-	w.ui.mainThread.Call(func() {
+	thread.CallWithArg(w.ui.mainThread, func(w *glfwWindow) {
 		if w.ui.isTerminated() {
 			return
 		}
@@ -147,11 +138,11 @@ func (w *glfwWindow) Minimize() {
 			w.ui.setError(err)
 			return
 		}
-	})
+	}, w)
 }
 
 func (w *glfwWindow) Restore() {
-	w.ui.mainThread.Call(func() {
+	thread.CallWithArg(w.ui.mainThread, func(w *glfwWindow) {
 		if w.ui.isTerminated() {
 			return
 		}
@@ -163,60 +154,54 @@ func (w *glfwWindow) Restore() {
 			w.ui.setError(err)
 			return
 		}
-	})
+	}, w)
 }
 
 func (w *glfwWindow) Position() (int, int) {
 	if p := w.ui.desktopWindow.windowPositionInDIP.pending(); p != nil {
 		return p.X, p.Y
 	}
-	var x, y int
-	w.ui.mainThread.Call(func() {
+	p := thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) image.Point {
 		if w.ui.isTerminated() {
-			return
+			return image.Point{}
 		}
-		x = w.ui.windowXInDIP
-		y = w.ui.windowYInDIP
-	})
-	return x, y
+		return image.Pt(w.ui.windowXInDIP, w.ui.windowYInDIP)
+	}, w)
+	return p.X, p.Y
 }
 
 func (w *glfwWindow) Size() (int, int) {
 	if p := w.ui.desktopWindow.windowSizeInDIP.pending(); p != nil {
 		return w.ui.desktopWindow.adjustWindowSizeBasedOnSizeLimitsInDIP(p.X, p.Y)
 	}
-	var ww, wh int
-	w.ui.mainThread.Call(func() {
+	p := thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) image.Point {
 		if w.ui.isTerminated() {
-			return
+			return image.Point{}
 		}
-		ww = w.ui.windowWidthInDIP
-		wh = w.ui.windowHeightInDIP
-	})
-	return ww, wh
+		return image.Pt(w.ui.windowWidthInDIP, w.ui.windowHeightInDIP)
+	}, w)
+	return p.X, p.Y
 }
 
 func (w *glfwWindow) IsMousePassthrough() bool {
 	if p := w.ui.desktopWindow.windowMousePassthrough.pending(); p != nil {
 		return *p
 	}
-	var v bool
-	w.ui.mainThread.Call(func() {
+	return thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) bool {
 		if w.ui.isTerminated() {
-			return
+			return false
 		}
 		a, err := w.ui.window.GetAttrib(glfw.MousePassthrough)
 		if err != nil {
 			w.ui.setError(err)
-			return
+			return false
 		}
-		v = a == glfw.True
-	})
-	return v
+		return a == glfw.True
+	}, w)
 }
 
 func (w *glfwWindow) RequestAttention() {
-	w.ui.mainThread.Call(func() {
+	thread.CallWithArg(w.ui.mainThread, func(w *glfwWindow) {
 		if w.ui.isTerminated() {
 			return
 		}
@@ -228,7 +213,7 @@ func (w *glfwWindow) RequestAttention() {
 			w.ui.setError(err)
 			return
 		}
-	})
+	}, w)
 }
 
 // applyWindowSettings must be called from the main thread.

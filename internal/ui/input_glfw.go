@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
@@ -338,7 +339,7 @@ func (u *glfwBackend) registerInputCallbacks() error {
 
 // updateInputStateForFrame updates the input state using pre-fetched cursor position
 // and device scale factor. GetCursorPos and gamepad.Update are already called in
-// the mainThread.Call block of updateGame, so this avoids an extra round-trip.
+// the thread.CallWithArgAndResult block of updateGame, so this avoids an extra round-trip.
 func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
 	s := deviceScaleFactor
 
@@ -349,11 +350,13 @@ func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error 
 		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
 		cx2 = dipToGLFWPixel(cx2, s)
 		cy2 = dipToGLFWPixel(cy2, s)
-		var err error
-		u.mainThread.Call(func() {
-			err = u.window.SetCursorPos(cx2, cy2)
-		})
-		if err != nil {
+		type args struct {
+			u    *glfwBackend
+			x, y float64
+		}
+		if err := thread.CallWithArgAndResult(u.mainThread, func(a args) error {
+			return a.u.window.SetCursorPos(a.x, a.y)
+		}, args{u: u, x: cx2, y: cy2}); err != nil {
 			return err
 		}
 	} else {
@@ -369,7 +372,7 @@ func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error 
 		u.input.setCursorPos(cx, cy)
 	}
 
-	// gamepad.Update is already called in updateGame's mainThread.Call block.
+	// gamepad.Update is already called in updateGame's thread.CallWithArgAndResult block.
 	return nil
 }
 
@@ -379,27 +382,30 @@ func (u *glfwBackend) KeyName(key Key) string {
 		return ""
 	}
 
-	var name string
-	u.mainThread.Call(func() {
+	type args struct {
+		u   *glfwBackend
+		key glfw.Key
+	}
+	return thread.CallWithArgAndResult(u.mainThread, func(a args) string {
+		u, gk := a.u, a.key
 		if u.isTerminated() {
-			return
+			return ""
 		}
 		scancode, err := glfw.GetKeyScancode(gk)
 		if err != nil {
 			u.setError(err)
-			return
+			return ""
 		}
 		if scancode == -1 {
-			return
+			return ""
 		}
 		n, err := glfw.GetKeyName(gk, 0)
 		if err != nil {
 			u.setError(err)
-			return
+			return ""
 		}
-		name = n
-	})
-	return name
+		return n
+	}, args{u: u, key: gk})
 }
 
 // syncModKeysByMods reconciles per-key modifier state with a mods bitmask.
