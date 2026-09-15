@@ -31,6 +31,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/imagebridge"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -1698,22 +1699,19 @@ func (i *Image) ensureTmpIndices(n int) []uint32 {
 func (*Image) private() {
 }
 
-// Do not use usage callbacks except for Ebitengine packages.
-// There is no guarantee for compatibility of this function.
-
 var currentCallbackToken atomic.Int64
 
-//go:linkname originalImage
-func originalImage(img *Image) *Image {
-	if img.isSubImage() {
-		return img.original
-	}
-	return img
-}
-
-//go:linkname addUsageCallback
-func addUsageCallback(img *Image, callback func(image *Image)) int64 {
-	return img.addUsageCallback(callback)
+func init() {
+	imagebridge.Set(imagebridge.Bridge[*Image]{
+		OriginalImage: func(img *Image) *Image {
+			if img.isSubImage() {
+				return img.original
+			}
+			return img
+		},
+		AddUsage:    (*Image).addUsageCallback,
+		RemoveUsage: (*Image).removeUsageCallback,
+	})
 }
 
 func (i *Image) addUsageCallback(callback func(image *Image)) int64 {
@@ -1732,11 +1730,6 @@ func (i *Image) addUsageCallback(callback func(image *Image)) int64 {
 		fn: callback,
 	}
 	return token
-}
-
-//go:linkname removeUsageCallback
-func removeUsageCallback(img *Image, token int64) {
-	img.removeUsageCallback(token)
 }
 
 func (i *Image) removeUsageCallback(token int64) {

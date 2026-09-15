@@ -20,10 +20,10 @@ import (
 	"runtime"
 	"slices"
 	"sync"
-	_ "unsafe"
 	"weak"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/imagebridge"
 )
 
 // FillRule is the rule whether an overlapped region is rendered or not.
@@ -53,6 +53,8 @@ var (
 		},
 	}
 	theFillPathM sync.Mutex
+
+	theImageBridge = imagebridge.Get[*ebiten.Image]()
 )
 
 // FillOptions is options to fill a path.
@@ -89,7 +91,7 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	bounds := dst.Bounds()
 
 	// Get the original image if dst is a sub-image to integrate the callbacks.
-	dst = originalImage(dst)
+	dst = theImageBridge.OriginalImage(dst)
 
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
@@ -98,7 +100,7 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 
 	// Remove the previous registered callbacks.
 	if token, ok := theCallbackTokens[key]; ok {
-		removeUsageCallback(dst, token)
+		theImageBridge.RemoveUsage(dst, token)
 	}
 	delete(theCallbackTokens, key)
 
@@ -118,11 +120,11 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	s.addPath(path, bounds, drawPathOptions.ColorScale)
 
 	// Use an independent callback function to avoid unexpected captures.
-	theCallbackTokens[key] = addUsageCallback(dst, fillPathCallback)
+	theCallbackTokens[key] = theImageBridge.AddUsage(dst, fillPathCallback)
 }
 
 func fillPathCallback(dst *ebiten.Image) {
-	if originalImage(dst) != dst {
+	if theImageBridge.OriginalImage(dst) != dst {
 		panic("vector: dst must be the original image")
 	}
 
@@ -133,7 +135,7 @@ func fillPathCallback(dst *ebiten.Image) {
 
 	// Remove the callback not to call this twice.
 	if token, ok := theCallbackTokens[key]; ok {
-		removeUsageCallback(dst, token)
+		theImageBridge.RemoveUsage(dst, token)
 	}
 	delete(theCallbackTokens, key)
 
@@ -166,15 +168,6 @@ func releaseFillPathsState(key weak.Pointer[ebiten.Image]) {
 	s.reset()
 	theFillPathsStatesPool.Put(s)
 }
-
-//go:linkname originalImage github.com/hajimehoshi/ebiten/v2.originalImage
-func originalImage(img *ebiten.Image) *ebiten.Image
-
-//go:linkname addUsageCallback github.com/hajimehoshi/ebiten/v2.addUsageCallback
-func addUsageCallback(img *ebiten.Image, fn func(img *ebiten.Image)) int64
-
-//go:linkname removeUsageCallback github.com/hajimehoshi/ebiten/v2.removeUsageCallback
-func removeUsageCallback(img *ebiten.Image, token int64)
 
 type offsetAndColor struct {
 	offsetX    float32
