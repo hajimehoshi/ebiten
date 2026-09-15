@@ -990,6 +990,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		if m := textureVariableRe.FindStringSubmatch(e.Name); m != nil {
 			i, _ := strconv.Atoi(m[1])
+			if i >= cs.ir.TextureCount {
+				cs.addError(e.Pos(), fmt.Sprintf("texture index out of range: %s", e.Name))
+				return nil, nil, nil, false
+			}
 			return []shaderir.Expr{
 				{
 					Type:  shaderir.TextureVariable,

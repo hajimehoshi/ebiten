@@ -213,6 +213,7 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 		fragmentEntry: fragmentEntry,
 	}
 	s.ir.SourceID = shaderir.CalcSourceID(src)
+	s.ir.TextureCount = textureCount
 	s.global.ir = &shaderir.Block{}
 	s.parse(f)
 
@@ -225,7 +226,6 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 
 	// TODO: Make a call graph and reorder the elements.
 
-	s.ir.TextureCount = textureCount
 	return &s.ir, nil
 }
 
@@ -580,6 +580,14 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 			if !ok {
 				return nil, nil, nil, false
 			}
+			if len(es) == 0 || len(rts) == 0 {
+				s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+				return nil, nil, nil, false
+			}
+			if len(es) > 1 || len(rts) > 1 {
+				s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+				return nil, nil, nil, false
+			}
 
 			if t.Main == shaderir.None {
 				ts, ok := s.functionReturnTypes(block, init)
@@ -602,6 +610,14 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 			for i, rt := range rts {
 				if !canAssign(&t, &rt, es[i].Const) {
 					s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
+				}
+				if es[i].Const != nil {
+					switch t.Main {
+					case shaderir.Int:
+						es[i].Const = gconstant.ToInt(es[i].Const)
+					case shaderir.Float:
+						es[i].Const = gconstant.ToFloat(es[i].Const)
+					}
 				}
 			}
 
@@ -675,6 +691,15 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 }
 
 func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSpec) ([]constant, bool) {
+	if len(vs.Names) > len(vs.Values) {
+		s.addError(vs.Pos(), "missing init expr for const declaration")
+		return nil, false
+	}
+	if len(vs.Names) < len(vs.Values) {
+		s.addError(vs.Pos(), "extra init expr for const declaration")
+		return nil, false
+	}
+
 	var t shaderir.Type
 	if vs.Type != nil {
 		var ok bool

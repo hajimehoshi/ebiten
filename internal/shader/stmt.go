@@ -65,10 +65,18 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			if !ok {
 				return nil, false
 			}
+			if len(rhs) != 1 || len(rts) != 1 {
+				cs.addError(stmt.Pos(), fmt.Sprintf("the right-hand side of %s must be a single value", stmt.Tok))
+				return nil, false
+			}
 			stmts = append(stmts, ss...)
 
 			lhs, lts, ss, ok := cs.parseExpr(block, fname, stmt.Lhs[0], true)
 			if !ok {
+				return nil, false
+			}
+			if len(lhs) != 1 || len(lts) != 1 {
+				cs.addError(stmt.Pos(), fmt.Sprintf("the left-hand side of %s must be a single value", stmt.Tok))
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
@@ -308,6 +316,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 	case *ast.IncDecStmt:
 		exprs, ts, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
 		if !ok {
+			return nil, false
+		}
+		if len(exprs) != 1 || len(ts) != 1 {
+			cs.addError(stmt.Pos(), fmt.Sprintf("the operand of %s must be a single value", stmt.Tok))
+			return nil, false
+		}
+		if exprs[0].Type == shaderir.UniformVariable {
+			cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
 			return nil, false
 		}
 		stmts = append(stmts, ss...)
