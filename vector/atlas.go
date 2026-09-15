@@ -158,7 +158,11 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 			}
 		}
 		if a.atlasImages[i] != nil {
-			a.atlasImages[i].Clear()
+			// Every region packed into this image lies in (0, 0)-(s.X, s.Y),
+			// so pixels outside it are never read in this pass.
+			sub := a.atlasImages[i].RecyclableSubImage(image.Rect(0, 0, s.X, s.Y))
+			sub.Clear()
+			sub.Recycle()
 		} else {
 			// Extend the bounds a little bit by roundUpAtlasSize to avoid creating an image too often.
 			w := min(maxImageSize, max(roundUpAtlasSize(s.X), origWidth))

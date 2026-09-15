@@ -15,6 +15,9 @@
 package vector_test
 
 import (
+	"bytes"
+	"fmt"
+	"image"
 	"image/color"
 	"runtime"
 	"testing"
@@ -71,5 +74,65 @@ func TestFillPathDoesNotRetainDestination(t *testing.T) {
 	// The destination image is no longer used. The states must be released after the image is collected.
 	if !waitForEmptyFillPathsStates(t) {
 		t.Errorf("the states must be released after the destination image is collected: fill paths states: %d, callback tokens: %d", vector.FillPathsStateCount(), vector.CallbackTokenCount())
+	}
+}
+
+func TestFillPathAfterLargePath(t *testing.T) {
+	const size = 256
+
+	fillRect := func(dst *ebiten.Image, r image.Rectangle, antialias bool) {
+		var path vector.Path
+		path.MoveTo(float32(r.Min.X), float32(r.Min.Y))
+		path.LineTo(float32(r.Max.X), float32(r.Min.Y))
+		path.LineTo(float32(r.Max.X), float32(r.Max.Y))
+		path.LineTo(float32(r.Min.X), float32(r.Max.Y))
+		path.Close()
+		op := &vector.DrawPathOptions{}
+		op.AntiAlias = antialias
+		op.ColorScale.ScaleWithColor(color.White)
+		vector.FillPath(dst, &path, nil, op)
+	}
+
+	for _, antialias := range []bool{false, true} {
+		t.Run(fmt.Sprintf("antialias=%t", antialias), func(t *testing.T) {
+			dst := ebiten.NewImage(size, size)
+			defer dst.Deallocate()
+
+			// A path covering the whole destination makes the stencil atlas image large.
+			fillRect(dst, image.Rect(0, 0, size, size), antialias)
+			// Clear flushes the pending path.
+			dst.Clear()
+
+			// A smaller path in a later flush reuses the large atlas image.
+			// Stale stencil data would show up around the path.
+			// The atlas is shared, so the expected pixels are computed here.
+			small := image.Rect(4, 4, 12, 12)
+			fillRect(dst, small, antialias)
+			got := make([]byte, 4*size*size)
+			dst.ReadPixels(got)
+
+			var mismatches int
+			var firstX, firstY int
+			for y := range size {
+				for x := range size {
+					var want byte
+					if image.Pt(x, y).In(small) {
+						want = 0xff
+					}
+					i := 4 * (y*size + x)
+					if bytes.Equal(got[i:i+4], []byte{want, want, want, want}) {
+						continue
+					}
+					if mismatches == 0 {
+						firstX, firstY = x, y
+					}
+					mismatches++
+				}
+			}
+			if mismatches > 0 {
+				i := 4 * (firstY*size + firstX)
+				t.Errorf("%d pixels differ; first at (%d, %d): got: %v, in the path: %t", mismatches, firstX, firstY, got[i:i+4], image.Pt(firstX, firstY).In(small))
+			}
+		})
 	}
 }
