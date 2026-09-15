@@ -26,9 +26,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 )
 
+// newDOMException returns a DOMException with the given name and message.
+func newDOMException(name, message string) js.Value {
+	return js.Global().Get("DOMException").New(message, name)
+}
+
 // newFakeDirEntry returns a fake FileSystemDirectoryEntry with the given child directories.
-// Its readers invoke their callbacks asynchronously, like a browser does.
-func newFakeDirEntry(t *testing.T, name string, childNames []string) js.Value {
+// Its readers invoke their callbacks asynchronously, like a browser does. When readErr is
+// truthy, reading fails with it instead of listing the children.
+func newFakeDirEntry(t *testing.T, name string, childNames []string, readErr js.Value) js.Value {
 	var funcs []js.Func
 	t.Cleanup(func() {
 		for _, f := range funcs {
@@ -53,6 +59,10 @@ func newFakeDirEntry(t *testing.T, name string, childNames []string) js.Value {
 	createReader := register(js.FuncOf(func(this js.Value, args []js.Value) any {
 		var read bool
 		readEntries := register(js.FuncOf(func(this js.Value, args []js.Value) any {
+			if readErr.Truthy() {
+				js.Global().Call("setTimeout", args[1], 0, readErr)
+				return nil
+			}
 			ents := []any{}
 			if !read {
 				ents = children
@@ -77,7 +87,7 @@ func newFakeDirEntry(t *testing.T, name string, childNames []string) js.Value {
 
 func TestDirReadDirConcurrently(t *testing.T) {
 	childNames := []string{"a", "b", "c"}
-	root := newFakeDirEntry(t, "root", childNames)
+	root := newFakeDirEntry(t, "root", childNames, js.Undefined())
 
 	fsys, err := file.NewFileEntryFS([]js.Value{root})
 	if err != nil {
@@ -132,8 +142,9 @@ type fakeFileCalls struct {
 }
 
 // newFakeFileEntry returns a fake FileSystemDirectoryEntry with one child file of the given
-// content. Its getFile, file and arrayBuffer settle asynchronously, like a browser does.
-func newFakeFileEntry(t *testing.T, name string, content []byte, calls *fakeFileCalls) js.Value {
+// content. Its getFile, file and arrayBuffer settle asynchronously, like a browser does. When
+// fileErr is truthy, file fails with it instead of returning the File.
+func newFakeFileEntry(t *testing.T, name string, content []byte, calls *fakeFileCalls, fileErr js.Value) js.Value {
 	var funcs []js.Func
 	t.Cleanup(func() {
 		for _, f := range funcs {
@@ -167,6 +178,10 @@ func newFakeFileEntry(t *testing.T, name string, content []byte, calls *fakeFile
 
 	fileFn := register(js.FuncOf(func(this js.Value, args []js.Value) any {
 		calls.file++
+		if fileErr.Truthy() {
+			js.Global().Call("setTimeout", args[1], 0, fileErr)
+			return nil
+		}
 		js.Global().Call("setTimeout", args[0], 0, fileObj)
 		return nil
 	}))
@@ -191,10 +206,10 @@ func newFakeFileEntry(t *testing.T, name string, content []byte, calls *fakeFile
 	})
 }
 
-func openFakeFile(t *testing.T, content []byte, calls *fakeFileCalls) fs.File {
+func openFakeFile(t *testing.T, content []byte, calls *fakeFileCalls, fileErr js.Value) fs.File {
 	t.Helper()
 
-	root := newFakeFileEntry(t, "a.txt", content, calls)
+	root := newFakeFileEntry(t, "a.txt", content, calls, fileErr)
 	fsys, err := file.NewFileEntryFS([]js.Value{root})
 	if err != nil {
 		t.Fatal(err)
@@ -212,7 +227,7 @@ func openFakeFile(t *testing.T, content []byte, calls *fakeFileCalls) fs.File {
 func TestFileReadConcurrently(t *testing.T) {
 	content := []byte("0123456789abcdefghij")
 	var calls fakeFileCalls
-	f := openFakeFile(t, content, &calls)
+	f := openFakeFile(t, content, &calls, js.Undefined())
 
 	const goroutines = 2
 	bufs := make([][]byte, goroutines)
@@ -253,7 +268,7 @@ func TestFileReadConcurrently(t *testing.T) {
 func TestFileStatAndReadConcurrently(t *testing.T) {
 	content := []byte("0123456789")
 	var calls fakeFileCalls
-	f := openFakeFile(t, content, &calls)
+	f := openFakeFile(t, content, &calls, js.Undefined())
 
 	var size int64
 	var statErr, readErr error
@@ -283,5 +298,51 @@ func TestFileStatAndReadConcurrently(t *testing.T) {
 	}
 	if got, want := size, int64(len(content)); got != want {
 		t.Errorf("size: got: %d, want: %d", got, want)
+	}
+}
+
+func TestFileFileFailure(t *testing.T) {
+	var calls fakeFileCalls
+	f := openFakeFile(t, []byte("0123456789"), &calls, newDOMException("NotFoundError", "gone"))
+
+	if _, err := f.Stat(); err == nil {
+		t.Error("Stat must fail when the entry's file fails")
+	} else {
+		var pathErr *fs.PathError
+		if !errors.As(err, &pathErr) {
+			t.Errorf("Stat error: got: %T, want: *fs.PathError", err)
+		}
+	}
+	if _, err := f.Read(make([]byte, 1)); err == nil {
+		t.Error("Read must fail when the entry's file fails")
+	}
+}
+
+func TestDirReadDirFailure(t *testing.T) {
+	root := newFakeDirEntry(t, "root", []string{"a"}, newDOMException("NotReadableError", "unreadable"))
+
+	fsys, err := file.NewFileEntryFS([]js.Value{root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := fsys.Open(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+
+	d, ok := f.(fs.ReadDirFile)
+	if !ok {
+		t.Fatalf("a directory must implement fs.ReadDirFile but not: %T", f)
+	}
+	if _, err := d.ReadDir(-1); err == nil {
+		t.Error("ReadDir must fail when readEntries fails")
+	} else {
+		var pathErr *fs.PathError
+		if !errors.As(err, &pathErr) {
+			t.Errorf("ReadDir error: got: %T, want: *fs.PathError", err)
+		}
 	}
 }

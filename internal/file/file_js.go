@@ -180,36 +180,60 @@ type file struct {
 	mu sync.Mutex
 }
 
-func getFile(entry js.Value) js.Value {
-	ch := make(chan js.Value, 1)
-	cb := js.FuncOf(func(this js.Value, args []js.Value) any {
-		ch <- args[0]
+func getFile(entry js.Value) (js.Value, error) {
+	chFile := make(chan js.Value, 1)
+	cbSuccess := js.FuncOf(func(this js.Value, args []js.Value) any {
+		chFile <- args[0]
 		return nil
 	})
-	defer cb.Release()
+	defer cbSuccess.Release()
 
-	entry.Call("file", cb)
-	return <-ch
+	chError := make(chan js.Value, 1)
+	cbFailure := js.FuncOf(func(this js.Value, args []js.Value) any {
+		chError <- args[0]
+		return nil
+	})
+	defer cbFailure.Release()
+
+	entry.Call("file", cbSuccess, cbFailure)
+	select {
+	case v := <-chFile:
+		return v, nil
+	case err := <-chError:
+		return js.Value{}, &fs.PathError{
+			Op:   "stat",
+			Path: entry.Get("name").String(),
+			Err:  errors.New(err.Call("toString").String()),
+		}
+	}
 }
 
 // ensureFileLocked returns the JS File of the entry.
 //
 // The caller must hold f.mu.
-func (f *file) ensureFileLocked() js.Value {
+func (f *file) ensureFileLocked() (js.Value, error) {
 	if f.file.Truthy() {
-		return f.file
+		return f.file, nil
 	}
-	f.file = getFile(f.entry)
-	return f.file
+	v, err := getFile(f.entry)
+	if err != nil {
+		return js.Value{}, err
+	}
+	f.file = v
+	return f.file, nil
 }
 
 func (f *file) Stat() (fs.FileInfo, error) {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 
+	v, err := f.ensureFileLocked()
+	if err != nil {
+		return nil, err
+	}
 	return &fileInfo{
 		name: f.entry.Get("name").String(),
-		file: f.ensureFileLocked(),
+		file: v,
 	}, nil
 }
 
@@ -219,6 +243,11 @@ func (f *file) Stat() (fs.FileInfo, error) {
 func (f *file) ensureUint8ArrayLocked() (js.Value, error) {
 	if f.uint8Array.Truthy() {
 		return f.uint8Array, nil
+	}
+
+	v, err := f.ensureFileLocked()
+	if err != nil {
+		return js.Value{}, err
 	}
 
 	chArrayBuffer := make(chan js.Value, 1)
@@ -235,7 +264,7 @@ func (f *file) ensureUint8ArrayLocked() (js.Value, error) {
 	})
 	defer cbCatch.Release()
 
-	f.ensureFileLocked().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
+	v.Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
 	select {
 	case ab := <-chArrayBuffer:
 		f.uint8Array = js.Global().Get("Uint8Array").New(ab)
@@ -331,16 +360,16 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 
 	if d.fileEntries == nil {
 		// The callbacks below run on another goroutine. fileEntries is published to d only after
-		// the channel is closed, so that d's fields are written by this goroutine alone.
+		// the channel delivers the result, so that d's fields are written by this goroutine alone.
 		var fileEntries []js.Value
 		names := map[string]struct{}{}
 		for _, dirEntry := range d.dirEntries {
-			ch := make(chan struct{})
+			ch := make(chan error, 1)
 			var rec js.Func
 			cb := js.FuncOf(func(this js.Value, args []js.Value) any {
 				entries := args[0]
 				if entries.Length() == 0 {
-					close(ch)
+					ch <- nil
 					return nil
 				}
 				for i := 0; i < entries.Length(); i++ {
@@ -365,15 +394,27 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 			})
 			defer cb.Release()
 
+			cbFailure := js.FuncOf(func(this js.Value, args []js.Value) any {
+				ch <- errors.New(args[0].Call("toString").String())
+				return nil
+			})
+			defer cbFailure.Release()
+
 			reader := dirEntry.Call("createReader")
 			rec = js.FuncOf(func(this js.Value, args []js.Value) any {
-				reader.Call("readEntries", cb)
+				reader.Call("readEntries", cb, cbFailure)
 				return nil
 			})
 			defer rec.Release()
 
 			rec.Value.Call("call")
-			<-ch
+			if err := <-ch; err != nil {
+				return nil, &fs.PathError{
+					Op:   "readdir",
+					Path: d.name,
+					Err:  err,
+				}
+			}
 		}
 		d.fileEntries = fileEntries
 	}
@@ -398,7 +439,11 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 			name: entry.Get("name").String(),
 		}
 		if entry.Get("isFile").Bool() {
-			fi.file = getFile(entry)
+			v, err := getFile(entry)
+			if err != nil {
+				return nil, err
+			}
+			fi.file = v
 		}
 		ents[i] = fs.FileInfoToDirEntry(fi)
 	}
