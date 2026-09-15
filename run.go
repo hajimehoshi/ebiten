@@ -228,7 +228,7 @@ var Termination = ui.RegularTermination
 // This is not related to framerate (display's refresh rate).
 //
 // RunGame returns an error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) Update returns an error. In the case of 3), RunGame returns the error as is, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGame currently returns the error as is, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
@@ -354,7 +354,7 @@ type RunGameOptions struct {
 // This is not related to framerate (display's refresh rate).
 //
 // RunGameWithOptions returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) Update returns an error. In the case of 3), RunGameWithOptions returns the error as is, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGameWithOptions currently returns the error as is, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
