@@ -90,7 +90,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 		})
 	}
 
-	// Remove an unused gamepads.
+	// Remove unused gamepads.
 	gamepads.remove(func(gamepad *Gamepad) bool {
 		_, ok := g.ids[gamepad.native.(*nativeGamepadImpl).id]
 		return !ok

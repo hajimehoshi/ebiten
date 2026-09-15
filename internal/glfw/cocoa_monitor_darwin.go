@@ -27,9 +27,9 @@ func init() {
 
 // GammaRamp describes the gamma ramp for a monitor.
 type GammaRamp struct {
-	Red   []uint16 // A slice of value describing the response of the red channel.
-	Green []uint16 // A slice of value describing the response of the green channel.
-	Blue  []uint16 // A slice of value describing the response of the blue channel.
+	Red   []uint16 // A slice of values describing the response of the red channel.
+	Green []uint16 // A slice of values describing the response of the green channel.
+	Blue  []uint16 // A slice of values describing the response of the blue channel.
 }
 
 // macOS-specific helper functions

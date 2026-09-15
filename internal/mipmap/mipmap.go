@@ -33,7 +33,7 @@ func canUseMipmap(imageType atlas.ImageType) bool {
 	return false
 }
 
-// Mipmap is a set of buffered.Image sorted by the order of mipmap level.
+// Mipmap is a set of buffered.Image indexed by the mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
 	width     int
@@ -249,7 +249,7 @@ func (m *Mipmap) Deallocate() {
 	m.orig.Deallocate()
 }
 
-// mipmapLevel returns an appropriate mipmap level for the given distance.
+// mipmapLevelFromDistance returns an appropriate mipmap level for the given distance.
 func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32) int {
 	const maxLevel = 6
 

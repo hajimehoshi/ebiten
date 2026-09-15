@@ -569,7 +569,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					if !((argts[0].Equal(&argts[1]) && argts[0].Equal(&argts[2])) ||
 						(argts[0].IsFloatVector() && argts[1].Main == shaderir.Float && argts[2].Main == shaderir.Float) ||
 						(argts[0].IsIntVector() && argts[1].Main == shaderir.Int && argts[2].Main == shaderir.Int)) {
-						cs.addError(e.Pos(), fmt.Sprintf("the second and the third arguments for %s must equal to the first argument %s or float or int but %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the second and the third arguments for %s must equal the first argument %s or float or int but %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Mix:
@@ -578,12 +578,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 						return nil, nil, nil, false
 					}
 					if !argts[0].Equal(&argts[2]) && argts[2].Main != shaderir.Float {
-						cs.addError(e.Pos(), fmt.Sprintf("the third arguments for %s must equal to the first/second argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[2].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the third argument for %s must equal the first/second argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[2].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Smoothstep:
 					if (!argts[0].Equal(&argts[1]) || !argts[0].Equal(&argts[2])) && (argts[0].Main != shaderir.Float || argts[1].Main != shaderir.Float) {
-						cs.addError(e.Pos(), fmt.Sprintf("the first and the second arguments for %s must equal to the third argument %s or float but %s and %s", callee.BuiltinFunc, argts[2].String(), argts[0].String(), argts[1].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the first and the second arguments for %s must equal the third argument %s or float but %s and %s", callee.BuiltinFunc, argts[2].String(), argts[0].String(), argts[1].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Refract:
@@ -760,12 +760,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				switch callee.BuiltinFunc {
 				case shaderir.Mod:
 					if !argts[0].Equal(&argts[1]) && argts[1].Main != shaderir.Float {
-						cs.addError(e.Pos(), fmt.Sprintf("the second argument for %s must equal to the first argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the second argument for %s must equal the first argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Step:
 					if !argts[0].Equal(&argts[1]) && argts[0].Main != shaderir.Float {
-						cs.addError(e.Pos(), fmt.Sprintf("the first argument for %s must equal to the second argument %s or float but %s", callee.BuiltinFunc, argts[1].String(), argts[0].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the first argument for %s must equal the second argument %s or float but %s", callee.BuiltinFunc, argts[1].String(), argts[0].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Cross:
@@ -924,7 +924,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			// TODO: Is this an error?
 		}
 
-		// These local-variable expressions are used for an outside function callers.
+		// These local-variable expressions are used by callers of an outside function.
 		var exprs []shaderir.Expr
 		for _, p := range outParams {
 			exprs = append(exprs, shaderir.Expr{
@@ -936,7 +936,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 	case *ast.Ident:
 		if e.Name == "_" {
-			// In the context where a local variable is marked as used, any expressions must have its
+			// In the context where a local variable is marked as used, any expression must have its
 			// meaning. Then, a blank identifier is not available there.
 			if markLocalVariableUsed {
 				cs.addError(e.Pos(), "cannot use _ as value")

@@ -26,7 +26,7 @@ type TextInputDriver interface {
 	// StartTextInput seeds the text buffer with text and the selection, in
 	// UTF-16 units, and shows the virtual keyboard. The caret bounds, in the
 	// view's pixels, anchor the platform text editor. States reported for the
-	// buffer carry generation back.
+	// buffer carry the generation back.
 	StartTextInput(text string, selectionStartInUTF16, selectionEndInUTF16, caretX, caretY, caretWidth, caretHeight, generation int)
 
 	// DismissTextInput hides the virtual keyboard and drops the text buffer's

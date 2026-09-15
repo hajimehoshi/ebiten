@@ -549,7 +549,7 @@ func variationAxesFromLoader(loader *opentype.Loader) []VariationAxis {
 }
 
 // UnsafeInternal returns its font.Face.
-// The return value type is any since github.com/go-text/typesettings's API is now unstable.
+// The return value type is any since github.com/go-text/typesetting's API is now unstable.
 //
 // UnsafeInternal is unsafe since this might make internal cache states out of sync.
 //

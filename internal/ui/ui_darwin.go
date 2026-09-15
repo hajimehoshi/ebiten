@@ -160,7 +160,7 @@ func (u *UserInterface) initializePlatform() error {
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
 					invalidateFullscreen(true)
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
-					// Even a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
+					// Even if a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
 					// In this case, the window size limitation is disabled temporarily.
 					// When exiting from fullscreen, reset the window size limitation.
 					// The window delegate methods are invoked only while a GLFW window exists,
@@ -546,7 +546,7 @@ func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error 
 
 func (u *glfwBackend) initializeWindowAfterCreation(w *glfw.Window) error {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
-	// Enable resizing temporary before making the window fullscreen.
+	// Enable resizing temporarily before making the window fullscreen.
 	cocoaWindow, err := w.GetCocoaWindow()
 	if err != nil {
 		return err

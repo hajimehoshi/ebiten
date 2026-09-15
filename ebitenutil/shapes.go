@@ -39,7 +39,7 @@ func DrawRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color) {
 	vector.FillRect(dst, float32(x), float32(y), float32(width), float32(height), clr, false)
 }
 
-// DrawCircle draws a circle on given destination dst.
+// DrawCircle draws a circle on the given destination dst.
 //
 // DrawCircle is intended to be used mainly for debugging or prototyping purpose.
 //

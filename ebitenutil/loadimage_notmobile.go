@@ -27,10 +27,10 @@ import (
 // Image decoders must be imported when using NewImageFromFile. For example,
 // if you want to load a PNG image, you'd need to add `_ "image/png"` to the import section.
 //
-// How to solve path depends on your environment. This varies on your desktop or web browser.
+// How to resolve the path depends on your environment. This varies by your desktop or web browser.
 // Note that this doesn't work on mobiles.
 //
-// For productions, instead of using NewImageFromFile, it is safer to embed your resources with go:embed.
+// For production, instead of using NewImageFromFile, it is safer to embed your resources with go:embed.
 func NewImageFromFile(path string) (*ebiten.Image, image.Image, error) {
 	file, err := OpenFile(path)
 	if err != nil {

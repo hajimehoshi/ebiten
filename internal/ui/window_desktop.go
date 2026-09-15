@@ -157,7 +157,7 @@ func (w *desktopWindow) isWindowMaximizable() bool {
 	return maxw == glfw.DontCare && maxh == glfw.DontCare
 }
 
-// adjustWindowSizeBasedOnSizeLimitsInDIP adjust the size based on the window size limits.
+// adjustWindowSizeBasedOnSizeLimitsInDIP adjusts the size based on the window size limits.
 // width and height are in device-independent pixels.
 func (w *desktopWindow) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height int) (int, int) {
 	minw, minh, maxw, maxh := w.getWindowSizeLimitsInDIP()

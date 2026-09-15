@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package vorbis provides Ogg/Vorbis decoder.
+// Package vorbis provides an Ogg/Vorbis decoder.
 package vorbis
 
 import (
@@ -38,12 +38,12 @@ type Stream struct {
 	sampleRate int
 }
 
-// Read is implementation of io.Reader's Read.
+// Read is an implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.readSeeker.Read(p)
 }
 
-// Seek is implementation of io.Seeker's Seek.
+// Seek is an implementation of io.Seeker's Seek.
 //
 // Note that Seek can take long since decoding is a relatively heavy task.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {

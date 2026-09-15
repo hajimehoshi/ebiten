@@ -350,7 +350,7 @@ func TestExtend(t *testing.T) {
 
 	n2 := p.Alloc(2048, 1024)
 	if n2 == nil {
-		t.Errorf("p.Alloc(1024, 2048) failed")
+		t.Errorf("p.Alloc(2048, 1024) failed")
 	}
 	gotWidth, gotHeight = p.Size()
 	if wantWidth, wantHeight := 2048, 2048; gotWidth != wantWidth || gotHeight != wantHeight {
@@ -402,7 +402,7 @@ func TestExtend3(t *testing.T) {
 	// so allocate (2, 1) here.
 	n0 := p.Alloc(2, 1)
 	if n0 == nil {
-		t.Errorf("p.Alloc(1, 1) failed")
+		t.Errorf("p.Alloc(2, 1) failed")
 	}
 
 	// Extend the page in the vertical direction.

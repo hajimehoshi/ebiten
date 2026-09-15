@@ -97,7 +97,7 @@ func (g *Game) Layout(width, height int) (int, int) {
 
 func main() {
 	// Drivers might not be available, especially on GitHub Actions.
-	// TODO: Enable this by install a dummy driver.
+	// TODO: Enable this by installing a dummy driver.
 	if strings.TrimSpace(os.Getenv("GITHUB_ACTIONS")) == "true" {
 		return
 	}

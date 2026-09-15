@@ -107,7 +107,7 @@ func (s *Shader) ensureShader() *graphicscommand.Shader {
 	// The cleanup argument must not refer to s, or s would never be collected.
 	s.cleanup = runtime.AddCleanup(s, func(arg shaderCleanupArg) {
 		theShadersWithInternalShader.removeWeak(arg.weakShader)
-		// A function from cleanup must not be blocked, but disposing operation can be blocked.
+		// A cleanup function must not be blocked, but the disposal operation can be blocked.
 		// Defer this operation until it becomes safe. (#913)
 		appendDeferred(func() {
 			arg.internalShader.Dispose()

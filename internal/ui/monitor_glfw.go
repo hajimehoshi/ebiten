@@ -88,7 +88,7 @@ func (m *Monitor) sizeInDIP() (float64, float64) {
 
 type monitors struct {
 	// monitors is the monitor list cache for desktop glfw compile targets.
-	// populated by 'updateMonitors' which is called on init and every
+	// It is populated by 'update' which is called on init and every
 	// monitor config change event.
 	monitors []*Monitor
 

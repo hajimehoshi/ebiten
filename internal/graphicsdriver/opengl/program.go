@@ -218,7 +218,7 @@ func (s *openGLState) setVertices(context *context, vertices []float32, indices 
 		s.elementArrayBufferSizeInBytes = newSize
 	}
 
-	// Note that the vertices and the indices passed to BufferSubData is not under GC management in the gl package.
+	// Note that the vertices and the indices passed to BufferSubData are not under GC management in the gl package.
 	vs := unsafe.Slice((*byte)(unsafe.Pointer(&vertices[0])), len(vertices)*int(unsafe.Sizeof(vertices[0])))
 	context.ctx.BufferSubData(gl.ARRAY_BUFFER, 0, vs)
 	is := unsafe.Slice((*byte)(unsafe.Pointer(&indices[0])), len(indices)*int(unsafe.Sizeof(indices[0])))
@@ -274,7 +274,7 @@ func (g *Graphics) deleteProgram(p program) {
 	g.context.deleteProgram(p)
 }
 
-// useProgram uses the program (programTexture).
+// useProgram uses the program with the given uniforms and textures.
 func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textures [graphics.ShaderSrcImageCount]textureVariable) error {
 	if g.state.lastProgram != program {
 		g.context.ctx.UseProgram(uint32(program))

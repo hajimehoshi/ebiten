@@ -331,7 +331,7 @@ func TestConvertToFixed26_6(t *testing.T) {
 		got = text.Float64ToFixed26_6(tc.In)
 		want = tc.Out
 		if got != want {
-			t.Errorf("Float32ToFixed26_6(%v): got: %v, want: %v", tc.In, got, want)
+			t.Errorf("Float64ToFixed26_6(%v): got: %v, want: %v", tc.In, got, want)
 		}
 	}
 }
@@ -796,7 +796,7 @@ func TestGlyphAdvance(t *testing.T) {
 			last := glyphs[len(glyphs)-1]
 			advance := text.AdvanceAt(tc.text, len(tc.text), tc.face)
 			if tc.vertical {
-				// For vertical layouts, GoTextFace.advance returns a negative value
+				// For vertical layouts, GoTextFace.advanceAt returns a negative value
 				// matching the AdvanceY sign convention.
 				gotEnd := last.OriginY + last.AdvanceY - glyphs[0].OriginY
 				if math.Abs(gotEnd-advance) > eps {

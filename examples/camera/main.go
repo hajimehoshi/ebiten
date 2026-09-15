@@ -105,7 +105,7 @@ func (c *Camera) ScreenToWorld(posX, posY int) (float64, float64) {
 		inverseMatrix.Invert()
 		return inverseMatrix.Apply(float64(posX), float64(posY))
 	} else {
-		// When scaling it can happened that matrix is not invertable
+		// When scaling it can happen that the matrix is not invertible
 		return math.NaN(), math.NaN()
 	}
 }
@@ -161,8 +161,8 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	// Draw each tile with each DrawImage call.
-	// As the source images of all DrawImage calls are always same,
-	// this rendering is done very effectively.
+	// As the source images of all DrawImage calls are always the same,
+	// this rendering is done very efficiently.
 	// For more detail, see https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
 	for _, l := range g.layers {
 		for i, t := range l {

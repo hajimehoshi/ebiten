@@ -52,7 +52,7 @@ var (
 	water_go []byte
 )
 
-// These directives are used for an shader analyzer in the future.
+// These directives are used for a shader analyzer in the future.
 // See also #3157.
 
 //ebitengine:shaderfile default.go

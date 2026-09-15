@@ -61,7 +61,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	tileXCount := w / tileSize
 
 	// Draw each tile with each DrawImage call.
-	// As the source images of all DrawImage calls are always same,
+	// As the source images of all DrawImage calls are always the same,
 	// this rendering is done very efficiently.
 	// For more detail, see https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2#Image.DrawImage
 	const xCount = screenWidth / tileSize

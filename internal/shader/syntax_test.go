@@ -3442,8 +3442,8 @@ func TestSyntaxEqual(t *testing.T) {
 		{stmt: "a, b := mat2(1), vec2(1); _ = a != b", err: true},
 		{stmt: "a, b := mat2(1), ivec2(1); _ = a == b", err: true},
 		{stmt: "a, b := mat2(1), ivec2(1); _ = a != b", err: true},
-		{stmt: "a, b := mat2(1), mat2(1); _ = a == b", err: true}, // Comparing matrices are not allowed.
-		{stmt: "a, b := mat2(1), mat2(1); _ = a != b", err: true}, // Comparing matrices are not allowed.
+		{stmt: "a, b := mat2(1), mat2(1); _ = a == b", err: true}, // Comparing matrices is not allowed.
+		{stmt: "a, b := mat2(1), mat2(1); _ = a != b", err: true}, // Comparing matrices is not allowed.
 
 		{stmt: "_ = false && true", err: false},
 		{stmt: "_ = false || true", err: false},

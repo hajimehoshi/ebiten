@@ -67,7 +67,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 func (g *Game) Layout(width, height int) (int, int) {
 	// Using a fixed size matters.
-	// If a window size is changed or fullscreened, the cursor position calculation considers the current screen scale, and
+	// If a window is resized or fullscreened, the cursor position calculation considers the current screen scale, and
 	// a fixed size changes the scale.
 	return 320, 240
 }

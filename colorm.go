@@ -73,7 +73,7 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 }
 
 // Concat multiplies a color matrix with the other color matrix.
-// This is same as multiplying the matrix other and the matrix c in this order.
+// This is the same as multiplying the matrix other and the matrix c in this order.
 //
 // Deprecated: as of v2.5. Use the colorm package instead.
 func (c *ColorM) Concat(other ColorM) {
@@ -111,7 +111,7 @@ func (c *ColorM) Translate(r, g, b, a float64) {
 }
 
 // RotateHue rotates the hue.
-// theta represents rotating angle in radian.
+// theta represents the rotating angle in radians.
 //
 // Deprecated: as of v2.5. Use the colorm package instead.
 func (c *ColorM) RotateHue(theta float64) {
@@ -119,7 +119,7 @@ func (c *ColorM) RotateHue(theta float64) {
 }
 
 // ChangeHSV changes HSV (Hue-Saturation-Value) values.
-// hueTheta is a radian value to rotate hue.
+// hueTheta is an angle in radians to rotate hue.
 // saturationScale is a value to scale saturation.
 // valueScale is a value to scale value (a.k.a. brightness).
 //

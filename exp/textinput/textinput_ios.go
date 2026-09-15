@@ -396,7 +396,7 @@ func (t *textInputImpl) applyStartOnMain() {
 	}
 	tv := t.ensureTextViewOnMain(parent)
 
-	// The text view is kept outside the window, where the browser and Android
+	// The text view is kept outside the window, whereas the browser and Android
 	// backends keep theirs at the caret. UIKit scrolls the enclosing scroll view
 	// of an embedding application to lift the first responder above the
 	// keyboard; a text view outside the window is never covered by the keyboard,

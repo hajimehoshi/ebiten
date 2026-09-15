@@ -39,7 +39,7 @@ func (m *MonitorType) DeviceScaleFactor() float64 {
 
 // Size returns the size of the monitor in device-independent pixels.
 // This is the same as the screen size in fullscreen mode.
-// The returned value can be given to [SetWindowSize] if the perfectly fit fullscreen is needed.
+// The returned value can be given to [SetWindowSize] if a perfectly fitting fullscreen is needed.
 //
 // On mobiles, Size returns (0, 0) before the game starts e.g. in init functions.
 //
@@ -82,7 +82,7 @@ func SetMonitor(monitor *MonitorType) {
 // AppendMonitors can append the current machine's monitors even when the game is a virtualization guest,
 // especially before the game starts, and this is a known issue (#3632).
 func AppendMonitors(monitors []*MonitorType) []*MonitorType {
-	// TODO: This is not an efficient operation. It would be best if we could directly pass monitors directly into `ui.AppendMonitors`.
+	// TODO: This is not an efficient operation. It would be best if we could pass monitors directly into `ui.AppendMonitors`.
 	for _, m := range ui.Get().AppendMonitors(nil) {
 		monitors = append(monitors, (*MonitorType)(m))
 	}

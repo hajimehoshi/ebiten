@@ -218,7 +218,7 @@ func (g *game) Update() error {
 				})
 
 				if ebiten.WindowResizingMode() == ebiten.WindowResizingModeEnabled {
-					ctx.Text("Maxmize")
+					ctx.Text("Maximize")
 					ctx.Button("Maximize").On(func() {
 						ebiten.MaximizeWindow()
 					})

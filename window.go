@@ -34,7 +34,7 @@ const (
 	WindowResizingModeDisabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeDisabled)
 
 	// WindowResizingModeOnlyFullscreenEnabled indicates the mode to disallow resizing the window,
-	// but allow to make the window fullscreen by a user.
+	// but allow making the window fullscreen by a user.
 	// This works only on macOS so far.
 	// On the other platforms, this is the same as WindowResizingModeDisabled.
 	WindowResizingModeOnlyFullscreenEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeOnlyFullscreenEnabled)
@@ -162,7 +162,7 @@ func SetWindowIcon(iconImages []image.Image) {
 // The origin position is the upper-left corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// If the main loop does not start yet, WindowPosition returns the initial window position set by
+// If the main loop has not started yet, WindowPosition returns the initial window position set by
 // [SetWindowPosition], or (0, 0) if no initial position is set.
 //
 // WindowPosition returns the original window position in fullscreen mode.
@@ -281,7 +281,7 @@ func IsWindowMaximized() bool {
 
 // MinimizeWindow minimizes the window.
 //
-// If the main loop does not start yet, MinimizeWindow does nothing.
+// If the main loop has not started yet, MinimizeWindow does nothing.
 //
 // MinimizeWindow does nothing if the platform is not a desktop.
 //
@@ -301,7 +301,7 @@ func IsWindowMinimized() bool {
 
 // RestoreWindow restores the window from its maximized or minimized state.
 //
-// RestoreWindow panics when the window is not maximized nor minimized on desktops.
+// RestoreWindow panics when the window is neither maximized nor minimized on desktops.
 //
 // RestoreWindow does nothing if the platform is not a desktop.
 //
@@ -345,10 +345,10 @@ func IsWindowClosingHandled() bool {
 	return ui.Get().Window().IsClosingHandled()
 }
 
-// SetWindowMousePassthrough sets whether a mouse cursor passthroughs the window or not on desktops. The default state is false.
+// SetWindowMousePassthrough sets whether a mouse cursor passes through the window or not on desktops. The default state is false.
 //
 // Even if this is set true, some platforms might require a window to be undecorated
-// in order to make the mouse cursor passthrough the window.
+// in order to make the mouse cursor pass through the window.
 //
 // SetWindowMousePassthrough works only on desktops.
 // SetWindowMousePassthrough does nothing if the platform is not a desktop.
@@ -358,7 +358,7 @@ func SetWindowMousePassthrough(enabled bool) {
 	ui.Get().Window().SetMousePassthrough(enabled)
 }
 
-// IsWindowMousePassthrough reports whether a mouse cursor passthroughs the window or not on desktops.
+// IsWindowMousePassthrough reports whether a mouse cursor passes through the window or not on desktops.
 //
 // IsWindowMousePassthrough always returns false if the platform is not a desktop.
 //

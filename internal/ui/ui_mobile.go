@@ -45,7 +45,7 @@ func (u *UserInterface) init() error {
 		graphicsLibraryInitCh: make(chan struct{}),
 		errCh:                 make(chan error, 1),
 	}
-	// Give a default outside size so that the game can start without initializing them.
+	// Give a default outside size so that the game can start without initializing it.
 	u.userInterfaceImpl.outsideSize.Store(&pointF{x: 640, y: 480})
 	u.foreground.Store(true)
 	return nil

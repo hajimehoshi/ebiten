@@ -23,7 +23,7 @@ import (
 // The implementation is based on the following article:
 // https://medium.com/@evanwallace/easy-scalable-text-rendering-on-the-gpu-c3f4d782c5ac
 
-// These values are protected by cacheM.
+// These values are protected by stencilBufferM.
 
 var (
 	stencilBufferFillShader      *ebiten.Shader

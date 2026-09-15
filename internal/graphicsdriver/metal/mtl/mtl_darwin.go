@@ -90,8 +90,8 @@ const (
 	FeatureSet_macOS_ReadWriteTextureTier2 FeatureSet = 10002
 )
 
-// TextureType defines The dimension of each image, including whether multiple images are arranged into an array or
-// a cube.
+// TextureType defines the dimension of each image, including whether multiple images are arranged into an array
+// or a cube.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexturetype?language=objc.
 type TextureType uint16
@@ -253,7 +253,7 @@ const (
 
 // IndexType is the index type for an index buffer that references vertices of geometric primitives.
 //
-// Reference: https://developer.apple.com/documentation/metal/mtlstoragemode?language=objc
+// Reference: https://developer.apple.com/documentation/metal/mtlindextype?language=objc
 type IndexType uint8
 
 const (
@@ -381,7 +381,7 @@ type RenderPipelineColorAttachmentDescriptor struct {
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrenderpassdescriptor?language=objc.
 type RenderPassDescriptor struct {
-	// ColorAttachments is array of state information for attachments that store color data.
+	// ColorAttachments is an array of state information for attachments that store color data.
 	ColorAttachments [1]RenderPassColorAttachmentDescriptor
 
 	// StencilAttachment is state information for an attachment that stores stencil data.
@@ -435,7 +435,7 @@ type TextureDescriptor struct {
 	Usage       TextureUsage
 }
 
-// Device is abstract representation of the GPU that
+// Device is an abstract representation of the GPU that
 // serves as the primary interface for a Metal app.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice?language=objc.
@@ -627,7 +627,7 @@ func (d Device) NewLibraryWithSource(source string, opt CompileOptions) (Library
 	return Library{l}, nil
 }
 
-// NewLibraryWithData Creates a Metal library instance that contains the functions in a precompiled Metal library.
+// NewLibraryWithData creates a Metal library instance that contains the functions in a precompiled Metal library.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtldevice/1433391-newlibrarywithdata?language=objc.
 func (d Device) NewLibraryWithData(buffer []byte) (Library, error) {
@@ -861,7 +861,7 @@ func (cb CommandBuffer) BlitCommandEncoder() (BlitCommandEncoder, error) {
 // CommandEncoder is an encoder that writes sequential GPU commands
 // into a command buffer.
 //
-// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443001-blitcommandencoder?language=objc.
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandencoder?language=objc.
 type CommandEncoder struct {
 	commandEncoder objc.ID
 }

@@ -322,7 +322,7 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 	f.colors = append(f.colors, clr)
 }
 
-// fillPaths fills the specified path with the specified color.
+// fillPaths renders the paths added by addPath with their colors onto dst.
 //
 // fillPaths callers must be protected by theFillPathM.
 func (f *fillPathsState) fillPaths(dst *ebiten.Image) {

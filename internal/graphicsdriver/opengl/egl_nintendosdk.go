@@ -82,7 +82,7 @@ func newEGL(nativeWindowHandle uintptr) (_ *egl, err error) {
 		return nil, fmt.Errorf("opengl: eglBindAPI failed")
 	}
 
-	// Create new context and set it as current.
+	// Create a new context.
 	contextAttribs := []C.EGLint{
 		// Set target graphics api version.
 		C.EGL_CONTEXT_MAJOR_VERSION, 3,

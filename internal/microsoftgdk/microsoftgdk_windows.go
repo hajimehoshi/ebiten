@@ -16,7 +16,7 @@
 
 package microsoftgdk
 
-// Unfortunately, some functions like XSystemGetDeviceType is not implemented in a DLL,
+// Unfortunately, some functions like XSystemGetDeviceType are not implemented in a DLL,
 // so LoadLibrary is not available.
 
 // #include <stdint.h>
@@ -114,7 +114,7 @@ func D3D12SDKVersion() uint32 {
 
 func init() {
 	if r := C.XGameRuntimeInitialize(); uint32(r) != uint32(windows.S_OK) {
-		panic(fmt.Sprintf("microsoftgdk: XSystemGetDeviceType failed: HRESULT(%d)", uint32(r)))
+		panic(fmt.Sprintf("microsoftgdk: XGameRuntimeInitialize failed: HRESULT(%d)", uint32(r)))
 	}
 	if got, want := _GetACP(), uint32(_CP_UTF8); got != want {
 		panic(fmt.Sprintf("microsoftgdk: GetACP(): got %d, want %d", got, want))

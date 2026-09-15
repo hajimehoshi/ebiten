@@ -62,7 +62,7 @@ type GoTextFace struct {
 	// Language is a hint for a language (BCP 47).
 	Language language.Tag
 
-	// Script is a hint for a script code hint of (ISO 15924).
+	// Script is a hint for a script code (ISO 15924).
 	// If this is empty, the script is guessed from the specified language.
 	//
 	// Deprecated: as of v2.9. Use Language instead.

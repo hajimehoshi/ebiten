@@ -448,7 +448,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			init := true
 			if topBlock == p.VertexFunc.Block {
 				// In the vertex function, varying values are the output parameters.
-				// These values are represented as a struct and not needed to be initialized.
+				// These values are represented as a struct and do not need to be initialized.
 				na := len(p.Attributes)
 				nv := len(p.Varyings)
 				if s.InitIndex < na+nv+1 {

@@ -61,7 +61,7 @@ type ColorM interface {
 	Equals(other ColorM) bool
 
 	// Concat multiplies a color matrix with the other color matrix.
-	// This is same as multiplying the matrix other and the matrix c in this order.
+	// This is the same as multiplying the matrix other and the matrix c in this order.
 	Concat(other ColorM) ColorM
 
 	// Scale scales the matrix by (r, g, b, a).

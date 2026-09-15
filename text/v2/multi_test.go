@@ -54,7 +54,7 @@ func TestMultiFaceFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// If all the faces in a MultiFace doesn't have a glyph, the last face should be used.
+	// If all the faces in a MultiFace don't have a glyph, the last face should be used.
 	str := "あ"
 	got := text.AppendGlyphs(nil, str, multiFace, nil)
 	want := text.AppendGlyphs(nil, str, enFace, nil)

@@ -402,7 +402,8 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 	p1 := p.add(v1)
 
 	// If the joint is an internal angle (< 180 degrees), the joint is not rendered. Just connect the two segments.
-	// [vec2.cross] has a precision issue. Use a comparison instead.
+	// A cross product can be calculated by dir0.x*dir1.y - dir0.y*dir1.x,
+	// but this can cause a floating-point precision issue due to FMSUBS. Avoid this subtraction.
 	if dir0.x*dir1.y > dir0.y*dir1.x {
 		strokePath.LineTo(p1.x, p1.y)
 		return

@@ -82,7 +82,7 @@ func (s *Sprite) Draw(screen *ebiten.Image, alpha float32) {
 	screen.DrawImage(s.image, op)
 }
 
-// StrokeSource represents a input device to provide strokes.
+// StrokeSource represents an input device to provide strokes.
 type StrokeSource interface {
 	Position() (int, int)
 	IsJustReleased() bool
@@ -116,7 +116,7 @@ func (t *TouchStrokeSource) IsJustReleased() bool {
 type Stroke struct {
 	source StrokeSource
 
-	// offsetX and offsetY represents a relative value from the sprite's upper-left position to the cursor position.
+	// offsetX and offsetY represent relative values from the sprite's upper-left position to the cursor position.
 	offsetX int
 	offsetY int
 

@@ -529,7 +529,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 
 func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	if l := 4 * region.Dx() * region.Dy(); len(pix) != l {
-		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
+		panic(fmt.Sprintf("atlas: len(pix) must be %d but %d", l, len(pix)))
 	}
 
 	i.resetUsedAsSourceCount()
@@ -947,7 +947,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			return
 		}
 		if len(theBackends) != 0 {
-			panic("atlas: all the images must be not on an atlas before the game starts")
+			panic("atlas: no images must be on an atlas before the game starts")
 		}
 
 		// min*Size and maxSize can already be set for testings.

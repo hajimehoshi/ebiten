@@ -28,7 +28,7 @@ import (
 )
 
 // panicOnErrorOnReadingPixels indicates whether reading pixels panics on an error or not.
-// This value is set only on testing.
+// This value is set only in tests.
 var panicOnErrorOnReadingPixels bool
 
 func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {

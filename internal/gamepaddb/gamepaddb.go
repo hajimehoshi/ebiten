@@ -535,7 +535,7 @@ func isStandardButtonPressed(mapping mapping, state GamepadState) bool {
 }
 
 // Update adds new gamepad mappings.
-// The string must be in the format of SDL_GameControllerDB.
+// The byte slice must be in the format of SDL_GameControllerDB.
 //
 // Update works atomically. If an error happens, nothing is updated.
 func Update(mappingData []byte) error {

@@ -126,7 +126,7 @@ func (i *inputState) update() {
 	}
 }
 
-// AppendPressedKeys append currently pressed keyboard keys to keys and returns the extended buffer.
+// AppendPressedKeys appends currently pressed keyboard keys to keys and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendPressedKeys must be called in a game's Update, not Draw.
@@ -145,7 +145,7 @@ func PressedKeys() []ebiten.Key {
 	return AppendPressedKeys(nil)
 }
 
-// AppendJustPressedKeys append just pressed keyboard keys to keys and returns the extended buffer.
+// AppendJustPressedKeys appends just pressed keyboard keys to keys and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustPressedKeys must be called in a game's Update, not Draw.
@@ -155,7 +155,7 @@ func AppendJustPressedKeys(keys []ebiten.Key) []ebiten.Key {
 	return inputstate.AppendJustPressedKeys(keys)
 }
 
-// AppendJustReleasedKeys append just released keyboard keys to keys and returns the extended buffer.
+// AppendJustReleasedKeys appends just released keyboard keys to keys and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustReleasedKeys must be called in a game's Update, not Draw.
@@ -281,7 +281,7 @@ func IsGamepadJustDisconnected(id ebiten.GamepadID) bool {
 	return !current && prev
 }
 
-// AppendPressedGamepadButtons append currently pressed gamepad buttons to buttons and returns the extended buffer.
+// AppendPressedGamepadButtons appends currently pressed gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendPressedGamepadButtons must be called in a game's Update, not Draw.
@@ -306,7 +306,7 @@ func AppendPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.GamepadBu
 	return buttons
 }
 
-// AppendJustPressedGamepadButtons append just pressed gamepad buttons to buttons and returns the extended buffer.
+// AppendJustPressedGamepadButtons appends just pressed gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustPressedGamepadButtons must be called in a game's Update, not Draw.
@@ -331,7 +331,7 @@ func AppendJustPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.Gamep
 	return buttons
 }
 
-// AppendJustReleasedGamepadButtons append just released gamepad buttons to buttons and returns the extended buffer.
+// AppendJustReleasedGamepadButtons appends just released gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustReleasedGamepadButtons must be called in a game's Update, not Draw.
@@ -420,7 +420,7 @@ func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton
 	return state.buttonDurations[button]
 }
 
-// AppendPressedStandardGamepadButtons append currently pressed standard gamepad buttons to buttons and returns the extended buffer.
+// AppendPressedStandardGamepadButtons appends currently pressed standard gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendPressedStandardGamepadButtons must be called in a game's Update, not Draw.
@@ -445,7 +445,7 @@ func AppendPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebiten.S
 	return buttons
 }
 
-// AppendJustPressedStandardGamepadButtons append just pressed standard gamepad buttons to buttons and returns the extended buffer.
+// AppendJustPressedStandardGamepadButtons appends just pressed standard gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustPressedStandardGamepadButtons must be called in a game's Update, not Draw.
@@ -470,7 +470,7 @@ func AppendJustPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebit
 	return buttons
 }
 
-// AppendJustReleasedStandardGamepadButtons append just released standard gamepad buttons to buttons and returns the extended buffer.
+// AppendJustReleasedStandardGamepadButtons appends just released standard gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustReleasedStandardGamepadButtons must be called in a game's Update, not Draw.
@@ -559,7 +559,7 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 	return state.standardButtonDurations[button]
 }
 
-// AppendJustPressedTouchIDs append touch IDs that are created just in the current tick to touchIDs,
+// AppendJustPressedTouchIDs appends touch IDs that are created just in the current tick to touchIDs,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
@@ -596,7 +596,7 @@ func JustPressedTouchIDs() []ebiten.TouchID {
 	return AppendJustPressedTouchIDs(nil)
 }
 
-// AppendJustReleasedTouchIDs append touch IDs that are released just in the current tick to touchIDs,
+// AppendJustReleasedTouchIDs appends touch IDs that are released just in the current tick to touchIDs,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //

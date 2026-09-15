@@ -44,7 +44,7 @@ type nativeGamepadImpl struct {
 }
 
 func (*nativeGamepadImpl) update(gamepad *gamepads) error {
-	// Do nothing. The state of gamepads are given via APIs in extern_android.go.
+	// Do nothing. The state of gamepads is given via APIs in extern_android.go.
 	return nil
 }
 

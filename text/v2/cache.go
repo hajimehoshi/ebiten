@@ -76,7 +76,7 @@ func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Va
 
 	// Clean up old entries.
 	if c.atime < n {
-		// If the number of values exceeds the soft limits, old values are removed.
+		// If the number of values exceeds the soft limit, old values are removed.
 		// Even after cleaning up the cache, the number of values might still exceed the soft limit,
 		// but this is fine.
 		if len(c.values) > c.softLimit {

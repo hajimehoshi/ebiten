@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package mp3 provides MP3 decoder.
+// Package mp3 provides an MP3 decoder.
 //
 // On desktops and mobiles, a pure Go decoder is used.
 // On browsers, a native decoder on the browser is used.
@@ -42,12 +42,12 @@ type Stream struct {
 	seekable   bool
 }
 
-// Read is implementation of io.Reader's Read.
+// Read is an implementation of io.Reader's Read.
 func (s *Stream) Read(buf []byte) (int, error) {
 	return s.readSeeker.Read(buf)
 }
 
-// Seek is implementation of io.Seeker's Seek.
+// Seek is an implementation of io.Seeker's Seek.
 //
 // Seek returns an error wrapping [errors.ErrUnsupported] when the source is not an io.Seeker.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {

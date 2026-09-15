@@ -63,7 +63,7 @@ func imageToBytes(img image.Image, premultipliedAlpha bool) []byte {
 				pl[3] = nrgba.A
 			}
 		}
-		// Even img is a subimage of another image, Pix starts with 0-th index.
+		// Even when img is a subimage of another image, Pix starts with the 0-th index.
 		var srcIdx, dstIdx int
 		d := img.Stride - (x1 - x0)
 		for range y1 - y0 {
