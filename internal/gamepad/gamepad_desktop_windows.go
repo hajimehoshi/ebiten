@@ -405,20 +405,31 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 }
 
 func supportsXInput(guid windows.GUID) (bool, error) {
+	// A device can be plugged in between querying the count and filling the list, in which case the fill fails
+	// with ERROR_INSUFFICIENT_BUFFER. Retry the pair a bounded number of times.
+	const maxAttempts = 10
+	var ridl []_RAWINPUTDEVICELIST
 	var count uint32
-	if r, err := _GetRawInputDeviceList(nil, &count); err != nil {
-		return false, err
-	} else if r != 0 {
-		return false, nil
-	}
-
-	if count == 0 {
-		return false, nil
-	}
-
-	ridl := make([]_RAWINPUTDEVICELIST, count)
-	if _, err := _GetRawInputDeviceList(&ridl[0], &count); err != nil {
-		return false, err
+	// Errors from listing the raw-input devices are not fatal. As in GLFW, the device is then just not detected
+	// as XInput, and it still works as a DirectInput device.
+	for attempt := 0; ridl == nil; attempt++ {
+		if attempt >= maxAttempts {
+			return false, nil
+		}
+		if r, err := _GetRawInputDeviceList(nil, &count); err != nil || r != 0 {
+			return false, nil
+		}
+		if count == 0 {
+			return false, nil
+		}
+		buf := make([]_RAWINPUTDEVICELIST, count)
+		if _, err := _GetRawInputDeviceList(&buf[0], &count); err != nil {
+			if errors.Is(err, windows.ERROR_INSUFFICIENT_BUFFER) {
+				continue
+			}
+			return false, nil
+		}
+		ridl = buf
 	}
 
 	for i := 0; i < int(count); i++ {
@@ -444,7 +455,8 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdeviceinfow
 		size = uint32(len(name))
 		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICENAME, unsafe.Pointer(&name[0]), &size); err != nil {
-			return false, err
+			// The device can be removed between listing and querying it. As in GLFW, treat this as not XInput.
+			return false, nil
 		}
 
 		if strings.Contains(windows.UTF16ToString(name[:]), "IG_") {
