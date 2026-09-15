@@ -38,6 +38,10 @@ type (
 		// readGen is incremented by PauseAndStopReading to stop the goroutine reading r.
 		readGen int
 
+		// err is the first non-EOF error the source returned. Like the real players, a player
+		// whose source failed stops for good and reports the error from Err.
+		err error
+
 		mu sync.Mutex
 	}
 )
@@ -75,7 +79,7 @@ func (p *dummyPlayer) Play() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	if p.eof {
+	if p.eof || p.err != nil {
 		return
 	}
 	p.playing = true
@@ -88,9 +92,6 @@ func (p *dummyPlayer) Play() {
 				return
 			}
 			if err != nil {
-				if err != io.EOF {
-					panic(err)
-				}
 				break
 			}
 			time.Sleep(time.Millisecond)
@@ -106,8 +107,8 @@ func (p *dummyPlayer) Play() {
 }
 
 // readOnce performs one read from the source with the mutex held, so that PauseAndStopReading waits
-// for an in-flight read. stopped reports that PauseAndStopReading was called and reading must not
-// continue.
+// for an in-flight read. stopped reports that reading must not continue: PauseAndStopReading was
+// called, or the source failed. err is io.EOF when the source is exhausted.
 func (p *dummyPlayer) readOnce(gen int, buf []byte) (stopped bool, err error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -116,6 +117,11 @@ func (p *dummyPlayer) readOnce(gen int, buf []byte) (stopped bool, err error) {
 		return true, nil
 	}
 	_, err = p.r.Read(buf)
+	if err != nil && err != io.EOF {
+		p.err = err
+		p.playing = false
+		return true, nil
+	}
 	return false, err
 }
 
@@ -168,7 +174,9 @@ func (p *dummyPlayer) BufferedSize() int {
 }
 
 func (p *dummyPlayer) Err() error {
-	return nil
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.err
 }
 
 func (p *dummyPlayer) SetBufferSize(bufferSize int) {

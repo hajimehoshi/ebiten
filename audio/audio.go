@@ -164,9 +164,10 @@ func NewContext(sampleRate int) *Context {
 	// Use a distinct goroutine to update the player states.
 	go func() {
 		for {
+			// A failure is local to the player which reported it. Record it and keep updating
+			// the other players (#3647).
 			if err := c.updatePlayers(); err != nil {
 				c.setError(err)
-				return
 			}
 			time.Sleep(time.Second / 100)
 		}
@@ -298,13 +299,22 @@ func (c *Context) updatePlayers() error {
 	// The underlying player can become paused after finishing playback,
 	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
+	//
+	// A failing player must not stop the sweep: the other players still need their positions
+	// updated and their pending plays started (#3647). Collect the errors and go on.
+	var errs []error
 	for _, p := range players {
 		if err := p.Err(); err != nil {
-			return err
+			errs = append(errs, err)
+			// A player whose device player failed does not play again. Drop it from the playing
+			// players so that its error is reported once, not on every sweep.
+			c.removePlayingPlayer(p)
+			continue
 		}
 		// Start playing if Play was requested before the audio device was created.
 		if err := p.startIfPending(); err != nil {
-			return err
+			errs = append(errs, err)
+			continue
 		}
 		p.updatePosition()
 		// The player itself decides whether it is removed, so that a player restarted between
@@ -312,7 +322,7 @@ func (c *Context) updatePlayers() error {
 		p.removeFromContextIfNotPlaying()
 	}
 
-	return nil
+	return errors.Join(errs...)
 }
 
 // IsReady returns a boolean value indicating whether the audio is ready or not.

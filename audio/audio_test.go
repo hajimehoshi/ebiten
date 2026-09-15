@@ -16,6 +16,7 @@ package audio_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"math"
 	"runtime"
@@ -704,8 +705,99 @@ func TestRestartWhilePlayersAreSwept(t *testing.T) {
 		t.Error("a playing player was removed from the context")
 	}
 
-	// The sweep goroutine stops on an error, which would make the check above vacuous.
+	// The check above is meaningful only if the players finished and restarted normally, without
+	// any error being reported.
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// errSourceFailed is the error a failingSource returns once it has run out of data.
+var errSourceFailed = errors.New("audio_test: source failed")
+
+// failingSource is a source which returns data for a while and then fails with an error other
+// than io.EOF, like a corrupted asset or a broken network stream.
+type failingSource struct {
+	remaining int
+}
+
+func (s *failingSource) Read(buf []byte) (int, error) {
+	if s.remaining <= 0 {
+		return 0, errSourceFailed
+	}
+	n := min(len(buf), s.remaining)
+	s.remaining -= n
+	return n, nil
+}
+
+// Issue #3647
+func TestPlayerErrorDoesNotStopOtherPlayers(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	// The first update creates the audio device, so that the players below play for real.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	failing, err := context.NewPlayerF32(&failingSource{remaining: 4096 * 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 44100 [Hz] * 8 [bytes/sample] is one second of 32bit float stereo audio.
+	healthy, err := context.NewPlayerF32(audio.NewInfiniteLoopF32(bytes.NewReader(make([]byte, 44100*8)), 44100*8))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	failing.Play()
+	healthy.Play()
+
+	// Wait until the failing player's source fails and the failure is reported as the context
+	// error.
+	var failed bool
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if err := audio.UpdateForTesting(); err != nil {
+			if !errors.Is(err, errSourceFailed) {
+				t.Fatal(err)
+			}
+			failed = true
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !failed {
+		t.Fatal("time out: the failing player's error was not reported")
+	}
+
+	// The failed player is no longer tracked as playing, so that its error is reported once and
+	// the healthy player is the only playing player left.
+	deadline = time.Now().Add(time.Second)
+	for audio.PlayersCountForTesting() != 1 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got, want := audio.PlayersCountForTesting(), 1; got != want {
+		t.Errorf("PlayersCountForTesting() after a player failed: got: %d, want: %d", got, want)
+	}
+
+	// The healthy player must keep playing and its position must keep advancing: one player's
+	// failure must not stop the context from updating the other players.
+	if !healthy.IsPlaying() {
+		t.Error("IsPlaying() of the healthy player after another player failed: got: false, want: true")
+	}
+	pos0 := healthy.Position()
+	time.Sleep(100 * time.Millisecond)
+	if pos1 := healthy.Position(); pos1 <= pos0 {
+		t.Errorf("Position() of the healthy player did not advance after another player failed: %v -> %v", pos0, pos1)
+	}
+
+	// The context error is sticky.
+	if err := audio.UpdateForTesting(); !errors.Is(err, errSourceFailed) {
+		t.Errorf("UpdateForTesting() after a player failed: got: %v, want: %v", err, errSourceFailed)
 	}
 }

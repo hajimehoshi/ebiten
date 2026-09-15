@@ -241,6 +241,10 @@ func (p *playerImpl) startIfPending() error {
 		return nil
 	}
 	if err := p.ensurePlayer(); err != nil {
+		// The pending play is abandoned as a failed Play is, so that it is not retried and the
+		// error is not reported again on every sweep.
+		p.pendingPlay = false
+		p.context.removePlayingPlayer(p)
 		return err
 	}
 	if p.player == nil {
