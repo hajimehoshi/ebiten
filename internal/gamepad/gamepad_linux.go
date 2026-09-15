@@ -17,6 +17,7 @@
 package gamepad
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -37,6 +38,12 @@ var reEvent = regexp.MustCompile(`^event[0-9]+$`)
 
 func isBitSet(s []byte, bit int) bool {
 	return s[bit/8]&(1<<(bit%8)) != 0
+}
+
+// isDisconnectError reports whether err indicates that the device was removed.
+func isDisconnectError(err error) bool {
+	// Some drivers report EIO instead of ENODEV on removal.
+	return errors.Is(err, unix.ENODEV) || errors.Is(err, unix.EIO)
 }
 
 type nativeGamepadsImpl struct {
@@ -148,16 +155,30 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	keyBits := make([]byte, (_KEY_CNT+7)/8)
 	absBits := make([]byte, (_ABS_CNT+7)/8)
 	var id input_id
+	// The device can be removed between the open and the ioctls below. Such a
+	// device is skipped; the deferred Close releases the fd.
 	if err := ioctl(fd, _EVIOCGBIT(0, uint(len(evBits))), unsafe.Pointer(&evBits[0])); err != nil {
+		if isDisconnectError(err) {
+			return nil
+		}
 		return fmt.Errorf("gamepad: ioctl for evBits failed: %w", err)
 	}
 	if err := ioctl(fd, _EVIOCGBIT(unix.EV_KEY, uint(len(keyBits))), unsafe.Pointer(&keyBits[0])); err != nil {
+		if isDisconnectError(err) {
+			return nil
+		}
 		return fmt.Errorf("gamepad: ioctl for keyBits failed: %w", err)
 	}
 	if err := ioctl(fd, _EVIOCGBIT(unix.EV_ABS, uint(len(absBits))), unsafe.Pointer(&absBits[0])); err != nil {
+		if isDisconnectError(err) {
+			return nil
+		}
 		return fmt.Errorf("gamepad: ioctl for absBits failed: %w", err)
 	}
 	if err := ioctl(fd, _EVIOCGID(), unsafe.Pointer(&id)); err != nil {
+		if isDisconnectError(err) {
+			return nil
+		}
 		return fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
 	}
 
@@ -235,6 +256,9 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 			continue
 		}
 		if err := ioctl(n.fdPlus1-1, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&n.absInfo[code])); err != nil {
+			if isDisconnectError(err) {
+				return nil
+			}
 			return fmt.Errorf("gamepad: ioctl for an abs at openGamepad failed: %w", err)
 		}
 		n.absMap[code] = axisCount
@@ -248,6 +272,9 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	n.computeStandardLayout(id.vendor)
 
 	if err := n.pollAbsState(); err != nil {
+		if isDisconnectError(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -351,10 +378,22 @@ func (g *nativeGamepadImpl) close() {
 	g.fdPlus1 = 0
 }
 
-func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
+func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 	if g.fdPlus1 == 0 {
 		return nil
 	}
+
+	defer func() {
+		if err == nil {
+			return
+		}
+		g.close()
+		// A removed device is not an error; the inotify IN_DELETE event drops
+		// it from the list.
+		if isDisconnectError(err) {
+			err = nil
+		}
+	}()
 
 	for {
 		buf := make([]byte, unsafe.Sizeof(input_event{}))
@@ -362,11 +401,6 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) error {
 		if _, err := unix.Read(g.fdPlus1-1, buf); err != nil {
 			if err == unix.EAGAIN {
 				break
-			}
-			// Disconnected
-			if err == unix.ENODEV {
-				g.close()
-				return nil
 			}
 			return fmt.Errorf("gamepad: Read failed: %w", err)
 		}
