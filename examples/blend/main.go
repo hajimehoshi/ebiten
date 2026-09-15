@@ -162,7 +162,6 @@ func loadImage(data []byte) (*ebiten.Image, error) {
 	return ebiten.NewImageFromImage(m), nil
 }
 
-// max returns the largest of x or y.
 // maxSide returns the largest side of a or b images.
 func maxSide(a, b *ebiten.Image) int {
 	return max(a.Bounds().Dx(), b.Bounds().Dx(), a.Bounds().Dy(), b.Bounds().Dy())

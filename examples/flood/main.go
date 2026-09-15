@@ -72,7 +72,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		y := i/4 + 1
 		op.GeoM.Translate(ox+float64(dx*x), oy+float64(dy*y))
 
-		// Reset RGB (not Alpha) 0 forcibly
+		// Reset RGB (not Alpha) to 0 forcibly
 		var cm colorm.ColorM
 		cm.Scale(0, 0, 0, 1)
 

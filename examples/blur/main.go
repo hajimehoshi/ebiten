@@ -74,7 +74,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			// Correct averaging works based on
 			//   Let A_n := (a_1 + ... + a_n) / n
 			//   A_{n+1} = (a_1 + ... + a_{n+1}) / (n + 1)
-			//   A_{n+1} = (n * A_n + a_{n+1)) / (n + 1)
+			//   A_{n+1} = (n * A_n + a_{n+1}) / (n + 1)
 			//   A_{n+1} = A_n * (1 - 1/(n+1)) + a_{n+1} * 1/(n+1)
 			// which is precisely what an alpha blend with alpha 1/(n+1) does.
 			layers++

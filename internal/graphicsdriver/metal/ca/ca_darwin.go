@@ -170,8 +170,8 @@ func (ml MetalLayer) SetOpaque(opaque bool) {
 
 // SetPixelFormat controls the pixel format of textures for rendering layer content.
 //
-// The pixel format for a Metal layer must be PixelFormatBGRA8UNorm, PixelFormatBGRA8UNormSRGB,
-// PixelFormatRGBA16Float, PixelFormatBGRA10XR, or PixelFormatBGRA10XRSRGB.
+// SetPixelFormat accepts PixelFormatRGBA8UNorm, PixelFormatRGBA8UNormSRGB, PixelFormatBGRA8UNorm,
+// PixelFormatBGRA8UNormSRGB, or PixelFormatStencil8.
 // SetPixelFormat panics for other values.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478155-pixelformat?language=objc.
@@ -187,7 +187,7 @@ func (ml MetalLayer) SetPixelFormat(pf mtl.PixelFormat) {
 // SetMaximumDrawableCount controls the number of Metal drawables in the resource pool
 // managed by Core Animation.
 //
-// It can set to 2 or 3 only. SetMaximumDrawableCount panics for other values.
+// It can be set to only 2 or 3. SetMaximumDrawableCount panics for other values.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/2938720-maximumdrawablecount?language=objc.
 func (ml MetalLayer) SetMaximumDrawableCount(count int) {

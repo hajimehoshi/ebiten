@@ -96,7 +96,7 @@ func UniformVariableOffsetsInDwords(program *shaderir.Program) []int {
 				n = 16
 			}
 			headInDwords += (u.Length - 1) * align(n)
-			// The last element is not with a padding.
+			// The last element is not followed by padding.
 			headInDwords += n
 		case shaderir.Struct:
 			// TODO: Implement this

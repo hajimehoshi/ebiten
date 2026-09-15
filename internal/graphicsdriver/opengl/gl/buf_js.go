@@ -34,13 +34,13 @@ var (
 	// To avoid often allocating ArrayBuffer, reuse the buffer whenever possible.
 	tmpArrayBuffer = arrayBuffer.New(tmpArrayBufferByteLength)
 
-	// tmpUint8Array is a Uint8ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	// tmpUint8Array is a Uint8Array whose underlying buffer is always tmpArrayBuffer.
 	tmpUint8Array = uint8Array.New(tmpArrayBuffer)
 
-	// tmpFloat32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	// tmpFloat32Array is a Float32Array whose underlying buffer is always tmpArrayBuffer.
 	tmpFloat32Array = float32Array.New(tmpArrayBuffer)
 
-	// tmpInt32Array is a Float32ArrayBuffer whose underlying buffer is always temporaryArrayBuffer.
+	// tmpInt32Array is an Int32Array whose underlying buffer is always tmpArrayBuffer.
 	tmpInt32Array = int32Array.New(tmpArrayBuffer)
 )
 

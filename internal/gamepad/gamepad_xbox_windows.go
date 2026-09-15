@@ -113,7 +113,7 @@ func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
 	// device connected.
 	for _, e := range n.deviceEvents {
 		if e.connected {
-			// TODO: Give a good name and a SDL ID.
+			// TODO: Give a good name and an SDL ID.
 			gp := gamepads.add("", "00000000000000000000000000000000")
 			gp.native = &nativeGamepadXbox{
 				gameInputDevice: e.device,

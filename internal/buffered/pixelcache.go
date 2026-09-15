@@ -157,7 +157,7 @@ func (c *pixelCache) readPixels(img *atlas.Image, graphicsDriver graphicsdriver.
 // writePixels updates the cache for a write to region, and writes the pixels to the GPU if necessary.
 func (c *pixelCache) writePixels(img *atlas.Image, pix []byte, region image.Rectangle) {
 	// Writing one pixel is a special case.
-	// Do not write pixels in GPU, as (image/draw).Image's functions might call WritePixels with pixels one by one.
+	// Do not write the pixels to the GPU, as (image/draw).Image's functions might call WritePixels with pixels one by one.
 	if region.Dx() == 1 && region.Dy() == 1 {
 		// If the tile at the position is cached, update this instead of adding an entry to dots.
 		if t, ok := c.tiles[c.tileIndex(region.Min)]; ok {

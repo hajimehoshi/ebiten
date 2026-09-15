@@ -366,7 +366,7 @@ var (
 	BlendXor = internalBlendToBlend(graphicsdriver.BlendXor)
 
 	// BlendLighter is a preset Blend for Porter Duff's 'lighter'.
-	// This is sum of source and destination (a.k.a. 'plus' or 'additive')
+	// This is the sum of source and destination (a.k.a. 'plus' or 'additive')
 	//
 	//     c_out = c_src + c_dst
 	//     α_out = α_src + α_dst

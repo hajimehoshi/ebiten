@@ -72,7 +72,7 @@ func square(out []float32, volume float32, freq float32, sequence float32) {
 	}
 }
 
-// toBytes returns the 2ch little endian 16bit byte sequence with the given left/right sequence.
+// toBytes returns the 2ch little endian 32bit float byte sequence with the given left/right sequence.
 func toBytes(l, r []float32) []byte {
 	if len(l) != len(r) {
 		panic(fmt.Sprintf("len(l) (%d) must equal len(r) (%d)", len(l), len(r)))

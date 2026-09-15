@@ -96,7 +96,7 @@ func (n *Node) Region() image.Rectangle {
 }
 
 // square returns a float value indicating how much the given rectangle is close to a square.
-// If the given rectangle is square, this return 1 (maximum value).
+// If the given rectangle is square, this returns 1 (maximum value).
 // Otherwise, this returns a value in [0, 1).
 func square(width, height int) float64 {
 	if width == 0 && height == 0 {
@@ -154,7 +154,7 @@ func alloc(n *Node, width, height int) *Node {
 		return node
 	}
 	if n.child0 == nil || n.child1 == nil {
-		panic("packing: both two children must not be nil at alloc")
+		panic("packing: both children must not be nil at alloc")
 	}
 	if node := alloc(n.child0, width, height); node != nil {
 		return node
@@ -192,7 +192,7 @@ func (p *Page) Free(node *Node) {
 		return
 	}
 	if node.parent.child0 == nil || node.parent.child1 == nil {
-		panic("packing: both two children must not be nil at Free: double free happened?")
+		panic("packing: both children must not be nil at Free: double free happened?")
 	}
 	if node.parent.child0.canFree() && node.parent.child1.canFree() {
 		node.parent.child0 = nil

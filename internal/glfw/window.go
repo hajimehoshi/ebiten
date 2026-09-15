@@ -161,7 +161,7 @@ func defaultWindowHints() error {
 		return NotInitialized
 	}
 
-	// The default is OpenGL with minimum version 1.0
+	// The default is NoAPI with minimum version 1.0
 	_glfw.hints.context = ctxconfig{
 		client: NoAPI, // This is different from the original GLFW, which uses OpenGLAPI by default.
 		source: NativeContextAPI,
@@ -325,7 +325,7 @@ func (w *Window) Destroy() error {
 		return nil
 	}
 
-	// Clear all callbacks to avoid exposing a half torn-down w object
+	// Clear all callbacks to avoid exposing a half torn-down object
 	w.callbacks.pos = nil
 	w.callbacks.size = nil
 	w.callbacks.close = nil

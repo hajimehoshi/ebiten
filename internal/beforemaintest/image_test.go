@@ -323,8 +323,8 @@ func TestGC(t *testing.T) {
 	runOnGameUpdate(func() {
 		runtime.GC()
 
-		// A finalizer should be called eventually, but this might not be immediate.
-		// Set a time out.
+		// A cleanup function should be called eventually, but this might not be immediate.
+		// Set a timeout.
 		select {
 		case <-imageGCedCh:
 			return

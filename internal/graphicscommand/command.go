@@ -373,7 +373,7 @@ func (c *newShaderCommand) NeedsSync() bool {
 	return true
 }
 
-// InitializeGraphicsDriverState initialize the current graphics driver state.
+// InitializeGraphicsDriverState initializes the current graphics driver state.
 func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
 	return runOnRenderThread(graphicsdriver.Graphics.Initialize, graphicsDriver)
 }

@@ -99,13 +99,13 @@ func Update() error {
 	defer runtime.UnlockOSThread()
 
 	if !theState.isRunning() {
-		// start is not called yet, but as update can be called from another thread, it is OK. Just ignore
+		// SetGame is not called yet, but as Update can be called from another thread, it is OK. Just ignore
 		// this.
 		return nil
 	}
 
 	if err := ui.Get().Update(); err != nil {
-		// On Java and Objective-C, an error is treated just an error or an exception, even if it is ebiten.Termination.
+		// On Java and Objective-C, an error is treated just as an error or an exception, even if it is ebiten.Termination.
 		// There is no way to distinguish it from other errors.
 		// Just terminate the application if the error is ebiten.Termination (#3288).
 		if errors.Is(err, ebiten.Termination) {

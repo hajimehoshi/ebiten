@@ -153,7 +153,7 @@ const numConstantBufferAndSourceTextures = 1 + graphics.ShaderSrcImageCount
 func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	// Create a CBV/SRV/UAV descriptor heap.
 	//   5n+0:        constants
-	//   5n+m (1<=4): textures
+	//   5n+m (1<=m<=4): textures
 	shaderH, err := device.CreateDescriptorHeap(&_D3D12_DESCRIPTOR_HEAP_DESC{
 		Type:           _D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
 		NumDescriptors: frameCount * numDescriptorsPerFrame * numConstantBufferAndSourceTextures,

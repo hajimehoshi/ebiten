@@ -172,7 +172,7 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		return Type{}, false
 	}
 
-	// Comparing matrices are forbidden (#2187).
+	// Comparing matrices is forbidden (#2187).
 	// Comparing arrays is forbidden as well, as most of the shading languages don't have the
 	// operation (#3535).
 	if op == EqualOp || op == NotEqualOp {

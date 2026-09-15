@@ -22,7 +22,7 @@ import (
 
 var theRenderThread thread.Thread = thread.NewNoopThread()
 
-// SetOSThreadAsRenderThread sets an OS thread as rendering thread e.g. for OpenGL.
+// SetOSThreadAsRenderThread sets an OS thread as the rendering thread e.g. for OpenGL.
 func SetOSThreadAsRenderThread() {
 	theRenderThread = thread.NewOSThread()
 }
@@ -38,8 +38,8 @@ func runOnRenderThread[A, R any](f func(A) R, arg A) R {
 
 // runOnRenderThreadAsync queues f with arg on the rendering thread.
 func runOnRenderThreadAsync[A any](f func(A), arg A) {
-	// As the current thread doesn't have a capacity in a channel,
-	// CallAsync should block when the previously-queued task is not executed yet.
+	// As the render thread's task channel is unbuffered,
+	// CallAsync blocks when the previously-queued task is not executed yet.
 	// This blocking is expected as double-buffering is used.
 	thread.CallAsync(theRenderThread, f, arg)
 }

@@ -29,7 +29,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/png"
 )
 
-// Image represents an image that is implemented with OpenGL.
+// Image represents an image that is implemented with a graphics driver.
 type Image struct {
 	image          graphicsdriver.Image
 	width          int
@@ -43,8 +43,8 @@ type Image struct {
 
 	// id is an identifier for the image. This is used only when dumping the information.
 	//
-	// This is duplicated with graphicsdriver.Image's ID, but this id is still necessary because this image might not
-	// have its graphicsdriver.Image.
+	// This has the same value as graphicsdriver.Image's ID, but this id is still necessary because this image might not
+	// have its graphicsdriver.Image yet.
 	id int
 
 	bufferedWritePixelsArgs []writePixelsCommandArgs
@@ -167,7 +167,7 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 }
 
 func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
-	// Release the previous pixels if the region is included by the new region.
+	// Release the previous pixels if the region is included in the new region.
 	// Successive WritePixels calls might accumulate the pixels and never release,
 	// especially when the image is unmanaged (#3036).
 	var cur int

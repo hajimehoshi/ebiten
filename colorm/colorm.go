@@ -69,7 +69,7 @@ func (c *ColorM) Apply(clr color.Color) color.Color {
 }
 
 // Concat multiplies a color matrix with the other color matrix.
-// This is same as multiplying the matrix other and the matrix c in this order.
+// This is the same as multiplying the matrix other and the matrix c in this order.
 func (c *ColorM) Concat(other ColorM) {
 	o := other.impl
 	if o == nil {
@@ -99,13 +99,13 @@ func (c *ColorM) Translate(r, g, b, a float64) {
 }
 
 // RotateHue rotates the hue.
-// theta represents rotating angle in radian.
+// theta represents the rotating angle in radians.
 func (c *ColorM) RotateHue(theta float64) {
 	c.ChangeHSV(theta, 1, 1)
 }
 
 // ChangeHSV changes HSV (Hue-Saturation-Value) values.
-// hueTheta is a radian value to rotate hue.
+// hueTheta is an angle in radians to rotate hue.
 // saturationScale is a value to scale saturation.
 // valueScale is a value to scale value (a.k.a. brightness).
 //
@@ -148,7 +148,7 @@ func (c *ColorM) Invert() {
 	c.impl = c.affineColorM().Invert()
 }
 
-// ReadElements reads the body part and the translation part to the given float32 slices.
+// ReadElements reads the body part and the translation part into the given float32 slices.
 //
 // len(body) must be 16 and len(translation) must be 4. Otherwise, ReadElements panics.
 func (c *ColorM) ReadElements(body []float32, translation []float32) {

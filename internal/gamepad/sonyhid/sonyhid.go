@@ -52,7 +52,7 @@ func modelFromIDs(vid, pid uint16) model {
 // names a device enumerated over Bluetooth or over USB, from the ID's leading
 // enumerator name. ok is false for any other enumerator.
 //
-// A device instance ID begins with the enumerator's device ID, so USB devices
+// A device instance ID begins with the name of the enumerator, so USB devices
 // use "USB\..." and Bluetooth devices use "BTHENUM\{ServiceGUID}...". See
 // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/device-instance-ids,
 // https://learn.microsoft.com/en-us/windows-hardware/drivers/install/standard-usb-identifiers, and

@@ -38,7 +38,7 @@ func newSectionReader(src io.Reader, offset int64, size int64) *sectionReader {
 	}
 }
 
-// Read is implementation of io.Reader's Read.
+// Read is an implementation of io.Reader's Read.
 func (s *sectionReader) Read(p []byte) (int, error) {
 	if s.pos >= s.size {
 		return 0, io.EOF
@@ -51,7 +51,7 @@ func (s *sectionReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// Seek is implementation of io.Seeker's Seek.
+// Seek is an implementation of io.Seeker's Seek.
 //
 // If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {

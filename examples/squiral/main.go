@@ -101,8 +101,8 @@ var (
 
 	// neighbors defines neighboring cells depending on the moving
 	// direction of the squiral:
-	// index of 0 -> squiral moves vertically,
-	// index of 1 -> squiral moves horizontally.
+	// index of 0 -> squiral moves horizontally,
+	// index of 1 -> squiral moves vertically.
 	// These neighbors are tested for "collisions" during simulation.
 	neighbors = [2][2]vec2{
 		{{0, 1}, {0, -1}}, // east, west

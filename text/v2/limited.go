@@ -96,7 +96,7 @@ func (l *LimitedFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, i
 
 	// The appended glyphs' indices are indices in filtered, not in line, so
 	// they have to be translated back (see limitedFilterMapping).
-	// The buffer is pooled for this is in the text rendering hot path.
+	// The buffer is pooled because this is in the text rendering hot path.
 	mappingP := theLimitedFilterMappingPool.Get().(*[]int)
 	var mapping []int
 	defer func() {

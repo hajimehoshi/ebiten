@@ -68,7 +68,7 @@ func (g *Game) Update() error {
 		en.AddUnicodeRange('\u0020', '\u00ff')
 
 		// M+ Font is the second font.
-		// Use a relatively big size to see different-sized faces are well mixed.
+		// Use a relatively big size to see how different-sized faces are mixed.
 		ja := &text.GoTextFace{
 			Source: mplusFaceSource,
 			Size:   32,

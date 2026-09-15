@@ -106,7 +106,7 @@ type commandQueue struct {
 	// commands is a queue of drawing commands.
 	commands []command
 
-	// vertices represents a vertices data in OpenGL's array buffer.
+	// vertices represents the vertex data in OpenGL's array buffer.
 	vertices []float32
 	indices  []uint32
 
@@ -154,7 +154,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	q.tmpNumVertexFloats += len(vertices)
 
 	// prependPreservedUniforms not only prepends values to the given slice but also creates a new slice.
-	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe so far.
+	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe.
 	// TODO: This might cause a performance issue (#2601).
 	uniforms = q.prependPreservedUniforms(uniforms, shader, dst, srcs, dstRegion, srcRegions)
 
@@ -277,7 +277,7 @@ func (a commandQueueFlushArgs) flushAsync() {
 	_ = a.flush()
 }
 
-// flush must be called the render thread.
+// flush must be called on the render thread.
 func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode, logger debug.FrameLogger) (err error) {
 	// Complete the frame even when no commands remain after an intermediate flush.
 	if len(q.commands) == 0 && mode == graphicsdriver.FlushModeIntermediate {
@@ -293,7 +293,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 	}
 
 	defer func() {
-		// Call End even if an error causes, or the graphics driver's state might be stale (#2388).
+		// Call End even if an error occurs, or the graphics driver's state might be stale (#2388).
 		if graphicsErr := graphicsDriver.End(mode); graphicsErr != nil {
 			err = errors.Join(err, graphicsErr)
 		}
@@ -547,7 +547,7 @@ func (c *commandQueueManager) error() error {
 
 // setError records the error at an asynchronous flush.
 //
-// setError can be called from any goroutines.
+// setError can be called from any goroutine.
 func (c *commandQueueManager) setError(err error) {
 	for {
 		oldErr := c.err.Load()
@@ -568,7 +568,7 @@ func (c *commandQueueManager) enqueueCommand(command command) {
 	c.current.Enqueue(command)
 }
 
-// put can be called from any goroutines.
+// put can be called from any goroutine.
 func (c *commandQueueManager) putCommandQueue(commandQueue *commandQueue) {
 	c.pool.put(commandQueue)
 }

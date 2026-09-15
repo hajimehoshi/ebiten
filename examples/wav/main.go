@@ -57,7 +57,7 @@ func NewGame() (*Game, error) {
 	// In this example, embedded resource "Jab_wav" is used.
 	//
 	// If you want to use a wav file, open this and pass the file stream to wav.Decode.
-	// Note that file's Close() should not be closed here
+	// Note that the file should not be closed here
 	// since audio.Player manages stream state.
 	//
 	//     f, err := os.Open("jab.wav")

@@ -26,18 +26,18 @@ import (
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendInputChars represents the environment's locale-dependent translation of keyboard
-// input to Unicode characters. On the other hand, Key represents a physical key of US keyboard layout
+// input to Unicode characters. On the other hand, Key represents a physical key of the US keyboard layout.
 //
 // "Control" and modifier keys should be handled with IsKeyPressed.
 //
 // AppendInputChars is concurrent-safe.
 //
-// On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
+// On Android (ebitenmobile), EbitenView must be focusable to enable handling keyboard keys.
 func AppendInputChars(runes []rune) []rune {
 	return inputstate.Get().AppendInputChars(runes)
 }
 
-// InputChars return "printable" runes read from the keyboard at the time Update is called.
+// InputChars returns "printable" runes read from the keyboard at the time Update is called.
 //
 // Deprecated: as of v2.2. Use AppendInputChars instead.
 func InputChars() []rune {
@@ -47,9 +47,9 @@ func InputChars() []rune {
 // IsKeyPressed returns a boolean indicating whether key is pressed.
 //
 // If you want to know whether the key started being pressed in the current tick,
-// use inpututil.IsKeyJustPressed
+// use inpututil.IsKeyJustPressed.
 //
-// Note that a Key represents a physical key of US keyboard layout.
+// Note that a Key represents a physical key of the US keyboard layout.
 // For example, KeyQ represents Q key on US keyboards and ' (quote) key on Dvorak keyboards.
 //
 // For a modifier key ([KeyAlt], [KeyControl], [KeyShift], [KeyMeta], and their left and right variants),
@@ -58,7 +58,7 @@ func InputChars() []rune {
 //
 // IsKeyPressed is concurrent-safe.
 //
-// On Android (ebitenmobile), EbitenView must be focusable to enable to handle keyboard keys.
+// On Android (ebitenmobile), EbitenView must be focusable to enable handling keyboard keys.
 func IsKeyPressed(key Key) bool {
 	return inputstate.Get().IsKeyPressed(ui.Key(key))
 }
@@ -150,7 +150,7 @@ func ScrollDelta() (x, y float64) {
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.
 //
 // If you want to know whether the mouseButton started being pressed in the current tick,
-// use inpututil.IsMouseButtonJustPressed
+// use inpututil.IsMouseButtonJustPressed.
 //
 // IsMouseButtonPressed is concurrent-safe.
 func IsMouseButtonPressed(mouseButton MouseButton) bool {
@@ -161,7 +161,7 @@ func IsMouseButtonPressed(mouseButton MouseButton) bool {
 type GamepadID = gamepad.ID
 
 // GamepadSDLID returns a string with the GUID generated in the same way as SDL.
-// To detect devices, see also the community project of gamepad devices database: https://github.com/gabomdq/SDL_GameControllerDB
+// To detect devices, see also the community gamepad devices database project: https://github.com/gabomdq/SDL_GameControllerDB
 //
 // GamepadSDLID returns an empty string on consoles, where no such GUID exists.
 //
@@ -383,7 +383,7 @@ func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton
 // updates the gamepad layout definitions.
 //
 // UpdateStandardGamepadLayoutMappings reports whether the mappings were applied,
-// and returns an error in case any occurred while parsing the mappings.
+// and returns an error if any occur while parsing the mappings.
 //
 // One or more input definitions can be provided separated by newlines.
 // In particular, it is valid to pass an entire gamecontrollerdb.txt file.
@@ -422,7 +422,7 @@ type TouchID int
 // Giving a slice that already has enough capacity works efficiently.
 //
 // If you want to know whether a touch started being pressed in the current tick,
-// use inpututil.JustPressedTouchIDs
+// use inpututil.JustPressedTouchIDs.
 //
 // AppendTouchIDs doesn't append anything when there are no touches.
 // AppendTouchIDs always does nothing on desktops.

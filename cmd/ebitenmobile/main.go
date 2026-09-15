@@ -88,7 +88,7 @@ func main() {
 	}
 
 	// minAndroidAPI specifies the minimum API version for Android.
-	// Now Google Player v23.30.99+ drops API levels that are older than 21.
+	// Now Google Play services v23.30.99+ drops API levels that are older than 21.
 	// See https://apilevels.com/.
 	const minAndroidAPI = 21
 
@@ -143,7 +143,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// If args doesn't include '-androidapi', set it to args explicitly.
+	// If args doesn't include '-androidapi', add it to args explicitly.
 	// It's because ebitenmobile's default API level is different from gomobile's one.
 	if buildTarget == "android" && buildAndroidAPI == minAndroidAPI {
 		var found bool
@@ -247,7 +247,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			frameworkName := filepath.Base(buildO)
 			frameworkNameBase := frameworkName[:len(frameworkName)-len(".xcframework")]
 			// The first character must be an upper case (#2192).
-			// For the consistency with gomobile (see cmd/gomobile/bind_iosapp.go), the name is title-cased.
+			// For consistency with gomobile (see cmd/gomobile/bind_iosapp.go), the name is title-cased.
 			frameworkNameBase = caser.String(frameworkNameBase)
 			dir := filepath.Join(buildO, name, frameworkNameBase+".framework")
 
@@ -312,7 +312,7 @@ func isValidJavaPackageName(name string) bool {
 	return true
 }
 
-// isValidJavaIdentifier reports whether the given strings is a valid Java identifier.
+// isValidJavaIdentifier reports whether the given string is a valid Java identifier.
 func isValidJavaIdentifier(name string) bool {
 	if name == "" {
 		return false

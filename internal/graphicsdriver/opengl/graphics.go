@@ -52,7 +52,7 @@ type Graphics struct {
 	nextShaderID graphicsdriver.ShaderID
 	shaders      map[graphicsdriver.ShaderID]*Shader
 
-	// drawCalled is true just after Draw is called. This holds true until WritePixels is called.
+	// drawCalled is true just after DrawTriangles is called. This holds true until WritePixels is called.
 	drawCalled bool
 
 	uniformVariableNameCache map[int]string
@@ -61,7 +61,6 @@ type Graphics struct {
 	uniformVars []uniformVariable
 
 	// activatedTextures is a set of activated textures.
-	// textureNative cannot be a map key unfortunately.
 	activatedTextures []activatedTexture
 
 	graphicsPlatform
@@ -90,7 +89,7 @@ func (g *Graphics) Begin() error {
 }
 
 func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
-	// Call glFlush to prevent black flicking (especially on Android (#226) and iOS).
+	// Call glFlush to prevent black flickering (especially on Android (#226) and iOS).
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.ctx.Flush()
 

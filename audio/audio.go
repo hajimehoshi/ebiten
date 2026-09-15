@@ -34,7 +34,7 @@
 // When multiple players play, mixing is automatically done.
 // Note that too many players may cause distortion.
 //
-// For the simplest example to play sound, see wav package in the examples.
+// For the simplest example to play sound, see the wav package in the examples.
 package audio
 
 import (
@@ -159,8 +159,8 @@ func NewContext(sampleRate int) *Context {
 		return nil
 	})
 
-	// In the current Ebitengine implementation, update might not be called when the window is in background (#3154).
-	// In this case, an audio player position is not updated correctly with AppendHookOnBeforeUpdateWithVMGuestInfo.
+	// In the current Ebitengine implementation, update might not be called when the window is in the background (#3154).
+	// In this case, an audio player's position is not updated correctly with AppendHookOnBeforeUpdateWithVMGuestInfo.
 	// Use a distinct goroutine to update the player states.
 	go func() {
 		for {
@@ -295,7 +295,7 @@ func (c *Context) updatePlayers() error {
 	}
 	c.m.Unlock()
 
-	// Now reader players cannot call removePlayers from themselves in the current implementation.
+	// In the current implementation, players cannot remove themselves from the context when the underlying player stops by itself.
 	// The underlying player can become paused after finishing playback,
 	// but there is no way to notify this to players so far.
 	// Instead, let's check the states proactively every frame.
@@ -341,7 +341,7 @@ func (c *Context) SampleRate() int {
 
 // Player is an audio player which has one stream.
 //
-// Even when all references to a Player object is gone,
+// Even when all references to a Player object are gone,
 // the object is not GCed until the player finishes playing.
 // This means that if a Player plays an infinite stream,
 // the object is never GCed unless [Player.Pause] or [Player.PauseAndStopReading] is called.
@@ -493,7 +493,7 @@ func (p *Player) Play() {
 	p.p.Play()
 }
 
-// IsPlaying returns boolean indicating whether the player is playing.
+// IsPlaying returns a boolean indicating whether the player is playing.
 func (p *Player) IsPlaying() bool {
 	defer runtime.KeepAlive(p)
 	return p.p.IsPlaying()
@@ -618,7 +618,7 @@ func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals to the new one, ResampleReader returns source as it is.
+// If the original sample rate equals the new one, ResampleReader returns source as it is.
 //
 // The returned value implements io.Seeker when the source implements io.Seeker.
 // The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
@@ -639,7 +639,7 @@ func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals to the new one, ResampleReaderF32 returns source as it is.
+// If the original sample rate equals the new one, ResampleReaderF32 returns source as it is.
 //
 // The returned value implements io.Seeker when the source implements io.Seeker.
 // The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
@@ -660,7 +660,7 @@ func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals to the new one, Resample returns source as it is.
+// If the original sample rate equals the new one, Resample returns source as it is.
 //
 // Deprecated: as of v2.9. Use ResampleReader instead.
 func Resample(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
@@ -679,7 +679,7 @@ func Resample(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals to the new one, ResampleF32 returns source as it is.
+// If the original sample rate equals the new one, ResampleF32 returns source as it is.
 //
 // Deprecated: as of v2.9. Use ResampleReaderF32 instead.
 func ResampleF32(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {

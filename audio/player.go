@@ -90,14 +90,14 @@ type playerImpl struct {
 
 	// adjustedPosition is the player's more accurate position as time.Duration.
 	// The underlying buffer might not be changed even if the player is playing.
-	// adjustedPosition is adjusted by the time duration during the player position doesn't change while its playing.
+	// adjustedPosition is adjusted by the time duration during which the player position doesn't change while it's playing.
 	adjustedPosition int64
 
 	// lastSamples is the last value of the number of samples.
 	// When lastSamples is a negative number, this value is not initialized yet.
 	lastSamples int64
 
-	// stopwatch is a stopwatch to measure the time duration during the player position doesn't change while its playing.
+	// stopwatch is a stopwatch to measure the time duration during which the player position doesn't change while it's playing.
 	stopwatch stopwatch
 
 	closed bool
@@ -632,7 +632,7 @@ type timeStream struct {
 	bytesPerSample int
 
 	// m is a mutex for this stream.
-	// All the exported functions are protected by this mutex as Read can be read from a different goroutine than Seek.
+	// All the exported functions are protected by this mutex as Read can be called from a different goroutine than Seek.
 	m sync.Mutex
 }
 
@@ -651,7 +651,7 @@ func newTimeStream(r io.Reader, seekable bool, sampleRate int, bitDepthInBytes i
 				return nil, err
 			}
 			// Ignore the error, as the underlying source might not support Seek (#3192).
-			// This happens when vorbis.Decode* is used, as vorbis.Stream is io.Seeker whichever the underlying source is.
+			// This happens when vorbis.Decode* is used, as vorbis.Stream is io.Seeker whatever the underlying source is.
 			pos = 0
 		}
 		s.pos.Store(pos)

@@ -21,5 +21,5 @@ import (
 )
 
 func (g *Game) loseAndRestoreContext() {
-	fmt.Println("Losing context lost works only on browsers.")
+	fmt.Println("Forcing context loss works only on browsers.")
 }

@@ -152,7 +152,7 @@ func (g *Game) drawEbitenText(screen *ebiten.Image, x, y int, aa bool, line bool
 	// For strokes (AppendVerticesAndIndicesForStroke), FillRuleFillAll and FillRuleNonZero work.
 	//
 	// For filling (AppendVerticesAndIndicesForFilling), FillRuleNonZero and FillRuleEvenOdd work.
-	// FillRuleNonZero and FillRuleEvenOdd differ when rendering a complex polygons with self-intersections and/or holes.
+	// FillRuleNonZero and FillRuleEvenOdd differ when rendering complex polygons with self-intersections and/or holes.
 	// See https://en.wikipedia.org/wiki/Nonzero-rule and https://en.wikipedia.org/wiki/Even%E2%80%93odd_rule .
 	//
 	// For simplicity, this example always uses FillRuleNonZero, whichever strokes or filling is done.

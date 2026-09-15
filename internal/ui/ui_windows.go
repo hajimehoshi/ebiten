@@ -332,7 +332,7 @@ func (u *glfwBackend) RestoreIMMContextOnMainThread() error {
 
 func init() {
 	if microsoftgdk.IsXbox() {
-		// TimeBeginPeriod might not be defined in Xbox.
+		// TimeBeginPeriod might not be defined on Xbox.
 		return
 	}
 	// Use a better timer resolution (golang/go#44343).

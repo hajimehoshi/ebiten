@@ -34,7 +34,7 @@ func init() {
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	// This is hacky, but WritePixels is better than Fill in term of automatic texture packing.
+	// This is hacky, but WritePixels is better than Fill in terms of automatic texture packing.
 	whiteImage.WritePixels(pix)
 }
 
@@ -102,7 +102,7 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 	dst.DrawImage(whiteSubImage, op)
 }
 
-// FillRect fills a rectangle with the specified width and color.
+// FillRect fills a rectangle with the specified position (x, y), size (width, height) and color.
 func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
@@ -129,14 +129,14 @@ func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, a
 	dst.DrawImage(whiteSubImage, op)
 }
 
-// DrawFilledRect fills a rectangle with the specified width and color.
+// DrawFilledRect fills a rectangle with the specified position (x, y), size (width, height) and color.
 //
 // Deprecated: as of v2.9. Use [FillRect] instead.
 func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	FillRect(dst, x, y, width, height, clr, antialias)
 }
 
-// StrokeRect strokes a rectangle with the specified width and color.
+// StrokeRect strokes a rectangle with the specified position (x, y), size (width, height), stroke width and color.
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)

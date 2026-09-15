@@ -171,7 +171,7 @@ type graphicsInfraResources struct {
 	dcompVisual *_IDCompositionVisual
 }
 
-// newGraphicsInfra takes the ownership of the given factory.
+// newGraphicsInfra takes ownership of the given factory.
 func newGraphicsInfra(factory *_IDXGIFactory) (*graphicsInfra, error) {
 	g := &graphicsInfra{
 		graphicsInfraResources: &graphicsInfraResources{

@@ -32,7 +32,7 @@ type InfiniteLoop struct {
 	bitDepthInBytes int
 	bytesPerSample  int
 
-	// extra is the remainder in the case when the read byte sizes are not multiple of the bit depth.
+	// extra is the remainder in the case when the read byte sizes are not a multiple of the bit depth.
 	extra []byte
 
 	// afterLoop is data after the loop.
@@ -149,7 +149,7 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 	return 1 - float32(p)/float32(l)
 }
 
-// Read is implementation of ReadSeeker's Read.
+// Read is an implementation of ReadSeeker's Read.
 //
 // If the source ends before the loop, the loop has nothing to repeat and Read returns [io.EOF].
 // If the source ends inside the loop, the loop is shortened to end there.
@@ -302,7 +302,7 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 
 // rewind moves the position back to the loop start.
 func (i *InfiniteLoop) rewind() error {
-	// Ignore the new position returned by Seek since the source position might not be match with the position
+	// Ignore the new position returned by Seek since the source position might not match the position
 	// managed by this.
 	if _, err := i.src.Seek(i.lstart, io.SeekStart); err != nil {
 		return err
@@ -312,7 +312,7 @@ func (i *InfiniteLoop) rewind() error {
 	return nil
 }
 
-// Seek is implementation of ReadSeeker's Seek.
+// Seek is an implementation of ReadSeeker's Seek.
 //
 // whence must be [io.SeekStart] or [io.SeekCurrent] since an [InfiniteLoop] has no end.
 //
@@ -346,7 +346,7 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart
 	}
-	// Ignore the new position returned by Seek since the source position might not be match with the position
+	// Ignore the new position returned by Seek since the source position might not match the position
 	// managed by this.
 	if _, err := i.src.Seek(next, io.SeekStart); err != nil {
 		return 0, err

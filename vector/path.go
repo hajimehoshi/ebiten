@@ -14,7 +14,7 @@
 
 // Package vector provides functions for vector graphics rendering.
 //
-// This package is under experiments and the API might be changed with breaking backward compatibility.
+// This package is experimental and the API might be changed with breaking backward compatibility.
 package vector
 
 import (
@@ -203,7 +203,7 @@ func (s *subPath) endDir(index int) vec2 {
 type Path struct {
 	subPaths []subPath
 
-	// flatPaths is a cached actual rendering positions.
+	// flatPaths is a cache of the actual rendering positions.
 	// flatPaths is used only for deprecated functions. Do not use this for new functions.
 	flatPaths []flatPath
 
@@ -244,7 +244,7 @@ func (p *Path) MoveTo(x, y float32) {
 }
 
 // LineTo adds a line segment to the path, which starts from the last position of the current sub-path
-// and ends to the given position (x, y).
+// and ends at the given position (x, y).
 // If p doesn't have any sub-paths, LineTo sets (x, y) as the start position of a new sub-path.
 // If the last sub-path is closed, LineTo creates a new sub-path whose start position is the same as the closed sub-path's.
 func (p *Path) LineTo(x, y float32) {
@@ -319,7 +319,7 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float32, level int, allowance floa
 	// Approximate a cubic Bézier curve to a quadratic Bézier curve.
 	// Assume that P0, P1, P2, and P3 are the control points of the cubic Bézier curve C.
 	// mid is the middle control point of the quadratic Bézier curve Q.
-	// mid equals to 2 * Q(0.5) - (1/2)*(P0 + P3).
+	// mid equals 2 * Q(0.5) - (1/2)*(P0 + P3).
 	// If Q(0.5) = C(0.5) = (1/8)*(P0 + 3*P1 + 3*P2 + P3), mid will be (1/4)*(-P0 + 3*P1 + 3*P2 + -P3).
 	p0 := cur
 	p1 := point{x: x1, y: y1}
@@ -417,7 +417,7 @@ func lineForTwoPoints(p0, p1 point) (a, b, c float32) {
 	return
 }
 
-// isPointCloseToSegment detects the distance between the point p and the line passing through p0 and p1 is less than allow.
+// isPointCloseToSegment reports whether the distance between the point p and the line passing through p0 and p1 is less than allow.
 // If p0 and p1 are the same, isPointCloseToSegment returns true when the distance between p0 and p is less than allow.
 func isPointCloseToSegment(p, p0, p1 point, allow float32) bool {
 	if p0 == p1 {

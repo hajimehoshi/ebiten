@@ -68,7 +68,7 @@ func QuadVerticesFromSrcAndMatrix(dst []float32, sx0, sy0, sx1, sy1 float32, a, 
 	ax, by, cx, dy := a*x, b*y, c*x, d*y
 	u0, v0, u1, v1 := sx0, sy0, sx1, sy1
 
-	// This function is very performance-sensitive and implement in a very dumb way.
+	// This function is very performance-sensitive and is implemented in a very dumb way.
 
 	// Remove the boundary check.
 	dst = dst[:4*VertexFloatCount]
