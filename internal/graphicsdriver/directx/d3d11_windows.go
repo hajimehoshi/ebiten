@@ -333,7 +333,7 @@ type _D3D11_RENDER_TARGET_VIEW_DESC struct {
 	_             structs.HostLayout
 	Format        _DXGI_FORMAT
 	ViewDimension _D3D11_RTV_DIMENSION
-	_             [3]uint32
+	_             [4]uint32 // Union: D3D11_BUFFER_RTV (16 bytes with alignment) is the biggest
 }
 
 type _D3D11_SAMPLER_DESC struct {
