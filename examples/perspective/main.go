@@ -49,7 +49,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		// Move the image's center to the upper-left corner.
 		op.GeoM.Translate(-float64(w)/2, -float64(h)/2)
 
-		// Scale each lines and adjust the position.
+		// Scale each line and adjust the position.
 		lineW := w + i*3/4
 		x := -float64(lineW) / float64(w) / 2
 		op.GeoM.Scale(float64(lineW)/float64(w), 1)

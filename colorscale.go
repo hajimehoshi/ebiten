@@ -104,7 +104,7 @@ func (c *ColorScale) SetWithColor(clr color.Color) {
 //
 // Scale is slightly different from colorm.ColorM's Scale in terms of alphas.
 // ColorScale is applied to premultiplied-alpha colors, while colorm.ColorM is applied to straight-alpha colors.
-// Thus, ColorM.Scale(r, g, b, a) equals to ColorScale.Scale(r*a, g*a, b*a, a).
+// Thus, ColorM.Scale(r, g, b, a) is equal to ColorScale.Scale(r*a, g*a, b*a, a).
 func (c *ColorScale) Scale(r, g, b, a float32) {
 	c.r_1 = (c.r_1+1)*r - 1
 	c.g_1 = (c.g_1+1)*g - 1

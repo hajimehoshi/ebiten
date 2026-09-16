@@ -309,9 +309,9 @@ func absorbExtendFormat(text string, pos int) int {
 }
 
 // mayNeedBidiInFirstLine reports whether text's first line may
-// resolve to a non-zero bidi embedding level under an LTR base. It is
-// an upper bound: every first line that resolves to a non-zero level
-// returns true, but a true result does not guarantee one.
+// resolve to a reordering (odd) bidi embedding level under an LTR
+// base. It is an upper bound: every first line that resolves to an
+// odd level returns true, but a true result does not guarantee one.
 //
 // Two kinds of content qualify: strong-RTL runes, matched by the UTF-8
 // lead bytes below, and the explicit controls that raise the level on
@@ -319,13 +319,16 @@ func absorbExtendFormat(text string, pos int) int {
 // no match of its own, as it takes its direction from the first strong
 // character inside it and that character is matched already. LRE
 // U+202A, LRO U+202D, PDF U+202C, LRI U+2066, and PDI U+2069 never
-// produce a non-zero level under an LTR base, so they stay unmatched.
+// produce an odd level under an LTR base (LRE, LRO, and LRI resolve
+// to level 2), so they stay unmatched.
 func mayNeedBidiInFirstLine(text string) bool {
 	// Lead bytes that may begin a strong-RTL rune:
-	//   - 0xD6..0xDF — 2-byte UTF-8 covering U+0590..U+07FF
-	//     (Hebrew, Arabic, Syriac, Arabic Supplement, Thaana, NKo).
-	//   - 0xE0       — 3-byte UTF-8 covering U+0800..U+08FF
-	//     (Samaritan, Mandaic, Syriac Supplement, Arabic Extended-A/B).
+	//   - 0xD6..0xDF — 2-byte UTF-8 covering U+0580..U+07FF
+	//     (the strong-RTL blocks are Hebrew, Arabic, Syriac, Arabic
+	//     Supplement, Thaana, and NKo).
+	//   - 0xE0       — 3-byte UTF-8 covering U+0800..U+0FFF
+	//     (the strong-RTL blocks are Samaritan, Mandaic, Syriac
+	//     Supplement, and Arabic Extended-A/B).
 	//   - 0xEF 0xAC..0xBB — 3-byte UTF-8 covering U+FB00..U+FEFF
 	//     exactly (Hebrew Presentation Forms, class R, and Arabic
 	//     Presentation Forms A and B, class AL). The common non-RTL
@@ -335,11 +338,12 @@ func mayNeedBidiInFirstLine(text string) bool {
 	//   - 0xF0       — 4-byte UTF-8 covering plane 1
 	//     (Mende Kikakui, Adlam, and other SMP RTL scripts).
 	//
-	// 0xEF 0xAC..0xBB and 0xF0 admit false positives for non-RTL
-	// content (variation selectors such as U+FE0F on emoji, Latin
-	// ligatures, and CJK compatibility forms for 0xEF 0xAC..0xBB;
-	// emoji and mathematical alphanumerics for 0xF0); those texts go
-	// through the bidi pass and chunk correctly anyway.
+	// 0xD6..0xDF and 0xE0 also admit false positives for non-RTL
+	// content (e.g. Armenian punctuation, Indic scripts, and Thai), as
+	// do 0xEF 0xAC..0xBB and 0xF0 (variation selectors such as U+FE0F
+	// on emoji, Latin ligatures, and CJK compatibility forms for
+	// 0xEF 0xAC..0xBB; emoji and mathematical alphanumerics for 0xF0);
+	// those texts go through the bidi pass and chunk correctly anyway.
 	//
 	// Line-break bytes are detected inline so the scan stops at the
 	// first line break instead of walking past it.

@@ -328,7 +328,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 		case *ast.GenDecl:
 			genDecl := n
 
-			// It is possible to check whether decl.Tok is token.CONST or not,
+			// It is possible to check whether genDecl.Tok is token.CONST or not,
 			// but move on without checking it for better warning messages.
 
 			if push {
@@ -352,7 +352,7 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 					}
 				}
 
-				// It is possible to check whether genCecl is top-level or not,
+				// It is possible to check whether genDecl is top-level or not,
 				// but move on without checking it for better warning messages.
 
 				genDeclStack = append(genDeclStack, genDecl)

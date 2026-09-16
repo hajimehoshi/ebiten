@@ -342,8 +342,8 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
 		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.
-		// Even after entering or exiting from fullscreening, the outside (body) size is not updated for a while.
-		// Wait for the outside size updated.
+		// Even after entering or exiting from fullscreen, the outside (body) size is not updated for a while.
+		// Wait for the outside size to be updated.
 		if w, h := u.outsideSize(); u.savedOutsideWidth != w || u.savedOutsideHeight != h {
 			u.inputState.CursorX = u.savedCursorX
 			u.inputState.CursorY = u.savedCursorY

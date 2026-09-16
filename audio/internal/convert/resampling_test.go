@@ -162,7 +162,7 @@ func TestResampling(t *testing.T) {
 							}
 							wantB := newSoundBytes(c.Out, bitDepthInBytes)
 							// 256 is an arbitrary number.
-							// In most cases, len(gotB) must >= len(wantB), but there are some numerical errors.
+							// In most cases, len(gotB) must be >= len(wantB), but there are some numerical errors.
 							if len(gotB) < len(wantB)-256 {
 								t.Errorf("len(gotB) >= len(wantB) - 256, but len(gotB) == %d, len(wantB) == %d", len(gotB), len(wantB))
 							}

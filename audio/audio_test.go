@@ -69,7 +69,7 @@ func TestGC(t *testing.T) {
 		if err := audio.UpdateForTesting(); err != nil {
 			t.Error(err)
 		}
-		// 200[ms] should be enough all the bytes are consumed.
+		// 200[ms] should be enough for all the bytes to be consumed.
 		// TODO: This is a dirty hack. Would it be possible to use virtual time?
 		time.Sleep(200 * time.Millisecond)
 	}
@@ -145,7 +145,7 @@ func (emptySource) Read(buf []byte) (int, error) {
 
 func TestNonSeekableSource(t *testing.T) {
 	if runtime.GOOS == "js" {
-		t.Skip("infinite steams in tests cannot be treated well on browsers")
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
 	}
 
 	setup()
@@ -386,7 +386,7 @@ func waitForRead(t *testing.T, src *countingSource, reads int64) int64 {
 // Issue #3510
 func TestPauseAndStopReading(t *testing.T) {
 	if runtime.GOOS == "js" {
-		t.Skip("infinite steams in tests cannot be treated well on browsers")
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
 	}
 
 	setup()
@@ -431,7 +431,7 @@ func TestPauseAndStopReading(t *testing.T) {
 // Issue #3510
 func TestPauseAndStopReadingWhilePaused(t *testing.T) {
 	if runtime.GOOS == "js" {
-		t.Skip("infinite steams in tests cannot be treated well on browsers")
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
 	}
 
 	setup()

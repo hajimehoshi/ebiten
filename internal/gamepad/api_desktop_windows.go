@@ -586,8 +586,8 @@ type _RID_DEVICE_INFO_HID struct {
 	dwVersionNumber uint32
 	usUsagePage     uint16
 	usUsage         uint16
-	_               uint32 // A padding adjusting with the size of RID_DEVICE_INFO_KEYBOARD
-	_               uint32 // A padding adjusting with the size of RID_DEVICE_INFO_KEYBOARD
+	_               uint32 // Padding to adjust the size to that of RID_DEVICE_INFO_KEYBOARD
+	_               uint32 // Padding to adjust the size to that of RID_DEVICE_INFO_KEYBOARD
 }
 
 type _RAWINPUTDEVICELIST struct {

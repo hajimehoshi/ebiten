@@ -27,7 +27,7 @@ type VibrateOptions struct {
 	Duration time.Duration
 
 	// Magnitude is the strength of the device vibration.
-	// The value is in between 0 and 1.
+	// The value is between 0 and 1.
 	Magnitude float64
 }
 
@@ -63,11 +63,11 @@ type VibrateGamepadOptions struct {
 	Duration time.Duration
 
 	// StrongMagnitude is the rumble intensity of a low-frequency rumble motor.
-	// The value is in between 0 and 1.
+	// The value is between 0 and 1.
 	StrongMagnitude float64
 
 	// WeakMagnitude is the rumble intensity of a high-frequency rumble motor.
-	// The value is in between 0 and 1.
+	// The value is between 0 and 1.
 	WeakMagnitude float64
 }
 

@@ -226,7 +226,7 @@ func (s *StereoPanStream) Pan() float64 {
 
 // NewStereoPanStream returns a new StereoPanStream with a buffered src.
 //
-// The src's format must be linear PCM (16bits little endian, 2 channel stereo)
+// The src's format must be linear PCM (32bit float little endian, 2 channel stereo)
 // without a header (e.g. RIFF header). The sample rate must be same as that
 // of the audio context.
 func NewStereoPanStream(src io.ReadSeeker) *StereoPanStream {

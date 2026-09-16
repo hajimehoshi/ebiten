@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package wav provides WAV (RIFF) decoder.
+// Package wav provides a WAV (RIFF) decoder.
 package wav
 
 import (
@@ -40,12 +40,12 @@ type Stream struct {
 	sampleRate int
 }
 
-// Read is implementation of io.Reader's Read.
+// Read is an implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.inner.Read(p)
 }
 
-// Seek is implementation of io.Seeker's Seek.
+// Seek is an implementation of io.Seeker's Seek.
 //
 // If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {

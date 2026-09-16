@@ -143,7 +143,7 @@ type glfwBackend struct {
 	showWindowOnce        sync.Once
 	bufferOnceSwappedOnce sync.Once
 
-	// immContext is used only in Windows.
+	// immContext is used only on Windows.
 	immContext uintptr
 }
 
@@ -184,7 +184,7 @@ func (u *UserInterface) initializeGLFW() error {
 		return err
 	}
 
-	// Update the monitor first. The monitor state is depended on various functions like initialMonitorByOS.
+	// Update the monitor first. The monitor state is depended on by various functions like initialMonitorByOS.
 	if err := theMonitors.update(); err != nil {
 		return err
 	}
@@ -568,7 +568,7 @@ func (u *glfwBackend) createWindow() error {
 	ww, wh = sizeRequest.X, sizeRequest.Y
 
 	// The position must be set before the size is set (#1982).
-	// setWindowSizeInDIP refers the current monitor's device scale.
+	// setWindowSizeInDIP refers to the current monitor's device scale.
 	positionRequest := u.desktopWindow.windowPositionInDIP.value.Load()
 	wx, wy := invalidPos, invalidPos
 	if positionRequest != nil {
@@ -618,7 +618,7 @@ func (u *glfwBackend) createWindow() error {
 	if err := u.window.SetTitle(u.desktopWindow.title.Load()); err != nil {
 		return err
 	}
-	// Icons are set after every frame. They don't have to be cared here.
+	// Icons are set after every frame. They don't have to be cared for here.
 
 	if err := u.updateWindowSizeLimits(); err != nil {
 		return err
@@ -893,7 +893,7 @@ func (u *glfwBackend) registerDropCallback() error {
 
 // waitForFramebufferSizeCallback waits for GLFW's FramebufferSize callback.
 // f is a process executed after registering the callback.
-// If the callback is not invoked for a while, waitForFramebufferSizeCallback times out and return.
+// If the callback is not invoked for a while, waitForFramebufferSizeCallback times out and returns.
 //
 // waitForFramebufferSizeCallback must be called from the main thread.
 func (u *glfwBackend) waitForFramebufferSizeCallback(window *glfw.Window, f func() error) error {
@@ -1110,8 +1110,8 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
 		g.SetMainThreadRunner(u.RunOnMainThread)
 	}
 
-	// Register callbacks after the window initialization done.
-	// The callback might cause swapping frames, that assumes the window is already set (#2137).
+	// Register callbacks after the window initialization is done.
+	// The callback might cause swapping frames, which assumes the window is already set (#2137).
 	if err := u.registerWindowCloseCallback(); err != nil {
 		return err
 	}
@@ -1350,7 +1350,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 	}
 
 	// Initialize vsync after SetMonitor is called.
-	// Calling this inside setWindowSize didn't work (#1363).
+	// Calling this inside setWindowSizeInDIP didn't work (#1363).
 	if !u.fpsModeInited {
 		if err := u.setFPSMode(FPSModeType(u.fpsMode.Load())); err != nil {
 			return 0, 0, 0, 0, err
@@ -1713,7 +1713,7 @@ func windowSizeToRestore(capturedWidth, capturedHeight int, capturedMonitor *Mon
 	return windowSizeInGLFWPixels(widthInDIP, heightInDIP, monitor.DeviceScaleFactor())
 }
 
-// setWindowSize must be called from the main thread.
+// setWindowSizeInDIP must be called from the main thread.
 func (u *glfwBackend) setWindowSizeInDIP(width, height int, callSetSize bool) error {
 	if microsoftgdk.IsXbox() {
 		// Do nothing. The size is always fixed.
@@ -1943,7 +1943,7 @@ func (u *glfwBackend) minimumWindowWidth() (int, error) {
 
 	// On Windows, giving a too small width doesn't call a callback (#165).
 	// To prevent hanging up, return asap if the width is too small.
-	// 126 is an arbitrary number and I guess this is small enough .
+	// 126 is an arbitrary number and I guess this is small enough.
 	if runtime.GOOS == "windows" {
 		return 126, nil
 	}

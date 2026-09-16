@@ -34,7 +34,7 @@ func TestInternalImageSize(t *testing.T) {
 		got := graphics.InternalImageSize(testCase.arg)
 		wanted := testCase.expected
 		if wanted != got {
-			t.Errorf("Clp(%d) = %d, wanted %d", testCase.arg, got, wanted)
+			t.Errorf("InternalImageSize(%d) = %d, wanted %d", testCase.arg, got, wanted)
 		}
 
 	}

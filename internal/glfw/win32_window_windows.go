@@ -175,9 +175,9 @@ func (w *Window) updateCursorImage() error {
 			_SetCursor(cursor)
 		}
 	} else {
-		// Connected via Remote Desktop, nil cursor will present SetCursorPos the move the cursor.
-		// using a blank cursor fix that.
-		// When not via Remote Desktop, platformWindow.blankCursor should be nil.
+		// When connected via Remote Desktop, a nil cursor prevents SetCursorPos from moving the cursor.
+		// A blank cursor fixes that.
+		// When not connected via Remote Desktop, platformWindow.blankCursor should be nil.
 		_SetCursor(_glfw.platformWindow.blankCursor)
 	}
 	return nil

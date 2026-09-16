@@ -58,7 +58,7 @@ func main() {
 	//
 	//     ID3D12Device::CreateCommittedResource failed: HANDLE(2147942414)
 	//
-	// This indicates out of memory. Skip this test.
+	// This indicates an out-of-memory error. Skip this test.
 	if runtime.GOOS == "windows" && runtime.GOARCH == "386" {
 		return
 	}

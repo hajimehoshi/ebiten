@@ -257,7 +257,7 @@ func (cs *compileState) parse(f *ast.File) {
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
-	// TODO: Check len(unames) == graphics.PreservedUniformVariablesCount. Unfortunately this is not true on tests.
+	// TODO: Check len(unames) == graphics.PreservedUniformVariablesCount. Unfortunately this is not true in tests.
 	for i, u := range cs.ir.UniformNames {
 		if !strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
@@ -267,7 +267,7 @@ func (cs *compileState) parse(f *ast.File) {
 	cs.ir.UniformNames = unames
 	cs.ir.Uniforms = utypes
 
-	// Parse function names so that any other function call the others.
+	// Parse function names so that any function can call the other functions.
 	// The function data is provisional and will be updated soon.
 	var vertexInParams []variable
 	var vertexOutParams []variable
@@ -324,7 +324,7 @@ func (cs *compileState) parse(f *ast.File) {
 	}
 
 	// Check varying variables.
-	// In testings, there might not be vertex and fragment entry points.
+	// In tests, there might not be vertex and fragment entry points.
 	if len(vertexOutParams) > 0 && len(fragmentInParams) > 0 {
 		for i, p := range vertexOutParams {
 			if len(fragmentInParams) <= i {
@@ -513,7 +513,7 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 	return stmts, true
 }
 
-// functionReturnTypes returns the original returning value types, if the given expression is call.
+// functionReturnTypes returns the original returning value types, if the given expression is a call.
 //
 // Note that parseExpr returns the returning types for IR, not the original function.
 func (cs *compileState) functionReturnTypes(block *block, expr ast.Expr) ([]shaderir.Type, bool) {
@@ -626,7 +626,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 		default:
 			// Multiple-value context
-			// See testcase/var_multiple.go for an actual case.
+			// See testdata/var_multiple.go for an actual case.
 
 			if i == 0 {
 				init := vs.Values[0]
@@ -875,7 +875,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		}
 
 		if !hasReturn(b.ir.Stmts) {
-			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but not", d.Name))
+			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but does not", d.Name))
 			return function{}, false
 		}
 	}

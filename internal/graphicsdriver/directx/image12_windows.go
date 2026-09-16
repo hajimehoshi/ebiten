@@ -42,7 +42,7 @@ func (i *image12) ID() graphicsdriver.ImageID {
 }
 
 func (i *image12) Dispose() {
-	// Dipose the images later as this image might still be used.
+	// Dispose the image later as this image might still be used.
 	i.graphics.removeImage(i)
 }
 

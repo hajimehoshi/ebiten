@@ -247,7 +247,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 			continue
 		}
 		if code >= _ABS_HAT0X && code <= _ABS_HAT3Y {
-			// Write the hat index both for the X and the Y hat axis.
+			// Write the hat index for both the X and the Y hat axes.
 			// That way, the hat can be referenced using either axis, which is used by the code building hatMappingInput.
 			n.absMap[code] = hatCount
 			code++
@@ -314,7 +314,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 			buf = buf[16:]
 			continue
 		}
-		name := unix.ByteSliceToString(buf[16 : 16+e.Len-1]) // len includes the null terminate.
+		name := unix.ByteSliceToString(buf[16 : 16+e.Len-1]) // len includes the null terminator.
 		buf = buf[16+e.Len:]
 		if !reEvent.MatchString(name) {
 			continue
@@ -397,7 +397,7 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 
 	for {
 		buf := make([]byte, unsafe.Sizeof(input_event{}))
-		// TODO: Should the returned byte count be cared?
+		// TODO: Should the returned byte count be cared about?
 		if _, err := unix.Read(g.fdPlus1-1, buf); err != nil {
 			if err == unix.EAGAIN {
 				break
@@ -616,7 +616,7 @@ func (g *nativeGamepadImpl) computeStandardLayout(vendor uint16) {
 		g.stdButtonMap[gamepaddb.StandardButtonFrontBottomRight] = hatMappingInput{g: g, hat: h, direction: hatRight}
 	}
 
-	// D-pad can be analog or digital. Prefer digital one.
+	// D-pad can be analog or digital. Prefer the digital one.
 	if h := g.absMap[_ABS_HAT0X]; h >= 0 {
 		g.stdButtonMap[gamepaddb.StandardButtonLeftLeft] = hatMappingInput{g: g, hat: h, direction: hatLeft}
 		g.stdButtonMap[gamepaddb.StandardButtonLeftRight] = hatMappingInput{g: g, hat: h, direction: hatRight}

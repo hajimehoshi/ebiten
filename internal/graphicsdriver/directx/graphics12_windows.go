@@ -826,7 +826,7 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 	}
 	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{g.drawCommandList})
 
-	// Release vertices and indices buffers when too many ones were created.
+	// Release the vertex and index buffers when too many have been created.
 	// The threshold is an arbitrary number.
 	// Tests can submit command batches without completing a frame.
 	if len(g.vertices[g.frameIndex]) >= 16 {
@@ -1076,7 +1076,7 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr err
 		g.vertices[g.frameIndex][vidx] = nil
 	}
 	if g.vertices[g.frameIndex][vidx] == nil {
-		// TODO: Use the default heap for efficiently. See the official example HelloTriangle.
+		// TODO: Use the default heap for efficiency. See the official example HelloTriangle.
 		vs, err := createBuffer(g.device, uint64(vsize), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err

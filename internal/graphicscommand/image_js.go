@@ -55,7 +55,7 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 	return path, nil
 }
 
-// DumpImages dumps all the specified images to the specified directory.
+// DumpImages compresses all the specified images into a zip archive and downloads it.
 //
 // This is for testing usage.
 func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {

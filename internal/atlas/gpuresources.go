@@ -169,7 +169,7 @@ func (a *gpuResourcesState) startRestoringGPUResourcesIfNeeded() bool {
 	a.m.Lock()
 	defer a.m.Unlock()
 
-	// As this case is too often, avoid logging unless needed.
+	// As this case happens too often, avoid logging unless needed.
 	if a.phase != gpuResourcesStatePhaseNone {
 		slog.Debug("atlas: startRestoringGPUResourcesIfNeeded was called", "phase", a.phase)
 	}

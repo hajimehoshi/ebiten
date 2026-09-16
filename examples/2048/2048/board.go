@@ -31,7 +31,7 @@ type Board struct {
 	tasks []task
 }
 
-// NewBoard generates a new Board with giving a size.
+// NewBoard generates a new Board with the given size.
 func NewBoard(size int) (*Board, error) {
 	b := &Board{
 		size:  size,

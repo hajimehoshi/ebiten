@@ -124,8 +124,8 @@ func openX11Library(names ...string) (uintptr, error) {
 	return 0, firstErr
 }
 
-// xChangePropertyGeneric sets a window property from data, in the X property
-// format that matches the element type. An empty slice sets the property to
+// xChangePropertyGeneric sets a window property from data. The X property
+// format is 32 for uint and 8 for byte. An empty slice sets the property to
 // zero elements.
 func xChangePropertyGeneric[T byte | uint](display uintptr, w xID, property, typ xAtom, mode int32, data []T) int32 {
 	// Xlib takes 32-bit property data as C longs, so the format does not

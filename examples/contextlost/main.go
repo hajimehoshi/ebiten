@@ -71,7 +71,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(screenWidth/2, screenHeight/2)
 	screen.DrawImage(gophersImage, op)
 
-	msg := `Press Space to force to lose/restore the GL context!
+	msg := `Press Space to force losing/restoring the GL context!
 (Browser only)
 
 Press S to switch clearing the screen

@@ -485,7 +485,7 @@ func (g *Graphics) flushRenderCommandEncoderIfNeeded() {
 
 func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs [graphics.ShaderSrcImageCount]*Image, indexOffset int, shader *Shader, uniforms []uint32, blend graphicsdriver.Blend) error {
 	// In order to create a separate command buffer for the screen, flush the current command buffer.
-	// It's because a drawable will not be released as long as the CommandBuffer referencing it is alive,
+	// This is because a drawable is not released as long as the CommandBuffer referencing it is alive, so
 	// it is more efficient to separate CommandBuffers that use the drawable from those that do not.
 	if (g.lastDst != nil && g.lastDst.screen) != dst.screen {
 		g.flushCommandBufferIfNeeded(false)
@@ -501,7 +501,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	if g.rce == (mtl.RenderCommandEncoder{}) {
 		var rpd mtl.RenderPassDescriptor
 		// Even though the destination pixels are not used, mtl.LoadActionDontCare might cause glitches
-		// (#1019). Always using mtl.LoadActionLoad is safe.
+		// (#1019). Using mtl.LoadActionLoad for images and mtl.LoadActionClear for the screen is safe.
 		if dst.screen {
 			rpd.ColorAttachments[0].LoadAction = mtl.LoadActionClear
 		} else {
@@ -717,7 +717,7 @@ func (i *Image) Dispose() {
 func (i *Image) syncTexture() error {
 	i.graphics.flushCommandBufferIfNeeded(false)
 
-	// Calling SynchronizeTexture is ignored on iOS (see mtl.m), but it looks like committing BlitCommandEncoder
+	// Calling SynchronizeTexture is ignored on iOS (see the mtl package), but it looks like committing BlitCommandEncoder
 	// is necessary (#1337).
 	if i.graphics.cb != (mtl.CommandBuffer{}) {
 		panic("metal: command buffer must be empty at syncTexture")

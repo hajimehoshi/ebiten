@@ -80,7 +80,7 @@ type context struct {
 	// is enabled. The loop must then be paced explicitly.
 	vsyncIgnored bool
 
-	// vsyncIgnoredCount is the number of the successive frames that were swapped too early for the
+	// vsyncIgnoredCount is the number of successive frames that were swapped too early for the
 	// display to have shown them.
 	vsyncIgnoredCount int
 
@@ -286,7 +286,7 @@ func (c *context) flushCommandsAndWait(needsSwapBuffers bool, graphicsDriver gra
 
 	var waitTime time.Duration
 	if !needsSwapBuffers || occluded {
-		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usages (#2890).
+		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usage (#2890).
 		waitTime = time.Second / 60
 	} else if vsyncEnabled {
 		// In some environments, e.g. Linux on Parallels, SwapBuffers doesn't wait for the vsync (#2952).
@@ -358,7 +358,7 @@ func (c *context) newOffscreenImage(w, h int) *Image {
 }
 
 func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInterface, forceDraw bool) (needSwapBuffers bool, err error) {
-	// isOffscreenModified is updated when an offscreen's modifyCallback.
+	// isOffscreenModified is updated when an offscreen's modifyCallback is called.
 	c.isOffscreenModified = false
 
 	// Even though updateCount == 0, the offscreen is cleared and Draw is called.

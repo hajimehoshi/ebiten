@@ -14,7 +14,7 @@
 
 // Package text offers functions to draw texts on an Ebitengine's image.
 //
-// For the example using a TTF font, see font package in the examples.
+// For the example using a TTF font, see the font package in the examples.
 //
 // Deprecated: as of v2.7. Use text/v2 instead.
 package text
@@ -248,7 +248,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 	}
 
 	// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
-	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
+	// If the number of glyphs exceeds this soft limit, old glyphs are removed.
 	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
 	// this is fine.
 	const cacheSoftLimit = 512

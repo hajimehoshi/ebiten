@@ -82,7 +82,7 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 				return shaderir.Type{}, false
 			}
 			if l < 0 {
-				cs.addError(t.Pos(), fmt.Sprintf("invalid length array %d", l))
+				cs.addError(t.Pos(), fmt.Sprintf("invalid array length %d", l))
 				return shaderir.Type{}, false
 			}
 			length = int(l)
@@ -328,7 +328,7 @@ func checkArgsForIVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 			return nil
 		}
 	default:
-		return fmt.Errorf("invalid number of arguments for vec2")
+		return fmt.Errorf("invalid number of arguments for ivec2")
 	}
 
 	var str []string
@@ -364,7 +364,7 @@ func checkArgsForIVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 			return nil
 		}
 	default:
-		return fmt.Errorf("invalid number of arguments for vec3")
+		return fmt.Errorf("invalid number of arguments for ivec3")
 	}
 
 	var str []string
@@ -413,7 +413,7 @@ func checkArgsForIVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 			return nil
 		}
 	default:
-		return fmt.Errorf("invalid number of arguments for vec4")
+		return fmt.Errorf("invalid number of arguments for ivec4")
 	}
 
 	var str []string

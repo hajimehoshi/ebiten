@@ -123,7 +123,7 @@ var theDrawGlyphEntriesPool = sync.Pool{
 //
 // # Alignments
 //
-// For horizontal directions, the start and end depends on the face.
+// For horizontal directions, the start and end depend on the face.
 // If the face is GoTextFace, the start and the end depend on the Direction property.
 // If the face is GoXFace, the start and the end are always left and right respectively.
 //

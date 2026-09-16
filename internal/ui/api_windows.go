@@ -115,7 +115,7 @@ func _CoCreateInstance(rclsid *windows.GUID, pUnkOuter unsafe.Pointer, dwClsCont
 func _GetSystemMetrics(nIndex int) (int32, error) {
 	r, _, _ := procGetSystemMetrics.Call(uintptr(nIndex))
 	if int32(r) == 0 {
-		// GetLastError doesn't provide an extended information.
+		// GetLastError doesn't provide extended information.
 		// See https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
 		return 0, fmt.Errorf("ui: GetSystemMetrics returned 0")
 	}

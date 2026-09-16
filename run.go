@@ -137,11 +137,11 @@ type FinalScreenDrawer interface {
 	DrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM)
 }
 
-// DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
+// DefaultTPS represents the default ticks per second, which represents how many times game updating happens in a second.
 const DefaultTPS = clock.DefaultTPS
 
-// ActualFPS returns the current number of FPS (frames per second), that represents
-// how many swapping buffer happens per second.
+// ActualFPS returns the current number of FPS (frames per second), which represents
+// how many buffer swaps happen per second.
 //
 // On some environments, ActualFPS doesn't return a reliable value since vsync doesn't work well there.
 // If you want to measure the application's speed, use ActualTPS.
@@ -153,8 +153,8 @@ func ActualFPS() float64 {
 	return clock.ActualFPS()
 }
 
-// CurrentFPS returns the current number of FPS (frames per second), that represents
-// how many swapping buffer happens per second.
+// CurrentFPS returns the current number of FPS (frames per second), which represents
+// how many buffer swaps happen per second.
 //
 // Deprecated: as of v2.4. Use ActualFPS instead.
 func CurrentFPS() float64 {
@@ -228,7 +228,7 @@ var Termination = ui.RegularTermination
 // This is not related to framerate (display's refresh rate).
 //
 // RunGame returns an error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) Update returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGame currently returns the error as is, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
@@ -354,7 +354,7 @@ type RunGameOptions struct {
 // This is not related to framerate (display's refresh rate).
 //
 // RunGameWithOptions returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) Update returns an error. In the case of 3), RunGameWithOptions returns the same error so far, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGameWithOptions currently returns the error as is, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
@@ -406,10 +406,10 @@ func ScreenSize() (int, int) {
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
-// The returned value can be given to [SetWindowSize] if the perfectly fit fullscreen is needed.
+// The returned value can be given to [SetWindowSize] if a perfectly fitting fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size.
-// ScreenSizeInFullscreen's returning value is different from the actual screen size and this is a known issue (#2145).
+// ScreenSizeInFullscreen's return value is different from the actual screen size and this is a known issue (#2145).
 // For browsers, it is recommended to use Screen API (https://developer.mozilla.org/en-US/docs/Web/API/Screen) if needed.
 //
 // On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
@@ -497,16 +497,16 @@ func IsFocused() bool {
 }
 
 // IsRunnableOnUnfocused returns a boolean value indicating whether
-// the game runs even in background.
+// the game runs even in the background.
 //
 // IsRunnableOnUnfocused is concurrent-safe.
 func IsRunnableOnUnfocused() bool {
 	return ui.Get().IsRunnableOnUnfocused()
 }
 
-// SetRunnableOnUnfocused sets the state if the game runs even in background.
+// SetRunnableOnUnfocused sets the state if the game runs even in the background.
 //
-// If the given value is true, the game runs even in background e.g. when losing focus.
+// If the given value is true, the game runs even in the background e.g. when losing focus.
 // The initial state is true.
 //
 // Even when the given value is false, the game keeps running while the window is hidden by
@@ -589,7 +589,7 @@ const (
 	// FPSModeVsyncOffMinimum is useful for relatively static applications to save battery power.
 	//
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
-	// 1) new inputting except for gamepads is detected, or 2) ScheduleFrame is called.
+	// 1) new input except for gamepads is detected, or 2) ScheduleFrame is called.
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetTPS.
 	//
 	// Deprecated: as of v2.5. Use SetScreenClearedEveryFrame(false) instead.
@@ -616,7 +616,7 @@ func SetFPSMode(mode FPSModeType) {
 	ui.Get().SetFPSMode(ui.FPSModeType(mode))
 }
 
-// ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
+// ScheduleFrame schedules the next frame when the current FPS mode is FPSModeVsyncOffMinimum.
 //
 // ScheduleFrame is concurrent-safe.
 //
@@ -641,7 +641,7 @@ func MaxTPS() int {
 }
 
 // ActualTPS returns the current TPS (ticks per second),
-// that represents how many times Update function is called in a second.
+// which represents how many times the Update function is called in a second.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
@@ -651,7 +651,7 @@ func ActualTPS() float64 {
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
-// that represents how many times Update function is called in a second.
+// which represents how many times the Update function is called in a second.
 //
 // Deprecated: as of v2.4. Use ActualTPS instead.
 func CurrentTPS() float64 {
@@ -667,7 +667,7 @@ const SyncWithFPS = clock.SyncWithFPS
 const UncappedTPS = SyncWithFPS
 
 // SetTPS sets the maximum TPS (ticks per second),
-// that represents how many times updating function is called per second.
+// which represents how many times the updating function is called per second.
 // The initial value is 60.
 //
 // If tps is SyncWithFPS, TPS is uncapped and the game is updated per frame.
@@ -679,7 +679,7 @@ func SetTPS(tps int) {
 }
 
 // SetMaxTPS sets the maximum TPS (ticks per second),
-// that represents how many times updating function is called per second.
+// which represents how many times the updating function is called per second.
 //
 // Deprecated: as of v2.4. Use SetTPS instead.
 func SetMaxTPS(tps int) {

@@ -23,7 +23,7 @@ import (
 
 // OpenFile opens a file and returns a stream for its data.
 //
-// The path parts should be separated with slash '/' on any environments.
+// The path parts should be separated with a slash '/' in any environment.
 //
 // OpenFile doesn't work on mobiles.
 //
