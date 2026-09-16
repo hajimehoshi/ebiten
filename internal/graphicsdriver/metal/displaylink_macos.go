@@ -213,6 +213,12 @@ func (v *view) updateMetalDisplayLink() {
 		return
 	}
 
+	// The display link allocates drawables as soon as it starts. Wait until a nonzero
+	// drawable size has been applied to the layer to avoid allocation failures (#3708).
+	if v.drawableWidth == 0 || v.drawableHeight == 0 || v.drawableSizeDirty {
+		return
+	}
+
 	if v.metalDisplayLinkDelegate == 0 {
 		v.metalDisplayLinkDelegate = objc.ID(class_EbitengineCAMetalDisplayLinkDelegate).Send(objc.RegisterName("new"))
 	}
@@ -345,6 +351,7 @@ func (v *view) updatePresentationState() {
 
 func (v *view) nextDrawable() ca.MetalDrawable {
 	v.applyDrawableSizeIfNeeded()
+	v.updateMetalDisplayLink()
 
 	if v.metalDisplayLink != 0 {
 		const wait = 100 * time.Millisecond
