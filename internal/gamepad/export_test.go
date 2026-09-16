@@ -17,11 +17,13 @@ package gamepad
 var MotorMagnitude = motorMagnitude
 
 // nativeGamepadForTest is a gamepad backend whose reports a test supplies. Its axes and buttons
-// reuse the virtual backend, and it adds the hats that a virtual gamepad never has.
+// reuse the virtual backend, and it adds the hats and touch surfaces that a virtual gamepad never
+// has.
 type nativeGamepadForTest struct {
 	nativeGamepadVirtual
 
-	hats []int
+	hats     []int
+	surfaces [][]TouchContactForTest
 }
 
 func (g *nativeGamepadForTest) hatCount() int {
@@ -33,6 +35,32 @@ func (g *nativeGamepadForTest) hatState(hat int) int {
 		return hatCentered
 	}
 	return g.hats[hat]
+}
+
+func (g *nativeGamepadForTest) touchSurfaceCount() int {
+	return len(g.surfaces)
+}
+
+func (g *nativeGamepadForTest) touchSlotCount(surface int) int {
+	return len(g.surfaces[surface])
+}
+
+func (g *nativeGamepadForTest) touchContactAt(surface, slot int) touchContact {
+	c := g.surfaces[surface][slot]
+	return touchContact{
+		active: c.Active,
+		id:     c.ID,
+		x:      c.X,
+		y:      c.Y,
+	}
+}
+
+// TouchContactForTest is one touch slot's report from the test backend: whether a finger is on the
+// slot, the device's own contact identifier if it has one, and the position in -1..1.
+type TouchContactForTest struct {
+	Active bool
+	ID     int
+	X, Y   float64
 }
 
 // NewGamepadForTest returns a gamepad with the given SDL ID that takes its standard layout from
@@ -52,4 +80,16 @@ func (g *Gamepad) SetReportForTest(axes []float64, buttons []bool, hats []int) {
 		n.buttons = append(n.buttons[:0], buttons...)
 		n.hats = append(n.hats[:0], hats...)
 	})
+}
+
+// SetTouchReportForTest replaces the gamepad's touch slots, indexed by surface and then slot, and
+// runs the update that derives the touch IDs from them, as the gamepad list's update does for a
+// device.
+func (g *Gamepad) SetTouchReportForTest(surfaces [][]TouchContactForTest) {
+	withNative(g, func(n *nativeGamepadForTest) {
+		n.surfaces = surfaces
+	})
+	if err := g.update(nil); err != nil {
+		panic(err)
+	}
 }
