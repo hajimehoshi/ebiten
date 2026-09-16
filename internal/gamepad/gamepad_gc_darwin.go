@@ -71,6 +71,7 @@ type nativeGamepadGC struct {
 	hasDualShockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
+	touchSlots           [gcTouchSlotMax]gcTouchSlotKind
 	leftMotor            *rumbleMotor
 	rightMotor           *rumbleMotor
 	vibEnd               time.Time
@@ -78,6 +79,10 @@ type nativeGamepadGC struct {
 	axes    []float64
 	buttons []bool
 	hats    []int
+
+	// touches is the touch surface's finger slots, one per element found in the profile; it is
+	// empty for a controller without a touch surface.
+	touches []touchContact
 }
 
 // close releases g's native resources. close can be called multiple times.
