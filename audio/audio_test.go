@@ -801,3 +801,52 @@ func TestPlayerErrorDoesNotStopOtherPlayers(t *testing.T) {
 		t.Errorf("UpdateForTesting() after a player failed: got: %v, want: %v", err, errSourceFailed)
 	}
 }
+
+func TestPlayOnIdleContext(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// The first update creates the audio device, so that the players below play for real.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	// waitUntil polls cond until it holds or the deadline passes, and reports whether it held.
+	// The deadline is generous because time.Sleep has a several-millisecond floor on browsers.
+	waitUntil := func(cond func() bool) bool {
+		deadline := time.Now().Add(10 * time.Second)
+		for time.Now().Before(deadline) {
+			if cond() {
+				return true
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		return false
+	}
+
+	// A player's position is advanced only by the context, so a growing position shows that the
+	// context updates the player. The second round starts a player after the context has dropped
+	// the finished player of the first round, that is, after it went idle by itself.
+	for i := range 2 {
+		// Let the context settle into idling with no player to update.
+		time.Sleep(50 * time.Millisecond)
+
+		// 44100 [Hz] * 4 [bytes/sample] is one second of 16bit stereo audio.
+		p, err := context.NewPlayer(bytes.NewReader(make([]byte, 44100*4)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Play()
+
+		if !waitUntil(func() bool { return p.Position() > 0 }) {
+			t.Errorf("round %d: Position() did not advance after Play on an idle context", i)
+			return
+		}
+
+		// The next round needs the context to be idle again, which is only possible once the
+		// context has dropped the finished player.
+		if !waitUntil(func() bool { return audio.PlayersCountForTesting() == 0 }) {
+			t.Fatalf("round %d: time out: the player did not finish", i)
+		}
+	}
+}
