@@ -29,8 +29,7 @@
 // Web browsers scroll the page by themselves instead.
 //
 // When the user dismisses the virtual keyboard, e.g. with the Back gesture
-// on Android, text inputting ends: [Composer.OnEndByUser] is called, and a
-// focused [Field] loses its focus.
+// on Android, text inputting ends and [Composer.OnEndByUser] is called.
 //
 // # Android
 //
@@ -254,52 +253,6 @@ func computeReplacement(baseline, newText string, caretInBytes int) (replacement
 	return newText[prefix:sufNew], prefix, sufBaseline
 }
 
-// findLineBounds returns the byte offsets bounding the line of text that
-// contains the selection [selStart, selEnd]. lineStart is the position right
-// after the previous line break (or 0 if none), and lineEnd is the position of
-// the next line break (or len(text) if none). The line break bytes themselves
-// are excluded from both ends.
-//
-// Line breaks that fall within [selStart, selEnd) are ignored, so a selection
-// crossing line breaks yields a single combined line.
-func findLineBounds(text string, selStart, selEnd int) (lineStart, lineEnd int) {
-	selStart = min(max(selStart, 0), len(text))
-	selEnd = min(max(selEnd, selStart), len(text))
-
-	for i := selStart; i > 0; {
-		r, size := utf8.DecodeLastRuneInString(text[:i])
-		if isLineBreak(r) {
-			lineStart = i
-			break
-		}
-		i -= size
-	}
-
-	lineEnd = len(text)
-	for i := selEnd; i < len(text); {
-		r, size := utf8.DecodeRuneInString(text[i:])
-		if isLineBreak(r) {
-			lineEnd = i
-			break
-		}
-		i += size
-	}
-	return
-}
-
-// isLineBreak reports whether r is a line-break codepoint.
-func isLineBreak(r rune) bool {
-	switch r {
-	case '\n', '\v', '\f', '\r':
-		return true
-	case '\u0085', // NEL
-		'\u2028', // LS
-		'\u2029': // PS
-		return true
-	}
-	return false
-}
-
 // textInputBackend produces the raw text-input state stream for sessions.
 type textInputBackend interface {
 	// Start starts text inputting, with the same contract as [startTextInput].
@@ -472,8 +425,7 @@ func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
 	return s.ch, s.end
 }
 
-// isOpen reports whether text inputting is in progress, including by the
-// deprecated Field, which registers no session.
+// isOpen reports whether text inputting is in progress.
 func (s *textInputEvents) isOpen() bool {
 	s.m.Lock()
 	defer s.m.Unlock()

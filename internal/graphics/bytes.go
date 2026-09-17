@@ -138,7 +138,7 @@ func (b *bytesPool) put(bs []byte) {
 func (b *bytesPool) totalSize() int {
 	var s int
 	for _, bs := range b.pool {
-		s += len(bs)
+		s += cap(bs)
 	}
 	return s
 }

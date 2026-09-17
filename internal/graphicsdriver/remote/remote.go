@@ -194,7 +194,7 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 		Width:   width,
 		Height:  height,
 	})
-	return &Image{id: id, graphics: g, width: width, height: height}, nil
+	return &Image{id: id, graphics: g}, nil
 }
 
 func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.Image, error) {
@@ -207,7 +207,7 @@ func (g *Graphics) NewScreenFramebufferImage(width, height int) (graphicsdriver.
 		Height:  height,
 		Screen:  true,
 	})
-	return &Image{id: id, graphics: g, width: width, height: height, screen: true}, nil
+	return &Image{id: id, graphics: g}, nil
 }
 
 func (g *Graphics) SetVsyncEnabled(enabled bool) {
@@ -271,9 +271,6 @@ func (g *Graphics) DrawTriangles(dst graphicsdriver.ImageID, srcs [graphics.Shad
 type Image struct {
 	id       graphicsdriver.ImageID
 	graphics *Graphics
-	width    int
-	height   int
-	screen   bool
 }
 
 func (i *Image) ID() graphicsdriver.ImageID {

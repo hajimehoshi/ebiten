@@ -14,11 +14,60 @@
 
 package gamepad
 
+import (
+	"sync"
+
+	"golang.org/x/sys/windows"
+)
+
 type (
 	Gamepads         = gamepads
 	XboxGamepads     = nativeGamepadsXbox
 	IGameInputDevice = _IGameInputDevice
 )
+
+var (
+	fakeXboxDeviceVtblOnce sync.Once
+	fakeXboxDeviceVtbl     _IGameInputDevice_Vtbl
+
+	fakeXboxDeviceRefsMu sync.Mutex
+	fakeXboxDeviceRefs   = map[*_IGameInputDevice]int{}
+)
+
+func fakeXboxDeviceAddRef(device *_IGameInputDevice) uintptr {
+	fakeXboxDeviceRefsMu.Lock()
+	defer fakeXboxDeviceRefsMu.Unlock()
+
+	fakeXboxDeviceRefs[device]++
+	return uintptr(fakeXboxDeviceRefs[device])
+}
+
+func fakeXboxDeviceRelease(device *_IGameInputDevice) uintptr {
+	fakeXboxDeviceRefsMu.Lock()
+	defer fakeXboxDeviceRefsMu.Unlock()
+
+	fakeXboxDeviceRefs[device]--
+	return uintptr(fakeXboxDeviceRefs[device])
+}
+
+// NewXboxDevice returns a fake GameInput device that only counts its references.
+func NewXboxDevice() *_IGameInputDevice {
+	fakeXboxDeviceVtblOnce.Do(func() {
+		fakeXboxDeviceVtbl.AddRef = windows.NewCallback(fakeXboxDeviceAddRef)
+		fakeXboxDeviceVtbl.Release = windows.NewCallback(fakeXboxDeviceRelease)
+	})
+	return &_IGameInputDevice{
+		vtbl: &fakeXboxDeviceVtbl,
+	}
+}
+
+// XboxDeviceRefCount returns the number of references held on a device from NewXboxDevice.
+func XboxDeviceRefCount(device *_IGameInputDevice) int {
+	fakeXboxDeviceRefsMu.Lock()
+	defer fakeXboxDeviceRefsMu.Unlock()
+
+	return fakeXboxDeviceRefs[device]
+}
 
 // DeviceCallback reports device as connected or disconnected, as GameInput's device callback does.
 func (n *nativeGamepadsXbox) DeviceCallback(device *_IGameInputDevice, connected bool) {

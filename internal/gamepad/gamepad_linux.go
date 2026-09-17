@@ -342,7 +342,7 @@ func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
 	owned = false
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
-	runtime.AddCleanup(gp, func(n *nativeGamepadImpl) {
+	n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadImpl) {
 		n.close()
 	}, n)
 
@@ -505,9 +505,12 @@ type nativeGamepadImpl struct {
 
 	stdAxisMap   map[gamepaddb.StandardAxis]mappingInput
 	stdButtonMap map[gamepaddb.StandardButton]mappingInput
+
+	cleanup runtime.Cleanup
 }
 
 func (g *nativeGamepadImpl) close() {
+	g.cleanup.Stop()
 	if g.touch != nil {
 		g.touch.close()
 		g.touch = nil

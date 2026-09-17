@@ -95,7 +95,6 @@ type block struct {
 	vars       []variable
 	unusedVars map[int]token.Pos
 	consts     []constant
-	pos        token.Pos
 	outer      *block
 
 	ir *shaderir.Block

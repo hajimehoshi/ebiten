@@ -227,92 +227,57 @@ func init() {
 	}
 }
 
-// lineView captures the IME-visible text as a single line — the line
-// containing the selection, with the marked text spliced in at the selection
-// range. All UTF-16 offsets that cross the NSTextInputClient boundary are
-// positions within this view.
+// lineView captures the IME-visible text as a single line: the session's
+// surrounding text with the marked text spliced in at the caret. All UTF-16
+// offsets that cross the NSTextInputClient boundary are positions within this
+// view, and all byte offsets are positions in the joined
+// TextBeforeCaret+TextAfterCaret buffer, where the caret is at len(prefix).
 type lineView struct {
-	prefix string // committed bytes [lineStart, selectionStart)
-	marked string // f.state.Text
-	suffix string // committed bytes [selectionEnd, lineEnd)
+	prefix string // TextBeforeCaret
+	marked string // the composition text
+	suffix string // TextAfterCaret
 
 	prefixLenInUTF16 int
 	markedLenInUTF16 int
-	suffixLenInUTF16 int
-
-	lineStartInBytes      int
-	selectionStartInBytes int
-	selectionEndInBytes   int
 }
 
-func newLineView(f *Field) lineView {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	text := f.text
-	selStart := min(max(f.selectionStartInBytes, 0), len(text))
-	selEnd := min(max(f.selectionEndInBytes, selStart), len(text))
-	lineStart, lineEnd := findLineBounds(text, selStart, selEnd)
-	prefix := text[lineStart:selStart]
-	suffix := text[selEnd:lineEnd]
-	marked := f.state.Text
-	return lineView{
-		prefix:                prefix,
-		marked:                marked,
-		suffix:                suffix,
-		prefixLenInUTF16:      convertByteCountToUTF16Count(prefix, len(prefix)),
-		markedLenInUTF16:      convertByteCountToUTF16Count(marked, len(marked)),
-		suffixLenInUTF16:      convertByteCountToUTF16Count(suffix, len(suffix)),
-		lineStartInBytes:      lineStart,
-		selectionStartInBytes: selStart,
-		selectionEndInBytes:   selEnd,
-	}
-}
-
-// newLineViewFromSession builds a lineView for the active session.
-//
-// In session-mode the byte offsets treat TextBeforeCaret followed by
-// TextAfterCaret as a single buffer (lineStartInBytes is 0 and
-// selection*InBytes are len(TextBeforeCaret)). Callers translating these
-// back into the application's full text are responsible for adding their
-// own line-start offset.
-func newLineViewFromSession(s *session) lineView {
+// newLineView builds a lineView for the active session.
+func newLineView(s *session) lineView {
 	composition := s.loadComposition().text
 	prefix := s.textBeforeCaret
 	suffix := s.textAfterCaret
 	return lineView{
-		prefix:                prefix,
-		marked:                composition,
-		suffix:                suffix,
-		prefixLenInUTF16:      convertByteCountToUTF16Count(prefix, len(prefix)),
-		markedLenInUTF16:      convertByteCountToUTF16Count(composition, len(composition)),
-		suffixLenInUTF16:      convertByteCountToUTF16Count(suffix, len(suffix)),
-		lineStartInBytes:      0,
-		selectionStartInBytes: len(prefix),
-		selectionEndInBytes:   len(prefix),
+		prefix:           prefix,
+		marked:           composition,
+		suffix:           suffix,
+		prefixLenInUTF16: convertByteCountToUTF16Count(prefix, len(prefix)),
+		markedLenInUTF16: convertByteCountToUTF16Count(composition, len(composition)),
 	}
 }
 
-// withIMEView calls fn with a lineView for the current IME target. It prefers
-// an active session over a focused Field. Returns false if neither exists.
+// caretInBytes returns the caret position in the joined buffer.
+func (v *lineView) caretInBytes() int {
+	return len(v.prefix)
+}
+
+// withIMEView calls fn with a lineView for the active session, and reports
+// whether there is one.
 //
-// Reads are race-free: getActiveSession takes activeSessionM, lineView is
+// Reads are race-free: getActiveSession takes activeSessionM, and lineView is
 // built from immutable-after-publish session fields and the compositionM-
-// guarded composition snapshot, and the field path snapshots the field under
-// its own lock. There is, however, a brief staleness window:
+// guarded composition snapshot. There is, however, a brief staleness window:
 // when the platform forcibly tears down the channel (e.g. resignFirstResponder),
 // the Go-side activeSession pointer is cleared lazily, only when the user's
 // next Update observes the channel close. Between teardown and that Update,
 // withIMEView returns the session's last-seen composition. The IME sees
 // stale-but-valid data; it gets overwritten on the next event.
 func withIMEView(fn func(v lineView)) bool {
-	if s := theTextInput.events.getActiveSession(); s != nil {
-		fn(newLineViewFromSession(s))
-		return true
+	s := theTextInput.events.getActiveSession()
+	if s == nil {
+		return false
 	}
-	return withFocusedField(func(f *Field) {
-		fn(newLineView(f))
-	})
+	fn(newLineView(s))
+	return true
 }
 
 func utf16ToByteWithin(s string, utf16Pos int) int {
@@ -327,24 +292,23 @@ func utf16ToByteWithin(s string, utf16Pos int) int {
 }
 
 // utf16PosToTextByte converts a UTF-16 position in the lineView's content
-// (prefix + marked + suffix) to a byte offset in the underlying text.
-// Positions in the prefix region map to bytes [lineStart, selectionStart);
-// positions in the suffix region map to [selectionEnd, lineEnd). Positions
-// strictly inside the marked region have no underlying byte and return -1;
-// the caller should resolve such positions to selectionStart or selectionEnd
-// as appropriate.
+// (prefix + marked + suffix) to a byte offset in the joined buffer.
+// Positions in the prefix region map to bytes [0, caret); positions in the
+// suffix region map to [caret, len(prefix)+len(suffix)). Positions strictly
+// inside the marked region have no underlying byte and return -1; the caller
+// should resolve such positions to the caret.
 func (v *lineView) utf16PosToTextByte(utf16Pos int) int {
 	if utf16Pos <= v.prefixLenInUTF16 {
-		return v.lineStartInBytes + utf16ToByteWithin(v.prefix, utf16Pos)
+		return utf16ToByteWithin(v.prefix, utf16Pos)
 	}
 	if utf16Pos < v.prefixLenInUTF16+v.markedLenInUTF16 {
 		return -1
 	}
 	// utf16Pos is at or past the marked region's right edge, so the matching
 	// byte is in the suffix. The suffix begins at view UTF-16 offset
-	// prefixLen+markedLen and at byte selectionEnd.
+	// prefixLen+markedLen and at the caret byte.
 	suffixUTF16Pos := utf16Pos - v.prefixLenInUTF16 - v.markedLenInUTF16
-	return v.selectionEndInBytes + utf16ToByteWithin(v.suffix, suffixUTF16Pos)
+	return v.caretInBytes() + utf16ToByteWithin(v.suffix, suffixUTF16Pos)
 }
 
 func hasMarkedText(_ objc.ID, _ objc.SEL) bool {
@@ -370,10 +334,8 @@ func selectedRange(_ objc.ID, _ objc.SEL) nsRange {
 	r := nsRange{location: nsNotFound, length: 0}
 	withIMEView(func(v lineView) {
 		// During composition the caret sits at the start of the marked region.
-		// Without composition, an active non-collapsed field selection is hidden
-		// from the IME (its bytes are not part of the view), so report a
-		// collapsed selection at the same boundary. macOS rarely consults this
-		// when no composition is active.
+		// Without composition, the caret is at the same boundary. macOS rarely
+		// consults this when no composition is active.
 		r = nsRange{location: uint(v.prefixLenInUTF16), length: 0}
 	})
 	return r
@@ -433,16 +395,16 @@ func insertText(_ objc.ID, _ objc.SEL, str objc.ID, replacementRange nsRange) {
 		endUTF16 := int(replacementRange.location + replacementRange.length)
 		// A range overlapping the marked region expands to cover the whole
 		// region: the marked text is not present in the underlying buffer,
-		// so its boundaries are selectionStart and selectionEnd.
+		// so both of its boundaries are the caret.
 		if b := v.utf16PosToTextByte(startUTF16); b >= 0 {
 			replStartInBytes = b
 		} else {
-			replStartInBytes = v.selectionStartInBytes
+			replStartInBytes = v.caretInBytes()
 		}
 		if b := v.utf16PosToTextByte(endUTF16); b >= 0 {
 			replEndInBytes = b
 		} else {
-			replEndInBytes = v.selectionEndInBytes
+			replEndInBytes = v.caretInBytes()
 		}
 	})
 	theTextInputImpl.update(t, 0, len(t), replStartInBytes, replEndInBytes, commitRegular)

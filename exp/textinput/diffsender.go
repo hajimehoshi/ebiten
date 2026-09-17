@@ -89,51 +89,19 @@ func compositionSelectionInBytes(value string, preeditStart, preeditLen, selStar
 	return min(max(startInBytes-preeditStart, 0), preeditLen), min(max(endInBytes-preeditStart, 0), preeditLen)
 }
 
-// handlePlatformState reports a platform text-buffer state: diffed by sender
-// for the active session, or delivered whole to the deprecated focused Field.
-// fieldFocused reports whether a Field is focused, evaluated by the caller
-// outside its own locks. handlePlatformState reports whether the caller must
-// clear the platform text buffer.
+// handlePlatformState reports a platform text-buffer state, diffed by sender
+// for the active session.
 //
-// A state with neither an active session nor a focused Field is dropped: it is
-// either the echo of a seeding whose session is not yet registered
-// (startSession installs the session only after starting the platform text
-// input), or the teardown noise of a dismissal.
-func handlePlatformState(events *textInputEvents, sender *diffSender, legacyCleared *bool, value string, selStartInUTF16, selEndInUTF16 int, caretAtPreeditEnd bool, kind commitKind, fieldFocused bool) (clearBuffer bool) {
-	if s := events.getActiveSession(); s != nil {
-		sender.trySend(s, value, selStartInUTF16, selEndInUTF16, caretAtPreeditEnd, kind)
-		return false
+// A state with no active session is dropped: it is either the echo of a
+// seeding whose session is not yet registered (startSession installs the
+// session only after starting the platform text input), or the teardown noise
+// of a dismissal.
+func handlePlatformState(events *textInputEvents, sender *diffSender, value string, selStartInUTF16, selEndInUTF16 int, caretAtPreeditEnd bool, kind commitKind) {
+	s := events.getActiveSession()
+	if s == nil {
+		return
 	}
-
-	// The legacy whole-value path serves only the deprecated Field.
-	// TODO: Remove this path once Field is gone; a Composer session is always
-	// active otherwise.
-	if !fieldFocused {
-		return false
-	}
-	if !events.isOpen() {
-		return false
-	}
-	if *legacyCleared {
-		*legacyCleared = false
-		if value == "" {
-			return false
-		}
-	}
-	events.send(textInputState{
-		Text:                             value,
-		CompositionSelectionStartInBytes: convertUTF16CountToByteCount(value, selStartInUTF16),
-		CompositionSelectionEndInBytes:   convertUTF16CountToByteCount(value, selEndInUTF16),
-		ReplacementStartInBytes:          noReplacement,
-		ReplacementEndInBytes:            noReplacement,
-		CommitKind:                       kind,
-	})
-	if kind.committed() {
-		events.end()
-		*legacyCleared = true
-		return true
-	}
-	return false
+	sender.trySend(s, value, selStartInUTF16, selEndInUTF16, caretAtPreeditEnd, kind)
 }
 
 // trySend diffs the buffer against the baseline and sends the edit as a

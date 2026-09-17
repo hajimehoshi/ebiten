@@ -22,10 +22,6 @@ func ConvertByteCountToUTF16Count(text string, c int) int {
 	return convertByteCountToUTF16Count(text, c)
 }
 
-func FindLineBounds(text string, selStart, selEnd int) (int, int) {
-	return findLineBounds(text, selStart, selEnd)
-}
-
 func ComputeReplacement(baseline, newText string, caretInBytes int) (string, int, int) {
 	return computeReplacement(baseline, newText, caretInBytes)
 }
@@ -223,10 +219,9 @@ func (d *DiffSender) PendingStateCount() int {
 // PlatformStateHandler drives handlePlatformState with its own events and
 // sender, mirroring a platform backend whose channel is open.
 type PlatformStateHandler struct {
-	events        textInputEvents
-	sender        diffSender
-	legacyCleared bool
-	ch            <-chan textInputState
+	events textInputEvents
+	sender diffSender
+	ch     <-chan textInputState
 }
 
 // NewPlatformStateHandler returns a handler whose diff baseline is value, as a
@@ -243,10 +238,9 @@ func NewPlatformStateHandler(value string) *PlatformStateHandler {
 	return h
 }
 
-// Handle reports a platform state with the caret pinned to the preedit's end,
-// and returns whether the platform buffer must be cleared.
-func (h *PlatformStateHandler) Handle(value string, selStartInUTF16, selEndInUTF16 int, kind CommitKind, fieldFocused bool) bool {
-	return handlePlatformState(&h.events, &h.sender, &h.legacyCleared, value, selStartInUTF16, selEndInUTF16, true, kind, fieldFocused)
+// Handle reports a platform state with the caret pinned to the preedit's end.
+func (h *PlatformStateHandler) Handle(value string, selStartInUTF16, selEndInUTF16 int, kind CommitKind) {
+	handlePlatformState(&h.events, &h.sender, value, selStartInUTF16, selEndInUTF16, true, kind)
 }
 
 // RegisterSession installs an active session with the given surrounding text.
@@ -279,11 +273,6 @@ func (h *PlatformStateHandler) Drain() []TextInputState {
 // IsOpen reports whether the channel is open.
 func (h *PlatformStateHandler) IsOpen() bool {
 	return h.events.isOpen()
-}
-
-// LegacyCleared reports whether the legacy path cleared the buffer.
-func (h *PlatformStateHandler) LegacyCleared() bool {
-	return h.legacyCleared
 }
 
 // SeedGate re-exports the internal reseeding arbitration.

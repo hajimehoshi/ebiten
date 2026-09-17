@@ -178,9 +178,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         this.inputManager = (InputManager)context.getSystemService(Context.INPUT_SERVICE);
         if (this.inputManager != null) {
             this.inputManager.registerInputDeviceListener(this, null);
-            for (int id : this.inputManager.getInputDeviceIds()) {
-                this.onInputDeviceAdded(id);
-            }
+            this.syncGamepads();
         }
 
         this.editText = new EbitenEditText(context);
@@ -310,6 +308,10 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     @Override
     public void onInputDeviceAdded(int deviceId) {
         if (this.inputManager == null) {
+            return;
+        }
+        // A device can be enumerated by the view and reported by the listener.
+        if (this.getGamepad(deviceId) != null) {
             return;
         }
         InputDevice inputDevice = this.inputManager.getInputDevice(deviceId);
@@ -515,6 +517,24 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         this.gamepads.remove(this.getGamepad(deviceId));
     }
 
+    // syncGamepads removes the gamepads that are no longer present and adds the ones that are.
+    private void syncGamepads() {
+        int[] ids = this.inputManager.getInputDeviceIds();
+        Set<Integer> idSet = new HashSet<Integer>();
+        for (int id : ids) {
+            idSet.add(id);
+        }
+        // Iterate over a copy, as onInputDeviceRemoved mutates this.gamepads.
+        for (Gamepad gamepad : new ArrayList<Gamepad>(this.gamepads)) {
+            if (!idSet.contains(gamepad.deviceId)) {
+                this.onInputDeviceRemoved(gamepad.deviceId);
+            }
+        }
+        for (int id : ids) {
+            this.onInputDeviceAdded(id);
+        }
+    }
+
     // suspendGame suspends the game.
     // It is recommended to call this when the application is being suspended e.g.,
     // Activity's onPause is called.
@@ -536,6 +556,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
     public void resumeGame() {
         if (this.inputManager != null) {
             this.inputManager.registerInputDeviceListener(this, null);
+            // The listener reports only the changes made while it is registered.
+            this.syncGamepads();
         }
         this.ebitenSurfaceView.onResume();
         try {

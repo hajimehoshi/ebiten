@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"runtime"
 	"slices"
 	"sync"
 	"time"
@@ -66,7 +67,8 @@ func standardButtonToGamepadInputGamepadButton(b gamepaddb.StandardButton) (_Gam
 	return 0, false
 }
 
-// xboxDeviceEvent is a device connection or disconnection reported by GameInput.
+// xboxDeviceEvent is a device connection or disconnection reported by GameInput. It holds one
+// reference to device, which update releases or hands over to the gamepad.
 type xboxDeviceEvent struct {
 	device    *_IGameInputDevice
 	connected bool
@@ -115,14 +117,29 @@ func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
 		if e.connected {
 			// TODO: Give a good name and an SDL ID.
 			gp := gamepads.add("", "00000000000000000000000000000000")
-			gp.native = &nativeGamepadXbox{
+			// The gamepad takes over the event's reference.
+			native := &nativeGamepadXbox{
 				gameInputDevice: e.device,
 			}
+			gp.native = native
+			native.cleanup = runtime.AddCleanup(gp, func(native *nativeGamepadXbox) {
+				native.close()
+			}, native)
 			continue
 		}
-		gamepads.remove(func(gamepad *Gamepad) bool {
-			return gamepad.native.(*nativeGamepadXbox).gameInputDevice == e.device
-		})
+		for {
+			gp := gamepads.find(func(gamepad *Gamepad) bool {
+				return gamepad.native.(*nativeGamepadXbox).gameInputDevice == e.device
+			})
+			if gp == nil {
+				break
+			}
+			gp.close()
+			gamepads.remove(func(gamepad *Gamepad) bool {
+				return gamepad == gp
+			})
+		}
+		e.device.Release()
 	}
 	n.deviceEvents = slices.Delete(n.deviceEvents, 0, len(n.deviceEvents))
 	return nil
@@ -131,10 +148,12 @@ func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
 // deviceCallback queues the device event for update to pick up. The initial enumeration calls this
 // synchronously from init with the gamepads' lock held, while later connections and disconnections
 // arrive on a GameInput worker thread without it, so the gamepad list must not be touched here.
+// device is only guaranteed to stay valid during the callback, so the queued event takes a reference.
 func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus _GameInputDeviceStatus, previousStatus _GameInputDeviceStatus) uintptr {
 	n.devicesMu.Lock()
 	defer n.devicesMu.Unlock()
 
+	device.AddRef()
 	n.deviceEvents = append(n.deviceEvents, xboxDeviceEvent{
 		device:    device,
 		connected: currentStatus&_GameInputDeviceConnected != 0,
@@ -145,9 +164,20 @@ func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToke
 type nativeGamepadXbox struct {
 	gameInputDevice *_IGameInputDevice
 	state           _GameInputGamepadState
+	cleanup         runtime.Cleanup
 
 	vib    bool
 	vibEnd time.Time
+}
+
+// close releases n's native resources. close can be called multiple times.
+func (n *nativeGamepadXbox) close() {
+	n.cleanup.Stop()
+	if n.gameInputDevice == nil {
+		return
+	}
+	n.gameInputDevice.Release()
+	n.gameInputDevice = nil
 }
 
 func (n *nativeGamepadXbox) update(gamepads *gamepads) error {

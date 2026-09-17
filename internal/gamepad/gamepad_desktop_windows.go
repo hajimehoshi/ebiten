@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"runtime"
 	"slices"
 	"strings"
 	"sync/atomic"
@@ -215,10 +216,14 @@ func (g *nativeGamepadsDesktop) detectConnection(gamepads *gamepads) error {
 			}
 
 			gp := gamepads.add(name, sdlID)
-			gp.native = &nativeGamepadDesktop{
+			n := &nativeGamepadDesktop{
 				xinputIndex: i,
 				rumble:      &xinputRumbler{index: i},
 			}
+			gp.native = n
+			n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadDesktop) {
+				n.close()
+			}, n)
 		}
 	}
 	return nil
@@ -390,7 +395,7 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 	}
 
 	gp := gamepads.add(name, sdlID)
-	gp.native = &nativeGamepadDesktop{
+	n := &nativeGamepadDesktop{
 		dinputDevice:  device,
 		dinputObjects: ctx.objects,
 		dinputPath:    dinputPath,
@@ -400,6 +405,10 @@ func (g *nativeGamepadsDesktop) dinput8EnumDevicesCallback(lpddi *_DIDEVICEINSTA
 		sonyInput:     sonyInput,
 		rumble:        rumble,
 	}
+	gp.native = n
+	n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadDesktop) {
+		n.close()
+	}, n)
 
 	return _DIENUM_CONTINUE
 }
@@ -600,6 +609,8 @@ type nativeGamepadDesktop struct {
 	sonyInput *sonyhid.Device
 
 	rumble rumbler
+
+	cleanup runtime.Cleanup
 }
 
 func (*nativeGamepadDesktop) hasOwnStandardLayoutMapping() bool {
@@ -620,6 +631,7 @@ func (g *nativeGamepadDesktop) usesDInput() bool {
 
 // close releases g's native resources. close can be called multiple times.
 func (g *nativeGamepadDesktop) close() {
+	g.cleanup.Stop()
 	if g.dinputDevice != nil {
 		g.dinputDevice.Release()
 		g.dinputDevice = nil

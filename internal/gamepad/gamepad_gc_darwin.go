@@ -15,9 +15,13 @@
 package gamepad
 
 import (
+	"runtime"
 	"sync"
 	"time"
 
+	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
@@ -30,6 +34,8 @@ type gcControllerToAdd struct {
 }
 
 type nativeGamepadsGC struct {
+	// controllersToAdd and controllersToRemove hold one reference per entry, which update releases or
+	// hands over to the gamepad.
 	controllersToAdd    []gcControllerToAdd
 	controllersToRemove []uintptr
 	controllersMu       sync.Mutex
@@ -59,6 +65,7 @@ func (g *nativeGamepadsGC) update(gamepads *gamepads) error {
 	}
 	for _, controller := range g.controllersToRemove {
 		gamepads.removeGCGamepad(controller)
+		objc.ID(controller).Send(sel_release)
 	}
 	g.controllersToAdd = g.controllersToAdd[:0]
 	g.controllersToRemove = g.controllersToRemove[:0]
@@ -75,6 +82,7 @@ type nativeGamepadGC struct {
 	leftMotor            *rumbleMotor
 	rightMotor           *rumbleMotor
 	vibEnd               time.Time
+	cleanup              runtime.Cleanup
 
 	axes    []float64
 	buttons []bool
@@ -87,13 +95,24 @@ type nativeGamepadGC struct {
 
 // close releases g's native resources. close can be called multiple times.
 func (g *nativeGamepadGC) close() {
+	g.cleanup.Stop()
 	releaseGCRumbleMotor(g.leftMotor)
 	releaseGCRumbleMotor(g.rightMotor)
 	g.leftMotor = nil
 	g.rightMotor = nil
+	if g.controller != 0 {
+		objc.ID(g.controller).Send(sel_release)
+		g.controller = 0
+	}
 }
 
 func (g *nativeGamepadGC) update(gamepad *gamepads) error {
+	// The extendedGamepad and physicalInputProfile getters return autoreleased objects, and the
+	// gamepad update does not run inside an autorelease pool. The pool is safe here only because the
+	// update goroutine is locked to an OS thread.
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	g.updateGCGamepad()
 	if !g.vibEnd.IsZero() && time.Since(g.vibEnd) >= 0 {
 		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)

@@ -72,7 +72,10 @@ type Context struct {
 
 	playingPlayers map[*playerImpl]struct{}
 
-	m         sync.Mutex
+	m sync.Mutex
+	// cond is signalled under m when a player is added to playingPlayers. The goroutine
+	// updating the players waits on it while playingPlayers is empty.
+	cond      *sync.Cond
 	semaphore chan struct{}
 }
 
@@ -106,6 +109,7 @@ func NewContext(sampleRate int) *Context {
 		playingPlayers: map[*playerImpl]struct{}{},
 		semaphore:      make(chan struct{}, 1),
 	}
+	c.cond = sync.NewCond(&c.m)
 	theContext = c
 
 	h := getHook()
@@ -164,6 +168,10 @@ func NewContext(sampleRate int) *Context {
 	// Use a distinct goroutine to update the player states.
 	go func() {
 		for {
+			// Block while there is no player to update, so that an idle context does not wake
+			// up periodically. The sweep itself can remove the last player, so the check is
+			// repeated after every sweep.
+			c.waitForPlayingPlayers()
 			// A failure is local to the player which reported it. Record it and keep updating
 			// the other players (#3647).
 			if err := c.updatePlayers(); err != nil {
@@ -208,10 +216,20 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
+// waitForPlayingPlayers blocks until at least one player is registered as playing.
+func (c *Context) waitForPlayingPlayers() {
+	c.m.Lock()
+	defer c.m.Unlock()
+	for len(c.playingPlayers) == 0 {
+		c.cond.Wait()
+	}
+}
+
 func (c *Context) addPlayingPlayer(p *playerImpl) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	c.playingPlayers[p] = struct{}{}
+	c.cond.Signal()
 
 	// An uncomparable ident is out of the duplication check (#3039).
 	ident := p.sourceIdent()

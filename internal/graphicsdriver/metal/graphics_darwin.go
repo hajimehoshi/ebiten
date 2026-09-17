@@ -174,6 +174,16 @@ func pow2(x uintptr) uintptr {
 	return p2
 }
 
+// isCommandBufferFinished reports whether the command buffer has finished executing, whether
+// successfully or with an error.
+func isCommandBufferFinished(status mtl.CommandBufferStatus) bool {
+	switch status {
+	case mtl.CommandBufferStatusCompleted, mtl.CommandBufferStatusError:
+		return true
+	}
+	return false
+}
+
 func (g *Graphics) gcBuffers() {
 loop:
 	for frame, cbs := range g.frameToCB {
@@ -181,9 +191,10 @@ loop:
 			continue
 		}
 
-		// Check if all command buffers for the frame are completed.
+		// Check if all command buffers for the frame have finished. A command buffer that ended
+		// in an error never becomes Completed, and its frame must still be released.
 		for _, cb := range cbs {
-			if cb.Status() != mtl.CommandBufferStatusCompleted {
+			if !isCommandBufferFinished(cb.Status()) {
 				continue loop
 			}
 		}
