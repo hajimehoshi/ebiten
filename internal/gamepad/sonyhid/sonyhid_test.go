@@ -341,41 +341,80 @@ func TestInputReportSize(t *testing.T) {
 	}
 }
 
+// touchRecords are two touchpad records: an active finger with contact id 5
+// at (1139, 522), and a lifted finger with contact id 6 at (100, 200).
+var touchRecords = []byte{
+	0x05, 0x73, 0xa4, 0x20, // active, id 5, x 0x473, y 0x20a
+	0x86, 0x64, 0x80, 0x0c, // lifted, id 6, x 0x064, y 0x0c8
+}
+
+// touches returns the state touchRecords decode to on a touchpad h units
+// tall; both models are 1920 units wide.
+func touches(h int) [sonyhid.TouchCount]sonyhid.Touch {
+	return [sonyhid.TouchCount]sonyhid.Touch{
+		{Active: true, ID: 5, X: float64(1139)/1919*2 - 1, Y: float64(522)/float64(h-1)*2 - 1},
+		{Active: false, ID: 6, X: float64(100)/1919*2 - 1, Y: float64(200)/float64(h-1)*2 - 1},
+	}
+}
+
+// withoutTouches returns s with no touchpad state, as a report without a touch
+// sample leaves it when nothing was decoded before.
+func withoutTouches(s sonyhid.InputState) sonyhid.InputState {
+	s.Touches = [sonyhid.TouchCount]sonyhid.Touch{}
+	return s
+}
+
+// statePayload builds a state payload from its leading bytes and the touch
+// bytes at their offset. The bytes between are filler that must not affect
+// decoding.
+func statePayload(head []byte, touchOffset int, touch []byte) []byte {
+	p := make([]byte, touchOffset+len(touch))
+	for i := range p {
+		p[i] = 0xee
+	}
+	copy(p, head)
+	copy(p[touchOffset:], touch)
+	return p
+}
+
 // ds4LayoutPayload is a state payload in the DualShock 4 layout with every
 // field set to a distinct value. The third button byte carries the counter in
 // its high 6 bits and the Mute bit of the DualSense layout, none of which are
-// buttons in this layout.
-var ds4LayoutPayload = []byte{
+// buttons in this layout. Byte 32 counts one touch packet, whose timestamp
+// byte is filler.
+var ds4LayoutPayload = statePayload([]byte{
 	0x10, 0x20, 0x30, 0x40, // lx, ly, rx, ry
 	0x18,       // hat 8 (centered), Square
 	0x21,       // L1, Options
 	0xfe,       // Touchpad, Mute position, counter
 	0x50, 0x60, // l2, r2
-}
+}, 32, append([]byte{0x01, 0xee}, touchRecords...))
 
 var ds4LayoutState = sonyhid.InputState{
 	LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
 	L2: 0x50, R2: 0x60,
 	Hat:     8,
 	Buttons: 1<<0 | 1<<4 | 1<<9 | 1<<13,
+	Touches: touches(942),
 }
 
 // dualSenseLayoutPayload is a state payload in the DualSense full layout with
 // every field set to a distinct value.
-var dualSenseLayoutPayload = []byte{
+var dualSenseLayoutPayload = statePayload([]byte{
 	0x10, 0x20, 0x30, 0x40, // lx, ly, rx, ry
 	0x50, 0x60, // l2, r2
 	0x99, // counter
 	0x83, // hat 3 (right-down), Triangle
 	0xc8, // R2, L3, R3
 	0xfd, // PS, Mute, reserved
-}
+}, 32, touchRecords)
 
 var dualSenseLayoutState = sonyhid.InputState{
 	LX: 0x10, LY: 0x20, RX: 0x30, RY: 0x40,
 	L2: 0x50, R2: 0x60,
 	Hat:     3,
 	Buttons: 1<<3 | 1<<7 | 1<<10 | 1<<11 | 1<<12 | 1<<14,
+	Touches: touches(1080),
 }
 
 // inputReport builds an input report of the given size with the payload at
@@ -428,11 +467,22 @@ func TestInputStateFromReport(t *testing.T) {
 	ds4FullNoData[1] = 0x40
 	signBTInputReport(ds4FullNoData)
 
+	// ds4USBNoTouchPacket carries no touch sample: its packet count is 0.
+	ds4USBNoTouchPacket := append([]byte{}, ds4USB...)
+	ds4USBNoTouchPacket[1+32] = 0
+
+	// ds4USBTouchPastGrid has its first record past the grid on both axes.
+	ds4USBTouchPastGrid := append([]byte{}, ds4USB...)
+	copy(ds4USBTouchPastGrid[1+34:], []byte{0x00, 0xff, 0xff, 0xff})
+	ds4LayoutStatePastGrid := ds4LayoutState
+	ds4LayoutStatePastGrid.Touches[0] = sonyhid.Touch{Active: true, ID: 0, X: 1, Y: 1}
+
 	tests := []struct {
 		name   string
 		model  sonyhid.Model
 		bt     bool
 		report []byte
+		prev   sonyhid.InputState
 		want   sonyhid.InputState
 		wantOK bool
 	}{
@@ -450,12 +500,61 @@ func TestInputStateFromReport(t *testing.T) {
 			want:   dualSenseLayoutState,
 			wantOK: true,
 		},
+		// The simplified report has no touch sample, so the touches decoded
+		// before carry over.
 		{
 			name:   "ds4 simple",
 			model:  sonyhid.ModelDualShock4,
 			bt:     true,
 			report: simple,
+			want:   withoutTouches(ds4LayoutState),
+			wantOK: true,
+		},
+		{
+			name:   "ds4 simple keeps touches",
+			model:  sonyhid.ModelDualShock4,
+			bt:     true,
+			report: simple,
+			prev:   dualSenseLayoutState,
+			want: func() sonyhid.InputState {
+				s := ds4LayoutState
+				s.Touches = dualSenseLayoutState.Touches
+				return s
+			}(),
+			wantOK: true,
+		},
+		// A DualShock 4 report with a packet count of 0 has no touch sample
+		// either.
+		{
+			name:   "ds4 usb no touch packet",
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USBNoTouchPacket,
+			want:   withoutTouches(ds4LayoutState),
+			wantOK: true,
+		},
+		{
+			name:   "ds4 usb no touch packet keeps touches",
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USBNoTouchPacket,
+			prev:   ds4LayoutState,
 			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		// A touch decoded from the report replaces the previous one, lifted
+		// or not.
+		{
+			name:   "ds4 usb replaces touches",
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USB,
+			prev:   dualSenseLayoutState,
+			want:   ds4LayoutState,
+			wantOK: true,
+		},
+		{
+			name:   "ds4 usb touch past grid",
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USBTouchPastGrid,
+			want:   ds4LayoutStatePastGrid,
 			wantOK: true,
 		},
 		{
@@ -471,7 +570,7 @@ func TestInputStateFromReport(t *testing.T) {
 			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: simple,
-			want:   ds4LayoutState,
+			want:   withoutTouches(ds4LayoutState),
 			wantOK: true,
 		},
 		{
@@ -504,7 +603,7 @@ func TestInputStateFromReport(t *testing.T) {
 			model:  sonyhid.ModelDualSense,
 			bt:     true,
 			report: append(simple, make([]byte, 60)...),
-			want:   ds4LayoutState,
+			want:   withoutTouches(ds4LayoutState),
 			wantOK: true,
 		},
 		// Full Bluetooth reports carry a CRC over the bytes before it. A
@@ -657,7 +756,7 @@ func TestInputStateFromReport(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		got, ok := sonyhid.InputStateFromReport(tt.model, tt.bt, tt.report)
+		got, ok := sonyhid.InputStateFromReport(tt.model, tt.bt, tt.report, tt.prev)
 		if ok != tt.wantOK {
 			t.Errorf("%s: ok = %t, want %t", tt.name, ok, tt.wantOK)
 			continue
@@ -672,7 +771,7 @@ func TestInputStateFromReportHat(t *testing.T) {
 	for hat := range byte(16) {
 		payload := append([]byte{}, ds4LayoutPayload...)
 		payload[4] = hat | 0xf0
-		got, ok := sonyhid.InputStateFromReport(sonyhid.ModelDualShock4, false, inputReport(0x01, sonyhid.DualShock4InputReportSizeUSB, 1, payload))
+		got, ok := sonyhid.InputStateFromReport(sonyhid.ModelDualShock4, false, inputReport(0x01, sonyhid.DualShock4InputReportSizeUSB, 1, payload), sonyhid.InputState{})
 		if !ok {
 			t.Fatalf("hat %d: not ok", hat)
 		}

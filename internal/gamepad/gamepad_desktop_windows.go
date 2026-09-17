@@ -809,6 +809,36 @@ func (g *nativeGamepadDesktop) applySonyInputState(state sonyhid.InputState) {
 	}
 }
 
+// The touchpad of a PlayStation controller is its one touch surface, read
+// from the same reports as its input state.
+
+func (g *nativeGamepadDesktop) touchSurfaceCount() int {
+	if g.sonyInput == nil {
+		return 0
+	}
+	return 1
+}
+
+func (g *nativeGamepadDesktop) touchSlotCount(surface int) int {
+	if surface != 0 || g.sonyInput == nil {
+		return 0
+	}
+	return sonyhid.TouchCount
+}
+
+func (g *nativeGamepadDesktop) touchContactAt(surface, slot int) touchContact {
+	if surface != 0 || g.sonyInput == nil || slot < 0 || slot >= sonyhid.TouchCount {
+		return touchContact{}
+	}
+	t := g.sonyInput.Input().Touches[slot]
+	return touchContact{
+		active: t.Active,
+		id:     int(t.ID),
+		x:      t.X,
+		y:      t.Y,
+	}
+}
+
 func (g *nativeGamepadDesktop) axisCount() int {
 	if g.usesDInput() {
 		return len(g.dinputAxes)
