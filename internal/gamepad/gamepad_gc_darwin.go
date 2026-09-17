@@ -18,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
@@ -88,6 +89,12 @@ func (g *nativeGamepadGC) close() {
 }
 
 func (g *nativeGamepadGC) update(gamepad *gamepads) error {
+	// The extendedGamepad and physicalInputProfile getters return autoreleased objects, and the
+	// gamepad update does not run inside an autorelease pool. The pool is safe here only because the
+	// update goroutine is locked to an OS thread.
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	g.updateGCGamepad()
 	if !g.vibEnd.IsZero() && time.Since(g.vibEnd) >= 0 {
 		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)
