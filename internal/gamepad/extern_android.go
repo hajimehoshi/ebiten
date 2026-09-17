@@ -42,6 +42,13 @@ func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, ax
 	g.m.Lock()
 	defer g.m.Unlock()
 
+	// A device can be enumerated by the view and reported by the listener.
+	if g.find(func(gamepad *Gamepad) bool {
+		return gamepad.native.(*nativeGamepadImpl).androidDeviceID == androidDeviceID
+	}) != nil {
+		return
+	}
+
 	gp := g.add(name, sdlID)
 	gp.native = &nativeGamepadImpl{
 		androidDeviceID: androidDeviceID,

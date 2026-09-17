@@ -312,6 +312,10 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         if (this.inputManager == null) {
             return;
         }
+        // A device can be enumerated by the view and reported by the listener.
+        if (this.getGamepad(deviceId) != null) {
+            return;
+        }
         InputDevice inputDevice = this.inputManager.getInputDevice(deviceId);
         // The InputDevice can be null on some deivces (#1342).
         if (inputDevice == null) {
