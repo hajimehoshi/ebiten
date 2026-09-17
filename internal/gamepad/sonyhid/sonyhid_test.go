@@ -477,6 +477,32 @@ func TestInputStateFromReport(t *testing.T) {
 	ds4LayoutStatePastGrid := ds4LayoutState
 	ds4LayoutStatePastGrid.Touches[0] = sonyhid.Touch{Active: true, ID: 0, X: 1, Y: 1}
 
+	// ds4USBTwoTouchPackets carries two touch packets: the first is
+	// touchRecords, and the second, 9 bytes on, lifts contact 5 where it was
+	// and puts a new contact 7 down at (100, 200). The second packet is the
+	// most recent sample, so it is the one decoded.
+	ds4USBTwoTouchPackets := append([]byte{}, ds4USB...)
+	ds4USBTwoTouchPackets[1+32] = 2
+	copy(ds4USBTwoTouchPackets[1+33+9:], []byte{
+		0xef,                   // timestamp
+		0x85, 0x73, 0xa4, 0x20, // lifted, id 5, x 0x473, y 0x20a
+		0x07, 0x64, 0x80, 0x0c, // active, id 7, x 0x064, y 0x0c8
+	})
+	ds4LayoutStateSecondPacket := ds4LayoutState
+	ds4LayoutStateSecondPacket.Touches[0].Active = false
+	ds4LayoutStateSecondPacket.Touches[1] = sonyhid.Touch{Active: true, ID: 7, X: ds4LayoutState.Touches[1].X, Y: ds4LayoutState.Touches[1].Y}
+
+	// ds4USBTouchPacketOverrun claims more touch packets than the report has
+	// room for. Only three fit in a USB report, so the third is decoded: it
+	// is filler, which reads as two lifted contacts past the grid.
+	ds4USBTouchPacketOverrun := append([]byte{}, ds4USB...)
+	ds4USBTouchPacketOverrun[1+32] = 0xff
+	ds4LayoutStateFillerPacket := ds4LayoutState
+	ds4LayoutStateFillerPacket.Touches = [sonyhid.TouchCount]sonyhid.Touch{
+		{Active: false, ID: 0x6e, X: 1, Y: 1},
+		{Active: false, ID: 0x6e, X: 1, Y: 1},
+	}
+
 	tests := []struct {
 		name   string
 		model  sonyhid.Model
@@ -555,6 +581,32 @@ func TestInputStateFromReport(t *testing.T) {
 			model:  sonyhid.ModelDualShock4,
 			report: ds4USBTouchPastGrid,
 			want:   ds4LayoutStatePastGrid,
+			wantOK: true,
+		},
+		// The last touch packet of a report is the most recent sample, and
+		// a finger it lifts stays lifted through a following report that has
+		// no packet.
+		{
+			name:   "ds4 usb two touch packets",
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USBTwoTouchPackets,
+			prev:   ds4LayoutState,
+			want:   ds4LayoutStateSecondPacket,
+			wantOK: true,
+		},
+		{
+			name:   "ds4 usb no touch packet keeps lift",
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USBNoTouchPacket,
+			prev:   ds4LayoutStateSecondPacket,
+			want:   ds4LayoutStateSecondPacket,
+			wantOK: true,
+		},
+		{
+			name:   "ds4 usb touch packet overrun",
+			model:  sonyhid.ModelDualShock4,
+			report: ds4USBTouchPacketOverrun,
+			want:   ds4LayoutStateFillerPacket,
 			wantOK: true,
 		},
 		{

@@ -280,19 +280,26 @@ func touchFromRecord(b []byte, w, h int) Touch {
 // packet count of 0 holds none.
 //
 // In the DualShock 4 layout byte 32 counts the packets that follow, each a
-// timestamp byte and two records. Only the first packet is decoded: the rest
-// are further samples taken within the same reporting interval, and whichever
-// of them is the most recent is superseded by the next report's first packet
-// before a frame can observe it. In the DualSense layout the two records are
-// at byte 32.
+// timestamp byte and two records, oldest first. The last packet the payload
+// has room for is decoded: it is the most recent sample, and a finger lifted
+// in it stays lifted when the reports that follow carry no packet. In the
+// DualSense layout the two records are at byte 32.
 func touchesFromPayload(model model, p []byte, prev [TouchCount]Touch) [TouchCount]Touch {
 	var offset int
 	switch model {
 	case modelDualShock4:
-		if len(p) < 34+4*TouchCount || p[32] == 0 {
+		const packetSize = 1 + 4*TouchCount
+		if len(p) < 33+packetSize {
 			return prev
 		}
-		offset = 34
+		n := int(p[32])
+		if room := (len(p) - 33) / packetSize; n > room {
+			n = room
+		}
+		if n == 0 {
+			return prev
+		}
+		offset = 34 + packetSize*(n-1)
 	case modelDualSense:
 		if len(p) < 32+4*TouchCount {
 			return prev
