@@ -151,6 +151,8 @@ var (
 	sel_count                                      objc.SEL
 	sel_objectAtIndex                              objc.SEL
 	sel_supportsHIDDevice                          objc.SEL
+	sel_retain                                     objc.SEL
+	sel_release                                    objc.SEL
 )
 
 // GC notification and input string constants (loaded from framework symbols).
@@ -218,6 +220,8 @@ func init() {
 	sel_count = objc.RegisterName("count")
 	sel_objectAtIndex = objc.RegisterName("objectAtIndex:")
 	sel_supportsHIDDevice = objc.RegisterName("supportsHIDDevice:")
+	sel_retain = objc.RegisterName("retain")
+	sel_release = objc.RegisterName("release")
 
 	// Load notification name symbols (NSString* globals).
 	connectPtr, err := purego.Dlsym(gc, "GCControllerDidConnectNotification")
@@ -539,7 +543,8 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 }
 
 // addController queues a GCController to be registered by the next update. The properties are read
-// here, while the controller is known to be alive.
+// here, while the controller is known to be alive. The controller is only guaranteed to stay alive
+// during the notification, so the queued entry takes a reference.
 func addController(controller objc.ID) {
 	// Ignore if the controller is not an actual controller (e.g., Siri Remote).
 	if controller.Send(sel_extendedGamepad) == 0 && controller.Send(sel_microGamepad) != 0 {
@@ -551,21 +556,28 @@ func addController(controller objc.ID) {
 	theGCGamepads.controllersMu.Lock()
 	defer theGCGamepads.controllersMu.Unlock()
 
+	controller.Send(sel_retain)
 	theGCGamepads.controllersToAdd = append(theGCGamepads.controllersToAdd, gcControllerToAdd{
 		controller: uintptr(controller),
 		prop:       prop,
 	})
 }
 
-// removeController queues a GCController to be unregistered by the next update.
+// removeController queues a GCController to be unregistered by the next update. The queued entry
+// takes a reference.
 func removeController(controller objc.ID) {
 	theGCGamepads.controllersMu.Lock()
 	defer theGCGamepads.controllersMu.Unlock()
 
+	// The update only compares the entry with the gamepads by identity, but the reference keeps the
+	// address from being reused by a controller queued for registration before the removal is
+	// applied, which would make the comparison match the new controller's gamepad.
+	controller.Send(sel_retain)
 	theGCGamepads.controllersToRemove = append(theGCGamepads.controllersToRemove, uintptr(controller))
 }
 
-// addGCGamepad adds a GameController gamepad to the gamepad list. g.m must be held.
+// addGCGamepad adds a GameController gamepad to the gamepad list. The gamepad takes over the caller's
+// reference to controller. g.m must be held.
 func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 	sdlID := hex.EncodeToString(prop.guid[:])
 	gp := g.add(prop.name, sdlID)
@@ -583,20 +595,23 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 	}
 }
 
-// removeGCGamepad removes a GameController gamepad from the gamepad list. g.m must be held.
+// removeGCGamepad removes the GameController gamepads for controller from the gamepad list. g.m must
+// be held.
 func (g *gamepads) removeGCGamepad(controller uintptr) {
-	g.remove(func(gamepad *Gamepad) bool {
-		gc, ok := gamepad.native.(*nativeGamepadGC)
-		if !ok {
-			return false
+	for {
+		gp := g.find(func(gamepad *Gamepad) bool {
+			gc, ok := gamepad.native.(*nativeGamepadGC)
+			return ok && gc.controller == controller
+		})
+		if gp == nil {
+			break
 		}
-		if gc.controller == controller {
-			// Lock the gamepad so the close cannot race with a concurrent Vibrate using the motors.
-			gamepad.close()
-			return true
-		}
-		return false
-	})
+		// Lock the gamepad so the close cannot race with a concurrent Vibrate using the motors.
+		gp.close()
+		g.remove(func(gamepad *Gamepad) bool {
+			return gamepad == gp
+		})
+	}
 }
 
 // gcSupportsHIDDevice reports whether the GameController framework claims the given HID device.
