@@ -18,6 +18,7 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 	"syscall/js"
 	"time"
 
@@ -89,14 +90,14 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	runnableOnUnfocused bool
-	fpsMode             FPSModeType
-	renderingScheduled  bool
+	runnableOnUnfocused atomic.Bool
+	fpsMode             atomic.Int32
+	renderingScheduled  atomic.Bool
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
 	captureCursorLater  bool
 	cursorShape         CursorShape
-	onceUpdateCalled    bool
+	onceUpdateCalled    atomic.Bool
 	lastCaptureExitTime time.Time
 	hiDPIEnabled        bool
 
@@ -118,8 +119,18 @@ type userInterfaceImpl struct {
 
 	textInputFocusedFunc func() bool
 
+	// inputMu serializes browser callbacks with per-tick input snapshots.
+	inputMu    sync.Mutex
 	mu         sync.Mutex
 	dropFileMu sync.Mutex
+}
+
+func (u *UserInterface) lockInputStateForTick() {
+	u.inputMu.Lock()
+}
+
+func (u *UserInterface) unlockInputStateForTick() {
+	u.inputMu.Unlock()
 }
 
 var (
@@ -147,7 +158,7 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		return
 	}
 
-	if u.cursorMode == CursorModeCaptured {
+	if u.CursorMode() == CursorModeCaptured {
 		u.saveCursorPosition()
 	}
 
@@ -188,33 +199,38 @@ func (u *UserInterface) IsFocused() bool {
 }
 
 func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
-	u.runnableOnUnfocused = runnableOnUnfocused
+	u.runnableOnUnfocused.Store(runnableOnUnfocused)
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {
-	return u.runnableOnUnfocused
+	return u.runnableOnUnfocused.Load()
 }
 
 func (u *UserInterface) FPSMode() FPSModeType {
-	return u.fpsMode
+	return FPSModeType(u.fpsMode.Load())
 }
 
 func (u *UserInterface) SetFPSMode(mode FPSModeType) {
-	u.fpsMode = mode
+	u.fpsMode.Store(int32(mode))
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	u.renderingScheduled = true
+	u.renderingScheduled.Store(true)
 }
 
 func (u *UserInterface) CursorMode() CursorMode {
 	if !canvas.Truthy() {
 		return CursorModeHidden
 	}
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 	return u.cursorMode
 }
 
 func (u *UserInterface) SetCursorMode(mode CursorMode) {
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
+
 	if mode == CursorModeCaptured && !u.canCaptureCursor() {
 		u.captureCursorLater = true
 		return
@@ -252,13 +268,15 @@ func (u *UserInterface) recoverCursorMode() {
 	if u.cursorPrevMode == CursorModeCaptured {
 		panic("ui: cursorPrevMode must not be CursorModeCaptured at recoverCursorMode")
 	}
-	u.SetCursorMode(u.cursorPrevMode)
+	u.setCursorMode(u.cursorPrevMode)
 }
 
 func (u *UserInterface) CursorShape() CursorShape {
 	if !canvas.Truthy() {
 		return CursorShapeDefault
 	}
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 	return u.cursorShape
 }
 
@@ -266,6 +284,9 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 	if !canvas.Truthy() {
 		return
 	}
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
+
 	if u.cursorShape == shape {
 		return
 	}
@@ -289,7 +310,7 @@ func (u *UserInterface) outsideSize() (float64, float64) {
 }
 
 func (u *UserInterface) suspended() bool {
-	if u.runnableOnUnfocused {
+	if u.runnableOnUnfocused.Load() {
 		return false
 	}
 	return !u.isFocused()
@@ -320,9 +341,11 @@ func (u *UserInterface) canCaptureCursor() bool {
 }
 
 func (u *UserInterface) update() error {
+	u.inputMu.Lock()
 	if u.captureCursorLater && u.canCaptureCursor() {
 		u.setCursorMode(CursorModeCaptured)
 	}
+	u.inputMu.Unlock()
 
 	if u.suspended() {
 		return hook.SuspendAudio()
@@ -366,13 +389,13 @@ func (u *UserInterface) updateImpl(force bool) error {
 }
 
 func (u *UserInterface) needsUpdate() bool {
-	if u.fpsMode != FPSModeVsyncOffMinimum {
+	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum {
 		return true
 	}
-	if !u.onceUpdateCalled {
+	if !u.onceUpdateCalled.Load() {
 		return true
 	}
-	if u.renderingScheduled {
+	if u.renderingScheduled.Swap(false) {
 		return true
 	}
 	// TODO: Watch the gamepad state?
@@ -397,9 +420,8 @@ func (u *UserInterface) loopGame() error {
 		}
 		if u.needsUpdate() {
 			defer func() {
-				u.onceUpdateCalled = true
+				u.onceUpdateCalled.Store(true)
 			}()
-			u.renderingScheduled = false
 			if err := u.update(); err != nil {
 				close(reqStopAudioCh)
 				<-resStopAudioCh
@@ -408,7 +430,7 @@ func (u *UserInterface) loopGame() error {
 				return
 			}
 		}
-		switch u.fpsMode {
+		switch FPSModeType(u.fpsMode.Load()) {
 		case FPSModeVsyncOn:
 			requestAnimationFrame.Invoke(cf)
 		case FPSModeVsyncOffMaximum:
@@ -473,11 +495,11 @@ func (u *UserInterface) loopGame() error {
 
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
-		runnableOnUnfocused: true,
-		savedCursorX:        math.NaN(),
-		savedCursorY:        math.NaN(),
-		hiDPIEnabled:        true,
+		savedCursorX: math.NaN(),
+		savedCursorY: math.NaN(),
+		hiDPIEnabled: true,
 	}
+	u.runnableOnUnfocused.Store(true)
 
 	// document is undefined on node.js
 	if !document.Truthy() {
@@ -537,6 +559,9 @@ func (u *UserInterface) init() error {
 		if document.Get("pointerLockElement").Truthy() {
 			return nil
 		}
+		u.inputMu.Lock()
+		defer u.inputMu.Unlock()
+
 		// Recover the state correctly when the pointer lock exits.
 
 		// A user can exit the pointer lock by pressing ESC. In this case, sync the cursor mode state.
@@ -548,6 +573,9 @@ func (u *UserInterface) init() error {
 	}))
 	document.Call("addEventListener", "pointerlockerror", js.FuncOf(func(this js.Value, args []js.Value) any {
 		js.Global().Get("console").Call("error", "pointerlockerror event is fired. 'sandbox=\"allow-pointer-lock\"' might be required at an iframe. This function on browsers must be called as a result of a gestural interaction or orientation change.")
+		u.inputMu.Lock()
+		defer u.inputMu.Unlock()
+
 		if u.cursorMode == CursorModeCaptured {
 			u.recoverCursorMode()
 		}
@@ -589,6 +617,8 @@ func (u *UserInterface) onResize() {
 // SetTextInputFocusedFunc registers a function reporting whether an element
 // receiving text input has the DOM focus.
 func (u *UserInterface) SetTextInputFocusedFunc(f func() bool) {
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 	u.textInputFocusedFunc = f
 }
 
@@ -601,10 +631,13 @@ func (u *UserInterface) FocusCanvas() {
 }
 
 func (u *UserInterface) isTextInputFocused() bool {
-	if u.textInputFocusedFunc == nil {
+	u.inputMu.Lock()
+	f := u.textInputFocusedFunc
+	u.inputMu.Unlock()
+	if f == nil {
 		return false
 	}
-	return u.textInputFocusedFunc()
+	return f()
 }
 
 func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
@@ -762,7 +795,10 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Blur
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
+		u.inputMu.Lock()
+		defer u.inputMu.Unlock()
 		u.inputState.releaseAllButtons(u.InputTime())
+		u.touchesInClient = u.touchesInClient[:0]
 		return nil
 	}))
 }
@@ -799,12 +835,14 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 			u.setError(err)
 			return
 		}
+		u.inputMu.Lock()
 		u.inputState.DroppedFiles = fs
+		u.inputMu.Unlock()
 	}
 }
 
 func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
-	if u.fpsMode != FPSModeVsyncOffMinimum {
+	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum {
 		return
 	}
 

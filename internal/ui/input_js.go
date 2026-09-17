@@ -16,6 +16,7 @@ package ui
 
 import (
 	"math"
+	"sync/atomic"
 	"syscall/js"
 	"unicode"
 )
@@ -143,6 +144,7 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	// Avoid using js.Value.String() as String creates a Uint8Array via a TextEncoder and causes a heavy
 	// overhead (#1437).
 	t := e.Get("type")
+	u.inputMu.Lock()
 	switch {
 	case t.Equal(stringKeydown):
 		if str := e.Get("key").String(); isKeyString(str) {
@@ -198,19 +200,15 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 		u.inputState.CapsLock = NewLockKeyStateFromBool(e.Call("getModifierState", stringCapsLock).Bool())
 		u.inputState.NumLock = NewLockKeyStateFromBool(e.Call("getModifierState", stringNumLock).Bool())
 	}
+	u.inputMu.Unlock()
 
 	u.forceUpdateOnMinimumFPSMode()
 	return nil
 }
 
 func (u *UserInterface) setMouseCursorFromEvent(e js.Value) {
-	if u.context == nil {
-		return
-	}
-
 	u.origCursorXInClient = e.Get("clientX").Float()
 	u.origCursorYInClient = e.Get("clientY").Float()
-
 	if u.cursorMode == CursorModeCaptured {
 		u.cursorXInClient += e.Get("movementX").Float()
 		u.cursorYInClient += e.Get("movementY").Float()
@@ -270,7 +268,7 @@ func isKeyString(str string) bool {
 
 var (
 	jsKeyboard                          = js.Global().Get("navigator").Get("keyboard")
-	jsKeyboardLayoutAvailable           bool
+	jsKeyboardLayoutAvailable           atomic.Bool
 	jsKeyboardGetLayoutMap              js.Value
 	jsKeyboardGetLayoutMapCh            chan js.Value
 	jsKeyboardGetLayoutMapThenCallback  js.Func
@@ -291,11 +289,11 @@ func init() {
 	jsKeyboardGetLayoutMapCatchCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
 		err := args[0]
 		js.Global().Get("console").Call("error", "ui: navigator.keyboard.getLayoutMap() failed:", err)
-		jsKeyboardLayoutAvailable = false
+		jsKeyboardLayoutAvailable.Store(false)
 		jsKeyboardGetLayoutMapCh <- js.Undefined()
 		return nil
 	})
-	jsKeyboardLayoutAvailable = true
+	jsKeyboardLayoutAvailable.Store(true)
 }
 
 func (u *UserInterface) KeyName(key Key) string {
@@ -303,22 +301,28 @@ func (u *UserInterface) KeyName(key Key) string {
 		return ""
 	}
 
-	if !jsKeyboardLayoutAvailable {
+	if !jsKeyboardLayoutAvailable.Load() {
 		return ""
 	}
 
 	// keyboardLayoutMap is reset every tick.
-	if u.keyboardLayoutMap.IsUndefined() {
+	u.inputMu.Lock()
+	m := u.keyboardLayoutMap
+	u.inputMu.Unlock()
+	if m.IsUndefined() {
 		// Invoke getLayoutMap every tick to detect the keyboard change.
 		// TODO: Calling this every tick might be inefficient. Is there a way to detect a keyboard change?
 		jsKeyboardGetLayoutMap.Invoke().Call("then", jsKeyboardGetLayoutMapThenCallback).Call("catch", jsKeyboardGetLayoutMapCatchCallback)
-		u.keyboardLayoutMap = <-jsKeyboardGetLayoutMapCh
+		m = <-jsKeyboardGetLayoutMapCh
+		u.inputMu.Lock()
+		u.keyboardLayoutMap = m
+		u.inputMu.Unlock()
 	}
-	if u.keyboardLayoutMap.IsUndefined() {
+	if m.IsUndefined() {
 		return ""
 	}
 
-	n := u.keyboardLayoutMap.Call("get", uiKeyToJSCode[key])
+	n := m.Call("get", uiKeyToJSCode[key])
 	if n.IsUndefined() {
 		return ""
 	}
@@ -330,21 +334,28 @@ func (u *UserInterface) UpdateInputFromEvent(e js.Value) {
 }
 
 func (u *UserInterface) saveCursorPosition() {
+	w, h := u.outsideSize()
+
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 	u.savedCursorX = u.inputState.CursorX
 	u.savedCursorY = u.inputState.CursorY
-	w, h := u.outsideSize()
 	u.savedOutsideWidth = w
 	u.savedOutsideHeight = h
 }
 
 func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
 	s := deviceScaleFactor
+	w, h := u.outsideSize()
+
+	u.inputMu.Lock()
+	defer u.inputMu.Unlock()
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
 		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.
 		// Even after entering or exiting from fullscreen, the outside (body) size is not updated for a while.
 		// Wait for the outside size to be updated.
-		if w, h := u.outsideSize(); u.savedOutsideWidth != w || u.savedOutsideHeight != h {
+		if u.savedOutsideWidth != w || u.savedOutsideHeight != h {
 			u.inputState.CursorX = u.savedCursorX
 			u.inputState.CursorY = u.savedCursorY
 			cx, cy := u.context.logicalPositionToClientPosition(u.inputState.CursorX, u.inputState.CursorY, s)

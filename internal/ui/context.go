@@ -256,6 +256,9 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 // readInputStateForTick takes the input snapshot for the tick that is about to run.
 func (c *context) readInputStateForTick(ui *UserInterface) {
+	ui.lockInputStateForTick()
+	defer ui.unlockInputStateForTick()
+
 	// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
 	c.game.UpdateInputState(func(inputState *InputState) {
 		ui.readInputState(inputState)
