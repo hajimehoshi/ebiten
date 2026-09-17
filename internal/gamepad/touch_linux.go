@@ -21,6 +21,8 @@ import (
 	"unsafe"
 
 	"golang.org/x/sys/unix"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // evdevKind is what an event node is, decided from its capabilities and properties.
@@ -128,14 +130,26 @@ func (t *touchNode) close() {
 	t.fdPlus1 = 0
 }
 
-// pollSlots replaces the contacts with the node's current slot state.
+// pollSlots replaces the contacts, and the selected slot, with the node's current state.
+//
+// The selected slot has to be read back along with the contacts: a slot event is sent only when the
+// slot changes, so the slot selected before a dropped sync is never repeated, and applying the
+// events that follow to the slot selected before the drop would put them on the wrong contact.
 func (t *touchNode) pollSlots() error {
+	fd := t.fdPlus1 - 1
+
+	var slotInfo input_absinfo
+	if err := ioctl(fd, uint(_EVIOCGABS(_ABS_MT_SLOT)), unsafe.Pointer(&slotInfo)); err != nil {
+		return fmt.Errorf("gamepad: ioctl for the slot abs failed: %w", err)
+	}
+	t.current = int(slotInfo.value)
+
 	// struct input_mt_request_layout { __u32 code; __s32 values[num_slots]; }
 	buf := make([]int32, 1+len(t.slots))
 	size := uint(len(buf)) * uint(unsafe.Sizeof(buf[0]))
 	for _, code := range []int{_ABS_MT_TRACKING_ID, _ABS_MT_POSITION_X, _ABS_MT_POSITION_Y} {
 		buf[0] = int32(code)
-		if err := ioctl(t.fdPlus1-1, _EVIOCGMTSLOTS(size), unsafe.Pointer(&buf[0])); err != nil {
+		if err := ioctl(fd, _EVIOCGMTSLOTS(size), unsafe.Pointer(&buf[0])); err != nil {
 			return fmt.Errorf("gamepad: ioctl for the touch slots failed: %w", err)
 		}
 		for slot, value := range buf[1:] {
@@ -203,14 +217,16 @@ func (t *touchNode) handleSlotValue(slot, code int, value int32) {
 	}
 }
 
-// normalizeAbs maps an absolute axis value to -1..1 over the axis's range.
+// normalizeAbs maps an absolute axis value to -1..1 over the axis's range, clamping a value past
+// either end so that a device reporting outside the range it declared cannot leave the range the
+// touch API documents. An axis with an empty range has no position to report, so its value is the
+// center.
 func normalizeAbs(value int32, info input_absinfo) float64 {
-	v := float64(value)
-	if r := float64(info.maximum) - float64(info.minimum); r != 0 {
-		v = (v - float64(info.minimum)) / r
-		v = v*2 - 1
+	r := float64(info.maximum) - float64(info.minimum)
+	if r <= 0 {
+		return 0
 	}
-	return v
+	return mathutil.Clamp01((float64(value)-float64(info.minimum))/r)*2 - 1
 }
 
 func (g *nativeGamepadImpl) touchSurfaceCount() int {

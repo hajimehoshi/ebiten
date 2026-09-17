@@ -109,8 +109,13 @@ func readGCTouchSlot(profile objc.ID, slot int, kind gcTouchSlotKind) gcTouchSta
 		if touchpad == 0 {
 			return st
 		}
-		st.active = int(touchpad.Send(sel_touchState)) != gcTouchStateUp
+		// Without the surface there is no position to report, so the finger is not reported
+		// either: a touch at the center of the surface is not what is happening.
 		surface := touchpad.Send(sel_touchSurface)
+		if surface == 0 {
+			return st
+		}
+		st.active = int(touchpad.Send(sel_touchState)) != gcTouchStateUp
 		st.x = getAxisValue(surface.Send(sel_xAxis))
 		st.y = getAxisValue(surface.Send(sel_yAxis))
 

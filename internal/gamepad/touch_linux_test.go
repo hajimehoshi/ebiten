@@ -245,6 +245,11 @@ func TestTouchNodePositionRange(t *testing.T) {
 		{x: 0, y: 0, wantX: -1, wantY: -1},
 		{x: dualSenseTouchXMax, y: dualSenseTouchYMax, wantX: 1, wantY: 1},
 		{x: 0, y: dualSenseTouchYMax, wantX: -1, wantY: 1},
+
+		// A device reporting past the range it declared stays inside the range the touch API
+		// documents.
+		{x: dualSenseTouchXMax + 1, y: dualSenseTouchYMax * 4, wantX: 1, wantY: 1},
+		{x: -1, y: -30000, wantX: -1, wantY: -1},
 	}
 	for _, test := range tests {
 		node.HandleAbsEventForTest(gamepad.ABSMTPositionX, test.x)
@@ -252,6 +257,22 @@ func TestTouchNodePositionRange(t *testing.T) {
 		c := node.ContactsForTest()[0]
 		if c.X != test.wantX || c.Y != test.wantY {
 			t.Errorf("position (%d, %d) = (%v, %v); want (%v, %v)", test.x, test.y, c.X, c.Y, test.wantX, test.wantY)
+		}
+	}
+}
+
+// A node whose axes have an empty range has no position to report, so every value is the center
+// rather than the raw report leaking through.
+func TestTouchNodeEmptyPositionRange(t *testing.T) {
+	node := gamepad.NewTouchNodeForTest(1, 0, 0)
+	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
+
+	for _, v := range []int32{-5000, 0, 1, 5000} {
+		node.HandleAbsEventForTest(gamepad.ABSMTPositionX, v)
+		node.HandleAbsEventForTest(gamepad.ABSMTPositionY, v)
+		c := node.ContactsForTest()[0]
+		if c.X != 0 || c.Y != 0 {
+			t.Errorf("position %d = (%v, %v); want (0, 0)", v, c.X, c.Y)
 		}
 	}
 }

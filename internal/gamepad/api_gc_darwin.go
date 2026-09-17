@@ -157,7 +157,6 @@ var (
 	sel_touchpads                                  objc.SEL
 	sel_touchSurface                               objc.SEL
 	sel_touchState                                 objc.SEL
-	sel_allKeys                                    objc.SEL
 )
 
 // GC notification and input string constants (loaded from framework symbols).
@@ -231,7 +230,6 @@ func init() {
 	sel_touchpads = objc.RegisterName("touchpads")
 	sel_touchSurface = objc.RegisterName("touchSurface")
 	sel_touchState = objc.RegisterName("touchState")
-	sel_allKeys = objc.RegisterName("allKeys")
 
 	// Load notification name symbols (NSString* globals).
 	connectPtr, err := purego.Dlsym(gc, "GCControllerDidConnectNotification")
