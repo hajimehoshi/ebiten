@@ -16,6 +16,7 @@ package gamepad
 
 import (
 	"encoding/hex"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -591,7 +592,7 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 
 	sdlID := hex.EncodeToString(prop.guid[:])
 	gp := g.add(prop.name, sdlID)
-	gp.native = &nativeGamepadGC{
+	n := &nativeGamepadGC{
 		controller:           controller,
 		axes:                 make([]float64, prop.nAxes),
 		buttons:              make([]bool, prop.nButtons+prop.nHats*4),
@@ -603,6 +604,10 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 		leftMotor:            createGCRumbleMotor(controller, 0),
 		rightMotor:           createGCRumbleMotor(controller, 1),
 	}
+	gp.native = n
+	n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadGC) {
+		n.close()
+	}, n)
 }
 
 // removeGCGamepad removes the GameController gamepads for controller from the gamepad list. g.m must

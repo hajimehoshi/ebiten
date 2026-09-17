@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"runtime"
 	"sync"
 	"time"
 
@@ -80,6 +81,7 @@ type nativeGamepadGC struct {
 	leftMotor            *rumbleMotor
 	rightMotor           *rumbleMotor
 	vibEnd               time.Time
+	cleanup              runtime.Cleanup
 
 	axes    []float64
 	buttons []bool
@@ -88,6 +90,7 @@ type nativeGamepadGC struct {
 
 // close releases g's native resources. close can be called multiple times.
 func (g *nativeGamepadGC) close() {
+	g.cleanup.Stop()
 	releaseGCRumbleMotor(g.leftMotor)
 	releaseGCRumbleMotor(g.rightMotor)
 	g.leftMotor = nil

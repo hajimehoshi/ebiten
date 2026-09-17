@@ -16,6 +16,7 @@ package gamepad
 
 import (
 	"math"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -262,6 +263,12 @@ func releaseGCRumbleMotor(motor *rumbleMotor) {
 	if !coreHapticsAvailable {
 		return
 	}
+
+	// The pool must be pushed and popped on the same OS thread. The gamepad update runs on a locked
+	// thread, but the cleanup of a collected gamepad runs on a runtime goroutine that is not, so lock
+	// the thread here. The lock nests when the caller already holds one.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()

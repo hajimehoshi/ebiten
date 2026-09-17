@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"runtime"
 	"slices"
 	"sync"
 	"time"
@@ -117,9 +118,13 @@ func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
 			// TODO: Give a good name and an SDL ID.
 			gp := gamepads.add("", "00000000000000000000000000000000")
 			// The gamepad takes over the event's reference.
-			gp.native = &nativeGamepadXbox{
+			native := &nativeGamepadXbox{
 				gameInputDevice: e.device,
 			}
+			gp.native = native
+			native.cleanup = runtime.AddCleanup(gp, func(native *nativeGamepadXbox) {
+				native.close()
+			}, native)
 			continue
 		}
 		for {
@@ -159,6 +164,7 @@ func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToke
 type nativeGamepadXbox struct {
 	gameInputDevice *_IGameInputDevice
 	state           _GameInputGamepadState
+	cleanup         runtime.Cleanup
 
 	vib    bool
 	vibEnd time.Time
@@ -166,6 +172,7 @@ type nativeGamepadXbox struct {
 
 // close releases n's native resources. close can be called multiple times.
 func (n *nativeGamepadXbox) close() {
+	n.cleanup.Stop()
 	if n.gameInputDevice == nil {
 		return
 	}

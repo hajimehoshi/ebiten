@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -272,6 +273,9 @@ func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepa
 	}
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
+	n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadHID) {
+		n.close()
+	}, n)
 
 	for i := _CFIndex(0); i < _CFArrayGetCount(elements); i++ {
 		native := (_IOHIDElementRef)(_CFArrayGetValueAtIndex(elements, i))
@@ -368,6 +372,7 @@ type nativeGamepadHID struct {
 	axes    []element
 	buttons []element
 	hats    []element
+	cleanup runtime.Cleanup
 
 	axisValues   []float64
 	buttonValues []bool
@@ -376,6 +381,7 @@ type nativeGamepadHID struct {
 
 // close releases g's native resources. close can be called multiple times.
 func (g *nativeGamepadHID) close() {
+	g.cleanup.Stop()
 	if g.device == 0 {
 		return
 	}
