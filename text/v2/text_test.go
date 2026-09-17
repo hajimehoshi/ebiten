@@ -1479,3 +1479,66 @@ func TestGoXFaceConcurrentDrawAndMeasure(t *testing.T) {
 	close(start)
 	wg.Wait()
 }
+
+// zeroMetricsGoXFace is a font.Face whose metrics are all zero. GoXFace
+// caches the metrics of a face only once they are non-zero, and NewGoXFace
+// reads them once itself, so a face with non-zero metrics never takes the
+// uncached path after construction. A zero-metrics face takes it on every
+// Metrics call.
+type zeroMetricsGoXFace struct {
+	testGoXFace
+}
+
+func (f *zeroMetricsGoXFace) Metrics() font.Metrics {
+	return font.Metrics{}
+}
+
+func TestGoXFaceConcurrentMetrics(t *testing.T) {
+	f := text.NewGoXFace(&zeroMetricsGoXFace{})
+
+	const (
+		goroutineCount = 8
+		loopCount      = 100
+	)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for range goroutineCount {
+		wg.Go(func() {
+			<-start
+			for range loopCount {
+				_ = f.Metrics()
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+}
+
+func TestGoXFaceConcurrentMetricsAndDraw(t *testing.T) {
+	f := text.NewGoXFace(&zeroMetricsGoXFace{})
+
+	const (
+		goroutineCount = 8
+		loopCount      = 10
+	)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range goroutineCount {
+		wg.Go(func() {
+			dst := ebiten.NewImage(testGoXFaceSize*4, testGoXFaceSize)
+			<-start
+			for range loopCount {
+				if i%2 == 0 {
+					var op text.DrawOptions
+					text.Draw(dst, "abab", f, &op)
+				} else {
+					_ = f.Metrics()
+				}
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+}
