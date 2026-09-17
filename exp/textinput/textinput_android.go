@@ -56,10 +56,6 @@ type textInputImpl struct {
 	active      bool
 	closedTicks int
 
-	// legacyCleared drops the states fired by the legacy path clearing the
-	// text buffer.
-	legacyCleared bool
-
 	mu sync.Mutex
 }
 
@@ -108,23 +104,17 @@ func (t *textInputImpl) onState(text string, selectionStartInUTF16, selectionEnd
 		kind = commitWithPassthroughKey
 	}
 
-	// Evaluated outside t.mu: the focus lock is taken with no other lock held.
-	fieldFocused := withFocusedField(func(*Field) {})
-
-	if t.handleState(text, selectionStartInUTF16, selectionEndInUTF16, kind, generation, fieldFocused) {
-		ui.Get().StartPlatformTextInput("", 0, 0, image.Rectangle{}, t.currentGeneration())
-	}
+	t.handleState(text, selectionStartInUTF16, selectionEndInUTF16, kind, generation)
 }
 
-// handleState reports the state and returns whether the platform text buffer
-// must be cleared.
-func (t *textInputImpl) handleState(text string, selectionStartInUTF16, selectionEndInUTF16 int, kind commitKind, generation int, fieldFocused bool) (clearBuffer bool) {
+// handleState reports the state.
+func (t *textInputImpl) handleState(text string, selectionStartInUTF16, selectionEndInUTF16 int, kind commitKind, generation int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	resetBaseline, ok := t.gate.admit(generation)
 	if !ok {
-		return false
+		return
 	}
 	if resetBaseline {
 		t.sender.reset(t.gate.pendingValue)
@@ -132,7 +122,7 @@ func (t *textInputImpl) handleState(text string, selectionStartInUTF16, selectio
 
 	// The selection does not track the preedit on a virtual keyboard; see
 	// compositionSelectionInBytes.
-	return handlePlatformState(t.events, &t.sender, &t.legacyCleared, text, selectionStartInUTF16, selectionEndInUTF16, true, kind, fieldFocused)
+	handlePlatformState(t.events, &t.sender, text, selectionStartInUTF16, selectionEndInUTF16, true, kind)
 }
 
 // onEndByUser handles the user ending text inputting from the platform
@@ -140,13 +130,6 @@ func (t *textInputImpl) handleState(text string, selectionStartInUTF16, selectio
 // ends, recording the ending as the user's.
 func (t *textInputImpl) onEndByUser() {
 	t.events.endByUser()
-}
-
-// currentGeneration returns the current seeding generation.
-func (t *textInputImpl) currentGeneration() int {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-	return t.gate.generation
 }
 
 // shouldDismiss reports whether the caller stopped inputting text and the
@@ -159,7 +142,7 @@ func (t *textInputImpl) shouldDismiss() bool {
 		t.closedTicks = 0
 		return false
 	}
-	if t.events.isOpen() || t.events.getActiveSession() != nil {
+	if t.events.getActiveSession() != nil {
 		t.closedTicks = 0
 		return false
 	}

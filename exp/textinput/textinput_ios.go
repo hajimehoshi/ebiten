@@ -154,10 +154,6 @@ type textInputImpl struct {
 	closedTicks       int
 	dismissGeneration int
 
-	// legacyCleared drops the delegate events fired by the legacy path
-	// clearing the text view.
-	legacyCleared bool
-
 	// vkVisible and vkVisibleRegion are the virtual keyboard state reported by
 	// UIKit, written on the main thread. vkKnown reports whether a keyboard
 	// notification has been observed.
@@ -471,7 +467,7 @@ func (t *textInputImpl) shouldDismiss() bool {
 		t.closedTicks = 0
 		return false
 	}
-	if t.events.isOpen() || t.events.getActiveSession() != nil {
+	if t.events.getActiveSession() != nil {
 		t.closedTicks = 0
 		return false
 	}
@@ -501,9 +497,7 @@ func (t *textInputImpl) dismissVirtualKeyboardIfNeeded() {
 	t.events.clearQueue()
 }
 
-// textViewChangedOnMain reads the text view and reports the edit. The text
-// view is mutated only after handleTextViewChange returns, as UIKit can call
-// the delegate back synchronously.
+// textViewChangedOnMain reads the text view and reports the edit.
 func (t *textInputImpl) textViewChangedOnMain() {
 	tv := t.textView
 	if tv == 0 {
@@ -517,37 +511,29 @@ func (t *textInputImpl) textViewChangedOnMain() {
 		kind = commitNone
 	}
 
-	if t.handleTextViewChange(value, int(sel.location), int(sel.location+sel.length), kind) {
-		ns := newNSString("")
-		tv.Send(sel_setText, ns)
-		ns.Send(sel_release)
-	}
+	t.handleTextViewChange(value, int(sel.location), int(sel.location+sel.length), kind)
 }
 
-// handleTextViewChange reports the edit and returns whether the caller must
-// clear the text view.
-func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int, kind commitKind) (clearTextView bool) {
-	// Evaluated outside t.mu: the focus lock is taken with no other lock held.
-	fieldFocused := withFocusedField(func(*Field) {})
-
+// handleTextViewChange reports the edit.
+func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int, kind commitKind) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.appliedGeneration != t.generation {
 		// The event predates the seeding requested by the latest Start and
 		// describes the previous target.
-		return false
+		return
 	}
 
 	if t.cancelled {
 		// The session the text view was seeded for was cancelled, so the event
 		// describes an abandoned target.
-		return false
+		return
 	}
 
 	// The selection does not track the preedit on iOS; see
 	// compositionSelectionInBytes.
-	return handlePlatformState(t.events, &t.sender, &t.legacyCleared, value, selStart, selEnd, true, kind, fieldFocused)
+	handlePlatformState(t.events, &t.sender, value, selStart, selEnd, true, kind)
 }
 
 // insertTextOnMain reports whether text is the Return key, which the game
