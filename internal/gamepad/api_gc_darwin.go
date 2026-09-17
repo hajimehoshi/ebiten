@@ -111,7 +111,6 @@ var (
 var (
 	sel_controllers                                objc.SEL
 	sel_extendedGamepad                            objc.SEL
-	sel_microGamepad                               objc.SEL
 	sel_productCategory                            objc.SEL
 	sel_vendorName                                 objc.SEL
 	sel_physicalInputProfile                       objc.SEL
@@ -180,7 +179,6 @@ func init() {
 
 	sel_controllers = objc.RegisterName("controllers")
 	sel_extendedGamepad = objc.RegisterName("extendedGamepad")
-	sel_microGamepad = objc.RegisterName("microGamepad")
 	sel_productCategory = objc.RegisterName("productCategory")
 	sel_vendorName = objc.RegisterName("vendorName")
 	sel_physicalInputProfile = objc.RegisterName("physicalInputProfile")
@@ -546,8 +544,9 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 // here, while the controller is known to be alive. The controller is only guaranteed to stay alive
 // during the notification, so the queued entry takes a reference.
 func addController(controller objc.ID) {
-	// Ignore if the controller is not an actual controller (e.g., Siri Remote).
-	if controller.Send(sel_extendedGamepad) == 0 && controller.Send(sel_microGamepad) != 0 {
+	// Ignore a controller without an extended gamepad profile, the only profile this backend reads
+	// (e.g., the Siri Remote, which has only a micro gamepad profile).
+	if controller.Send(sel_extendedGamepad) == 0 {
 		return
 	}
 
@@ -576,9 +575,20 @@ func removeController(controller objc.ID) {
 	theGCGamepads.controllersToRemove = append(theGCGamepads.controllersToRemove, uintptr(controller))
 }
 
-// addGCGamepad adds a GameController gamepad to the gamepad list. The gamepad takes over the caller's
-// reference to controller. g.m must be held.
+// addGCGamepad adds a GameController gamepad to the gamepad list, or leaves the list as it is if the
+// controller is already in it. addGCGamepad consumes the caller's reference to controller. g.m must
+// be held.
 func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
+	// A controller connected during initialization is queued twice: by the enumeration and by its
+	// connect notification.
+	if g.find(func(gamepad *Gamepad) bool {
+		gc, ok := gamepad.native.(*nativeGamepadGC)
+		return ok && gc.controller == controller
+	}) != nil {
+		objc.ID(controller).Send(sel_release)
+		return
+	}
+
 	sdlID := hex.EncodeToString(prop.guid[:])
 	gp := g.add(prop.name, sdlID)
 	gp.native = &nativeGamepadGC{
