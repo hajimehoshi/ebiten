@@ -33,6 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 // maxImageSize is a maximum image size that should work in almost every environment.
@@ -5214,6 +5215,34 @@ func TestSubImageDrawImageInOppositeDirections(t *testing.T) {
 		src := img0.SubImage(r1).(*ebiten.Image)
 		for range 1000 {
 			dst.DrawImage(src, nil)
+		}
+	})
+	wg.Wait()
+}
+
+// Registering a usage callback on a sub-image and deallocating the original image concurrently
+// must not race on the callback map.
+func TestImageDeallocateRaceConditionWithUsageCallback(t *testing.T) {
+	const w, h = 16, 16
+	img := ebiten.NewImage(w, h)
+	sub := img.SubImage(image.Rect(0, 0, w/2, h/2)).(*ebiten.Image)
+
+	var path vector.Path
+	path.MoveTo(0, 0)
+	path.LineTo(w/2, 0)
+	path.LineTo(0, h/2)
+	path.Close()
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for range 1000 {
+			// FillPath registers a usage callback on the original image of the destination.
+			vector.FillPath(sub, &path, nil, nil)
+		}
+	})
+	wg.Go(func() {
+		for range 1000 {
+			img.Deallocate()
 		}
 	})
 	wg.Wait()

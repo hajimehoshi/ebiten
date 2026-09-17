@@ -82,8 +82,8 @@ type Image struct {
 	// inUsageCallbacks reports whether the image is in usageCallbacks.
 	inUsageCallbacks atomic.Bool
 
-	// usageCallbacksM is a mutex for usageCallbacks.
-	usageCallbacksM sync.Mutex
+	// usageCallbacksMu is a mutex for usageCallbacks.
+	usageCallbacksMu sync.Mutex
 
 	// Do not add a 'buffering' member that is resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
@@ -1402,6 +1402,9 @@ func (i *Image) Dispose() {
 	i.subImageCacheM.Lock()
 	i.subImageCache = nil
 	i.subImageCacheM.Unlock()
+
+	i.usageCallbacksMu.Lock()
+	defer i.usageCallbacksMu.Unlock()
 	i.usageCallbacks = nil
 }
 
@@ -1427,6 +1430,9 @@ func (i *Image) Deallocate() {
 	}
 	i.invokeUsageCallbacks()
 	i.image.Deallocate()
+
+	i.usageCallbacksMu.Lock()
+	defer i.usageCallbacksMu.Unlock()
 	i.usageCallbacks = nil
 }
 
@@ -1449,10 +1455,18 @@ func (i *Image) Recycle() {
 	i.tmpVertices = i.tmpVertices[:0]
 	i.tmpIndices = i.tmpIndices[:0]
 	i.tmpUniforms = i.tmpUniforms[:0]
-	clear(i.subImageCache)
+	func() {
+		i.subImageCacheM.Lock()
+		defer i.subImageCacheM.Unlock()
+		clear(i.subImageCache)
+	}()
 	i.subImageGCLastTick = 0
 	i.atime.Store(0)
-	clear(i.usageCallbacks)
+	func() {
+		i.usageCallbacksMu.Lock()
+		defer i.usageCallbacksMu.Unlock()
+		clear(i.usageCallbacks)
+	}()
 	i.recyclable = false
 
 	theImagePool.Put(i)
@@ -1720,8 +1734,8 @@ func (i *Image) addUsageCallback(callback func(image *Image)) int64 {
 	}
 	token := currentCallbackToken.Add(1)
 
-	i.usageCallbacksM.Lock()
-	defer i.usageCallbacksM.Unlock()
+	i.usageCallbacksMu.Lock()
+	defer i.usageCallbacksMu.Unlock()
 
 	if i.usageCallbacks == nil {
 		i.usageCallbacks = map[int64]usageCallback{}
@@ -1738,8 +1752,8 @@ func (i *Image) removeUsageCallback(token int64) {
 		return
 	}
 
-	i.usageCallbacksM.Lock()
-	defer i.usageCallbacksM.Unlock()
+	i.usageCallbacksMu.Lock()
+	defer i.usageCallbacksMu.Unlock()
 	delete(i.usageCallbacks, token)
 }
 
@@ -1765,8 +1779,8 @@ func (i *Image) invokeUsageCallbacks() {
 	tmpUsageCallbackSlice := theTmpUsageCallbackSlicePool.Get().(*[]usageCallback)
 
 	func() {
-		i.usageCallbacksM.Lock()
-		defer i.usageCallbacksM.Unlock()
+		i.usageCallbacksMu.Lock()
+		defer i.usageCallbacksMu.Unlock()
 		for _, cb := range i.usageCallbacks {
 			*tmpUsageCallbackSlice = append(*tmpUsageCallbackSlice, cb)
 		}
