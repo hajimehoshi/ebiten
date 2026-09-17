@@ -1790,6 +1790,207 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	}
 }
 
+func TestImageDrawTrianglesSubImageWithMipmapAndAddressClampToZero(t *testing.T) {
+	const (
+		parentSize = 128
+		dstSize    = 32
+		subMin     = 32
+		subMax     = 64
+	)
+
+	parent := ebiten.NewImage(parentSize, parentSize)
+	// Fill the parent image with blue so that any sampling outside the sub-image is detected.
+	pix := make([]byte, 4*parentSize*parentSize)
+	for j := range parentSize {
+		for i := range parentSize {
+			idx := 4 * (i + j*parentSize)
+			pix[idx+2] = 0xff
+			pix[idx+3] = 0xff
+			if subMin <= i && i < subMax && subMin <= j && j < subMax {
+				pix[idx+1] = 0xff
+				pix[idx+2] = 0
+			}
+		}
+	}
+	parent.WritePixels(pix)
+	sub := parent.SubImage(image.Rect(subMin, subMin, subMax, subMax)).(*ebiten.Image)
+
+	dst := ebiten.NewImage(dstSize, dstSize)
+
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   0,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   dstSize,
+			DstY:   0,
+			SrcX:   parentSize,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   dstSize,
+			SrcX:   0,
+			SrcY:   parentSize,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   dstSize,
+			DstY:   dstSize,
+			SrcX:   parentSize,
+			SrcY:   parentSize,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesOptions{}
+	op.Filter = ebiten.FilterLinear
+	op.Address = ebiten.AddressClampToZero
+	dst.DrawTriangles(vs, is, sub, op)
+
+	// The sub-image is scaled into (8, 8)-(16, 16) in the destination.
+	// The source outside the sub-image must be clamped to zero.
+	for j := range dstSize {
+		for i := range dstSize {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			if dstSize*subMin/parentSize <= i && i < dstSize*subMax/parentSize &&
+				dstSize*subMin/parentSize <= j && j < dstSize*subMax/parentSize {
+				want = color.RGBA{G: 0xff, A: 0xff}
+			}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageDrawTrianglesSubImageWithMipmapAndAddressRepeat(t *testing.T) {
+	const (
+		parentSize = 128
+		srcSize    = 64
+		dstSize    = 16
+		subMin     = 32
+		subMax     = 64
+	)
+
+	parent := ebiten.NewImage(parentSize, parentSize)
+	// Fill the parent image with blue so that any sampling outside the sub-image is detected.
+	// The sub-image consists of four colored quadrants.
+	const subMid = (subMin + subMax) / 2
+	pix := make([]byte, 4*parentSize*parentSize)
+	for j := range parentSize {
+		for i := range parentSize {
+			c := color.RGBA{B: 0xff, A: 0xff}
+			if subMin <= i && i < subMax && subMin <= j && j < subMax {
+				switch {
+				case i < subMid && j < subMid:
+					c = color.RGBA{G: 0xff, A: 0xff}
+				case j < subMid:
+					c = color.RGBA{R: 0xff, A: 0xff}
+				case i < subMid:
+					c = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+				default:
+					c = color.RGBA{R: 0xff, G: 0xff, A: 0xff}
+				}
+			}
+			idx := 4 * (i + j*parentSize)
+			pix[idx], pix[idx+1], pix[idx+2], pix[idx+3] = c.R, c.G, c.B, c.A
+		}
+	}
+	parent.WritePixels(pix)
+	sub := parent.SubImage(image.Rect(subMin, subMin, subMax, subMax)).(*ebiten.Image)
+
+	dst := ebiten.NewImage(dstSize, dstSize)
+
+	// The source rectangle is twice as large as the sub-image, so the sub-image must be repeated.
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   subMin,
+			SrcY:   subMin,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   dstSize,
+			DstY:   0,
+			SrcX:   subMin + srcSize,
+			SrcY:   subMin,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   dstSize,
+			SrcX:   subMin,
+			SrcY:   subMin + srcSize,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   dstSize,
+			DstY:   dstSize,
+			SrcX:   subMin + srcSize,
+			SrcY:   subMin + srcSize,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesOptions{}
+	op.Filter = ebiten.FilterLinear
+	op.Address = ebiten.AddressRepeat
+	dst.DrawTriangles(vs, is, sub, op)
+
+	// The sub-image is repeated twice in each direction, and each repetition is 8 pixels.
+	for j := range dstSize {
+		for i := range dstSize {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			switch {
+			case i%8 < 4 && j%8 < 4:
+				want = color.RGBA{G: 0xff, A: 0xff}
+			case j%8 < 4:
+				want = color.RGBA{R: 0xff, A: 0xff}
+			case i%8 < 4:
+				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+			default:
+				want = color.RGBA{R: 0xff, G: 0xff, A: 0xff}
+			}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 // Issue #823
 func TestImageAtAfterDisposingSubImage(t *testing.T) {
 	img := ebiten.NewImage(16, 16)

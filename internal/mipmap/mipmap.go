@@ -139,7 +139,11 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 					vertices[i+2] /= s
 					vertices[i+3] /= s
 				}
-				srcRegions[i] = image.Rect(0, 0, sizeForLevel(src.width, level), sizeForLevel(src.height, level))
+				// A mipmap level image contains the whole scaled-down original image,
+				// and a sub-image shares the mipmap images with its original image,
+				// so scale the given source region down instead of replacing it with
+				// the whole level image.
+				srcRegions[i] = regionForLevel(srcRegions[i], level)
 				imgs[i] = img
 				continue
 			}
@@ -237,6 +241,21 @@ func sizeForLevel(x int, level int) int {
 		}
 	}
 	return x
+}
+
+// regionForLevel scales the source region r down for the mipmap level.
+// A mipmap level image represents the whole original image,
+// so a region of a sub-image must be scaled as the source vertices are.
+func regionForLevel(r image.Rectangle, level int) image.Rectangle {
+	if r.Empty() {
+		return r
+	}
+	return image.Rect(
+		r.Min.X>>level,
+		r.Min.Y>>level,
+		r.Max.X>>level,
+		r.Max.Y>>level,
+	)
 }
 
 func (m *Mipmap) Deallocate() {
