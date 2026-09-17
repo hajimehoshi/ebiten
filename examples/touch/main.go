@@ -52,7 +52,6 @@ type touch struct {
 
 type pinch struct {
 	id1, id2 ebiten.TouchID
-	originH  float64
 	prevH    float64
 }
 
@@ -142,10 +141,9 @@ func (g *Game) Update() error {
 			t1.wasPinch = true
 			t2.wasPinch = true
 			g.pinch = &pinch{
-				id1:     id1,
-				id2:     id2,
-				originH: originDiff,
-				prevH:   originDiff,
+				id1:   id1,
+				id2:   id2,
+				prevH: originDiff,
 			}
 		}
 	case 1:

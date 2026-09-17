@@ -238,7 +238,6 @@ type lineView struct {
 
 	prefixLenInUTF16 int
 	markedLenInUTF16 int
-	suffixLenInUTF16 int
 
 	lineStartInBytes      int
 	selectionStartInBytes int
@@ -262,7 +261,6 @@ func newLineView(f *Field) lineView {
 		suffix:                suffix,
 		prefixLenInUTF16:      convertByteCountToUTF16Count(prefix, len(prefix)),
 		markedLenInUTF16:      convertByteCountToUTF16Count(marked, len(marked)),
-		suffixLenInUTF16:      convertByteCountToUTF16Count(suffix, len(suffix)),
 		lineStartInBytes:      lineStart,
 		selectionStartInBytes: selStart,
 		selectionEndInBytes:   selEnd,
@@ -286,7 +284,6 @@ func newLineViewFromSession(s *session) lineView {
 		suffix:                suffix,
 		prefixLenInUTF16:      convertByteCountToUTF16Count(prefix, len(prefix)),
 		markedLenInUTF16:      convertByteCountToUTF16Count(composition, len(composition)),
-		suffixLenInUTF16:      convertByteCountToUTF16Count(suffix, len(suffix)),
 		lineStartInBytes:      0,
 		selectionStartInBytes: len(prefix),
 		selectionEndInBytes:   len(prefix),
