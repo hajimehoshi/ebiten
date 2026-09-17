@@ -38,9 +38,7 @@ func runOnGameUpdate(f func()) {
 }
 
 type game struct {
-	m     *testing.M
 	endCh chan struct{}
-	code  int
 }
 
 func (g *game) Update() error {
@@ -71,7 +69,6 @@ func TestMain(m *testing.M) {
 	}()
 
 	g := &game{
-		m:     m,
 		endCh: endCh,
 	}
 	if err := ebiten.RunGame(g); err != nil {

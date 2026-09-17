@@ -55,10 +55,9 @@ var lastImageID atomic.Int64
 type Image struct {
 	ui *UserInterface
 
-	mipmap    *mipmap.Mipmap
-	width     int
-	height    int
-	imageType atlas.ImageType
+	mipmap *mipmap.Mipmap
+	width  int
+	height int
 
 	// id determines the order to lock mu among multiple images.
 	id int64
@@ -85,7 +84,6 @@ func (u *UserInterface) NewImage(width, height int, imageType atlas.ImageType) *
 		mipmap:    mipmap.New(width, height, imageType),
 		width:     width,
 		height:    height,
-		imageType: imageType,
 		id:        lastImageID.Add(1),
 		lastBlend: graphicsdriver.BlendSourceOver,
 	}

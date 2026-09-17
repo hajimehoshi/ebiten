@@ -86,10 +86,6 @@ const (
 	screenHeight = 480
 )
 
-type Input struct {
-	mouseButtonState int
-}
-
 func drawNinePatches(dst *ebiten.Image, dstRect image.Rectangle, srcRect image.Rectangle) {
 	srcX := srcRect.Min.X
 	srcY := srcRect.Min.Y

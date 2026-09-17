@@ -150,7 +150,6 @@ func (t musicType) String() string {
 
 // Player represents the current audio state.
 type Player struct {
-	game         *Game
 	audioContext *audio.Context
 	audioPlayer  *audio.Player
 	current      time.Duration
@@ -210,7 +209,6 @@ func NewPlayer(game *Game, audioContext *audio.Context, musicType musicType) (*P
 		return nil, err
 	}
 	player := &Player{
-		game:         game,
 		audioContext: audioContext,
 		audioPlayer:  p,
 		total:        time.Second * time.Duration(s.Length()) / bytesPerSample / sampleRate,
