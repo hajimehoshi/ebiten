@@ -22,19 +22,21 @@ import (
 )
 
 func TestXboxDeviceEvents(t *testing.T) {
-	// GameInput reports the same device pointer for the same physical device, so the tests reuse
-	// deviceA and deviceB across connections and disconnections.
-	deviceA := &gamepad.IGameInputDevice{}
-	deviceB := &gamepad.IGameInputDevice{}
+	// GameInput reports the same device pointer for the same physical device, so an event names its
+	// device by index and the tests reuse deviceA and deviceB across connections and disconnections.
+	const (
+		deviceA = iota
+		deviceB
+	)
 
 	type event struct {
-		device    *gamepad.IGameInputDevice
+		device    int
 		connected bool
 	}
 
 	type frame struct {
 		events []event
-		want   []*gamepad.IGameInputDevice
+		want   []int
 	}
 
 	tests := []struct {
@@ -45,8 +47,13 @@ func TestXboxDeviceEvents(t *testing.T) {
 			name: "connect",
 			frames: []frame{
 				{
-					events: []event{{deviceA, true}},
-					want:   []*gamepad.IGameInputDevice{deviceA},
+					events: []event{
+						{
+							device:    deviceA,
+							connected: true,
+						},
+					},
+					want: []int{deviceA},
 				},
 			},
 		},
@@ -54,12 +61,22 @@ func TestXboxDeviceEvents(t *testing.T) {
 			name: "disconnect",
 			frames: []frame{
 				{
-					events: []event{{deviceA, true}},
-					want:   []*gamepad.IGameInputDevice{deviceA},
+					events: []event{
+						{
+							device:    deviceA,
+							connected: true,
+						},
+					},
+					want: []int{deviceA},
 				},
 				{
-					events: []event{{deviceA, false}},
-					want:   nil,
+					events: []event{
+						{
+							device:    deviceA,
+							connected: false,
+						},
+					},
+					want: nil,
 				},
 			},
 		},
@@ -67,8 +84,17 @@ func TestXboxDeviceEvents(t *testing.T) {
 			name: "connect and disconnect in one frame",
 			frames: []frame{
 				{
-					events: []event{{deviceA, true}, {deviceA, false}},
-					want:   nil,
+					events: []event{
+						{
+							device:    deviceA,
+							connected: true,
+						},
+						{
+							device:    deviceA,
+							connected: false,
+						},
+					},
+					want: nil,
 				},
 			},
 		},
@@ -76,12 +102,26 @@ func TestXboxDeviceEvents(t *testing.T) {
 			name: "disconnect and reconnect in one frame",
 			frames: []frame{
 				{
-					events: []event{{deviceA, true}},
-					want:   []*gamepad.IGameInputDevice{deviceA},
+					events: []event{
+						{
+							device:    deviceA,
+							connected: true,
+						},
+					},
+					want: []int{deviceA},
 				},
 				{
-					events: []event{{deviceA, false}, {deviceA, true}},
-					want:   []*gamepad.IGameInputDevice{deviceA},
+					events: []event{
+						{
+							device:    deviceA,
+							connected: false,
+						},
+						{
+							device:    deviceA,
+							connected: true,
+						},
+					},
+					want: []int{deviceA},
 				},
 			},
 		},
@@ -89,8 +129,21 @@ func TestXboxDeviceEvents(t *testing.T) {
 			name: "one of two devices disconnects in one frame",
 			frames: []frame{
 				{
-					events: []event{{deviceA, true}, {deviceB, true}, {deviceA, false}},
-					want:   []*gamepad.IGameInputDevice{deviceB},
+					events: []event{
+						{
+							device:    deviceA,
+							connected: true,
+						},
+						{
+							device:    deviceB,
+							connected: true,
+						},
+						{
+							device:    deviceA,
+							connected: false,
+						},
+					},
+					want: []int{deviceB},
 				},
 			},
 		},
@@ -98,18 +151,36 @@ func TestXboxDeviceEvents(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			devices := []*gamepad.IGameInputDevice{
+				deviceA: gamepad.NewXboxDevice(),
+				deviceB: gamepad.NewXboxDevice(),
+			}
 			var n gamepad.XboxGamepads
 			var g gamepad.Gamepads
 			for i, f := range tc.frames {
 				for _, e := range f.events {
-					n.DeviceCallback(e.device, e.connected)
+					n.DeviceCallback(devices[e.device], e.connected)
 				}
 				if err := n.Update(&g); err != nil {
 					t.Fatalf("frame %d: Update failed: %v", i, err)
 				}
+				var want []*gamepad.IGameInputDevice
+				for _, d := range f.want {
+					want = append(want, devices[d])
+				}
 				got := g.AppendXboxDevices(nil)
-				if !slices.Equal(got, f.want) {
-					t.Errorf("frame %d: devices: got %v, want %v", i, got, f.want)
+				if !slices.Equal(got, want) {
+					t.Errorf("frame %d: devices: got %v, want %v", i, got, want)
+				}
+				// A registered gamepad holds exactly one reference to its device; nothing else does.
+				for d, device := range devices {
+					want := 0
+					if slices.Contains(f.want, d) {
+						want = 1
+					}
+					if got := gamepad.XboxDeviceRefCount(device); got != want {
+						t.Errorf("frame %d: device %d: reference count: got %d, want %d", i, d, got, want)
+					}
 				}
 			}
 		})
