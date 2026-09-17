@@ -18,6 +18,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/ebitengine/purego/objc"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
@@ -31,6 +33,8 @@ type gcControllerToAdd struct {
 }
 
 type nativeGamepadsGC struct {
+	// controllersToAdd and controllersToRemove hold one reference per entry, which update releases or
+	// hands over to the gamepad.
 	controllersToAdd    []gcControllerToAdd
 	controllersToRemove []uintptr
 	controllersMu       sync.Mutex
@@ -60,6 +64,7 @@ func (g *nativeGamepadsGC) update(gamepads *gamepads) error {
 	}
 	for _, controller := range g.controllersToRemove {
 		gamepads.removeGCGamepad(controller)
+		objc.ID(controller).Send(sel_release)
 	}
 	g.controllersToAdd = g.controllersToAdd[:0]
 	g.controllersToRemove = g.controllersToRemove[:0]
@@ -87,6 +92,10 @@ func (g *nativeGamepadGC) close() {
 	releaseGCRumbleMotor(g.rightMotor)
 	g.leftMotor = nil
 	g.rightMotor = nil
+	if g.controller != 0 {
+		objc.ID(g.controller).Send(sel_release)
+		g.controller = 0
+	}
 }
 
 func (g *nativeGamepadGC) update(gamepad *gamepads) error {

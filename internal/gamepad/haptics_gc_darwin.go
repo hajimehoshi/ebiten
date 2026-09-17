@@ -57,8 +57,6 @@ var (
 	sel_initWithEventType_parameters_relativeTime_duration objc.SEL
 	sel_initWithEvents_parameters_error                    objc.SEL
 	sel_initWithParameterID_value_relativeTime             objc.SEL
-	sel_release                                            objc.SEL
-	sel_retain                                             objc.SEL
 	sel_init                                               objc.SEL
 	sel_initWithObjects_count                              objc.SEL
 	sel_array                                              objc.SEL
@@ -112,8 +110,6 @@ func init() {
 	sel_initWithEventType_parameters_relativeTime_duration = objc.RegisterName("initWithEventType:parameters:relativeTime:duration:")
 	sel_initWithEvents_parameters_error = objc.RegisterName("initWithEvents:parameters:error:")
 	sel_initWithParameterID_value_relativeTime = objc.RegisterName("initWithParameterID:value:relativeTime:")
-	sel_release = objc.RegisterName("release")
-	sel_retain = objc.RegisterName("retain")
 	sel_init = objc.RegisterName("init")
 	sel_initWithObjects_count = objc.RegisterName("initWithObjects:count:")
 	sel_array = objc.RegisterName("array")
