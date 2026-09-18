@@ -900,7 +900,9 @@ func (u *UserInterface) Window() Window {
 }
 
 type Monitor struct {
-	deviceScaleFactor float64
+	deviceScaleFactor     float64
+	deviceScaleFactorTime time.Time
+	mu                    sync.Mutex
 }
 
 var theMonitor = &Monitor{}
@@ -914,7 +916,12 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 		return 1
 	}
 
-	if m.deviceScaleFactor != 0 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// devicePixelRatio can change, but reading it is too expensive to repeat on every call.
+	now := time.Now()
+	if !m.deviceScaleFactorTime.IsZero() && now.Sub(m.deviceScaleFactorTime) < time.Second {
 		return m.deviceScaleFactor
 	}
 
@@ -923,7 +930,8 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 		ratio = 1
 	}
 	m.deviceScaleFactor = ratio
-	return m.deviceScaleFactor
+	m.deviceScaleFactorTime = now
+	return ratio
 }
 
 func (m *Monitor) Size() (int, int) {
