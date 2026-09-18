@@ -30,7 +30,7 @@ const (
 	_EGL_SURFACE_TYPE           = 0x3033
 	_EGL_WINDOW_BIT             = 0x0004
 	_EGL_RENDERABLE_TYPE        = 0x3040
-	_EGL_OPENGL_ES2_BIT         = 0x0004
+	_EGL_OPENGL_ES3_BIT         = 0x0040
 	_EGL_RED_SIZE               = 0x3024
 	_EGL_GREEN_SIZE             = 0x3023
 	_EGL_BLUE_SIZE              = 0x3022
@@ -88,7 +88,7 @@ type Context struct {
 	swapInterval int
 }
 
-// NewContext creates an OpenGL ES context covering the display.
+// NewContext creates an OpenGL ES 3 context covering the display.
 func NewContext(d *Display) (*Context, error) {
 	c := &Context{
 		swapInterval: -1,
@@ -154,15 +154,9 @@ func NewContext(d *Display) (*Context, error) {
 	c.width = int(width)
 	c.height = int(height)
 
-	// OpenGL ES 3 comes first as the graphics driver uses ES 3 features where
-	// they are available.
-	for _, version := range []int32{3, 2} {
-		attribs := []int32{_EGL_CONTEXT_CLIENT_VERSION, version, _EGL_NONE}
-		c.context = c.egl.CreateContext(c.display, config, 0, &attribs[0])
-		if c.context != 0 {
-			break
-		}
-	}
+	// The graphics driver requires OpenGL ES 3 for its GLSL ES 300 shaders.
+	attribs = []int32{_EGL_CONTEXT_CLIENT_VERSION, 3, _EGL_NONE}
+	c.context = c.egl.CreateContext(c.display, config, 0, &attribs[0])
 	if c.context == 0 {
 		err := fmt.Errorf("fbdev: eglCreateContext failed: %w", c.lastError())
 		return nil, errors.Join(err, c.Close())
@@ -222,7 +216,7 @@ func (c *Context) chooseConfig(d *Display) (uintptr, error) {
 	red, green, blue := d.BitsPerColor()
 	attribs := []int32{
 		_EGL_SURFACE_TYPE, _EGL_WINDOW_BIT,
-		_EGL_RENDERABLE_TYPE, _EGL_OPENGL_ES2_BIT,
+		_EGL_RENDERABLE_TYPE, _EGL_OPENGL_ES3_BIT,
 		_EGL_RED_SIZE, int32(red),
 		_EGL_GREEN_SIZE, int32(green),
 		_EGL_BLUE_SIZE, int32(blue),
