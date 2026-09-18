@@ -27,12 +27,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"golang.org/x/tools/go/packages"
 )
-
-var caser = cases.Title(language.Und)
 
 //go:embed _files/EbitenViewController.m
 var objcM string
@@ -108,10 +104,13 @@ func run() error {
 			return err
 		}
 		prefixLower := *prefix + pkgName
-		prefixUpper := caser.String(*prefix) + caser.String(pkgName)
+		// gomobile derives its Objective-C names from the raw prefix and strings.Title of the package name
+		// (see bind/genobjc.go in github.com/ebitengine/gomobile). Use the same rule so that the names match.
+		prefixUpper := *prefix + strings.Title(pkgName)
 		replacePrefixes := func(content string) string {
 			content = strings.ReplaceAll(content, "$Placeholder_PrefixUpper$", prefixUpper)
 			content = strings.ReplaceAll(content, "$Placeholder_PrefixLower$", prefixLower)
+			content = strings.ReplaceAll(content, "$Placeholder_Prefix$", *prefix)
 			content = strings.ReplaceAll(content, "$Placeholder_JavaPkg$", *javaPkg)
 			return content
 		}

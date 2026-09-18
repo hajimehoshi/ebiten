@@ -33,12 +33,8 @@ import (
 	"text/template"
 	"unicode"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"golang.org/x/tools/go/packages"
 )
-
-var caser = cases.Title(language.Und)
 
 const (
 	ebitenmobileCommand = "ebitenmobile"
@@ -200,7 +196,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 		return err
 	}
 	prefixLower := bindPrefix + pkgs[0].Name
-	prefixUpper := strings.Title(bindPrefix) + strings.Title(pkgs[0].Name)
+	// gomobile derives its Objective-C names from the raw prefix and strings.Title of the package name
+	// (see bind/genobjc.go in github.com/ebitengine/gomobile). Use the same rule so that the names match.
+	prefixUpper := bindPrefix + strings.Title(pkgs[0].Name)
 
 	args = append(args, "github.com/hajimehoshi/ebiten/v2/mobile/ebitenmobileview")
 
@@ -247,8 +245,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			frameworkName := filepath.Base(buildO)
 			frameworkNameBase := frameworkName[:len(frameworkName)-len(".xcframework")]
 			// The first character must be an upper case (#2192).
-			// For consistency with gomobile (see cmd/gomobile/bind_iosapp.go), the name is title-cased.
-			frameworkNameBase = caser.String(frameworkNameBase)
+			// gomobile names the framework with strings.Title (see cmd/gomobile/bind_iosapp.go). Use the same
+			// function so that the directory name matches.
+			frameworkNameBase = strings.Title(frameworkNameBase)
 			dir := filepath.Join(buildO, name, frameworkNameBase+".framework")
 
 			if err := os.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
@@ -275,11 +274,13 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			defer func() {
 				_ = w.Close()
 			}()
+			// The module name must be the framework name, or `@import` and Swift's `import` cannot find the module.
+			// This is also what gomobile writes (see cmd/gomobile/bind_iosapp.go).
 			var mmVals = struct {
 				Module  string
 				Headers []string
 			}{
-				Module:  prefixUpper,
+				Module:  frameworkNameBase,
 				Headers: headerFiles,
 			}
 			if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {
