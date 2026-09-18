@@ -169,6 +169,9 @@ func (m *Monitor) setVideoModeWin32(desired *VidMode) error {
 	if err != nil {
 		return err
 	}
+	if best == nil {
+		return nil
+	}
 	current, err := m.platformGetVideoMode()
 	if err != nil {
 		return err
