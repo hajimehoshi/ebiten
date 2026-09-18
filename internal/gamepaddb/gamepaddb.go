@@ -97,6 +97,43 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 		return "", "", nil, nil, fmt.Errorf("gamepaddb: syntax error")
 	}
 
+	// Check the platform before parsing any mappings. A database can contain mappings for multiple
+	// platforms, and an unsupported mapping on another platform must not reject the whole database.
+	for _, token := range tokens[2:] {
+		tks := strings.Split(token, ":")
+		if len(tks) < 2 || tks[0] != "platform" {
+			continue
+		}
+
+		// Note that the platform part is listed in the definition of SDL_GetPlatform.
+		switch tks[1] {
+		case "Windows":
+			if platform != platformWindows {
+				return "", "", nil, nil, nil
+			}
+		case "Mac OS X":
+			if platform != platformDarwin {
+				return "", "", nil, nil, nil
+			}
+		case "Linux":
+			if platform != platformUnix {
+				return "", "", nil, nil, nil
+			}
+		case "Android":
+			if platform != platformAndroid {
+				return "", "", nil, nil, nil
+			}
+		case "iOS":
+			if platform != platformDarwin {
+				return "", "", nil, nil, nil
+			}
+		case "":
+			// Allow any platforms
+		default:
+			return "", "", nil, nil, fmt.Errorf("gamepaddb: unexpected platform: %s", tks[1])
+		}
+	}
+
 	for _, token := range tokens[2:] {
 		if len(token) == 0 {
 			continue
@@ -106,34 +143,15 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 			return "", "", nil, nil, fmt.Errorf("gamepaddb: syntax error")
 		}
 
-		// Note that the platform part is listed in the definition of SDL_GetPlatform.
 		if tks[0] == "platform" {
-			switch tks[1] {
-			case "Windows":
-				if platform != platformWindows {
-					return "", "", nil, nil, nil
-				}
-			case "Mac OS X":
-				if platform != platformDarwin {
-					return "", "", nil, nil, nil
-				}
-			case "Linux":
-				if platform != platformUnix {
-					return "", "", nil, nil, nil
-				}
-			case "Android":
-				if platform != platformAndroid {
-					return "", "", nil, nil, nil
-				}
-			case "iOS":
-				if platform != platformDarwin {
-					return "", "", nil, nil, nil
-				}
-			case "":
-				// Allow any platforms
-			default:
-				return "", "", nil, nil, fmt.Errorf("gamepaddb: unexpected platform: %s", tks[1])
-			}
+			continue
+		}
+
+		b, isButton := toStandardGamepadButton(tks[0])
+		a, isAxis := toStandardGamepadAxis(tks[0])
+		if !isButton && !isAxis {
+			// Ignore bindings that don't have a corresponding input in the Web standard gamepad
+			// layout, as well as keys added by newer SDL versions.
 			continue
 		}
 
@@ -142,7 +160,7 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 			return "", "", nil, nil, err
 		}
 
-		if b, ok := toStandardGamepadButton(tks[0]); ok {
+		if isButton {
 			if buttons == nil {
 				buttons = map[StandardButton]mapping{}
 			}
@@ -150,16 +168,13 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 			continue
 		}
 
-		if a, ok := toStandardGamepadAxis(tks[0]); ok {
+		if isAxis {
 			if axes == nil {
 				axes = map[StandardAxis]mapping{}
 			}
 			axes[a] = gb
 			continue
 		}
-
-		// The buttons like "misc1" are ignored so far.
-		// There is no corresponding button in the Web standard gamepad layout.
 	}
 
 	return tokens[0], tokens[1], buttons, axes, nil
@@ -234,7 +249,8 @@ func parseMappingElement(str string) (mapping, error) {
 			Index: index,
 		}, nil
 
-	case str[0] == 'h':
+	case str[0] == 'h' || strings.HasPrefix(str, "+h"):
+		str = strings.TrimPrefix(str, "+")
 		tokens := strings.Split(str[1:], ".")
 		if len(tokens) < 2 {
 			return mapping{}, fmt.Errorf("gamepaddb: unexpected hat: %s", str)

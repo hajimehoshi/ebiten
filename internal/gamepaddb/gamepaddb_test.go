@@ -78,6 +78,37 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
+func TestUpdateIgnoresUnsupportedForeignMappings(t *testing.T) {
+	foreignPlatform := "Windows"
+	if runtime.GOOS == "windows" {
+		foreignPlatform = "Linux"
+	}
+
+	const validID = "00000000000000000000000000009403"
+	const foreignID = "00000000000000000000000000009404"
+	mappings := []byte(validID + ",Valid Pad,a:b0,hint:foo,\n" +
+		foreignID + ",Foreign Pad,a:not-a-binding,platform:" + foreignPlatform + ",\n")
+	if err := gamepaddb.Update(mappings); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := gamepaddb.StandardButtonMapping(validID, gamepaddb.StandardButtonRightBottom).IsMapped(), true; got != want {
+		t.Errorf("StandardButtonMapping(%q, RightBottom).IsMapped() = %t; want %t", validID, got, want)
+	}
+	if got, want := gamepaddb.HasStandardLayoutMapping(foreignID), false; got != want {
+		t.Errorf("HasStandardLayoutMapping(%q) = %t; want %t", foreignID, got, want)
+	}
+}
+
+func TestUpdateAcceptsPositiveHatMapping(t *testing.T) {
+	const id = "00000000000000000000000000009405"
+	if err := gamepaddb.Update([]byte(id + ",Hat Pad,dpup:+h0.1,\n")); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonLeftTop).IsMapped(), true; got != want {
+		t.Errorf("StandardButtonMapping(%q, LeftTop).IsMapped() = %t; want %t", id, got, want)
+	}
+}
+
 func TestGLFWGamepadMappings(t *testing.T) {
 	if runtime.GOOS != "windows" {
 		t.Skip("the current platform doesn't use GLFW gamepad mappings")
