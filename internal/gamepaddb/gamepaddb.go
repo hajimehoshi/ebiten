@@ -57,7 +57,8 @@ func currentPlatform() platform {
 type mappingType int
 
 const (
-	mappingTypeButton mappingType = iota
+	mappingTypeNone mappingType = iota
+	mappingTypeButton
 	mappingTypeAxis
 	mappingTypeHat
 )
@@ -77,14 +78,31 @@ type mapping struct {
 	HatState   int
 }
 
+// axisPart is the part of a standard axis that a mapping drives.
+type axisPart int
+
+const (
+	axisPartWhole axisPart = iota
+	axisPartPositive
+	axisPartNegative
+)
+
+// axisMapping is the mappings of one standard axis. A database entry maps either the whole axis or
+// each half of it separately, so an unused part has the type mappingTypeNone.
+type axisMapping struct {
+	whole    mapping
+	positive mapping
+	negative mapping
+}
+
 var (
 	gamepadNames          = map[string]string{}
 	gamepadButtonMappings = map[string]map[StandardButton]mapping{}
-	gamepadAxisMappings   = map[string]map[StandardAxis]mapping{}
+	gamepadAxisMappings   = map[string]map[StandardAxis]axisMapping{}
 	mappingsM             sync.Mutex
 )
 
-func parseLine(line string, platform platform) (id string, name string, buttons map[StandardButton]mapping, axes map[StandardAxis]mapping, err error) {
+func parseLine(line string, platform platform) (id string, name string, buttons map[StandardButton]mapping, axes map[StandardAxis]axisMapping, err error) {
 	line = strings.TrimSpace(line)
 	if len(line) == 0 {
 		return "", "", nil, nil, nil
@@ -150,11 +168,20 @@ func parseLine(line string, platform platform) (id string, name string, buttons 
 			continue
 		}
 
-		if a, ok := toStandardGamepadAxis(tks[0]); ok {
+		if a, part, ok := toStandardGamepadAxis(tks[0]); ok {
 			if axes == nil {
-				axes = map[StandardAxis]mapping{}
+				axes = map[StandardAxis]axisMapping{}
 			}
-			axes[a] = gb
+			am := axes[a]
+			switch part {
+			case axisPartWhole:
+				am.whole = gb
+			case axisPartPositive:
+				am.positive = gb
+			case axisPartNegative:
+				am.negative = gb
+			}
+			axes[a] = am
 			continue
 		}
 
@@ -298,18 +325,28 @@ func toStandardGamepadButton(str string) (StandardButton, bool) {
 	}
 }
 
-func toStandardGamepadAxis(str string) (StandardAxis, bool) {
+// toStandardGamepadAxis parses a standard axis name, which can be prefixed by '+' or '-' to name
+// only the positive or the negative half of the axis.
+func toStandardGamepadAxis(str string) (StandardAxis, axisPart, bool) {
+	part := axisPartWhole
+	if s, ok := strings.CutPrefix(str, "+"); ok {
+		str = s
+		part = axisPartPositive
+	} else if s, ok := strings.CutPrefix(str, "-"); ok {
+		str = s
+		part = axisPartNegative
+	}
 	switch str {
 	case "leftx":
-		return StandardAxisLeftStickHorizontal, true
+		return StandardAxisLeftStickHorizontal, part, true
 	case "lefty":
-		return StandardAxisLeftStickVertical, true
+		return StandardAxisLeftStickVertical, part, true
 	case "rightx":
-		return StandardAxisRightStickHorizontal, true
+		return StandardAxisRightStickHorizontal, part, true
 	case "righty":
-		return StandardAxisRightStickVertical, true
+		return StandardAxisRightStickVertical, part, true
 	default:
-		return 0, false
+		return 0, 0, false
 	}
 }
 
@@ -329,7 +366,7 @@ func buttonMappings(id string) map[StandardButton]mapping {
 
 // axisMappings returns the axis mappings for the given id.
 // The caller must hold mappingsM, as this can add the Android default mappings.
-func axisMappings(id string) map[StandardAxis]mapping {
+func axisMappings(id string) map[StandardAxis]axisMapping {
 	if m, ok := gamepadAxisMappings[id]; ok {
 		return m
 	}
@@ -347,7 +384,12 @@ func axisMappings(id string) map[StandardAxis]mapping {
 // Evaluating a Mapping takes no lock of this package, so a caller can hold its own gamepad lock
 // while doing so and read one consistent gamepad state.
 type Mapping struct {
+	// mapping is the mapping of a standard button, or of the whole standard axis.
 	mapping mapping
+
+	// positive and negative are the mappings of each half of a standard axis.
+	positive mapping
+	negative mapping
 
 	// hasStandardLayout reports that the gamepad has a standard layout mapping. This can be true even
 	// when the resolved axis or button is not a part of it.
@@ -378,7 +420,9 @@ func StandardAxisMapping(id string, axis StandardAxis) Mapping {
 		hasStandardLayout: buttons != nil || axes != nil,
 	}
 	if a, ok := axes[axis]; ok {
-		m.mapping = a
+		m.mapping = a.whole
+		m.positive = a.positive
+		m.negative = a.negative
 		m.mapped = true
 	}
 	return m
@@ -407,7 +451,16 @@ func (m Mapping) AxisValue(state GamepadState) float64 {
 	if !m.mapped {
 		return 0
 	}
-	return standardAxisValue(m.mapping, state)
+	v := standardAxisValue(m.mapping, state)
+	v += standardAxisHalfValue(m.positive, state)
+	v -= standardAxisHalfValue(m.negative, state)
+	if v > 1 {
+		return 1
+	}
+	if v < -1 {
+		return -1
+	}
+	return v
 }
 
 // ButtonValue returns the value of the standard button in the range 0 to 1, or 0 when the button is
@@ -482,6 +535,17 @@ func standardAxisValue(mapping mapping, state GamepadState) float64 {
 	return 0
 }
 
+// standardAxisHalfValue calculates the value in the range 0 to 1 that the given mapping, which is
+// passed by value, gives to one half of a standard axis. A mapping of the type mappingTypeNone gives 0.
+func standardAxisHalfValue(mapping mapping, state GamepadState) float64 {
+	if mapping.Type == mappingTypeNone {
+		return 0
+	}
+	// A half of an axis takes the range 0 to 1 where the whole axis takes -1 to 1. A released
+	// button or a centered input axis is then 0, so it leaves the standard axis at rest.
+	return (standardAxisValue(mapping, state) + 1) / 2
+}
+
 // standardButtonValue calculates the value for the given mapping, which is passed by value.
 func standardButtonValue(mapping mapping, state GamepadState) float64 {
 	switch mapping.Type {
@@ -546,7 +610,7 @@ func Update(mappingData []byte) error {
 		id      string
 		name    string
 		buttons map[StandardButton]mapping
-		axes    map[StandardAxis]mapping
+		axes    map[StandardAxis]axisMapping
 	}
 	var lines []parsedLine
 
@@ -611,7 +675,7 @@ func addAndroidDefaultMappings(id string) bool {
 	}
 
 	gamepadButtonMappings[id] = map[StandardButton]mapping{}
-	gamepadAxisMappings[id] = map[StandardAxis]mapping{}
+	gamepadAxisMappings[id] = map[StandardAxis]axisMapping{}
 
 	// For mappings, see mobile/ebitenmobileview/input_android.go.
 
@@ -717,35 +781,43 @@ func addAndroidDefaultMappings(id string) bool {
 	}
 
 	if axisMask&(1<<SDLControllerAxisLeftX) != 0 {
-		gamepadAxisMappings[id][StandardAxisLeftStickHorizontal] = mapping{
-			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisLeftX,
-			AxisScale:  1,
-			AxisOffset: 0,
+		gamepadAxisMappings[id][StandardAxisLeftStickHorizontal] = axisMapping{
+			whole: mapping{
+				Type:       mappingTypeAxis,
+				Index:      SDLControllerAxisLeftX,
+				AxisScale:  1,
+				AxisOffset: 0,
+			},
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisLeftY) != 0 {
-		gamepadAxisMappings[id][StandardAxisLeftStickVertical] = mapping{
-			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisLeftY,
-			AxisScale:  1,
-			AxisOffset: 0,
+		gamepadAxisMappings[id][StandardAxisLeftStickVertical] = axisMapping{
+			whole: mapping{
+				Type:       mappingTypeAxis,
+				Index:      SDLControllerAxisLeftY,
+				AxisScale:  1,
+				AxisOffset: 0,
+			},
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightX) != 0 {
-		gamepadAxisMappings[id][StandardAxisRightStickHorizontal] = mapping{
-			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisRightX,
-			AxisScale:  1,
-			AxisOffset: 0,
+		gamepadAxisMappings[id][StandardAxisRightStickHorizontal] = axisMapping{
+			whole: mapping{
+				Type:       mappingTypeAxis,
+				Index:      SDLControllerAxisRightX,
+				AxisScale:  1,
+				AxisOffset: 0,
+			},
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisRightY) != 0 {
-		gamepadAxisMappings[id][StandardAxisRightStickVertical] = mapping{
-			Type:       mappingTypeAxis,
-			Index:      SDLControllerAxisRightY,
-			AxisScale:  1,
-			AxisOffset: 0,
+		gamepadAxisMappings[id][StandardAxisRightStickVertical] = axisMapping{
+			whole: mapping{
+				Type:       mappingTypeAxis,
+				Index:      SDLControllerAxisRightY,
+				AxisScale:  1,
+				AxisOffset: 0,
+			},
 		}
 	}
 	if axisMask&(1<<SDLControllerAxisTriggerLeft) != 0 {
