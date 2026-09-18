@@ -175,6 +175,15 @@ func osFromBuildTarget(buildTarget string) (string, error) {
 	return os, nil
 }
 
+// frameworkName returns the name of the framework in the xcframework at buildO, without the .framework extension.
+func frameworkName(buildO string) string {
+	base := strings.TrimSuffix(filepath.Base(buildO), ".xcframework")
+	// The first character must be an upper case (#2192).
+	// gomobile names the framework with strings.Title (see cmd/gomobile/bind_iosapp.go). Use the same
+	// function so that the directory name matches.
+	return strings.Title(base)
+}
+
 func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	tags := buildTags
 	cfg := &packages.Config{}
@@ -238,17 +247,11 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 		}
 
 		for _, dirEntry := range dirEntries {
-			name := dirEntry.Name()
-			if name == "Info.plist" {
+			// Skip stray files like .DS_Store. Only directories are platform slices.
+			if !dirEntry.IsDir() {
 				continue
 			}
-			frameworkName := filepath.Base(buildO)
-			frameworkNameBase := frameworkName[:len(frameworkName)-len(".xcframework")]
-			// The first character must be an upper case (#2192).
-			// gomobile names the framework with strings.Title (see cmd/gomobile/bind_iosapp.go). Use the same
-			// function so that the directory name matches.
-			frameworkNameBase = strings.Title(frameworkNameBase)
-			dir := filepath.Join(buildO, name, frameworkNameBase+".framework")
+			dir := filepath.Join(buildO, dirEntry.Name(), frameworkName(buildO)+".framework")
 
 			if err := os.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
 				return err
@@ -280,7 +283,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 				Module  string
 				Headers []string
 			}{
-				Module:  frameworkNameBase,
+				Module:  frameworkName(buildO),
 				Headers: headerFiles,
 			}
 			if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {
