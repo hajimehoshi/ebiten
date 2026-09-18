@@ -964,7 +964,7 @@ func (g *GuestSession) CompositeFrame() bool {
 		0, 0, float32(frame.width), float32(frame.height), 1, 1, 1, 1)
 	srcs := [graphics.ShaderSrcImageCount]*ui.Image{frame.img}
 	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, frame.width, frame.height)}
-	dst.DrawTriangles(srcs, g.compositeVtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
+	dst.DrawTriangles(srcs, g.compositeVtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true, true)
 	return true
 }
 

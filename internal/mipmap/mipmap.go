@@ -77,7 +77,11 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
-func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, canSkipMipmap bool) {
+// DrawTriangles draws the triangles onto the image.
+//
+// When exactSrcRegions is true, a mipmap level is used only when every non-empty source region
+// maps onto the level image exactly.
+func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, canSkipMipmap bool, exactSrcRegions bool) {
 	if len(indices) == 0 {
 		return
 	}
@@ -125,6 +129,9 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 	}
 	if level == math.MaxInt32 {
 		panic("mipmap: level must be calculated at least once")
+	}
+	if exactSrcRegions {
+		level = levelForExactSrcRegions(level, srcRegions)
 	}
 
 	var imgs [graphics.ShaderSrcImageCount]*buffered.Image
@@ -241,6 +248,28 @@ func sizeForLevel(x int, level int) int {
 		}
 	}
 	return x
+}
+
+// levelForExactSrcRegions returns the largest level, at most the given level, at which
+// every non-empty source region has bounds divisible by 2^level.
+func levelForExactSrcRegions(level int, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle) int {
+	for ; level > 0; level-- {
+		mask := 1<<level - 1
+		aligned := true
+		for _, r := range srcRegions {
+			if r.Empty() {
+				continue
+			}
+			if (r.Min.X|r.Min.Y|r.Max.X|r.Max.Y)&mask != 0 {
+				aligned = false
+				break
+			}
+		}
+		if aligned {
+			break
+		}
+	}
+	return level
 }
 
 // regionForLevel scales the source region r down for the mipmap level.

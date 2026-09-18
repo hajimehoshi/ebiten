@@ -144,16 +144,16 @@ func (i *Image) Deallocate() {
 	i.mipmap.Deallocate()
 }
 
-func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, canSkipMipmap bool) {
+func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, canSkipMipmap bool, exactSrcRegions bool) {
 	var l imagesLocker
 	l.lock(i, srcs)
 	defer l.unlock()
 
-	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, canSkipMipmap)
+	i.drawTriangles(srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms, canSkipMipmap, exactSrcRegions)
 }
 
 // drawTriangles must be called with the mutexes of the image and the source images locked.
-func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, canSkipMipmap bool) {
+func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32, canSkipMipmap bool, exactSrcRegions bool) {
 	if i.modifyCallback != nil {
 		i.modifyCallback()
 	}
@@ -168,7 +168,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 		srcMipmaps[i] = src.mipmap
 	}
 
-	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, canSkipMipmap)
+	i.mipmap.DrawTriangles(srcMipmaps, vertices, indices, blend, dstRegion, srcRegions, shader.shader, uniforms, canSkipMipmap, exactSrcRegions)
 }
 
 func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
@@ -251,5 +251,5 @@ func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {
 	}
 	sr := image.Rect(0, 0, i.ui.whiteImage.width, i.ui.whiteImage.height)
 	// i.lastBlend is updated in drawTriangles.
-	i.drawTriangles(srcs, i.tmpVerticesForFill, is, blend, region, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, NearestFilterShader, nil, true)
+	i.drawTriangles(srcs, i.tmpVerticesForFill, is, blend, region, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, NearestFilterShader, nil, true, true)
 }

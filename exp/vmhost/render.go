@@ -258,7 +258,7 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 				f.idxBuf = append(f.idxBuf, i-lo)
 			}
 
-			dst.img.DrawTriangles(srcs, f.vtxBuf, f.idxBuf, c.Blend, dr.Region, srcRegions, shader.shader, uniforms, true)
+			dst.img.DrawTriangles(srcs, f.vtxBuf, f.idxBuf, c.Blend, dr.Region, srcRegions, shader.shader, uniforms, true, true)
 		}
 		return nil
 

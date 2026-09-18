@@ -364,7 +364,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	if !skipMipmap {
 		skipMipmap = canSkipMipmap(det, filter)
 	}
-	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap)
+	// The unsafe address never reads the source region.
+	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap, false)
 }
 
 // Vertex represents a vertex passed to DrawTriangles.
@@ -725,7 +726,8 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	if !skipMipmap {
 		skipMipmap = filter != builtinshader.FilterLinear
 	}
-	i.image.DrawTriangles(srcs, vs, indices, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap)
+	exactSrcRegions := address != builtinshader.AddressUnsafe
+	i.image.DrawTriangles(srcs, vs, indices, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap, exactSrcRegions)
 }
 
 // DrawTrianglesShaderOptions represents options for DrawTrianglesShader.
@@ -976,7 +978,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 	i.tmpUniforms = i.tmpUniforms[:0]
 	i.tmpUniforms = shader.appendUniforms(i.tmpUniforms, options.Uniforms)
 
-	i.image.DrawTriangles(imgs, vs, indices, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, true)
+	i.image.DrawTriangles(imgs, vs, indices, blend, i.adjustedBounds(), srcRegions, shader.shader, i.tmpUniforms, true, true)
 }
 
 // DrawRectShaderOptions represents options for DrawRectShader.
@@ -1143,7 +1145,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 
 	dr := i.adjustedBounds()
 
-	i.image.DrawTriangles(imgs, vs, is, blend, dr, srcRegions, shader.shader, i.tmpUniforms, true)
+	i.image.DrawTriangles(imgs, vs, is, blend, dr, srcRegions, shader.shader, i.tmpUniforms, true, true)
 }
 
 // SubImage returns an image representing the portion of the image p visible through r.

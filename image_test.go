@@ -1991,6 +1991,216 @@ func TestImageDrawTrianglesSubImageWithMipmapAndAddressRepeat(t *testing.T) {
 	}
 }
 
+func quadVerticesForTest(dstSize, sx0, sy0, sx1, sy1 float32) []ebiten.Vertex {
+	return []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   sx0,
+			SrcY:   sy0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   dstSize,
+			DstY:   0,
+			SrcX:   sx1,
+			SrcY:   sy0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   dstSize,
+			SrcX:   sx0,
+			SrcY:   sy1,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   dstSize,
+			DstY:   dstSize,
+			SrcX:   sx1,
+			SrcY:   sy1,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+}
+
+func TestImageDrawTrianglesThinSubImageWithMipmapAndAddressRepeat(t *testing.T) {
+	const (
+		parentSize = 128
+		dstSize    = 32
+	)
+
+	parent := ebiten.NewImage(parentSize, parentSize)
+	parent.Fill(color.RGBA{B: 0xff, A: 0xff})
+	sub := parent.SubImage(image.Rect(32, 32, 33, 64)).(*ebiten.Image)
+	sub.Fill(color.RGBA{R: 0xff, A: 0xff})
+
+	dst := ebiten.NewImage(dstSize, dstSize)
+	vs := quadVerticesForTest(dstSize, 0, 0, parentSize, parentSize)
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesOptions{}
+	op.Filter = ebiten.FilterLinear
+	op.Address = ebiten.AddressRepeat
+	dst.DrawTriangles(vs, is, sub, op)
+
+	want := color.RGBA{R: 0xff, A: 0xff}
+	for j := range dstSize {
+		for i := range dstSize {
+			got := dst.At(i, j).(color.RGBA)
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageDrawTrianglesUnalignedSubImageWithMipmapAndAddressClampToZero(t *testing.T) {
+	const (
+		parentSize = 128
+		dstSize    = 8
+		subMin     = 33
+		subMax     = 63
+	)
+
+	parent := ebiten.NewImage(parentSize, parentSize)
+	parent.Fill(color.RGBA{B: 0xff, A: 0xff})
+	sub := parent.SubImage(image.Rect(subMin, subMin, subMax, subMax)).(*ebiten.Image)
+	sub.Fill(color.RGBA{R: 0xff, A: 0xff})
+
+	dst := ebiten.NewImage(dstSize, dstSize)
+	vs := quadVerticesForTest(dstSize, subMin, subMin, subMax, subMax)
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesOptions{}
+	op.Filter = ebiten.FilterLinear
+	op.Address = ebiten.AddressClampToZero
+	dst.DrawTriangles(vs, is, sub, op)
+
+	want := color.RGBA{R: 0xff, A: 0xff}
+	for j := range dstSize {
+		for i := range dstSize {
+			got := dst.At(i, j).(color.RGBA)
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageDrawTrianglesUnalignedSubImageWithMipmapAndAddressRepeat(t *testing.T) {
+	const (
+		parentSize = 128
+		dstSize    = 16
+		subMin     = 33
+		subMax     = 64
+		subMid     = 48
+		srcSize    = 2 * (subMax - subMin)
+	)
+
+	parent := ebiten.NewImage(parentSize, parentSize)
+	pix := make([]byte, 4*parentSize*parentSize)
+	for j := range parentSize {
+		for i := range parentSize {
+			c := color.RGBA{B: 0xff, A: 0xff}
+			if subMin <= i && i < subMax && subMin <= j && j < subMax {
+				switch {
+				case i < subMid && j < subMid:
+					c = color.RGBA{G: 0xff, A: 0xff}
+				case j < subMid:
+					c = color.RGBA{R: 0xff, A: 0xff}
+				case i < subMid:
+					c = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+				default:
+					c = color.RGBA{R: 0xff, G: 0xff, A: 0xff}
+				}
+			}
+			idx := 4 * (i + j*parentSize)
+			pix[idx], pix[idx+1], pix[idx+2], pix[idx+3] = c.R, c.G, c.B, c.A
+		}
+	}
+	parent.WritePixels(pix)
+	sub := parent.SubImage(image.Rect(subMin, subMin, subMax, subMax)).(*ebiten.Image)
+
+	dst := ebiten.NewImage(dstSize, dstSize)
+	vs := quadVerticesForTest(dstSize, subMin, subMin, subMin+srcSize, subMin+srcSize)
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	op := &ebiten.DrawTrianglesOptions{}
+	op.Filter = ebiten.FilterLinear
+	op.Address = ebiten.AddressRepeat
+	dst.DrawTriangles(vs, is, sub, op)
+
+	for j := range dstSize {
+		for i := range dstSize {
+			got := dst.At(i, j).(color.RGBA)
+			var want color.RGBA
+			switch {
+			case i%8 < 4 && j%8 < 4:
+				want = color.RGBA{G: 0xff, A: 0xff}
+			case j%8 < 4:
+				want = color.RGBA{R: 0xff, A: 0xff}
+			case i%8 < 4:
+				want = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
+			default:
+				want = color.RGBA{R: 0xff, G: 0xff, A: 0xff}
+			}
+			if !sameColors(got, want, 1) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestImageDrawImageUnalignedSubImageWithMipmap(t *testing.T) {
+	const (
+		parentSize = 128
+		subSize    = 96
+		dstSize    = 32
+	)
+
+	parent := ebiten.NewImage(parentSize, parentSize)
+	pix := make([]byte, 4*parentSize*parentSize)
+	for j := range parentSize {
+		for i := range parentSize {
+			idx := 4 * (i + j*parentSize)
+			if i%6 == 1 {
+				pix[idx] = 0xff
+				pix[idx+1] = 0xff
+				pix[idx+2] = 0xff
+			}
+			pix[idx+3] = 0xff
+		}
+	}
+	parent.WritePixels(pix)
+	sub := parent.SubImage(image.Rect(1, 0, 1+subSize, subSize)).(*ebiten.Image)
+
+	dst := ebiten.NewImage(dstSize, dstSize)
+	op := &ebiten.DrawImageOptions{}
+	op.Filter = ebiten.FilterLinear
+	op.GeoM.Scale(float64(dstSize)/subSize, float64(dstSize)/subSize)
+	dst.DrawImage(sub, op)
+
+	want := color.RGBA{R: 0x20, G: 0x20, B: 0x20, A: 0xff}
+	for j := range dstSize {
+		for i := range dstSize {
+			got := dst.At(i, j).(color.RGBA)
+			if !sameColors(got, want, 3) {
+				t.Errorf("dst.At(%d, %d): got %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 // Issue #823
 func TestImageAtAfterDisposingSubImage(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
