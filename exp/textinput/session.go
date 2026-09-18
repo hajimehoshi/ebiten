@@ -183,8 +183,11 @@ func (s *session) Update() error {
 				return st.Error
 			}
 			if st.CommitKind.committed() && st.Text == "\x7f" {
-				// DEL should not modify the text (#3212).
-				continue
+				// DEL should not modify the text (#3212), so no commit is
+				// reported, but it is still a commit: the session must close
+				// so that states queued behind it reach the next one.
+				s.markClosed(true)
+				return nil
 			}
 			if st.CommitKind.committed() {
 				replStart := st.ReplacementStartInBytes
