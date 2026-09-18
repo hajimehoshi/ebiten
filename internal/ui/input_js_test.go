@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build js
-
 package ui
 
 import (
@@ -45,10 +43,8 @@ func TestJSInputAppliesOneEventAtomically(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	u.inputMu.Lock()
 	var got InputState
 	u.inputState.copyAndReset(&got)
-	u.inputMu.Unlock()
 	if !got.IsKeyJustPressed(KeyA, tick) {
 		t.Error("the key press was not recorded in the event's tick")
 	}
@@ -85,10 +81,8 @@ func TestJSInputEventCannotCrossTickBoundary(t *testing.T) {
 	if before.IsKeyPressed(KeyA, currentTick) {
 		t.Fatal("the event entered the snapshot while the tick boundary was locked")
 	}
-	u.inputMu.Lock()
 	var after InputState
 	u.inputState.copyAndReset(&after)
-	u.inputMu.Unlock()
 	if !after.IsKeyJustPressed(KeyA, currentTick+1) {
 		t.Error("the event was not stamped for the tick after the snapshot")
 	}
