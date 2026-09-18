@@ -61,7 +61,7 @@ import (
 
 // noReplacement is the sentinel value for [textInputState.ReplacementStartInBytes]
 // and [textInputState.ReplacementEndInBytes] meaning "no replacement, at
-// the caret of the receiving session." [session.Update] resolves it to
+// the caret of the receiving session." [session.drain] resolves it to
 // len(textBeforeCaret) on commit.
 const noReplacement = -1
 

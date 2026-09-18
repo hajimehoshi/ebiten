@@ -43,8 +43,8 @@ const (
 //   - the platform tears down the session (e.g. OS focus loss),
 //   - Cancel is called.
 //
-// Update must be called once per tick to drain platform events. Without
-// Update, the session never observes commits or platform-side teardown,
+// drain must be called once per tick to pump platform events. Without
+// drain, the session never observes commits or platform-side teardown,
 // even if the underlying composition state visible to platform IME query
 // callbacks is kept up to date.
 type session struct {
@@ -61,20 +61,20 @@ type session struct {
 	// caller-driven move must confirm the session first.
 	caretBounds image.Rectangle
 
-	// Composition state, written by the user goroutine in Update and read
+	// Composition state, written by the user goroutine in drain and read
 	// by the platform's IME query callbacks on the platform thread. The
 	// mutex guards those cross-thread reads.
 	compositionM sync.Mutex
 	composition  Composition
 
-	// composingThisUpdate is true if the most recent Update drained any
+	// composingThisDrain is true if the most recent drain pumped any
 	// non-committed state. It captures transient activity that the
 	// composition-text snapshot misses — for example, when a backspace
 	// clears the preedit to empty within the same tick. Touched only from
-	// the user goroutine in Update / IsCompositing.
-	composingThisUpdate bool
+	// the user goroutine in drain / IsCompositing.
+	composingThisDrain bool
 
-	// Committed-state fields, populated by Update when a committed state is
+	// Committed-state fields, populated by drain when a committed state is
 	// drained. Valid only after IsCommitted returns true.
 	commitKind commitKind
 	commit     Commit
@@ -160,15 +160,15 @@ func startSession(opts *SessionOptions) (*session, error) {
 	return s, nil
 }
 
-// Update pumps platform IME events queued since the last call. Callers must
-// invoke Update once per tick to observe composition updates, commits, and
+// drain pumps platform IME events queued since the last call. Callers must
+// invoke drain once per tick to observe composition updates, commits, and
 // platform-side teardown.
-func (s *session) Update() error {
+func (s *session) drain() error {
 	if s.IsClosed() {
 		return nil
 	}
 	reportVirtualKeyboardToUI(s.caretBounds)
-	s.composingThisUpdate = false
+	s.composingThisDrain = false
 	for {
 		select {
 		case st, ok := <-s.ch:
@@ -212,12 +212,12 @@ func (s *session) Update() error {
 				return nil
 			}
 			// Non-committed state: mirror the preedit into composition so
-			// Composition() reflects it. composingThisUpdate flags the
+			// Composition() reflects it. composingThisDrain flags the
 			// activity so IsCompositing reports true even when the
 			// resulting preedit is empty (e.g. backspace cleared it within
 			// the same tick).
 			s.setComposition(st.Text, st.CompositionSelectionStartInBytes, st.CompositionSelectionEndInBytes)
-			s.composingThisUpdate = true
+			s.composingThisDrain = true
 		default:
 			return nil
 		}
@@ -231,7 +231,7 @@ func (s *session) Composition() Composition {
 }
 
 // IsCompositing reports whether the IME currently owns input on this session.
-// True when the preedit is non-empty, or when the most recent Update drained
+// True when the preedit is non-empty, or when the most recent drain pumped
 // any non-committed state (covers the tick in which the IME consumes a key
 // like backspace that empties the preedit). Returns false once the session
 // has closed, regardless of any stale composition state.
@@ -239,7 +239,7 @@ func (s *session) IsCompositing() bool {
 	if s.IsClosed() {
 		return false
 	}
-	if s.composingThisUpdate {
+	if s.composingThisDrain {
 		return true
 	}
 	return s.loadComposition().text != ""
@@ -283,7 +283,7 @@ func (s *session) compositionAsCommit() *Commit {
 }
 
 // IsClosed reports whether the session has ended for any reason.
-// IsClosed becomes true after Update observes a commit, after the platform
+// IsClosed becomes true after drain observes a commit, after the platform
 // unilaterally ends the session, or after Cancel is called.
 func (s *session) IsClosed() bool {
 	return s.state != sessionStateOpen
@@ -299,7 +299,7 @@ func (s *session) IsClosedByUser() bool {
 // Cancel aborts an in-progress composition and releases the platform IME.
 //
 // Cancel is a no-op if the session is already closed. Callers must either
-// observe a commit via Update or call Cancel; otherwise the platform IME may
+// observe a commit via drain or call Cancel; otherwise the platform IME may
 // be left in an indeterminate state.
 func (s *session) Cancel() {
 	if s.IsClosed() {
