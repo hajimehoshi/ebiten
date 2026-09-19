@@ -481,7 +481,7 @@ const (
 	ColorScaleModePremultipliedAlpha
 )
 
-// DrawTrianglesOptions represents options for DrawTriangles.
+// DrawTrianglesOptions represents options for DrawTriangles and DrawTriangles32.
 type DrawTrianglesOptions struct {
 	// ColorM is a color matrix to draw.
 	// The default (zero) value is identity, which doesn't change any color.
@@ -511,6 +511,7 @@ type DrawTrianglesOptions struct {
 	Filter Filter
 
 	// Address is a sampler address mode.
+	// Mipmaps are used only when Address is AddressUnsafe.
 	// The default (zero) value is AddressUnsafe.
 	Address Address
 
@@ -537,11 +538,12 @@ type DrawTrianglesOptions struct {
 	AntiAlias bool
 
 	// DisableMipmaps disables mipmaps.
-	// When Filter is FilterLinear and GeoM shrinks the image, mipmaps are used by default.
+	// Mipmaps are used by default when Filter is FilterLinear, Address is AddressUnsafe,
+	// and the triangles shrink the source image.
 	// Mipmap is useful to render a shrunk image with high quality.
 	// However, mipmaps can be expensive, especially on mobiles.
 	// When DisableMipmaps is true, mipmap is not used.
-	// When Filter is not FilterLinear, DisableMipmaps is ignored.
+	// When Filter is not FilterLinear or Address is not AddressUnsafe, DisableMipmaps is ignored.
 	//
 	// The default (zero) value is false.
 	DisableMipmaps bool
@@ -723,7 +725,7 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 
 	skipMipmap := options.DisableMipmaps
 	if !skipMipmap {
-		skipMipmap = filter != builtinshader.FilterLinear
+		skipMipmap = filter != builtinshader.FilterLinear || address != builtinshader.AddressUnsafe
 	}
 	i.image.DrawTriangles(srcs, vs, indices, blend, i.adjustedBounds(), [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap)
 }
