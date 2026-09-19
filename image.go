@@ -364,7 +364,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	if !skipMipmap {
 		skipMipmap = canSkipMipmap(det, filter)
 	}
-	// The unsafe address never reads the source region.
+	// AddressUnsafe does not require aligned source bounds to use mipmaps.
 	i.image.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{img.adjustedBounds()}, shader.shader, i.tmpUniforms, skipMipmap, false)
 }
 
