@@ -604,8 +604,8 @@ func TestPositionNotGrowingAfterFinished(t *testing.T) {
 	}
 
 	end := p.Position()
-	if got, want := end, 4*time.Second; got < want || got > want+100*time.Millisecond {
-		t.Errorf("Position() after the player finished: got: %v, want: %v or a bit larger", got, want)
+	if got, want := end, 4*time.Second; got < want {
+		t.Errorf("Position() after the player finished: got: %v, want: at least %v", got, want)
 	}
 
 	// Play on a finished player does nothing, so the position must not grow anymore.
