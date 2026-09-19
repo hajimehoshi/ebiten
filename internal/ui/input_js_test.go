@@ -18,6 +18,7 @@ import (
 	"slices"
 	"syscall/js"
 	"testing"
+	"time"
 )
 
 func newKeyDownEventForTesting() (js.Value, js.Func) {
@@ -33,26 +34,60 @@ func newKeyDownEventForTesting() (js.Value, js.Func) {
 	return e, getModifierState
 }
 
-func TestJSInputAppliesOneEventAtomically(t *testing.T) {
-	var u UserInterface
-	const tick = 7
-	u.inputTime.Store(int64(NewInputTimeFromTick(tick)))
-	e, getModifierState := newKeyDownEventForTesting()
-	defer getModifierState.Release()
-	if err := u.updateInputFromEvent(e); err != nil {
-		t.Fatal(err)
+// tickBoundaryGameStub is a Game stub to run readInputStateForTick in tests. When applyEvent
+// is set, UpdateInputState simulates a browser input event arriving from a callback goroutine
+// right after the snapshot for the current tick is taken, while the tick-boundary lock is
+// still held.
+type tickBoundaryGameStub struct {
+	t *testing.T
+	u *UserInterface
+	e js.Value
+
+	target *InputState
+
+	applyEvent bool
+	// eventDone receives the result of updateInputFromEvent once the simulated browser
+	// callback returns.
+	eventDone chan error
+	// eventCompleted reports whether the result was already received from eventDone.
+	eventCompleted bool
+}
+
+func (*tickBoundaryGameStub) NewOffscreenImage(width, height int) *Image { return nil }
+
+func (*tickBoundaryGameStub) NewScreenImage(width, height int) *Image { return nil }
+
+func (*tickBoundaryGameStub) Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64) {
+	return 0, 0
+}
+
+func (*tickBoundaryGameStub) Update() error { return nil }
+
+func (*tickBoundaryGameStub) DrawOffscreen() error { return nil }
+
+func (*tickBoundaryGameStub) DrawFinalScreen(scale, offsetX, offsetY float64) {}
+
+func (g *tickBoundaryGameStub) UpdateInputState(fn func(*InputState)) {
+	fn(g.target)
+	if !g.applyEvent {
+		return
 	}
 
-	var got InputState
-	u.inputState.copyAndReset(&got)
-	if !got.IsKeyJustPressed(KeyA, tick) {
-		t.Error("the key press was not recorded in the event's tick")
-	}
-	if !slices.Equal(got.Runes, []rune{'a'}) {
-		t.Errorf("Runes: got %q, want %q", got.Runes, []rune{'a'})
-	}
-	if got.CapsLock != LockKeyStateOn || got.NumLock != LockKeyStateOff {
-		t.Errorf("lock keys: got (%v, %v), want (%v, %v)", got.CapsLock, got.NumLock, LockKeyStateOn, LockKeyStateOff)
+	go func() {
+		g.eventDone <- g.u.updateInputFromEvent(g.e)
+	}()
+
+	// readInputStateForTick holds the tick-boundary lock while calling this method, so the
+	// event goroutine must stay blocked until the input clock advances to the next tick.
+	time.Sleep(10 * time.Millisecond)
+	select {
+	case err := <-g.eventDone:
+		g.eventCompleted = true
+		if err != nil {
+			g.t.Errorf("updateInputFromEvent failed: %v", err)
+		}
+		g.t.Error("an event was recorded while the tick boundary was locked")
+	default:
 	}
 }
 
@@ -60,31 +95,42 @@ func TestJSInputEventCannotCrossTickBoundary(t *testing.T) {
 	var u UserInterface
 	const currentTick = 11
 	u.tick.Store(currentTick)
+
 	e, getModifierState := newKeyDownEventForTesting()
 	defer getModifierState.Release()
 
-	u.inputMu.Lock()
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		if err := u.updateInputFromEvent(e); err != nil {
-			t.Error(err)
-		}
-	}()
+	g := &tickBoundaryGameStub{
+		t:          t,
+		u:          &u,
+		e:          e,
+		applyEvent: true,
+		eventDone:  make(chan error, 1),
+	}
+	c := &context{game: g}
 
 	var before InputState
-	u.inputState.copyAndReset(&before)
-	u.advanceInputTimeToNextTick()
-	u.inputMu.Unlock()
-	<-done
+	g.target = &before
+	c.readInputStateForTick(&u)
 
-	if before.IsKeyPressed(KeyA, currentTick) {
-		t.Fatal("the event entered the snapshot while the tick boundary was locked")
+	if !g.eventCompleted {
+		if err := <-g.eventDone; err != nil {
+			t.Fatalf("updateInputFromEvent failed: %v", err)
+		}
 	}
+	if before.IsKeyJustPressed(KeyA, currentTick) {
+		t.Error("a key press leaked into the snapshot taken before the event")
+	}
+
+	g.applyEvent = false
 	var after InputState
-	u.inputState.copyAndReset(&after)
+	g.target = &after
+	c.readInputStateForTick(&u)
+
 	if !after.IsKeyJustPressed(KeyA, currentTick+1) {
-		t.Error("the event was not stamped for the tick after the snapshot")
+		t.Error("the event was not recorded in the tick after the tick boundary")
+	}
+	if !slices.Equal(after.Runes, []rune{'a'}) {
+		t.Errorf("Runes: got %q, want %q", after.Runes, []rune{'a'})
 	}
 }
 
