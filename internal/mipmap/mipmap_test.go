@@ -12,9 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package mipmap
+package mipmap_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
+)
 
 func TestMipmapLevelFromDistance(t *testing.T) {
 	testCases := []struct {
@@ -57,7 +61,7 @@ func TestMipmapLevelFromDistance(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := mipmapLevelFromDistance(tc.dx0, tc.dy0, tc.dx1, tc.dy1, tc.sx0, tc.sy0, tc.sx1, tc.sy1)
+			got := mipmap.MipmapLevelFromDistance(tc.dx0, tc.dy0, tc.dx1, tc.dy1, tc.sx0, tc.sy0, tc.sx1, tc.sy1)
 			if got != tc.want {
 				t.Errorf("mipmapLevelFromDistance: got: %d, want: %d", got, tc.want)
 			}
