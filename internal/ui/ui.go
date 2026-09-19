@@ -81,7 +81,6 @@ type UserInterface struct {
 	running                   atomic.Bool
 	terminated                atomic.Bool
 	tick                      atomic.Int64
-	inputTime                 atomic.Int64
 
 	// preferredColorMode is the color mode the application prefers.
 	//
@@ -312,23 +311,6 @@ func (u *UserInterface) Tick() int64 {
 
 func (u *UserInterface) incrementTick() {
 	u.tick.Add(1)
-}
-
-// advanceInputTimeToNextTick stamps the input events recorded from now on with the next tick.
-//
-// This must be called right after a tick's input snapshot is taken. An event can be recorded in the
-// middle of a tick, as a main-thread operation like resizing the window pumps the event queue there,
-// and the next tick is the first one that can report its edge.
-func (u *UserInterface) advanceInputTimeToNextTick() {
-	u.inputTime.Store(int64(NewInputTimeFromTick(u.tick.Load() + 1)))
-}
-
-func (u *UserInterface) InputTime() InputTime {
-	t := InputTime(u.inputTime.Add(1))
-	if t.Subtick() == 0 {
-		panic("ui: too many input events in a tick")
-	}
-	return t
 }
 
 // inputTimeSubtickBits is the number of bits for a counter in a tick.

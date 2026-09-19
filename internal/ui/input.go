@@ -67,6 +67,10 @@ func NewLockKeyStateFromBool(on bool) LockKeyState {
 }
 
 type InputState struct {
+	// inputTime belongs to the accumulated state and advances once per consumed snapshot.
+	// Recording an event and consuming a snapshot must use the same synchronization.
+	inputTime InputTime
+
 	KeyPressedTimes  [KeyMax + 1]InputTime
 	KeyReleasedTimes [KeyMax + 1]InputTime
 
@@ -298,6 +302,14 @@ func inputStateModifierDuration(pressed, released InputTime, tick int64) int64 {
 	return tick - pressed.Tick() + 1
 }
 
+func (i *InputState) nextInputTime() InputTime {
+	i.inputTime++
+	if i.inputTime.Subtick() == 0 {
+		panic("ui: too many input events in a tick")
+	}
+	return i.inputTime
+}
+
 func (i *InputState) copyAndReset(dst *InputState) {
 	dst.KeyPressedTimes = i.KeyPressedTimes
 	dst.KeyReleasedTimes = i.KeyReleasedTimes
@@ -326,6 +338,9 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	// Reset the members that are never reset until they are explicitly done.
 	i.WindowBeingClosed = false
 	i.DroppedFiles = nil
+
+	// The next event belongs to the first tick that can consume it.
+	i.inputTime = NewInputTimeFromTick(i.inputTime.Tick() + 1)
 }
 
 func (i *InputState) appendRune(r rune) {

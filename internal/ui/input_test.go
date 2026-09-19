@@ -249,3 +249,46 @@ func TestLockKeyStates(t *testing.T) {
 		}
 	}
 }
+
+func TestInputSnapshotTickAssignment(t *testing.T) {
+	var pending, snapshot ui.InputState
+	pending.SetKeyPressed(ui.KeyA, pending.NextInputTime())
+	pending.SetMouseButtonPressed(ui.MouseButton0, pending.NextInputTime())
+	pending.CopyAndReset(&snapshot)
+	if !snapshot.IsKeyJustPressed(ui.KeyA, 0) || !snapshot.IsMouseButtonJustPressed(ui.MouseButton0, 0) {
+		t.Error("initial presses were not assigned to the first snapshot")
+	}
+
+	// Events arriving after consumption belong to the next snapshot, even before Update finishes.
+	pending.SetKeyReleased(ui.KeyA, pending.NextInputTime())
+	pending.SetKeyPressed(ui.KeyA, pending.NextInputTime())
+	pending.SetMouseButtonReleased(ui.MouseButton0, pending.NextInputTime())
+	pending.CopyAndReset(&snapshot)
+	if !snapshot.IsKeyJustPressed(ui.KeyA, 1) || !snapshot.IsKeyJustReleased(ui.KeyA, 1) {
+		t.Error("release and repress were not assigned to the next snapshot")
+	}
+	if !snapshot.IsKeyPressed(ui.KeyA, 1) {
+		t.Error("release followed by press did not leave the key pressed")
+	}
+	if !snapshot.IsMouseButtonJustReleased(ui.MouseButton0, 1) || snapshot.IsMouseButtonPressed(ui.MouseButton0, 1) {
+		t.Error("mouse release was not assigned to the next snapshot")
+	}
+
+	pending.CopyAndReset(&snapshot)
+	if got, want := snapshot.KeyPressDuration(ui.KeyA, 2), int64(2); got != want {
+		t.Errorf("KeyPressDuration: got %d, want %d", got, want)
+	}
+	if snapshot.IsKeyJustPressed(ui.KeyA, 2) || snapshot.IsKeyJustReleased(ui.KeyA, 2) {
+		t.Error("an unchanged snapshot repeated a key edge")
+	}
+
+	pending.SetMouseButtonPressed(ui.MouseButton0, pending.NextInputTime())
+	pending.SetMouseButtonReleased(ui.MouseButton0, pending.NextInputTime())
+	pending.CopyAndReset(&snapshot)
+	if !snapshot.IsMouseButtonJustPressed(ui.MouseButton0, 3) || !snapshot.IsMouseButtonJustReleased(ui.MouseButton0, 3) {
+		t.Error("press and release were not assigned to the same snapshot")
+	}
+	if snapshot.IsMouseButtonPressed(ui.MouseButton0, 4) {
+		t.Error("press followed by release left the button pressed")
+	}
+}

@@ -102,7 +102,7 @@ func (u *UserInterface) keyDown(event js.Value) {
 	if event.Get("repeat").Bool() {
 		return
 	}
-	now := u.InputTime()
+	now := u.inputState.nextInputTime()
 	key0, key1 := eventToKeys(event)
 	if key0 >= 0 {
 		u.inputState.setKeyPressed(key0, now)
@@ -113,7 +113,7 @@ func (u *UserInterface) keyDown(event js.Value) {
 }
 
 func (u *UserInterface) keyUp(event js.Value) {
-	now := u.InputTime()
+	now := u.inputState.nextInputTime()
 	key0, key1 := eventToKeys(event)
 	if key0 >= 0 {
 		u.inputState.setKeyReleased(key0, now)
@@ -128,7 +128,7 @@ func (u *UserInterface) mouseDown(code int) {
 	if !ok {
 		return
 	}
-	u.inputState.setMouseButtonPressed(b, u.InputTime())
+	u.inputState.setMouseButtonPressed(b, u.inputState.nextInputTime())
 }
 
 func (u *UserInterface) mouseUp(code int) {
@@ -136,7 +136,7 @@ func (u *UserInterface) mouseUp(code int) {
 	if !ok {
 		return
 	}
-	u.inputState.setMouseButtonReleased(b, u.InputTime())
+	u.inputState.setMouseButtonReleased(b, u.inputState.nextInputTime())
 }
 
 func (u *UserInterface) updateInputFromEvent(e js.Value) error {

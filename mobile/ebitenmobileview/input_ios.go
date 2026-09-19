@@ -36,7 +36,7 @@ func init() {
 func dispatchKeyPress(key ui.Key) {
 	inputMu.Lock()
 	defer inputMu.Unlock()
-	keyPressedTimes[key] = ui.Get().InputTime()
+	setKeyPressed(key)
 	setKeyReleased(key)
 	updateInput(nil)
 }
@@ -46,7 +46,7 @@ func dispatchKeyPress(key ui.Key) {
 func dispatchKeyDown(key ui.Key) {
 	inputMu.Lock()
 	defer inputMu.Unlock()
-	keyPressedTimes[key] = ui.Get().InputTime()
+	setKeyPressed(key)
 	updateInput(nil)
 }
 
@@ -103,7 +103,7 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 
 	switch phase {
 	case C.UIPressPhaseStationary:
-		// keyPressedTimes represents the time when a key is first pressed.
+		// A stationary key does not produce a new press.
 		// Do nothing here.
 	case C.UIPressPhaseBegan:
 		if ui.Get().IsKeyPressForComposition() {
@@ -112,7 +112,7 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 			return
 		}
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
-			keyPressedTimes[key] = ui.Get().InputTime()
+			setKeyPressed(key)
 		}
 		var runes []rune
 		for _, r := range keyString {

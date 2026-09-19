@@ -16,6 +16,11 @@
 
 package ui
 
+type KeyEvent struct {
+	Key     Key
+	Pressed bool
+}
+
 type TouchForInput struct {
 	ID TouchID
 
@@ -26,12 +31,18 @@ type TouchForInput struct {
 	Y float64
 }
 
-func (u *UserInterface) updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
+func (u *UserInterface) updateInputStateFromOutside(keys []KeyEvent, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	u.inputState.KeyPressedTimes = keyPressedTimes
-	u.inputState.KeyReleasedTimes = keyReleasedTimes
+	for _, key := range keys {
+		t := u.inputState.nextInputTime()
+		if key.Pressed {
+			u.inputState.setKeyPressed(key.Key, t)
+		} else {
+			u.inputState.setKeyReleased(key.Key, t)
+		}
+	}
 	u.inputState.Runes = append(u.inputState.Runes, runes...)
 	u.inputState.CapsLock = capsLock
 	u.inputState.NumLock = numLock

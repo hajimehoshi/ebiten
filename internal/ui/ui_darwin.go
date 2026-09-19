@@ -377,7 +377,7 @@ func (u *glfwBackend) syncModKeysFromOS() {
 	if flags&nsEventModifierFlagCommand != 0 {
 		mods |= glfw.ModSuper
 	}
-	u.input.syncModKeys(mods, u.InputTime())
+	u.input.syncModKeys(mods)
 }
 
 // syncLockKeysFromOS updates the lock key state to the current OS state.
