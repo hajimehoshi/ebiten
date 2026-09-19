@@ -89,10 +89,12 @@ func SuspendAudio() error {
 	if audioSuspended {
 		return nil
 	}
-	audioSuspended = true
 	if onSuspendAudio != nil {
-		return onSuspendAudio()
+		if err := onSuspendAudio(); err != nil {
+			return err
+		}
 	}
+	audioSuspended = true
 	return nil
 }
 
@@ -102,9 +104,11 @@ func ResumeAudio() error {
 	if !audioSuspended {
 		return nil
 	}
-	audioSuspended = false
 	if onResumeAudio != nil {
-		return onResumeAudio()
+		if err := onResumeAudio(); err != nil {
+			return err
+		}
 	}
+	audioSuspended = false
 	return nil
 }
