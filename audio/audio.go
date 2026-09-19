@@ -646,7 +646,7 @@ func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
 	if from == to {
 		return source
 	}
-	return convert.NewResampling(source, length, from, to, bitDepthInBytesInt16)
+	return convert.NewResampling(source, resamplingSourceLength(length), from, to, bitDepthInBytesInt16)
 }
 
 // ResampleReaderF32 converts the sample rate of the given 32bit float, little-endian, 2 channels (stereo) stream.
@@ -667,7 +667,7 @@ func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
 	if from == to {
 		return source
 	}
-	return convert.NewResampling(source, length, from, to, bitDepthInBytesFloat32)
+	return convert.NewResampling(source, resamplingSourceLength(length), from, to, bitDepthInBytesFloat32)
 }
 
 // Resample converts the sample rate of the given signed 16bit integer, little-endian, 2 channels (stereo) stream.
@@ -686,7 +686,7 @@ func Resample(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
 	if from == to {
 		return source
 	}
-	return convert.NewResampling(source, length, from, to, bitDepthInBytesInt16)
+	return convert.NewResampling(source, resamplingSourceLength(length), from, to, bitDepthInBytesInt16)
 }
 
 // ResampleF32 converts the sample rate of the given 32bit float, little-endian, 2 channels (stereo) stream.
@@ -705,7 +705,19 @@ func ResampleF32(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker
 	if from == to {
 		return source
 	}
-	return convert.NewResampling(source, length, from, to, bitDepthInBytesFloat32)
+	return convert.NewResampling(source, resamplingSourceLength(length), from, to, bitDepthInBytesFloat32)
+}
+
+// resamplingSourceLength converts a length given to ResampleReader, ResampleReaderF32, Resample, or ResampleF32,
+// where 0 indicates an unknown length, to a length for convert.NewResampling,
+// where a negative value indicates an unknown length and 0 an empty stream.
+//
+// TODO: Let these functions take a negative value instead of 0 for an unknown length (#3395).
+func resamplingSourceLength(length int64) int64 {
+	if length == 0 {
+		return -1
+	}
+	return length
 }
 
 func validateResamplingSampleRates(from, to int) {
