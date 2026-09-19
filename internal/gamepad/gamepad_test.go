@@ -105,6 +105,77 @@ func TestStandardLayoutQueryReadsOneReport(t *testing.T) {
 	wg.Wait()
 }
 
+func TestAxisButtonPressedMatchesValue(t *testing.T) {
+	const dbID = "00000000000000000000000000009303"
+	const ownID = "00000000000000000000000000009304"
+	if err := gamepaddb.Update([]byte(dbID + ",Trigger Pad,lefttrigger:a2,\n")); err != nil {
+		t.Fatal(err)
+	}
+
+	gamepads := []struct {
+		name string
+		g    *gamepad.Gamepad
+	}{
+		{
+			name: "gamepaddb",
+			g:    gamepad.NewGamepadForTest(dbID),
+		},
+		{
+			name: "own layout",
+			g: gamepad.NewGamepadWithAxisButtonsForTest(ownID, map[gamepaddb.StandardButton]int{
+				gamepaddb.StandardButtonFrontBottomLeft: 2,
+			}),
+		},
+	}
+	tests := []struct {
+		axis        float64
+		wantPressed bool
+		wantValue   float64
+	}{
+		{
+			axis:        -1,
+			wantPressed: false,
+			wantValue:   0,
+		},
+		{
+			axis:        -0.8,
+			wantPressed: false,
+			wantValue:   0.1,
+		},
+		{
+			axis:        -0.7,
+			wantPressed: true,
+			wantValue:   0.15,
+		},
+		{
+			axis:        -0.5,
+			wantPressed: true,
+			wantValue:   0.25,
+		},
+		{
+			axis:        0,
+			wantPressed: true,
+			wantValue:   0.5,
+		},
+		{
+			axis:        1,
+			wantPressed: true,
+			wantValue:   1,
+		},
+	}
+	for _, gp := range gamepads {
+		for _, test := range tests {
+			gp.g.SetReportForTest([]float64{0, 0, test.axis}, nil, nil)
+			if got := gp.g.IsStandardButtonPressed(gamepaddb.StandardButtonFrontBottomLeft); got != test.wantPressed {
+				t.Errorf("%s: IsStandardButtonPressed(FrontBottomLeft) with axis %v = %t; want %t", gp.name, test.axis, got, test.wantPressed)
+			}
+			if got := gp.g.StandardButtonValue(gamepaddb.StandardButtonFrontBottomLeft); math.Abs(got-test.wantValue) > 1e-9 {
+				t.Errorf("%s: StandardButtonValue(FrontBottomLeft) with axis %v = %v; want %v", gp.name, test.axis, got, test.wantValue)
+			}
+		}
+	}
+}
+
 func TestButtonsWithHats(t *testing.T) {
 	g := gamepad.NewGamepadForTest("00000000000000000000000000009302")
 	g.SetReportForTest(nil, []bool{true, false}, []int{gamepaddb.HatUp | gamepaddb.HatRight, 0})

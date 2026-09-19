@@ -277,7 +277,7 @@ type virtualStandardAxisMapping struct {
 }
 
 func (m virtualStandardAxisMapping) Pressed() bool {
-	return m.value > gamepaddb.ButtonPressedThreshold
+	return m.Value() > gamepaddb.ButtonPressedThreshold
 }
 
 func (m virtualStandardAxisMapping) Value() float64 {
