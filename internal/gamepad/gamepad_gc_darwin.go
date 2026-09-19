@@ -78,10 +78,13 @@ type nativeGamepadGC struct {
 	hasDualShockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
-	leftMotor            *rumbleMotor
-	rightMotor           *rumbleMotor
-	vibEnd               time.Time
-	cleanup              runtime.Cleanup
+	// micro reports that the controller is read through its micro gamepad profile, whose GUID matches
+	// no gamepaddb entry, so the standard layout comes from this backend.
+	micro      bool
+	leftMotor  *rumbleMotor
+	rightMotor *rumbleMotor
+	vibEnd     time.Time
+	cleanup    runtime.Cleanup
 
 	axes    []float64
 	buttons []bool
@@ -116,15 +119,47 @@ func (g *nativeGamepadGC) update(gamepad *gamepads) error {
 	return nil
 }
 
-func (*nativeGamepadGC) hasOwnStandardLayoutMapping() bool {
-	return false
+func (g *nativeGamepadGC) hasOwnStandardLayoutMapping() bool {
+	return g.micro
 }
 
-func (*nativeGamepadGC) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
+func (g *nativeGamepadGC) standardAxisInOwnMapping(axis gamepaddb.StandardAxis) mappingInput {
+	if !g.micro {
+		return nil
+	}
+	// SDL maps a micro gamepad's dpad to the left stick (leftx:a0,lefty:a1).
+	switch axis {
+	case gamepaddb.StandardAxisLeftStickHorizontal:
+		return axisMappingInput{g: g, axis: 0}
+	case gamepaddb.StandardAxisLeftStickVertical:
+		return axisMappingInput{g: g, axis: 1}
+	}
 	return nil
 }
 
-func (*nativeGamepadGC) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
+func (g *nativeGamepadGC) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
+	if !g.micro {
+		return nil
+	}
+	switch button {
+	case gamepaddb.StandardButtonRightBottom: // A
+		return buttonMappingInput{g: g, button: 0}
+	case gamepaddb.StandardButtonRightLeft: // X
+		return buttonMappingInput{g: g, button: 1}
+	case gamepaddb.StandardButtonCenterRight: // Menu
+		if g.buttonMask&(1<<kControllerButtonStart) == 0 {
+			return nil
+		}
+		return buttonMappingInput{g: g, button: 2}
+	case gamepaddb.StandardButtonLeftTop:
+		return hatMappingInput{g: g, hat: 0, direction: int(kHatUp)}
+	case gamepaddb.StandardButtonLeftBottom:
+		return hatMappingInput{g: g, hat: 0, direction: int(kHatDown)}
+	case gamepaddb.StandardButtonLeftLeft:
+		return hatMappingInput{g: g, hat: 0, direction: int(kHatLeft)}
+	case gamepaddb.StandardButtonLeftRight:
+		return hatMappingInput{g: g, hat: 0, direction: int(kHatRight)}
+	}
 	return nil
 }
 

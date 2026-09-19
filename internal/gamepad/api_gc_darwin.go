@@ -93,6 +93,9 @@ type controllerProperty struct {
 	hasDualShockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
+	// micro reports that the controller is read through its micro gamepad profile because it has no
+	// extended one.
+	micro bool
 }
 
 // controllerState holds the current input state of a controller.
@@ -112,6 +115,8 @@ var (
 var (
 	sel_controllers                                objc.SEL
 	sel_extendedGamepad                            objc.SEL
+	sel_microGamepad                               objc.SEL
+	sel_setReportsAbsoluteDpadValues               objc.SEL
 	sel_productCategory                            objc.SEL
 	sel_vendorName                                 objc.SEL
 	sel_physicalInputProfile                       objc.SEL
@@ -180,6 +185,8 @@ func init() {
 
 	sel_controllers = objc.RegisterName("controllers")
 	sel_extendedGamepad = objc.RegisterName("extendedGamepad")
+	sel_microGamepad = objc.RegisterName("microGamepad")
+	sel_setReportsAbsoluteDpadValues = objc.RegisterName("setReportsAbsoluteDpadValues:")
 	sel_productCategory = objc.RegisterName("productCategory")
 	sel_vendorName = objc.RegisterName("vendorName")
 	sel_physicalInputProfile = objc.RegisterName("physicalInputProfile")
@@ -407,6 +414,26 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 
 		prop.nAxes = 6
 		prop.nHats = 1
+	} else if microGamepad := controller.Send(sel_microGamepad); microGamepad != 0 {
+		prop.micro = true
+		prop.buttonMask |= 1 << kControllerButtonA
+		prop.buttonMask |= 1 << kControllerButtonX
+		prop.nButtons += 2
+
+		// buttonMenu is macOS 10.15+ / iOS 13+.
+		if microGamepad.Send(sel_respondsToSelector, sel_buttonMenu) != 0 && microGamepad.Send(sel_buttonMenu) != 0 {
+			prop.buttonMask |= 1 << kControllerButtonStart
+			prop.nButtons++
+		}
+
+		// The dpad is exposed both as a hat and as its two axes.
+		prop.nAxes = 2
+		prop.nHats = 1
+
+		// The values SDL uses for an MFi micro gamepad.
+		vendor = kUSBVendorApple
+		product = 3
+		subtype = 3
 	}
 
 	// Build GUID (SDL-compatible format).
@@ -541,14 +568,58 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 	return state
 }
 
+// getMicroControllerStateGC reads the input state of a controller that has only a micro gamepad
+// profile. The button order matches the mask set in getControllerPropertyFromController: A, X, then
+// the menu button where the profile has one.
+func getMicroControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int) controllerState {
+	controller := objc.ID(controllerPtr)
+	var state controllerState
+
+	microGamepad := controller.Send(sel_microGamepad)
+	if microGamepad == 0 {
+		return state
+	}
+
+	dpad := microGamepad.Send(sel_dpad)
+	state.axes[0] = getAxisValue(dpad.Send(sel_xAxis))
+	state.axes[1] = -getAxisValue(dpad.Send(sel_yAxis))
+
+	var buttonCount int
+	setButton := func(pressed bool) {
+		if pressed {
+			state.buttons[buttonCount] = 1
+		}
+		buttonCount++
+	}
+	setButton(getIsPressed(microGamepad.Send(sel_buttonA)))
+	setButton(getIsPressed(microGamepad.Send(sel_buttonX)))
+	if buttonMask&(1<<kControllerButtonStart) != 0 {
+		setButton(getIsPressed(microGamepad.Send(sel_buttonMenu)))
+	}
+
+	if nHats > 0 {
+		state.hat = getHatState(dpad)
+	}
+
+	return state
+}
+
 // addController queues a GCController to be registered by the next update. The properties are read
 // here, while the controller is known to be alive. The controller is only guaranteed to stay alive
 // during the notification, so the queued entry takes a reference.
 func addController(controller objc.ID) {
-	// Ignore a controller without an extended gamepad profile, the only profile this backend reads
-	// (e.g., the Siri Remote, which has only a micro gamepad profile).
-	if controller.Send(sel_extendedGamepad) == 0 {
+	// Ignore a controller with neither an extended nor a micro gamepad profile, the two profiles this
+	// backend reads.
+	extGamepad := controller.Send(sel_extendedGamepad)
+	microGamepad := controller.Send(sel_microGamepad)
+	if extGamepad == 0 && microGamepad == 0 {
 		return
+	}
+
+	// GCMicroGamepad reports dpad values relative to the first touch unless reportsAbsoluteDpadValues is
+	// set, which suits a touch surface, not a dpad read as a hat.
+	if extGamepad == 0 && microGamepad.Send(sel_respondsToSelector, sel_setReportsAbsoluteDpadValues) != 0 {
+		microGamepad.Send(sel_setReportsAbsoluteDpadValues, true)
 	}
 
 	prop := getControllerPropertyFromController(controller)
@@ -601,6 +672,7 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 		hasDualShockTouchpad: prop.hasDualShockTouchpad,
 		hasXboxPaddles:       prop.hasXboxPaddles,
 		hasXboxShareButton:   prop.hasXboxShareButton,
+		micro:                prop.micro,
 		leftMotor:            createGCRumbleMotor(controller, 0),
 		rightMotor:           createGCRumbleMotor(controller, 1),
 	}
@@ -685,8 +757,13 @@ func initializeGCGamepads() {
 }
 
 func (g *nativeGamepadGC) updateGCGamepad() {
-	state := getControllerStateGC(g.controller, g.buttonMask, len(g.hats),
-		g.hasDualShockTouchpad, g.hasXboxPaddles, g.hasXboxShareButton)
+	var state controllerState
+	if g.micro {
+		state = getMicroControllerStateGC(g.controller, g.buttonMask, len(g.hats))
+	} else {
+		state = getControllerStateGC(g.controller, g.buttonMask, len(g.hats),
+			g.hasDualShockTouchpad, g.hasXboxPaddles, g.hasXboxShareButton)
+	}
 
 	nButtons := len(g.buttons) - len(g.hats)*4
 	for i := range nButtons {
