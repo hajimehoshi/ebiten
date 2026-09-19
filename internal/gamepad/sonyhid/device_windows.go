@@ -217,6 +217,14 @@ func Open(path string, vid, pid uint16) *Device {
 		s.Close()
 		return nil
 	}
+
+	// Over Bluetooth a controller sends its simplified input report, which
+	// has no touchpad data, until it receives any output report. A rumble
+	// report with the motors off switches it to the full report without
+	// changing anything the user can notice.
+	if bt {
+		s.write(0, 0)
+	}
 	return s
 }
 
@@ -333,7 +341,7 @@ func (s *Device) UpdateInput() bool {
 			s.inputLost = true
 			return false
 		}
-		if state, ok := inputStateFromReport(s.model, s.bt, s.rbuf[:min(int(n), len(s.rbuf))]); ok {
+		if state, ok := inputStateFromReport(s.model, s.bt, s.rbuf[:min(int(n), len(s.rbuf))], s.input); ok {
 			s.input = state
 		}
 	}

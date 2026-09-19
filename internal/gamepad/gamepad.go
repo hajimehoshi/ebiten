@@ -223,6 +223,12 @@ type Gamepad struct {
 	m       sync.Mutex
 
 	native nativeGamepad
+
+	// touches is the public view of the native touch slots, indexed by surface and then slot, rebuilt
+	// by updateTouches after every native update. lastTouchID is the last ID it handed out; IDs count
+	// up from 1 and are never reused within the gamepad's lifetime.
+	touches     [][]touch
+	lastTouchID TouchID
 }
 
 type mappingInput interface {
@@ -293,7 +299,11 @@ func (g *Gamepad) update(gamepads *gamepads) error {
 	g.m.Lock()
 	defer g.m.Unlock()
 
-	return g.native.update(gamepads)
+	if err := g.native.update(gamepads); err != nil {
+		return err
+	}
+	g.updateTouches()
+	return nil
 }
 
 // close releases g's native resources. It does nothing for a backend whose gamepads own none.

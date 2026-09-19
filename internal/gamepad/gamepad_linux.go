@@ -49,6 +49,11 @@ func isDisconnectError(err error) bool {
 type nativeGamepadsImpl struct {
 	inotifyPlus1 int
 	watch        int
+
+	// pendingTouch holds the touch surface nodes whose gamepad node has not been opened yet, keyed
+	// by the controller's uniq string. A node's gamepad can appear before or after it, so whichever
+	// is opened second does the pairing.
+	pendingTouch map[string]*touchNode
 }
 
 func newNativeGamepadsImpl() nativeGamepads {
@@ -106,7 +111,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 		if !reEvent.MatchString(ent.Name()) {
 			continue
 		}
-		if err := g.openGamepad(gamepads, filepath.Join(dirName, ent.Name())); err != nil {
+		if err := g.openDevice(gamepads, filepath.Join(dirName, ent.Name())); err != nil {
 			return err
 		}
 	}
@@ -114,10 +119,27 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 	return nil
 }
 
-func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
+// isOpen reports whether the node at path is already open as a gamepad, as the touch surface of a
+// gamepad, or as a pending touch surface.
+func (g *nativeGamepadsImpl) isOpen(gamepads *gamepads, path string) bool {
 	if gamepads.find(func(gamepad *Gamepad) bool {
-		return gamepad.native.(*nativeGamepadImpl).path == path
+		n := gamepad.native.(*nativeGamepadImpl)
+		return n.path == path || (n.touch != nil && n.touch.path == path)
 	}) != nil {
+		return true
+	}
+	for _, t := range g.pendingTouch {
+		if t.path == path {
+			return true
+		}
+	}
+	return false
+}
+
+// openDevice opens the event node at path and, by what it is, adds it as a gamepad, attaches it as
+// the touch surface of its gamepad, or closes it again.
+func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
+	if g.isOpen(gamepads, path) {
 		return nil
 	}
 
@@ -181,10 +203,41 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 		}
 		return fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
 	}
+	// A node without properties is fine; the property bits then stay clear.
+	propBits := make([]byte, (_INPUT_PROP_CNT+7)/8)
+	_ = ioctl(fd, _EVIOCGPROP(uint(len(propBits))), unsafe.Pointer(&propBits[0]))
 
-	if !isBitSet(evBits, unix.EV_ABS) {
+	kind := classifyEvdev(evBits, keyBits, absBits, propBits)
+	if kind == evdevKindOther {
 		owned = false
 		return unix.Close(fd)
+	}
+
+	// The uniq string, the controller's address on the kernel drivers of interest, is what ties a
+	// touch surface node to its gamepad node. Many devices have none.
+	uniq := ""
+	cuniq := make([]byte, 256)
+	if err := ioctl(fd, _EVIOCGUNIQ(uint(len(cuniq))), unsafe.Pointer(&cuniq[0])); err == nil {
+		uniq = unix.ByteSliceToString(cuniq)
+	}
+
+	if kind == evdevKindTouchSurface {
+		// A touch surface without a uniq cannot be paired with a gamepad, so it is not a
+		// controller's touch surface.
+		if uniq == "" {
+			owned = false
+			return unix.Close(fd)
+		}
+		t, err := newTouchNode(fd, path, uniq, id)
+		if err != nil {
+			if isDisconnectError(err) {
+				return nil
+			}
+			return err
+		}
+		owned = false
+		g.attachTouch(gamepads, t)
+		return nil
 	}
 
 	cname := make([]byte, 256)
@@ -222,6 +275,8 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	n := &nativeGamepadImpl{
 		path:           path,
 		fdPlus1:        fd + 1,
+		uniq:           uniq,
+		id:             id,
 		supportsRumble: supportsRumble,
 		effectID:       -1,
 	}
@@ -278,6 +333,12 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 		return err
 	}
 
+	// The gamepad's touch surface may have been opened first.
+	if t := g.pendingTouch[uniq]; t != nil && uniq != "" && t.id.vendor == id.vendor && t.id.product == id.product {
+		n.touch = t
+		delete(g.pendingTouch, uniq)
+	}
+
 	owned = false
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
@@ -286,6 +347,62 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	}, n)
 
 	return nil
+}
+
+// attachTouch gives a touch surface node to the gamepad of the same controller, or keeps it until
+// that gamepad is opened. A gamepad that already has a touch surface keeps the one it has.
+func (g *nativeGamepadsImpl) attachTouch(gamepads *gamepads, t *touchNode) {
+	if gp := gamepads.find(func(gamepad *Gamepad) bool {
+		n := gamepad.native.(*nativeGamepadImpl)
+		return n.touch == nil && n.uniq == t.uniq && n.id.vendor == t.id.vendor && n.id.product == t.id.product
+	}); gp != nil {
+		withNative(gp, func(n *nativeGamepadImpl) {
+			n.touch = t
+		})
+		return
+	}
+	if g.pendingTouch == nil {
+		g.pendingTouch = map[string]*touchNode{}
+	}
+	if old := g.pendingTouch[t.uniq]; old != nil {
+		old.close()
+	}
+	g.pendingTouch[t.uniq] = t
+}
+
+// removeDevice drops the node at path, whichever of a gamepad, an attached touch surface, or a
+// pending touch surface it is open as.
+func (g *nativeGamepadsImpl) removeDevice(gamepads *gamepads, path string) {
+	if gp := gamepads.find(func(gamepad *Gamepad) bool {
+		return gamepad.native.(*nativeGamepadImpl).path == path
+	}); gp != nil {
+		// Lock the gamepad so the close cannot race with a
+		// concurrent Vibrate using the file descriptor.
+		withNative(gp, func(n *nativeGamepadImpl) {
+			n.close()
+		})
+		gamepads.remove(func(gamepad *Gamepad) bool {
+			return gamepad == gp
+		})
+		return
+	}
+	if gp := gamepads.find(func(gamepad *Gamepad) bool {
+		n := gamepad.native.(*nativeGamepadImpl)
+		return n.touch != nil && n.touch.path == path
+	}); gp != nil {
+		withNative(gp, func(n *nativeGamepadImpl) {
+			n.touch.close()
+			n.touch = nil
+		})
+		return
+	}
+	for uniq, t := range g.pendingTouch {
+		if t.path == path {
+			t.close()
+			delete(g.pendingTouch, uniq)
+			return
+		}
+	}
 }
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
@@ -322,24 +439,13 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 
 		path := filepath.Join(dirName, name)
 		if e.Mask&(unix.IN_CREATE|unix.IN_ATTRIB) != 0 {
-			if err := g.openGamepad(gamepads, path); err != nil {
+			if err := g.openDevice(gamepads, path); err != nil {
 				return err
 			}
 			continue
 		}
 		if e.Mask&unix.IN_DELETE != 0 {
-			if gp := gamepads.find(func(gamepad *Gamepad) bool {
-				return gamepad.native.(*nativeGamepadImpl).path == path
-			}); gp != nil {
-				// Lock the gamepad so the close cannot race with a
-				// concurrent Vibrate using the file descriptor.
-				withNative(gp, func(n *nativeGamepadImpl) {
-					n.close()
-				})
-				gamepads.remove(func(gamepad *Gamepad) bool {
-					return gamepad == gp
-				})
-			}
+			g.removeDevice(gamepads, path)
 			continue
 		}
 	}
@@ -347,9 +453,40 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
+// readInputEvent reads one event from an event node. ok is false when no event is pending.
+func readInputEvent(fd int) (e input_event, ok bool, err error) {
+	buf := make([]byte, unsafe.Sizeof(input_event{}))
+	// TODO: Should the returned byte count be cared about?
+	if _, err := unix.Read(fd, buf); err != nil {
+		if err == unix.EAGAIN {
+			return input_event{}, false, nil
+		}
+		return input_event{}, false, fmt.Errorf("gamepad: Read failed: %w", err)
+	}
+
+	const (
+		offsetTyp   = unsafe.Offsetof(input_event{}.typ)
+		offsetCode  = unsafe.Offsetof(input_event{}.code)
+		offsetValue = unsafe.Offsetof(input_event{}.value)
+	)
+	// time is not used.
+	return input_event{
+		typ:   uint16(buf[offsetTyp]) | uint16(buf[offsetTyp+1])<<8,
+		code:  uint16(buf[offsetCode]) | uint16(buf[offsetCode+1])<<8,
+		value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
+	}, true, nil
+}
+
 type nativeGamepadImpl struct {
 	fdPlus1 int
 	path    string
+
+	// uniq and id identify the controller; a touch surface node with the same values is the
+	// controller's touchpad. touch is that node once it is paired, or nil.
+	uniq  string
+	id    input_id
+	touch *touchNode
+
 	keyMap  [_KEY_CNT - _BTN_MISC]int
 	absMap  [_ABS_CNT]int
 	absInfo [_ABS_CNT]input_absinfo
@@ -374,6 +511,10 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) close() {
 	g.cleanup.Stop()
+	if g.touch != nil {
+		g.touch.close()
+		g.touch = nil
+	}
 	if g.fdPlus1 == 0 {
 		return
 	}
@@ -399,25 +540,12 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 	}()
 
 	for {
-		buf := make([]byte, unsafe.Sizeof(input_event{}))
-		// TODO: Should the returned byte count be cared about?
-		if _, err := unix.Read(g.fdPlus1-1, buf); err != nil {
-			if err == unix.EAGAIN {
-				break
-			}
-			return fmt.Errorf("gamepad: Read failed: %w", err)
+		e, ok, err := readInputEvent(g.fdPlus1 - 1)
+		if err != nil {
+			return err
 		}
-
-		const (
-			offsetTyp   = unsafe.Offsetof(input_event{}.typ)
-			offsetCode  = unsafe.Offsetof(input_event{}.code)
-			offsetValue = unsafe.Offsetof(input_event{}.value)
-		)
-		// time is not used.
-		e := input_event{
-			typ:   uint16(buf[offsetTyp]) | uint16(buf[offsetTyp+1])<<8,
-			code:  uint16(buf[offsetCode]) | uint16(buf[offsetCode+1])<<8,
-			value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
+		if !ok {
+			break
 		}
 
 		if e.typ == unix.EV_SYN && e.code == _SYN_DROPPED {
@@ -448,6 +576,15 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 			}
 		case unix.EV_ABS:
 			g.handleAbsEvent(int(e.code), e.value)
+		}
+	}
+
+	// The touch surface is an extra: a failure on its node costs the surface, not the gamepad. Its
+	// removal drops it from the list either way.
+	if g.touch != nil {
+		if err := g.touch.update(); err != nil {
+			g.touch.close()
+			g.touch = nil
 		}
 	}
 	return nil

@@ -222,7 +222,102 @@ func dualSenseRumbleReportBT(seq, strong, weak byte) []byte {
 	return r
 }
 
-// InputState is the stick, trigger, D-pad, and button state of a controller.
+// TouchCount is the number of fingers the touchpad tracks at once.
+const TouchCount = 2
+
+// Touch is one of the fingers the touchpad tracks.
+type Touch struct {
+	// Active reports that the finger is on the touchpad.
+	Active bool
+
+	// ID is the controller's 7-bit contact counter, which differs between one
+	// contact and the next in the same slot.
+	ID byte
+
+	// X and Y are the finger's position, each in -1..1 with (-1, -1) at the
+	// top left of the touchpad.
+	X, Y float64
+}
+
+// touchpadSize returns the touchpad's grid in the units of the reports, or
+// 0, 0 for an unknown model.
+func touchpadSize(model model) (w, h int) {
+	switch model {
+	case modelDualShock4:
+		return 1920, 942
+	case modelDualSense:
+		return 1920, 1080
+	}
+	return 0, 0
+}
+
+// touchCoord maps a grid coordinate to -1..1 over a grid of n units, clamping
+// values past the grid.
+func touchCoord(v, n int) float64 {
+	if n < 2 {
+		return 0
+	}
+	return mathutil.Clamp01(float64(v)/float64(n-1))*2 - 1
+}
+
+// touchFromRecord decodes a 4-byte touch record of a touchpad w by h units:
+// bit 7 of the first byte is set while no finger is down and its low 7 bits
+// are the contact counter; the other 3 bytes pack a 12-bit x and a 12-bit y.
+func touchFromRecord(b []byte, w, h int) Touch {
+	x := int(b[1]) | int(b[2]&0x0f)<<8
+	y := int(b[2]>>4) | int(b[3])<<4
+	return Touch{
+		Active: b[0]&0x80 == 0,
+		ID:     b[0] & 0x7f,
+		X:      touchCoord(x, w),
+		Y:      touchCoord(y, h),
+	}
+}
+
+// touchesFromPayload decodes the touchpad records of a state payload, or
+// returns prev when the payload carries no touch sample: the simplified
+// Bluetooth report is too short to hold one, and a DualShock 4 report with a
+// packet count of 0 holds none.
+//
+// In the DualShock 4 layout byte 32 counts the packets that follow, each a
+// timestamp byte and two records, oldest first. The last packet the payload
+// has room for is decoded: it is the most recent sample, and a finger lifted
+// in it stays lifted when the reports that follow carry no packet. In the
+// DualSense layout the two records are at byte 32.
+func touchesFromPayload(model model, p []byte, prev [TouchCount]Touch) [TouchCount]Touch {
+	var offset int
+	switch model {
+	case modelDualShock4:
+		const packetSize = 1 + 4*TouchCount
+		if len(p) < 33+packetSize {
+			return prev
+		}
+		n := int(p[32])
+		if room := (len(p) - 33) / packetSize; n > room {
+			n = room
+		}
+		if n == 0 {
+			return prev
+		}
+		offset = 34 + packetSize*(n-1)
+	case modelDualSense:
+		if len(p) < 32+4*TouchCount {
+			return prev
+		}
+		offset = 32
+	default:
+		return prev
+	}
+	w, h := touchpadSize(model)
+	var touches [TouchCount]Touch
+	for i := range touches {
+		touches[i] = touchFromRecord(p[offset+4*i:offset+4*i+4], w, h)
+	}
+	return touches
+}
+
+// InputState is the stick, trigger, D-pad, button, and touchpad state of a
+// controller.
 type InputState struct {
 	// LX, LY, RX, and RY are the stick positions. 0 is left or up, and 0x80
 	// is the center.
@@ -241,6 +336,9 @@ type InputState struct {
 	//	8 Share (Create), 9 Options, 10 L3, 11 R3, 12 PS, 13 Touchpad,
 	//	14 Mute (DualSense only).
 	Buttons uint16
+
+	// Touches are the fingers on the touchpad, by slot.
+	Touches [TouchCount]Touch
 }
 
 // neutralInputState is the state of a controller at rest: sticks centered,
@@ -305,7 +403,10 @@ func inputStateDualSenseLayout(p []byte) InputState {
 // The full Bluetooth reports end in a CRC over the bytes before it, and a
 // report whose CRC does not match is corrupted. The DualShock 4's report 0x11
 // also carries controller state only when bit 7 of its byte 1 is set.
-func inputStateFromReport(model model, bt bool, report []byte) (state InputState, ok bool) {
+//
+// prev is the state decoded before; its touches carry over when the report
+// has no touch sample (see touchesFromPayload).
+func inputStateFromReport(model model, bt bool, report []byte, prev InputState) (state InputState, ok bool) {
 	if len(report) == 0 {
 		return InputState{}, false
 	}
@@ -336,5 +437,7 @@ func inputStateFromReport(model model, bt bool, report []byte) (state InputState
 	if report[0] == 0x11 && report[1]&0x80 == 0 {
 		return InputState{}, false
 	}
-	return decode(report[offset:]), true
+	state = decode(report[offset:])
+	state.Touches = touchesFromPayload(model, report[offset:], prev.Touches)
+	return state, true
 }
