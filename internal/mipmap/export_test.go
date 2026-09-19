@@ -14,4 +14,12 @@
 
 package mipmap
 
+import (
+	"image"
+)
+
 var MipmapLevelFromDistance = mipmapLevelFromDistance
+
+func (m *Mipmap) RegionForLevel(region image.Rectangle, level int) image.Rectangle {
+	return m.regionForLevel(region, level)
+}
