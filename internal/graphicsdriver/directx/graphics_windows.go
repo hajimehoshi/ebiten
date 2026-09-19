@@ -448,7 +448,7 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 		}
 	}()
 
-	dcompTarget, err := dcompDevice.CreateTargetForHwnd(window, true)
+	dcompTarget, err := dcompDevice.CreateTargetForHwnd(window, false)
 	if err != nil {
 		return err
 	}
