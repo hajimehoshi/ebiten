@@ -716,6 +716,96 @@ func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
 	}
 }
 
+func TestStrokeRoundJoin(t *testing.T) {
+	testCases := []struct {
+		name      string
+		end       image.Point
+		covered   image.Point
+		uncovered image.Point
+	}{
+		{
+			name:      "left turn",
+			end:       image.Pt(100, 20),
+			covered:   image.Pt(118, 144),
+			uncovered: image.Pt(139, 139),
+		},
+		{
+			name:      "right turn",
+			end:       image.Pt(100, 180),
+			covered:   image.Pt(118, 55),
+			uncovered: image.Pt(139, 60),
+		},
+		{
+			name:      "u-turn",
+			end:       image.Pt(20, 100),
+			covered:   image.Pt(147, 99),
+			uncovered: image.Pt(153, 99),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var p vector.Path
+			p.MoveTo(20, 100)
+			p.LineTo(100, 100)
+			p.LineTo(float32(tc.end.X), float32(tc.end.Y))
+
+			dst := ebiten.NewImage(200, 200)
+			defer dst.Deallocate()
+			op := &vector.StrokeOptions{}
+			op.Width = 100
+			op.LineJoin = vector.LineJoinRound
+			vector.StrokePath(dst, &p, op, nil)
+
+			if got, want := dst.At(tc.covered.X, tc.covered.Y), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+				t.Errorf("%v: got: %v, want: %v", tc.covered, got, want)
+			}
+			if got, want := dst.At(tc.uncovered.X, tc.uncovered.Y), (color.RGBA{}); got != want {
+				t.Errorf("%v: got: %v, want: %v", tc.uncovered, got, want)
+			}
+		})
+	}
+}
+
+func TestStrokeRoundCap(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(100, 100)
+	p.LineTo(200, 100)
+
+	dst := ebiten.NewImage(300, 200)
+	defer dst.Deallocate()
+	op := &vector.StrokeOptions{}
+	op.Width = 100
+	op.LineCap = vector.LineCapRound
+	vector.StrokePath(dst, &p, op, nil)
+
+	covered := []image.Point{
+		image.Pt(52, 99),
+		image.Pt(66, 67),
+		image.Pt(66, 132),
+		image.Pt(247, 99),
+		image.Pt(233, 67),
+		image.Pt(233, 132),
+	}
+	for _, pt := range covered {
+		if got, want := dst.At(pt.X, pt.Y), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+			t.Errorf("%v: got: %v, want: %v", pt, got, want)
+		}
+	}
+	uncovered := []image.Point{
+		image.Pt(46, 99),
+		image.Pt(59, 60),
+		image.Pt(59, 139),
+		image.Pt(253, 99),
+		image.Pt(240, 60),
+		image.Pt(240, 139),
+	}
+	for _, pt := range uncovered {
+		if got, want := dst.At(pt.X, pt.Y), (color.RGBA{}); got != want {
+			t.Errorf("%v: got: %v, want: %v", pt, got, want)
+		}
+	}
+}
+
 func TestQuadCuspIsKept(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(0, 0)
