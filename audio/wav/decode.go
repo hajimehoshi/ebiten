@@ -53,6 +53,9 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 }
 
 // Length returns the size of decoded stream in bytes.
+//
+// Length returns -1 when the size is unknown. The size is unknown when the 'data' chunk does not
+// declare its size and the source cannot seek to its end.
 func (s *Stream) Length() int64 {
 	return s.size
 }
@@ -225,15 +228,35 @@ chunks:
 		return nil, fmt.Errorf("wav: invalid header: 'fmt ' not found before 'data'")
 	}
 
-	// A partial frame at the tail of the data chunk cannot be decoded. Discard it.
+	// A 'data' chunk size of 0 or 0xffffffff is a placeholder, and the data then extends to the end
+	// of src. A writer that streams the data or is terminated abnormally never patches the size and
+	// leaves the initial 0 (e.g. https://sourceforge.net/p/flac/bugs/190/) or a -1. RF64 also sets the
+	// 32-bit size fields to -1 (0xffffffff) to indicate that the actual sizes are in the 'ds64'
+	// chunk (https://en.wikipedia.org/wiki/RF64).
+	if dataSize == 0 || dataSize == 0xffffffff {
+		size, err := sizeToEnd(src)
+		if err != nil {
+			return nil, err
+		}
+		dataSize = size
+	}
+
 	bytesPerFrame := int64(bitsPerSample / 8)
 	if !mono {
 		bytesPerFrame *= 2
 	}
-	dataSize = dataSize / bytesPerFrame * bytesPerFrame
 
-	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
+	var s io.ReadSeeker
+	if dataSize < 0 {
+		s = newFrameAlignedReader(src, int(bytesPerFrame))
+	} else {
+		// A partial frame at the tail of the data chunk cannot be decoded. Discard it.
+		dataSize = dataSize / bytesPerFrame * bytesPerFrame
+		s = newSectionReader(src, headerSize, dataSize)
+	}
 
+	// sizeScale is the ratio of the decoded size to the 'data' chunk size.
+	sizeScale := int64(1)
 	if mono || bitsPerSample != 16 {
 		var format convert.Format
 		switch bitsPerSample {
@@ -247,23 +270,49 @@ chunks:
 		}
 		s = convert.NewStereoI16ReadSeeker(s, mono, format)
 		if mono {
-			dataSize *= 2
+			sizeScale *= 2
 		}
 		if bitsPerSample != 16 {
-			dataSize *= 2
+			sizeScale *= 2
 		}
 	}
 
 	if bitDepthInBytes == bitDepthInBytesFloat32 {
 		s = convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(s)
-		dataSize *= 2
+		sizeScale *= 2
 	}
 
+	// An unknown size stays -1 (see Stream.Length).
+	size := int64(-1)
+	if dataSize >= 0 {
+		size = dataSize * sizeScale
+	}
 	return &Stream{
 		inner:      s,
-		size:       dataSize,
+		size:       size,
 		sampleRate: sampleRate,
 	}, nil
+}
+
+// sizeToEnd returns the number of bytes from the current position of src to its end, or -1 when
+// src cannot tell, e.g. src is not an io.Seeker or is a pipe. On success, src stays at its position.
+func sizeToEnd(src io.Reader) (int64, error) {
+	seeker, ok := src.(io.Seeker)
+	if !ok {
+		return -1, nil
+	}
+	cur, err := seeker.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return -1, nil
+	}
+	end, err := seeker.Seek(0, io.SeekEnd)
+	if err != nil {
+		return -1, nil
+	}
+	if _, err := seeker.Seek(cur, io.SeekStart); err != nil {
+		return 0, err
+	}
+	return end - cur, nil
 }
 
 // Decode decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
