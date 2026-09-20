@@ -146,10 +146,10 @@ func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
 	defer inputMu.Unlock()
 	switch action {
 	case _ACTION_DOWN, _ACTION_POINTER_DOWN, _ACTION_MOVE:
-		touches[ui.TouchID(id)] = position{x, y}
+		touches[id] = position{x, y}
 		updateInput(nil)
 	case _ACTION_UP, _ACTION_POINTER_UP:
-		delete(touches, ui.TouchID(id))
+		delete(touches, id)
 		updateInput(nil)
 	case _ACTION_CANCEL:
 		// ACTION_CANCEL cancels the whole gesture: every pointer that was down must be

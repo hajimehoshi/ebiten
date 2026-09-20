@@ -41,12 +41,6 @@ var (
 	stringNumLock  = js.ValueOf("NumLock")
 )
 
-type touchInClient struct {
-	id TouchID
-	x  float64
-	y  float64
-}
-
 func jsCodeToID(code js.Value) Key {
 	// js.Value cannot be used as a map key.
 	// As the number of keys is around 100, just a dumb loop should work.

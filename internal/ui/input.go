@@ -49,6 +49,14 @@ type Touch struct {
 	Y  float64
 }
 
+// touchInClient is a touch whose position is in the platform's client coordinates, pending conversion
+// to logical coordinates.
+type touchInClient struct {
+	id TouchID
+	x  float64
+	y  float64
+}
+
 // LockKeyState is the state of a lock key. The zero value means the platform does not report the state.
 type LockKeyState byte
 
