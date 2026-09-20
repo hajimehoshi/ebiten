@@ -427,16 +427,17 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 	case LineJoinBevel:
 		strokePath.LineTo(p1.x, p1.y)
 	case LineJoinRound:
-		dir := vec2{
-			x: dir0.x - dir1.x,
-			y: dir0.y - dir1.y,
-		}.norm()
-		cp := p.add(dir.mul(options.Width / 2))
-		cp0 := crossingPointForTwoLines(p0, p0.add(dir0), cp, cp.add(dir.perp()))
-		cp1 := crossingPointForTwoLines(p1, p1.add(dir1), cp, cp.add(dir.perp()))
-		if isRegularF32(cp.x) && isRegularF32(cp.y) && isRegularF32(cp0.x) && isRegularF32(cp0.y) && isRegularF32(cp1.x) && isRegularF32(cp1.y) {
-			strokePath.ArcTo(cp0.x, cp0.y, cp.x, cp.y, options.Width/2)
-			strokePath.ArcTo(cp1.x, cp1.y, p1.x, p1.y, options.Width/2)
+		// Sweep an arc around p from p0 to p1 on the outer side of the turn.
+		// Derive the sweep angle from the directions, as the atan2 of p0 and p1
+		// can straddle the ±π branch cut at a nearly straight joint.
+		// math.Abs clears a negative zero, so a cusp sweeps π rather than -π.
+		// The explicit conversions avoid FMSUBS.
+		a0 := float32(math.Atan2(float64(v0.y), float64(v0.x)))
+		cross := math.Abs(float64(float32(dir0.x*dir1.y) - float32(dir0.y*dir1.x)))
+		dot := float64(dir0.x*dir1.x + dir0.y*dir1.y)
+		a1 := a0 - float32(math.Atan2(cross, dot))
+		if isRegularF32(a0) && isRegularF32(a1) {
+			strokePath.Arc(p.x, p.y, options.Width/2, a0, a1, CounterClockwise)
 		} else {
 			strokePath.LineTo(p1.x, p1.y)
 		}
