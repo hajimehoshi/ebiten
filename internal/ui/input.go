@@ -87,6 +87,15 @@ func (a *touchIDAllocator) id(platformID int) TouchID {
 	return id
 }
 
+// setTouchesFromPlatformIDs replaces the set of touches that are down with the touches of the given
+// platform IDs.
+func (a *touchIDAllocator) setTouchesFromPlatformIDs(platformIDs []int) {
+	a.nextTouches()
+	for _, platformID := range platformIDs {
+		a.id(platformID)
+	}
+}
+
 func lookupTouchIDMapping(mappings []touchIDMapping, platformID int) (TouchID, bool) {
 	for _, m := range mappings {
 		if m.platformID == platformID {
