@@ -532,6 +532,16 @@ func (s *textInputEvents) clearQueue() {
 	s.queuedStates = s.queuedStates[:0]
 }
 
+// dropQueuedCompositions drops the queued composition states. Queued commits
+// and errors stay, in their order.
+func (s *textInputEvents) dropQueuedCompositions() {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.queuedStates = slices.DeleteFunc(s.queuedStates, func(st textInputState) bool {
+		return !st.CommitKind.committed() && st.Error == nil
+	})
+}
+
 // flushStateQueue delivers queued states to the open session, stopping at the
 // commit that ends it. A session reports at most one commit, so anything
 // queued behind that commit stays for the next session rather than being

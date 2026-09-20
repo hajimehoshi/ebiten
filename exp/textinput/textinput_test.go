@@ -15,6 +15,7 @@
 package textinput_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/exp/textinput"
@@ -88,50 +89,82 @@ func TestConvertByteCountToUTF16Count(t *testing.T) {
 	}
 }
 
-// TestClearQueueDropsDiscardedMarkedText verifies the macOS fix: a preedit
-// queued after a commit closed the channel would be replayed as a live
-// composition by the next session's start(). Clearing the queue first (as macOS
-// start() does after discarding the OS marked text) drops the stale preedit.
-func TestClearQueueDropsDiscardedMarkedText(t *testing.T) {
+func TestDropQueuedCompositionsDropsDiscardedMarkedText(t *testing.T) {
 	for _, tc := range []struct {
-		name       string
-		clearQueue bool
-		want       bool
+		name string
+		drop bool
+		want bool
 	}{
 		{
-			// The queued preedit is replayed as a live composition: the bug.
-			name:       "without clear",
-			clearQueue: false,
-			want:       true,
+			name: "without drop",
+			drop: false,
+			want: true,
 		},
 		{
-			// Clearing after the discard drops the stale preedit.
-			name:       "with clear",
-			clearQueue: true,
-			want:       false,
+			name: "with drop",
+			drop: true,
+			want: false,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var ev textinput.TextInputEvents
-
-			// Session 1: the IME commits, then closes the channel.
 			ev.Start()
-			ev.Send(textinput.TextInputState{Text: "committed", CommitKind: textinput.CommitRegular})
+			ev.Send(commitState("committed"))
 			ev.End()
 
-			// A keystroke between sessions begins a preedit; with the channel
-			// closed, it is queued.
 			ev.Send(textinput.TextInputState{Text: "l"})
-
-			if tc.clearQueue {
-				ev.ClearQueue()
+			if tc.drop {
+				ev.DropQueuedCompositions()
 			}
 
-			// Session 2: the queued preedit is replayed only if not cleared.
 			if got := ev.StartSessionCompositing(); got != tc.want {
 				t.Errorf("StartSessionCompositing() = %v, want %v", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestDropQueuedCompositionsKeepsCommits(t *testing.T) {
+	var ev textinput.TextInputEvents
+	ev.Start()
+	ev.Send(commitState("a"))
+	ev.End()
+
+	ev.Send(commitState("b"))
+	ev.Send(textinput.TextInputState{Text: "k"})
+	ev.Send(commitState("c"))
+	ev.Send(textinput.TextInputState{Text: "m"})
+
+	ev.DropQueuedCompositions()
+	if got, want := ev.QueuedStateCount(), 2; got != want {
+		t.Errorf("QueuedStateCount() = %d, want %d", got, want)
+	}
+
+	for _, want := range []string{"b", "c"} {
+		got, ok := ev.StartSessionCommit()
+		if !ok {
+			t.Fatalf("no commit delivered, want %q", want)
+		}
+		if got != want {
+			t.Errorf("commit = %q, want %q", got, want)
+		}
+	}
+	if ev.StartSessionCompositing() {
+		t.Error("a dropped composition was replayed into the third session")
+	}
+	if got, want := ev.QueuedStateCount(), 0; got != want {
+		t.Errorf("QueuedStateCount() = %d, want %d", got, want)
+	}
+}
+
+func TestDropQueuedCompositionsKeepsErrors(t *testing.T) {
+	var ev textinput.TextInputEvents
+	ev.Send(textinput.TextInputState{Text: "k"})
+	ev.Send(textinput.TextInputState{Error: errors.New("queued")})
+
+	ev.DropQueuedCompositions()
+	if got, want := ev.QueuedStateCount(), 1; got != want {
+		t.Errorf("QueuedStateCount() = %d, want %d", got, want)
 	}
 }
 

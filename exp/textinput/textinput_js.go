@@ -267,9 +267,9 @@ func (t *textInputImpl) Start(bounds image.Rectangle, textBeforeCaret, textAfter
 	// installed in init focused the textarea and reset its value.
 	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
 		t.events.end()
-		// An IME carries a composition over to the refocused textarea and finishes it
-		// there. Those events describe the abandoned target, and start replays them.
-		t.events.clearQueue()
+		// A queued composition describes text the user-interaction handler has
+		// reset, whereas a queued commit is text the IME delivered.
+		t.events.dropQueuedCompositions()
 		ch, end := t.events.start()
 		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
 		// Focusing the textarea has restarted the IME.
@@ -375,8 +375,9 @@ func (t *textInputImpl) dismissVirtualKeyboardIfNeeded() {
 	// The game's key listeners are on the canvas element, so it must take the focus.
 	ui.Get().FocusCanvas()
 
-	// Blurring the textarea fires events carrying the text it still holds. With no
-	// session to receive them, they are queued for the next one.
+	// Blurring the textarea fires events carrying the text it still holds, which
+	// trySend drops as no session is active. The states queued for the session
+	// that ended are for a caller that has stopped inputting text.
 	t.events.clearQueue()
 }
 
