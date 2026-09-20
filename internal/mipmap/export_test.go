@@ -12,9 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package main
+package mipmap
 
-var (
-	FrameworkName          = frameworkName
-	IsValidJavaPackageName = isValidJavaPackageName
+import (
+	"image"
 )
+
+var MipmapLevelFromDistance = mipmapLevelFromDistance
+
+func (m *Mipmap) RegionForLevel(region image.Rectangle, level int) image.Rectangle {
+	return m.regionForLevel(region, level)
+}

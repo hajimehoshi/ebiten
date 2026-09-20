@@ -384,8 +384,8 @@ func (u *UserInterface) Monitor() *Monitor {
 	return theMonitor
 }
 
-func (u *UserInterface) UpdateInput(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
-	u.updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes, runes, touches, capsLock, numLock)
+func (u *UserInterface) UpdateInput(keys []KeyEvent, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
+	u.updateInputStateFromOutside(keys, runes, touches, capsLock, numLock)
 	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		// The renderer might not be set yet. In this case, the rendering request can be dropped
 		// as the first rendering happens when the renderer is set.

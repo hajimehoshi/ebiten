@@ -260,8 +260,6 @@ func (c *context) readInputStateForTick(ui *UserInterface) {
 	c.game.UpdateInputState(func(inputState *InputState) {
 		ui.readInputState(inputState)
 	})
-	// The snapshot for this tick is taken, so an event recorded from now on belongs to the next tick.
-	ui.advanceInputTimeToNextTick()
 }
 
 func (c *context) flushCommandsAndWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {

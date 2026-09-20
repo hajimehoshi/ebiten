@@ -82,12 +82,12 @@ func (s *TextInputEvents) Send(state TextInputState) bool {
 }
 
 // StartSessionCommit starts a session on a freshly opened channel, as the
-// platform start() does (flushing any queued states), pumps one Update, and
+// platform start() does (flushing any queued states), pumps one drain, and
 // reports the committed text and whether a commit arrived.
 func (s *TextInputEvents) StartSessionCommit() (string, bool) {
 	ch, end := s.start()
 	sess := &session{ch: ch, end: end, events: s}
-	_ = sess.Update()
+	_ = sess.drain()
 	if !sess.IsCommitted() {
 		return "", false
 	}
@@ -95,12 +95,12 @@ func (s *TextInputEvents) StartSessionCommit() (string, bool) {
 }
 
 // StartSessionCompositing starts a session on a freshly opened channel, as the
-// platform start() does (flushing any queued states), pumps one Update, and
+// platform start() does (flushing any queued states), pumps one drain, and
 // reports whether the session observed a live composition.
 func (s *TextInputEvents) StartSessionCompositing() bool {
 	ch, end := s.start()
 	sess := &session{ch: ch, end: end, events: s}
-	_ = sess.Update()
+	_ = sess.drain()
 	return sess.IsCompositing()
 }
 
@@ -158,7 +158,7 @@ func (d *DiffSender) StartNextSession(textBeforeCaret, textAfterCaret string) {
 
 // Update drains the session's states, as a tick does.
 func (d *DiffSender) Update() error {
-	return d.session.Update()
+	return d.session.drain()
 }
 
 // EndByUser ends the events as the platform does for the user's dismissal.
@@ -296,4 +296,45 @@ func (g *SeedGate) Admit(generation int) (resetBaseline bool, ok bool) {
 // PendingValue returns the pending seed.
 func (g *SeedGate) PendingValue() string {
 	return g.pendingValue
+}
+
+// ComposerDriver drives a Composer whose session is fed by its own events, as
+// a platform backend does.
+type ComposerDriver struct {
+	Composer Composer
+	events   textInputEvents
+}
+
+// NewComposerDriver returns a driver whose Composer has an open session with
+// the given surrounding text.
+func NewComposerDriver(textBeforeCaret, textAfterCaret string) *ComposerDriver {
+	d := &ComposerDriver{}
+	d.events.tick = func() int64 {
+		return 0
+	}
+	ch, end := d.events.start()
+	d.Composer.s = &session{
+		ch:              ch,
+		end:             end,
+		events:          &d.events,
+		textBeforeCaret: textBeforeCaret,
+		textAfterCaret:  textAfterCaret,
+	}
+	return d
+}
+
+// Send reports a platform state to the session, and reports whether the
+// session took it.
+func (d *ComposerDriver) Send(state TextInputState) bool {
+	return d.events.send(state)
+}
+
+// EndByUser ends the events as the platform does for the user's dismissal.
+func (d *ComposerDriver) EndByUser() {
+	d.events.endByUser()
+}
+
+// SessionOpen reports whether the Composer holds a session.
+func (d *ComposerDriver) SessionOpen() bool {
+	return d.Composer.s != nil
 }

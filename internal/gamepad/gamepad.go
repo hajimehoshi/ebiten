@@ -242,7 +242,7 @@ type axisMappingInput struct {
 }
 
 func (a axisMappingInput) Pressed() bool {
-	return a.g.axisValue(a.axis) > gamepaddb.ButtonPressedThreshold
+	return a.Value() > gamepaddb.ButtonPressedThreshold
 }
 
 func (a axisMappingInput) Value() float64 {

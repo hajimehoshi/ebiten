@@ -1790,6 +1790,79 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	}
 }
 
+// Issue #3734.
+func TestImageDrawTrianglesAddressWithoutMipmaps(t *testing.T) {
+	for _, use32 := range []bool{false, true} {
+		for _, address := range []ebiten.Address{ebiten.AddressRepeat, ebiten.AddressClampToZero} {
+			for _, disableMipmaps := range []bool{false, true} {
+				for _, region := range []image.Rectangle{
+					image.Rect(3, 5, 4, 12),
+					image.Rect(3, 5, 10, 6),
+					image.Rect(3, 5, 8, 12),
+					image.Rect(4, 4, 12, 12),
+				} {
+					name := fmt.Sprintf("use32=%t/address=%d/disableMipmaps=%t/region=%v", use32, address, disableMipmaps, region)
+					t.Run(name, func(t *testing.T) {
+						parent := ebiten.NewImage(32, 32)
+						defer parent.Deallocate()
+						parent.Fill(color.RGBA{
+							G: 255,
+							A: 255,
+						})
+						src := parent.SubImage(region).(*ebiten.Image)
+						red := color.RGBA{
+							R: 255,
+							A: 255,
+						}
+						src.Fill(red)
+						const size = 4
+						dst := ebiten.NewImage(size, size)
+						defer dst.Deallocate()
+
+						// Shrink by four, sampling texel centers inside and outside the region.
+						vertices := make([]ebiten.Vertex, 4)
+						for i := range vertices {
+							x, y := float32(i%2*size), float32(i/2*size)
+							vertices[i] = ebiten.Vertex{
+								DstX:   x,
+								DstY:   y,
+								SrcX:   float32(region.Min.X) - 5.5 + 4*x,
+								SrcY:   float32(region.Min.Y) - 5.5 + 4*y,
+								ColorR: 1,
+								ColorG: 1,
+								ColorB: 1,
+								ColorA: 1,
+							}
+						}
+						op := &ebiten.DrawTrianglesOptions{
+							Filter:         ebiten.FilterLinear,
+							Address:        address,
+							DisableMipmaps: disableMipmaps,
+						}
+						if use32 {
+							dst.DrawTriangles32(vertices, []uint32{0, 1, 2, 1, 2, 3}, src, op)
+						} else {
+							dst.DrawTriangles(vertices, []uint16{0, 1, 2, 1, 2, 3}, src, op)
+						}
+						for y := range size {
+							for x := range size {
+								p := image.Pt(region.Min.X-4+4*x, region.Min.Y-4+4*y)
+								var want color.RGBA
+								if address == ebiten.AddressRepeat || p.In(region) {
+									want = red
+								}
+								if got := dst.At(x, y).(color.RGBA); !sameColors(got, want, 1) {
+									t.Errorf("At(%d, %d): got %v, want %v", x, y, got, want)
+								}
+							}
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
 // Issue #823
 func TestImageAtAfterDisposingSubImage(t *testing.T) {
 	img := ebiten.NewImage(16, 16)

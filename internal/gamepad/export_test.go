@@ -14,6 +14,10 @@
 
 package gamepad
 
+import (
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+)
+
 var MotorMagnitude = motorMagnitude
 
 // nativeGamepadForTest is a gamepad backend whose reports a test supplies. Its axes and buttons
@@ -24,6 +28,21 @@ type nativeGamepadForTest struct {
 
 	hats     []int
 	surfaces [][]TouchContactForTest
+
+	// axisButtons is the gamepad's own standard layout: each standard button reads a raw axis, as an
+	// analog trigger on a backend that reports triggers as axes does.
+	axisButtons map[gamepaddb.StandardButton]int
+}
+
+func (g *nativeGamepadForTest) hasOwnStandardLayoutMapping() bool {
+	return len(g.axisButtons) > 0 || g.nativeGamepadVirtual.hasOwnStandardLayoutMapping()
+}
+
+func (g *nativeGamepadForTest) standardButtonInOwnMapping(button gamepaddb.StandardButton) mappingInput {
+	if a, ok := g.axisButtons[button]; ok {
+		return axisMappingInput{g: g, axis: a}
+	}
+	return g.nativeGamepadVirtual.standardButtonInOwnMapping(button)
 }
 
 func (g *nativeGamepadForTest) hatCount() int {
@@ -70,6 +89,18 @@ func NewGamepadForTest(sdlID string) *Gamepad {
 	return &Gamepad{
 		sdlID:  sdlID,
 		native: &nativeGamepadForTest{},
+	}
+}
+
+// NewGamepadWithAxisButtonsForTest returns a gamepad with the given SDL ID whose own standard layout
+// reads each given standard button from a raw axis, as a device with analog triggers on axes does.
+// The gamepad is not in the gamepad list, and its raw state is written with [Gamepad.SetReportForTest].
+func NewGamepadWithAxisButtonsForTest(sdlID string, axisButtons map[gamepaddb.StandardButton]int) *Gamepad {
+	return &Gamepad{
+		sdlID: sdlID,
+		native: &nativeGamepadForTest{
+			axisButtons: axisButtons,
+		},
 	}
 }
 

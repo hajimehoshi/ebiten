@@ -33,12 +33,8 @@ import (
 	"text/template"
 	"unicode"
 
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 	"golang.org/x/tools/go/packages"
 )
-
-var caser = cases.Title(language.Und)
 
 const (
 	ebitenmobileCommand = "ebitenmobile"
@@ -179,6 +175,15 @@ func osFromBuildTarget(buildTarget string) (string, error) {
 	return os, nil
 }
 
+// frameworkName returns the name of the framework in the xcframework at buildO, without the .framework extension.
+func frameworkName(buildO string) string {
+	base := strings.TrimSuffix(filepath.Base(buildO), ".xcframework")
+	// The first character must be an upper case (#2192).
+	// gomobile names the framework with strings.Title (see cmd/gomobile/bind_iosapp.go). Use the same
+	// function so that the directory name matches.
+	return strings.Title(base)
+}
+
 func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	tags := buildTags
 	cfg := &packages.Config{}
@@ -200,7 +205,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 		return err
 	}
 	prefixLower := bindPrefix + pkgs[0].Name
-	prefixUpper := strings.Title(bindPrefix) + strings.Title(pkgs[0].Name)
+	// gomobile derives its Objective-C names from the raw prefix and strings.Title of the package name
+	// (see bind/genobjc.go in github.com/ebitengine/gomobile). Use the same rule so that the names match.
+	prefixUpper := bindPrefix + strings.Title(pkgs[0].Name)
 
 	args = append(args, "github.com/hajimehoshi/ebiten/v2/mobile/ebitenmobileview")
 
@@ -240,16 +247,11 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 		}
 
 		for _, dirEntry := range dirEntries {
-			name := dirEntry.Name()
-			if name == "Info.plist" {
+			// Skip stray files like .DS_Store. Only directories are platform slices.
+			if !dirEntry.IsDir() {
 				continue
 			}
-			frameworkName := filepath.Base(buildO)
-			frameworkNameBase := frameworkName[:len(frameworkName)-len(".xcframework")]
-			// The first character must be an upper case (#2192).
-			// For consistency with gomobile (see cmd/gomobile/bind_iosapp.go), the name is title-cased.
-			frameworkNameBase = caser.String(frameworkNameBase)
-			dir := filepath.Join(buildO, name, frameworkNameBase+".framework")
+			dir := filepath.Join(buildO, dirEntry.Name(), frameworkName(buildO)+".framework")
 
 			if err := os.WriteFile(filepath.Join(dir, "Headers", prefixUpper+"EbitenViewController.h"), []byte(replacePrefixes(objcH)), 0644); err != nil {
 				return err
@@ -275,11 +277,13 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 			defer func() {
 				_ = w.Close()
 			}()
+			// The module name must be the framework name, or `@import` and Swift's `import` cannot find the module.
+			// This is also what gomobile writes (see cmd/gomobile/bind_iosapp.go).
 			var mmVals = struct {
 				Module  string
 				Headers []string
 			}{
-				Module:  prefixUpper,
+				Module:  frameworkName(buildO),
 				Headers: headerFiles,
 			}
 			if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {

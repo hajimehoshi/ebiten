@@ -79,3 +79,11 @@ func FlushCommandsAndWaitForTesting(driver graphicsdriver.Graphics, present bool
 	var c context
 	return c.flushCommandsAndWait(present, driver, false, 60)
 }
+
+func (i *InputState) NextInputTime() InputTime {
+	return i.nextInputTime()
+}
+
+func (i *InputState) CopyAndReset(dst *InputState) {
+	i.copyAndReset(dst)
+}

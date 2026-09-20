@@ -76,3 +76,36 @@ func TestJavaPackageName(t *testing.T) {
 		}
 	}
 }
+
+func TestFrameworkName(t *testing.T) {
+	testCases := []struct {
+		in  string
+		out string
+	}{
+		{
+			in:  "MyGame.xcframework",
+			out: "MyGame",
+		},
+		{
+			in:  "mygame.xcframework",
+			out: "Mygame",
+		},
+		{
+			in:  "MG.xcframework",
+			out: "MG",
+		},
+		{
+			in:  "my_game.xcframework",
+			out: "My_game",
+		},
+		{
+			in:  "path/to/MyGame.xcframework",
+			out: "MyGame",
+		},
+	}
+	for _, tc := range testCases {
+		if got, want := ebitenmobile.FrameworkName(tc.in), tc.out; got != want {
+			t.Errorf("frameworkName(%q) = %q; want %q", tc.in, got, want)
+		}
+	}
+}

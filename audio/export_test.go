@@ -270,6 +270,8 @@ func ContextCreatedForTesting() bool {
 }
 
 func ResetContextForTesting() {
+	theContextLock.Lock()
+	defer theContextLock.Unlock()
 	theContext = nil
 }
 

@@ -412,7 +412,7 @@ func ScreenSize() (int, int) {
 // ScreenSizeInFullscreen's return value is different from the actual screen size and this is a known issue (#2145).
 // For browsers, it is recommended to use Screen API (https://developer.mozilla.org/en-US/docs/Web/API/Screen) if needed.
 //
-// On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
+// On mobiles, ScreenSizeInFullscreen returns the current monitor size, or (0, 0) before the game starts.
 //
 // ScreenSizeInFullscreen's use cases are limited. If you are making a fullscreen application, you can use RunGame and
 // the Game interface's Layout function instead. If you are making a not-fullscreen application but the application's

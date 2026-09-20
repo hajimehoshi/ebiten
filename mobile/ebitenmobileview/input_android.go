@@ -173,7 +173,7 @@ func OnKeyDownOnAndroid(keyCode int, unicodeChar int, source int, deviceID int, 
 		// DPAD keys can come here, but they are also treated as an axis in a motion event. Ignore them.
 	case source&sourceKeyboard == sourceKeyboard, source == sourceUnknown && deviceID == virtualKeyboard:
 		if key, ok := androidKeyToUIKey[keyCode]; ok {
-			keyPressedTimes[key] = ui.Get().InputTime()
+			setKeyPressed(key)
 		}
 		updateLockKeys(source, metaState)
 		var runes []rune

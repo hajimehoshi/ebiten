@@ -33,9 +33,8 @@ var (
 	// inputMu makes that confinement explicit.
 	inputMu sync.Mutex
 
-	keyPressedTimes  [ui.KeyMax + 1]ui.InputTime
-	keyReleasedTimes [ui.KeyMax + 1]ui.InputTime
-	touches          = map[ui.TouchID]position{}
+	keyEvents []ui.KeyEvent
+	touches   = map[ui.TouchID]position{}
 
 	// capsLock and numLock stay unknown until a physical keyboard reports them.
 	capsLock ui.LockKeyState
@@ -44,15 +43,19 @@ var (
 	touchSlice []ui.TouchForInput
 )
 
-// setKeyReleased records a key release. The release of a key that is not down
-// is ignored: the game never saw the key pressed.
-//
-// setKeyReleased must be called with inputMu held.
+// setKeyPressed records a key press with inputMu held.
+func setKeyPressed(key ui.Key) {
+	keyEvents = append(keyEvents, ui.KeyEvent{
+		Key:     key,
+		Pressed: true,
+	})
+}
+
+// setKeyReleased records a key release with inputMu held.
 func setKeyReleased(key ui.Key) {
-	if keyPressedTimes[key] <= keyReleasedTimes[key] {
-		return
-	}
-	keyReleasedTimes[key] = ui.Get().InputTime()
+	keyEvents = append(keyEvents, ui.KeyEvent{
+		Key: key,
+	})
 }
 
 // updateInput copies the guarded state to the platform input state.
@@ -68,5 +71,6 @@ func updateInput(runes []rune) {
 		})
 	}
 
-	ui.Get().UpdateInput(keyPressedTimes, keyReleasedTimes, runes, touchSlice, capsLock, numLock)
+	ui.Get().UpdateInput(keyEvents, runes, touchSlice, capsLock, numLock)
+	keyEvents = keyEvents[:0]
 }

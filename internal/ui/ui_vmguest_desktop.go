@@ -497,14 +497,14 @@ func (r *remoteBackend) updateInputStateForFrame(deviceScaleFactor float64) erro
 func (r *remoteBackend) pressKey(key Key) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.inputState.setKeyPressed(key, r.InputTime())
+	r.inputState.setKeyPressed(key, r.inputState.nextInputTime())
 }
 
 // releaseKey injects a key-release event.
 func (r *remoteBackend) releaseKey(key Key) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.inputState.setKeyReleased(key, r.InputTime())
+	r.inputState.setKeyReleased(key, r.inputState.nextInputTime())
 }
 
 // moveCursor sets the cursor position in outside-screen device-independent pixels.
@@ -518,14 +518,14 @@ func (r *remoteBackend) moveCursor(x, y float64) {
 func (r *remoteBackend) pressMouseButton(button MouseButton) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.inputState.setMouseButtonPressed(button, r.InputTime())
+	r.inputState.setMouseButtonPressed(button, r.inputState.nextInputTime())
 }
 
 // releaseMouseButton injects a mouse-button-release event.
 func (r *remoteBackend) releaseMouseButton(button MouseButton) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.inputState.setMouseButtonReleased(button, r.InputTime())
+	r.inputState.setMouseButtonReleased(button, r.inputState.nextInputTime())
 }
 
 // scrollWheel injects a wheel movement (accumulated until the next tick reads it).

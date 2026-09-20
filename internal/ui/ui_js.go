@@ -18,6 +18,7 @@ import (
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 	"syscall/js"
 	"time"
 
@@ -89,16 +90,16 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	runnableOnUnfocused bool
-	fpsMode             FPSModeType
-	renderingScheduled  bool
+	runnableOnUnfocused atomic.Bool
+	fpsMode             atomic.Int32
+	renderingScheduled  atomic.Bool
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
 	captureCursorLater  bool
 	cursorShape         CursorShape
 	onceUpdateCalled    bool
 	lastCaptureExitTime time.Time
-	hiDPIEnabled        bool
+	hiDPIEnabled        atomic.Bool
 
 	context             *context
 	inputState          InputState
@@ -188,23 +189,23 @@ func (u *UserInterface) IsFocused() bool {
 }
 
 func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
-	u.runnableOnUnfocused = runnableOnUnfocused
+	u.runnableOnUnfocused.Store(runnableOnUnfocused)
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {
-	return u.runnableOnUnfocused
+	return u.runnableOnUnfocused.Load()
 }
 
 func (u *UserInterface) FPSMode() FPSModeType {
-	return u.fpsMode
+	return FPSModeType(u.fpsMode.Load())
 }
 
 func (u *UserInterface) SetFPSMode(mode FPSModeType) {
-	u.fpsMode = mode
+	u.fpsMode.Store(int32(mode))
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	u.renderingScheduled = true
+	u.renderingScheduled.Store(true)
 }
 
 func (u *UserInterface) CursorMode() CursorMode {
@@ -289,7 +290,7 @@ func (u *UserInterface) outsideSize() (float64, float64) {
 }
 
 func (u *UserInterface) suspended() bool {
-	if u.runnableOnUnfocused {
+	if u.runnableOnUnfocused.Load() {
 		return false
 	}
 	return !u.isFocused()
@@ -366,13 +367,14 @@ func (u *UserInterface) updateImpl(force bool) error {
 }
 
 func (u *UserInterface) needsUpdate() bool {
-	if u.fpsMode != FPSModeVsyncOffMinimum {
+	scheduled := u.renderingScheduled.Swap(false)
+	if u.FPSMode() != FPSModeVsyncOffMinimum {
 		return true
 	}
 	if !u.onceUpdateCalled {
 		return true
 	}
-	if u.renderingScheduled {
+	if scheduled {
 		return true
 	}
 	// TODO: Watch the gamepad state?
@@ -399,7 +401,6 @@ func (u *UserInterface) loopGame() error {
 			defer func() {
 				u.onceUpdateCalled = true
 			}()
-			u.renderingScheduled = false
 			if err := u.update(); err != nil {
 				close(reqStopAudioCh)
 				<-resStopAudioCh
@@ -408,7 +409,7 @@ func (u *UserInterface) loopGame() error {
 				return
 			}
 		}
-		switch u.fpsMode {
+		switch u.FPSMode() {
 		case FPSModeVsyncOn:
 			requestAnimationFrame.Invoke(cf)
 		case FPSModeVsyncOffMaximum:
@@ -473,11 +474,12 @@ func (u *UserInterface) loopGame() error {
 
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
-		runnableOnUnfocused: true,
-		savedCursorX:        math.NaN(),
-		savedCursorY:        math.NaN(),
-		hiDPIEnabled:        true,
+		savedCursorX: math.NaN(),
+		savedCursorY: math.NaN(),
 	}
+
+	u.runnableOnUnfocused.Store(true)
+	u.hiDPIEnabled.Store(true)
 
 	// document is undefined on node.js
 	if !document.Truthy() {
@@ -762,7 +764,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Blur
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
-		u.inputState.releaseAllButtons(u.InputTime())
+		u.inputState.releaseAllButtons(u.inputState.nextInputTime())
 		return nil
 	}))
 }
@@ -804,7 +806,7 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 }
 
 func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
-	if u.fpsMode != FPSModeVsyncOffMinimum {
+	if u.FPSMode() != FPSModeVsyncOffMinimum {
 		return
 	}
 
@@ -839,7 +841,7 @@ func (u *UserInterface) shouldFocusFirst(options *RunOptions) bool {
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	u.setRunning(true)
 
-	u.hiDPIEnabled = !options.DisableHiDPI
+	u.hiDPIEnabled.Store(!options.DisableHiDPI)
 
 	if u.shouldFocusFirst(options) {
 		canvas.Call("focus")
@@ -900,7 +902,9 @@ func (u *UserInterface) Window() Window {
 }
 
 type Monitor struct {
-	deviceScaleFactor float64
+	deviceScaleFactor     float64
+	deviceScaleFactorTime time.Time
+	mu                    sync.Mutex
 }
 
 var theMonitor = &Monitor{}
@@ -910,11 +914,16 @@ func (m *Monitor) Name() string {
 }
 
 func (m *Monitor) DeviceScaleFactor() float64 {
-	if !theUI.hiDPIEnabled {
+	if !theUI.hiDPIEnabled.Load() {
 		return 1
 	}
 
-	if m.deviceScaleFactor != 0 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// devicePixelRatio can change, but reading it is too expensive to repeat on every call.
+	now := time.Now()
+	if !m.deviceScaleFactorTime.IsZero() && now.Sub(m.deviceScaleFactorTime) < time.Second {
 		return m.deviceScaleFactor
 	}
 
@@ -923,7 +932,8 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 		ratio = 1
 	}
 	m.deviceScaleFactor = ratio
-	return m.deviceScaleFactor
+	m.deviceScaleFactorTime = now
+	return ratio
 }
 
 func (m *Monitor) Size() (int, int) {

@@ -68,9 +68,11 @@ type glfwInput struct {
 }
 
 // handleKey records a key action reported by GLFW.
-func (i *glfwInput) handleKey(key Key, action glfw.Action, mods glfw.ModifierKey, t InputTime) {
+func (i *glfwInput) handleKey(key Key, action glfw.Action, mods glfw.ModifierKey) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	t := i.state.nextInputTime()
 
 	if action != glfw.Press {
 		i.state.setKeyReleased(key, t)
@@ -88,9 +90,11 @@ func (i *glfwInput) handleKey(key Key, action glfw.Action, mods glfw.ModifierKey
 }
 
 // handleMouseButton records a mouse button action reported by GLFW.
-func (i *glfwInput) handleMouseButton(button MouseButton, action glfw.Action, t InputTime) {
+func (i *glfwInput) handleMouseButton(button MouseButton, action glfw.Action) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	t := i.state.nextInputTime()
 
 	if action == glfw.Press {
 		i.state.setMouseButtonPressed(button, t)
@@ -192,9 +196,11 @@ func (i *glfwInput) convertScrollPages() {
 }
 
 // syncModKeys reconciles the modifier key state against mods.
-func (i *glfwInput) syncModKeys(mods glfw.ModifierKey, t InputTime) {
+func (i *glfwInput) syncModKeys(mods glfw.ModifierKey) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	t := i.state.nextInputTime()
 
 	i.state.syncModKeysByMods(mods, t)
 }
@@ -300,7 +306,7 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
-		u.input.handleKey(uk, action, mods, u.InputTime())
+		u.input.handleKey(uk, action, mods)
 	}); err != nil {
 		return err
 	}
@@ -315,7 +321,7 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
-		u.input.handleMouseButton(ub, action, u.InputTime())
+		u.input.handleMouseButton(ub, action)
 	}); err != nil {
 		return err
 	}

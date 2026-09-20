@@ -999,7 +999,7 @@ type _D3D12_RENDER_TARGET_VIEW_DESC struct {
 	_             structs.HostLayout
 	Format        _DXGI_FORMAT
 	ViewDimension _D3D12_RTV_DIMENSION
-	_             [3]uint32 // Union: D3D12_BUFFER_RTV seems the biggest
+	_             [4]uint32 // Union: D3D12_TEX2D_ARRAY_RTV is the biggest
 }
 
 type _D3D12_SAMPLER_DESC struct {
