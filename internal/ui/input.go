@@ -49,6 +49,53 @@ type Touch struct {
 	Y  float64
 }
 
+// touchIDAllocator maps the IDs a platform assigns to its touches to IDs that are never reused. A
+// platform reuses an ID as soon as its touch ends, so consecutive touches can arrive under one
+// platform ID; a platform ID that appears in a touch set without having been in the previous one is
+// a new touch and gets a fresh ID.
+type touchIDAllocator struct {
+	// current and previous hold the platform IDs of the current and the previous touch set with the
+	// IDs issued for them.
+	current  []touchIDMapping
+	previous []touchIDMapping
+
+	next TouchID
+}
+
+type touchIDMapping struct {
+	platformID int
+	id         TouchID
+}
+
+// nextTouchSet starts the next set of touches that are down. Each of them must then be passed to id;
+// a platform ID that is not passed before the next nextTouchSet has ended.
+func (a *touchIDAllocator) nextTouchSet() {
+	a.current, a.previous = a.previous[:0], a.current
+}
+
+// id returns the ID issued for platformID in the current touch set.
+func (a *touchIDAllocator) id(platformID int) TouchID {
+	if id, ok := lookupTouchIDMapping(a.current, platformID); ok {
+		return id
+	}
+	id, ok := lookupTouchIDMapping(a.previous, platformID)
+	if !ok {
+		id = a.next
+		a.next++
+	}
+	a.current = append(a.current, touchIDMapping{platformID: platformID, id: id})
+	return id
+}
+
+func lookupTouchIDMapping(mappings []touchIDMapping, platformID int) (TouchID, bool) {
+	for _, m := range mappings {
+		if m.platformID == platformID {
+			return m.id, true
+		}
+	}
+	return 0, false
+}
+
 // touchInClient is a touch whose position is in the platform's client coordinates, pending conversion
 // to logical coordinates.
 type touchInClient struct {

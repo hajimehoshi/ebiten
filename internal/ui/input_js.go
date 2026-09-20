@@ -222,12 +222,13 @@ func (u *UserInterface) recoverCursorPosition() {
 
 func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
 	u.touchesInClient = u.touchesInClient[:0]
+	u.touchIDs.nextTouchSet()
 
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {
 		t := touches.Call("item", i)
 		u.touchesInClient = append(u.touchesInClient, touchInClient{
-			id: TouchID(t.Get("identifier").Int()),
+			id: u.touchIDs.id(t.Get("identifier").Int()),
 			x:  t.Get("clientX").Float(),
 			y:  t.Get("clientY").Float(),
 		})

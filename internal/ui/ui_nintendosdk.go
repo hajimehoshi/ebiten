@@ -64,6 +64,7 @@ type userInterfaceImpl struct {
 	context       *context
 	inputState    InputState
 	nativeTouches []C.struct_Touch
+	touchIDs      touchIDAllocator
 
 	mu sync.Mutex
 }

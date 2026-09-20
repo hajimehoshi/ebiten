@@ -48,9 +48,10 @@ func (u *UserInterface) updateInputStateFromOutside(keys []KeyEvent, runes []run
 	u.inputState.CapsLock = capsLock
 	u.inputState.NumLock = numLock
 	u.touches = u.touches[:0]
+	u.touchIDs.nextTouchSet()
 	for _, t := range touches {
 		u.touches = append(u.touches, touchInClient{
-			id: TouchID(t.ID),
+			id: u.touchIDs.id(t.ID),
 			x:  t.X,
 			y:  t.Y,
 		})
