@@ -67,9 +67,9 @@ type touchIDMapping struct {
 	id         TouchID
 }
 
-// nextTouchSet starts the next set of touches that are down. Each of them must then be passed to id;
-// a platform ID that is not passed before the next nextTouchSet has ended.
-func (a *touchIDAllocator) nextTouchSet() {
+// nextTouches starts the next set of touches that are down. Each of them must then be passed to id;
+// a platform ID that is not passed before the next nextTouches has ended.
+func (a *touchIDAllocator) nextTouches() {
 	a.current, a.previous = a.previous[:0], a.current
 }
 

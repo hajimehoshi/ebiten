@@ -41,8 +41,8 @@ type TouchIDAllocator struct {
 	a touchIDAllocator
 }
 
-func (a *TouchIDAllocator) NextTouchSet() {
-	a.a.nextTouchSet()
+func (a *TouchIDAllocator) NextTouches() {
+	a.a.nextTouches()
 }
 
 func (a *TouchIDAllocator) ID(platformID int) TouchID {

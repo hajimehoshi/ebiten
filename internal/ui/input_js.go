@@ -222,7 +222,7 @@ func (u *UserInterface) recoverCursorPosition() {
 
 func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
 	u.touchesInClient = u.touchesInClient[:0]
-	u.touchIDs.nextTouchSet()
+	u.touchIDs.nextTouches()
 
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {

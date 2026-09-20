@@ -27,7 +27,7 @@ func touchIDsForSets(sets [][]int) [][]ui.TouchID {
 	var a ui.TouchIDAllocator
 	var got [][]ui.TouchID
 	for _, platformIDs := range sets {
-		a.NextTouchSet()
+		a.NextTouches()
 		var ids []ui.TouchID
 		for _, platformID := range platformIDs {
 			ids = append(ids, a.ID(platformID))
