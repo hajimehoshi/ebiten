@@ -301,12 +301,16 @@ func (r *glyphRenderData) bitmap() image.Image {
 // the render data on first call. This doesn't rasterize the glyph image.
 // The actual image can still be grayscale when colored is true, e.g. for
 // an SVG document whose rasterization fails and falls back to the outline.
+// A COLRv0 glyph whose layers all use the text foreground color is not
+// colored.
 func (r *glyphRenderData) colored() bool {
 	r.realizeOnce.Do(r.realize)
 	if r.realizedBitmap != nil {
 		return r.realizedBitmapColored
 	}
-	return r.realizedSVG != nil || len(r.realizedCOLRV0Layers) > 0
+	return r.realizedSVG != nil || slices.ContainsFunc(r.realizedCOLRV0Layers, func(l colrV0Layer) bool {
+		return !l.foreground
+	})
 }
 
 // svg returns the OpenType SVG glyph description, realizing it on first
