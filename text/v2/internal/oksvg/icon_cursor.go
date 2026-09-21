@@ -89,7 +89,7 @@ func (c *IconCursor) PushStyle(attrs []xml.Attr) error {
 	// Make a copy of the top style
 	curStyle := c.StyleStack[len(c.StyleStack)-1]
 	for _, pair := range pairs {
-		kv := strings.Split(pair, ":")
+		kv := strings.SplitN(pair, ":", 2)
 		if len(kv) >= 2 {
 			k := strings.ToLower(kv[0])
 			k = strings.TrimSpace(k)
