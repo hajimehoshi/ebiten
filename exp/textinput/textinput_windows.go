@@ -36,6 +36,9 @@ type textInputImpl struct {
 
 	highSurrogate uint16
 
+	// compositing reports whether the last reported composition was non-empty.
+	compositing bool
+
 	initOnce sync.Once
 
 	err error
@@ -182,7 +185,7 @@ func (t *textInputImpl) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintpt
 			return 1
 		}
 	case _WM_IME_ENDCOMPOSITION:
-		t.send("", 0, 0, commitNone)
+		t.sendComposition("", 0, 0)
 		return 1
 	case _WM_CHAR, _WM_SYSCHAR:
 		if wParam >= 0xd800 && wParam <= 0xdbff {
@@ -234,6 +237,20 @@ func (t *textInputImpl) send(text string, startInBytes, endInBytes int, kind com
 	}
 }
 
+// sendComposition reports a composition update. An empty composition is
+// reported only after a non-empty one, and once: the input method reports a
+// cleared composition as an empty composition string, as the end of the
+// composition, or as both.
+//
+// sendComposition must be called from the main thread.
+func (t *textInputImpl) sendComposition(text string, startInBytes, endInBytes int) {
+	if text == "" && !t.compositing {
+		return
+	}
+	t.compositing = text != ""
+	t.send(text, startInBytes, endInBytes, commitNone)
+}
+
 // update must be called from the main thread.
 func (t *textInputImpl) update() (err error) {
 	if t.err != nil {
@@ -252,6 +269,7 @@ func (t *textInputImpl) update() (err error) {
 		return err
 	}
 	if len(buffer16) == 0 {
+		t.sendComposition("", 0, 0)
 		return nil
 	}
 
@@ -282,7 +300,7 @@ func (t *textInputImpl) update() (err error) {
 		}
 	}
 	text := windows.UTF16ToString(buffer16)
-	t.send(text, convertUTF16CountToByteCount(text, start16), convertUTF16CountToByteCount(text, end16), commitNone)
+	t.sendComposition(text, convertUTF16CountToByteCount(text, start16), convertUTF16CountToByteCount(text, end16))
 
 	return nil
 }

@@ -104,6 +104,37 @@ func TestComposerEndDispatchesPendingStates(t *testing.T) {
 	}
 }
 
+func TestComposerDispatchesClearedComposition(t *testing.T) {
+	d := textinput.NewComposerDriver("", "")
+	var compositions []string
+	d.Composer.OnComposition = func(c *textinput.Composition) {
+		compositions = append(compositions, c.Text())
+	}
+
+	d.Send(compositionState("にほ"))
+	if _, err := d.Composer.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if got, want := compositions, []string{"にほ"}; !slices.Equal(got, want) {
+		t.Fatalf("compositions after Update = %q, want %q", got, want)
+	}
+
+	d.Send(compositionState(""))
+	handled, err := d.Composer.Update()
+	if err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if !handled {
+		t.Error("Update() = false, want true")
+	}
+	if got, want := compositions, []string{"にほ", ""}; !slices.Equal(got, want) {
+		t.Errorf("compositions after Update = %q, want %q", got, want)
+	}
+	if !d.SessionOpen() {
+		t.Error("SessionOpen() = false, want true")
+	}
+}
+
 func TestComposerEndDispatchesUserEnding(t *testing.T) {
 	for _, tc := range []struct {
 		name    string
