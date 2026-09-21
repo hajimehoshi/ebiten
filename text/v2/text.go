@@ -344,7 +344,9 @@ func Advance(text string, face Face) float64 {
 // first line break onward is ignored, and an indexInBytes that falls on or
 // past the first line break is treated as the end of the first line.
 //
-// AdvanceAt(text, 0, face) is 0.
+// AdvanceAt(text, 0, face) is 0 when text starts with a left-to-right cluster.
+// When text starts with a right-to-left cluster, it is that cluster's right
+// side, following the bidirectional convention below.
 // AdvanceAt(text, len(text), face) is the total visual line width, the same
 // value as the deprecated [Advance].
 //

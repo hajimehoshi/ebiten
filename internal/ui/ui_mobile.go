@@ -114,7 +114,8 @@ type userInterfaceImpl struct {
 	context *context
 
 	inputState InputState
-	touches    []TouchForInput
+	touches    []touchInClient
+	touchIDs   touchIDAllocator
 
 	fpsMode  atomic.Int32
 	renderer atomic.Pointer[rendererHolder]

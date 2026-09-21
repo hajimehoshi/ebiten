@@ -17,6 +17,7 @@ package mp3_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"testing"
 
@@ -172,6 +173,39 @@ func TestSeekSeekableSource(t *testing.T) {
 			}
 			if got, want := pos, int64(len(want)); got != want {
 				t.Errorf("Seek(0, io.SeekCurrent): got: %d, want: %d", got, want)
+			}
+		})
+	}
+}
+
+func TestDecodeWithSampleRateNonSeekableSource(t *testing.T) {
+	const ragtimeMP3FrameSizeInBytes = 384
+	for _, frames := range []int{1, 10, 32} {
+		t.Run(fmt.Sprintf("frames=%d", frames), func(t *testing.T) {
+			src := resources.Ragtime_mp3[:frames*ragtimeMP3FrameSizeInBytes]
+
+			seekable, err := mp3.DecodeWithSampleRate(44100, bytes.NewReader(src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, err := io.ReadAll(seekable)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := int64(len(want)), seekable.Length(); got != want {
+				t.Errorf("io.ReadAll from a seekable source returned %d bytes, want Length() %d", got, want)
+			}
+
+			nonSeekable, err := mp3.DecodeWithSampleRate(44100, readerOnly{bytes.NewReader(src)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := io.ReadAll(nonSeekable)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Errorf("io.ReadAll from a non-seekable source returned %d bytes, want the same %d bytes as from a seekable source", len(got), len(want))
 			}
 		})
 	}

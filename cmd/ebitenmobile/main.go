@@ -22,6 +22,7 @@
 package main
 
 import (
+	"bytes"
 	_ "embed"
 	"flag"
 	"fmt"
@@ -270,23 +271,9 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 				}
 			}
 
-			w, err := os.OpenFile(filepath.Join(dir, "Modules", "module.modulemap"), os.O_WRONLY, 0644)
-			if err != nil {
-				return err
-			}
-			defer func() {
-				_ = w.Close()
-			}()
 			// The module name must be the framework name, or `@import` and Swift's `import` cannot find the module.
 			// This is also what gomobile writes (see cmd/gomobile/bind_iosapp.go).
-			var mmVals = struct {
-				Module  string
-				Headers []string
-			}{
-				Module:  frameworkName(buildO),
-				Headers: headerFiles,
-			}
-			if err := iosModuleMapTmpl.Execute(w, mmVals); err != nil {
+			if err := writeIOSModuleMap(filepath.Join(dir, "Modules", "module.modulemap"), frameworkName(buildO), headerFiles); err != nil {
 				return err
 			}
 
@@ -302,6 +289,22 @@ var iosModuleMapTmpl = template.Must(template.New("iosmmap").Parse(`framework mo
 {{end}}
     export *
 }`))
+
+// writeIOSModuleMap writes the module map for the framework module with the given headers to path.
+func writeIOSModuleMap(path string, module string, headers []string) error {
+	var mmVals = struct {
+		Module  string
+		Headers []string
+	}{
+		Module:  module,
+		Headers: headers,
+	}
+	var buf bytes.Buffer
+	if err := iosModuleMapTmpl.Execute(&buf, mmVals); err != nil {
+		return err
+	}
+	return os.WriteFile(path, buf.Bytes(), 0644)
+}
 
 func isValidJavaPackageName(name string) bool {
 	if name == "" {

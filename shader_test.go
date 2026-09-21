@@ -736,6 +736,44 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestShaderMatrixCopy(t *testing.T) {
+	const w, h = 16, 16
+
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	c := imageSrc0At(src0Pos)
+	m2 := mat2(0, 1, 1, 0)
+	m3 := mat3(0, 0, 1, 0, 1, 0, 1, 0, 0)
+	m4 := mat4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)
+	return vec4(mat2(m2)*c.rg, (mat3(m3)*c.rgb).x, (mat4(m4)*c).x)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := range h {
+		for i := range w {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x20, G: 0x10, B: 0x30, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
 // Issue #2029
 func TestShaderModVectorAndFloat(t *testing.T) {
 	const w, h = 16, 16
@@ -3221,4 +3259,53 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 	close(start)
 	wg.Wait()
+}
+
+func TestShaderFunctionAsValueInAssignment(t *testing.T) {
+	shaders := []struct {
+		Name   string
+		Shader string
+	}{
+		{
+			Name: "builtin",
+			Shader: `//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var x float = 1
+	x = abs
+	return vec4(x)
+}`,
+		},
+		{
+			Name: "user-defined",
+			Shader: `//kage:unit pixels
+
+package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var x float = 1
+	x = f
+	return vec4(x)
+}`,
+		},
+	}
+
+	for _, shader := range shaders {
+		t.Run(shader.Name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("NewShader must not panic when a function is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := ebiten.NewShader([]byte(shader.Shader)); err == nil {
+				t.Errorf("NewShader must return an error when a function is used as a value, but got nil")
+			}
+		})
+	}
 }

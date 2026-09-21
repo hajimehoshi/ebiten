@@ -108,6 +108,7 @@ type userInterfaceImpl struct {
 	origCursorXInClient float64
 	origCursorYInClient float64
 	touchesInClient     []touchInClient
+	touchIDs            touchIDAllocator
 
 	savedCursorX              float64
 	savedCursorY              float64

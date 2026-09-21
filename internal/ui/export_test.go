@@ -37,6 +37,18 @@ func (i *InputState) SetMouseButtonReleased(button MouseButton, t InputTime) {
 	i.setMouseButtonReleased(button, t)
 }
 
+type TouchIDAllocator struct {
+	a touchIDAllocator
+}
+
+func (a *TouchIDAllocator) NextTouches() {
+	a.a.nextTouches()
+}
+
+func (a *TouchIDAllocator) ID(platformID int) TouchID {
+	return a.a.id(platformID)
+}
+
 func IsConnectionReset(err error) bool {
 	return isConnectionReset(err)
 }

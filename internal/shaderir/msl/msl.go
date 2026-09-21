@@ -58,6 +58,23 @@ constexpr sampler __texelSampler(coord::pixel, filter::nearest, address::clamp_t
 template<typename T, typename U>
 T mod(T x, U y) {
 	return x - y * floor(x/y);
+}
+
+// Metal defines sign only for floating-point types. These overloads cover int and ivecN arguments.
+int sign(int x) {
+	return int(x > 0) - int(x < 0);
+}
+
+int2 sign(int2 x) {
+	return int2(x > 0) - int2(x < 0);
+}
+
+int3 sign(int3 x) {
+	return int3(x > 0) - int3(x < 0);
+}
+
+int4 sign(int4 x) {
+	return int4(x > 0) - int4(x < 0);
 }`
 }
 

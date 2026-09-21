@@ -61,4 +61,11 @@ func TestTouchForwarding(t *testing.T) {
 	guest.ReleaseTouch(2)
 	tickAndFrame(t, guest)
 	assertGreen("after move and release")
+
+	// Tick 2: touch 1 ends and a new touch begins under the same host ID within the tick. The guest must
+	// see a release and a press of two distinct touches, not one touch that moved.
+	guest.ReleaseTouch(1)
+	guest.PressTouch(1, 10.5, 12.25)
+	tickAndFrame(t, guest)
+	assertGreen("after release and press under one ID")
 }

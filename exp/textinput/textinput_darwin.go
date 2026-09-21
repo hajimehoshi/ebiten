@@ -30,6 +30,11 @@ import (
 
 type textInputImpl struct {
 	events *textInputEvents
+
+	// marked reports whether the last text the IME reported was marked text
+	// rather than a commit, so that the IME may still hold a composition.
+	// Accessed on the main thread only.
+	marked bool
 }
 
 func (t *textInputImpl) markIMEDiscardNeeded() {
@@ -46,6 +51,7 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 }
 
 func (t *textInputImpl) update(text string, startInBytes, endInBytes int, replacementStartInBytes, replacementEndInBytes int, kind commitKind) {
+	t.marked = !kind.committed() && text != ""
 	t.events.send(textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
@@ -140,14 +146,18 @@ func (t *textInputImpl) start(bounds image.Rectangle) (<-chan textInputState, fu
 	// composition would continue into this session (#3463). This runs at
 	// session start, not teardown, because a new session can begin before the
 	// previous field ends its own.
-	if ctx := tc.Send(sel_inputContext); ctx != 0 {
-		ctx.Send(sel_discardMarkedText)
-	}
+	if t.marked {
+		if ctx := tc.Send(sel_inputContext); ctx != 0 {
+			ctx.Send(sel_discardMarkedText)
+		}
+		t.marked = false
 
-	// Discarding the OS marked text leaves any Go-side queued states describing
-	// a composition that no longer exists on the OS side. Clear them so start()
-	// does not replay them into the new session as a live composition.
-	t.events.clearQueue()
+		// The queued composition states describe the discarded marked text,
+		// and replaying them would show a composition the IME no longer holds.
+		// A queued commit is text the IME delivered since the previous session
+		// ended, which the next session takes over.
+		t.events.dropQueuedCompositions()
+	}
 
 	r := objc.Send[nsRect](contentView, sel_frame)
 	// The Y direction is upward in the Cocoa coordinate system.

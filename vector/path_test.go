@@ -716,6 +716,96 @@ func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
 	}
 }
 
+func TestStrokeRoundJoin(t *testing.T) {
+	testCases := []struct {
+		name      string
+		end       image.Point
+		covered   image.Point
+		uncovered image.Point
+	}{
+		{
+			name:      "left turn",
+			end:       image.Pt(100, 20),
+			covered:   image.Pt(118, 144),
+			uncovered: image.Pt(139, 139),
+		},
+		{
+			name:      "right turn",
+			end:       image.Pt(100, 180),
+			covered:   image.Pt(118, 55),
+			uncovered: image.Pt(139, 60),
+		},
+		{
+			name:      "u-turn",
+			end:       image.Pt(20, 100),
+			covered:   image.Pt(147, 99),
+			uncovered: image.Pt(153, 99),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var p vector.Path
+			p.MoveTo(20, 100)
+			p.LineTo(100, 100)
+			p.LineTo(float32(tc.end.X), float32(tc.end.Y))
+
+			dst := ebiten.NewImage(200, 200)
+			defer dst.Deallocate()
+			op := &vector.StrokeOptions{}
+			op.Width = 100
+			op.LineJoin = vector.LineJoinRound
+			vector.StrokePath(dst, &p, op, nil)
+
+			if got, want := dst.At(tc.covered.X, tc.covered.Y), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+				t.Errorf("%v: got: %v, want: %v", tc.covered, got, want)
+			}
+			if got, want := dst.At(tc.uncovered.X, tc.uncovered.Y), (color.RGBA{}); got != want {
+				t.Errorf("%v: got: %v, want: %v", tc.uncovered, got, want)
+			}
+		})
+	}
+}
+
+func TestStrokeRoundCap(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(100, 100)
+	p.LineTo(200, 100)
+
+	dst := ebiten.NewImage(300, 200)
+	defer dst.Deallocate()
+	op := &vector.StrokeOptions{}
+	op.Width = 100
+	op.LineCap = vector.LineCapRound
+	vector.StrokePath(dst, &p, op, nil)
+
+	covered := []image.Point{
+		image.Pt(52, 99),
+		image.Pt(66, 67),
+		image.Pt(66, 132),
+		image.Pt(247, 99),
+		image.Pt(233, 67),
+		image.Pt(233, 132),
+	}
+	for _, pt := range covered {
+		if got, want := dst.At(pt.X, pt.Y), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+			t.Errorf("%v: got: %v, want: %v", pt, got, want)
+		}
+	}
+	uncovered := []image.Point{
+		image.Pt(46, 99),
+		image.Pt(59, 60),
+		image.Pt(59, 139),
+		image.Pt(253, 99),
+		image.Pt(240, 60),
+		image.Pt(240, 139),
+	}
+	for _, pt := range uncovered {
+		if got, want := dst.At(pt.X, pt.Y), (color.RGBA{}); got != want {
+			t.Errorf("%v: got: %v, want: %v", pt, got, want)
+		}
+	}
+}
+
 func TestQuadCuspIsKept(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(0, 0)
@@ -815,6 +905,104 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 
 	// The stroked cusp must agree with the stroked out-and-back path exactly.
 	if got, want := vector.PathOperationsString(&sp), vector.PathOperationsString(&lp); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestAddStrokeAfterMoveTo(t *testing.T) {
+	testCases := []struct {
+		name string
+		dst  func(p *vector.Path)
+	}{
+		{
+			name: "moveTo",
+			dst: func(p *vector.Path) {
+				p.MoveTo(5, 5)
+			},
+		},
+		{
+			name: "moveTo and close",
+			dst: func(p *vector.Path) {
+				p.MoveTo(5, 5)
+				p.Close()
+			},
+		},
+	}
+
+	var src vector.Path
+	src.MoveTo(0, 0)
+	src.LineTo(100, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+	op.GeoM.Translate(100, 100)
+
+	var stroked vector.Path
+	stroked.AddStroke(&src, op)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var dst vector.Path
+			tc.dst(&dst)
+			dst.AddStroke(&src, op)
+			if got, want := vector.PathOperationsString(&dst), vector.PathOperationsString(&stroked); got != want {
+				t.Errorf("got:\n%v\nwant:\n%v", got, want)
+			}
+		})
+	}
+}
+
+func TestAddStrokeNothingAfterMoveTo(t *testing.T) {
+	var src vector.Path
+	src.MoveTo(0, 0)
+	src.LineTo(0, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var dst vector.Path
+	dst.MoveTo(5, 5)
+	dst.Close()
+	dst.AddStroke(&src, op)
+	if got, want := vector.PathOperationsString(&dst), "MoveTo(5, 5)\nClose()\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+
+	dst.LineTo(10, 10)
+	if got, want := vector.PathOperationsString(&dst), "MoveTo(5, 5)\nClose()\nMoveTo(5, 5)\nLineTo(10, 10)\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestAddStrokeSelfAfterMoveTo(t *testing.T) {
+	var line1 vector.Path
+	line1.MoveTo(0, 0)
+	line1.LineTo(100, 0)
+
+	var line2 vector.Path
+	line2.MoveTo(0, 50)
+	line2.LineTo(100, 50)
+
+	var empty vector.Path
+	empty.MoveTo(300, 300)
+
+	var src vector.Path
+	src.AddPath(&empty, nil)
+	src.AddPath(&line1, nil)
+	src.AddPath(&empty, nil)
+	src.AddPath(&line2, nil)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var stroked vector.Path
+	stroked.AddStroke(&src, op)
+
+	var p vector.Path
+	p.AddPath(&src, nil)
+	p.MoveTo(200, 200)
+	p.AddStroke(&p, op)
+	if got, want := vector.PathOperationsString(&p), vector.PathOperationsString(&src)+vector.PathOperationsString(&stroked); got != want {
 		t.Errorf("got:\n%v\nwant:\n%v", got, want)
 	}
 }

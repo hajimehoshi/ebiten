@@ -15,11 +15,15 @@
 package text_test
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"image/color"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/go-text/typesetting/font/opentype"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -161,6 +165,116 @@ func TestGlyphColoredGrayscale(t *testing.T) {
 		if g.Colored() {
 			t.Errorf("Colored() must be false for a grayscale glyph (GID: %d)", g.GID)
 		}
+	}
+}
+
+func newCOLRv0FaceSource(t *testing.T, paletteIndices []uint16) *text.GoTextFaceSource {
+	t.Helper()
+
+	b, err := os.ReadFile(filepath.Join("testdata", "chromacheck-colr.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ld, err := opentype.NewLoader(bytes.NewReader(b))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		gid                 = 1
+		colrHeaderSize      = 14
+		baseGlyphRecordSize = 6
+	)
+	colr := binary.BigEndian.AppendUint16(nil, 0)
+	colr = binary.BigEndian.AppendUint16(colr, 1)
+	colr = binary.BigEndian.AppendUint32(colr, colrHeaderSize)
+	colr = binary.BigEndian.AppendUint32(colr, colrHeaderSize+baseGlyphRecordSize)
+	colr = binary.BigEndian.AppendUint16(colr, uint16(len(paletteIndices)))
+	colr = binary.BigEndian.AppendUint16(colr, gid)
+	colr = binary.BigEndian.AppendUint16(colr, 0)
+	colr = binary.BigEndian.AppendUint16(colr, uint16(len(paletteIndices)))
+	for _, p := range paletteIndices {
+		colr = binary.BigEndian.AppendUint16(colr, gid)
+		colr = binary.BigEndian.AppendUint16(colr, p)
+	}
+
+	var tables []opentype.Table
+	for _, tag := range ld.Tables() {
+		content, err := ld.RawTable(tag)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tag == opentype.MustNewTag("COLR") {
+			content = colr
+		}
+		tables = append(tables, opentype.Table{
+			Tag:     tag,
+			Content: content,
+		})
+	}
+
+	src, err := text.NewGoTextFaceSource(bytes.NewReader(opentype.WriteTTF(tables)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return src
+}
+
+func TestDrawCOLRv0ForegroundLayer(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		paletteIndices []uint16
+		colored        bool
+		want           color.RGBA
+	}{
+		{
+			name:           "foreground",
+			paletteIndices: []uint16{0xffff},
+			colored:        false,
+			want:           color.RGBA{G: 0xff, A: 0xff},
+		},
+		{
+			name:           "mixed",
+			paletteIndices: []uint16{0xffff, 0},
+			colored:        true,
+			want:           color.RGBA{R: 0xc8, A: 0xff},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			const (
+				str  = "\uE900"
+				size = 16
+			)
+			face := &text.GoTextFace{
+				Source: newCOLRv0FaceSource(t, tc.paletteIndices),
+				Size:   size,
+			}
+
+			glyphs := text.AppendGlyphs(nil, str, face, nil)
+			if len(glyphs) != 1 {
+				t.Fatalf("len(glyphs): got: %d, want: 1", len(glyphs))
+			}
+			if got := glyphs[0].Colored; got != tc.colored {
+				t.Errorf("Colored: got: %t, want: %t", got, tc.colored)
+			}
+			lazyGlyphs := text.AppendLazyGlyphs(nil, str, face, nil)
+			if len(lazyGlyphs) != 1 {
+				t.Fatalf("len(lazyGlyphs): got: %d, want: 1", len(lazyGlyphs))
+			}
+			if got := lazyGlyphs[0].Colored(); got != tc.colored {
+				t.Errorf("Colored(): got: %t, want: %t", got, tc.colored)
+			}
+
+			dst := ebiten.NewImage(size*2, size*2)
+			defer dst.Deallocate()
+			op := &text.DrawOptions{}
+			op.ColorScale.ScaleWithColor(color.RGBA{G: 0xff, A: 0xff})
+			text.Draw(dst, str, face, op)
+			m := face.Metrics()
+			if got := dst.At(size/2, int(m.HAscent)-size/2); got != tc.want {
+				t.Errorf("Draw with a green color scale: got: %v, want: %v", got, tc.want)
+			}
+		})
 	}
 }
 

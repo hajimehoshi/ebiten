@@ -73,8 +73,8 @@ func (s *TextInputEvents) End() {
 	s.end()
 }
 
-func (s *TextInputEvents) ClearQueue() {
-	s.clearQueue()
+func (s *TextInputEvents) DropQueuedCompositions() {
+	s.dropQueuedCompositions()
 }
 
 func (s *TextInputEvents) Send(state TextInputState) bool {

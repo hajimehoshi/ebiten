@@ -1409,6 +1409,9 @@ func (g *GuestSession) handleTextInputEnd(msg *vmprotocol.GuestMessage) {
 }
 
 // PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.
+//
+// id identifies the touch to MoveTouch and ReleaseTouch. The guest assigns the touch its own
+// [ebiten.TouchID].
 func (g *GuestSession) PressTouch(id ebiten.TouchID, x, y float64) {
 	msg := g.takeMessage()
 	msg.Kind = vmprotocol.HostMessageKindPressTouch

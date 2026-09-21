@@ -56,10 +56,11 @@ func (u *UserInterface) updateInputStateForFrameImpl() error {
 	defer u.mu.Unlock()
 
 	u.inputState.Touches = u.inputState.Touches[:0]
+	u.touchIDs.nextTouches()
 	for _, t := range u.nativeTouches {
 		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), theMonitor.DeviceScaleFactor())
 		u.inputState.Touches = append(u.inputState.Touches, Touch{
-			ID: TouchID(t.id),
+			ID: u.touchIDs.id(int(t.id)),
 			X:  x,
 			Y:  y,
 		})

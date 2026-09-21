@@ -41,12 +41,6 @@ var (
 	stringNumLock  = js.ValueOf("NumLock")
 )
 
-type touchInClient struct {
-	id TouchID
-	x  float64
-	y  float64
-}
-
 func jsCodeToID(code js.Value) Key {
 	// js.Value cannot be used as a map key.
 	// As the number of keys is around 100, just a dumb loop should work.
@@ -228,12 +222,13 @@ func (u *UserInterface) recoverCursorPosition() {
 
 func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
 	u.touchesInClient = u.touchesInClient[:0]
+	u.touchIDs.nextTouches()
 
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {
 		t := touches.Call("item", i)
 		u.touchesInClient = append(u.touchesInClient, touchInClient{
-			id: TouchID(t.Get("identifier").Int()),
+			id: u.touchIDs.id(t.Get("identifier").Int()),
 			x:  t.Get("clientX").Float(),
 			y:  t.Get("clientY").Float(),
 		})

@@ -181,6 +181,11 @@ func (n *nativeGamepadXbox) close() {
 }
 
 func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
+	// The device is released on disconnection.
+	if n.gameInputDevice == nil {
+		return nil
+	}
+
 	gameInput := gamepads.native.(*nativeGamepadsXbox).gameInput
 	r, err := gameInput.GetCurrentReading(_GameInputKindGamepad, n.gameInputDevice)
 	if err != nil {
@@ -303,6 +308,11 @@ func (n *nativeGamepadXbox) hatState(hat int) int {
 }
 
 func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// The device is released on disconnection, and a caller may still hold the gamepad.
+	if n.gameInputDevice == nil {
+		return
+	}
+
 	strongMagnitude = mathutil.Clamp01(strongMagnitude)
 	weakMagnitude = mathutil.Clamp01(weakMagnitude)
 

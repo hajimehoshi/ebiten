@@ -34,7 +34,7 @@ var (
 	inputMu sync.Mutex
 
 	keyEvents []ui.KeyEvent
-	touches   = map[ui.TouchID]position{}
+	touches   = map[int]position{}
 
 	// capsLock and numLock stay unknown until a physical keyboard reports them.
 	capsLock ui.LockKeyState

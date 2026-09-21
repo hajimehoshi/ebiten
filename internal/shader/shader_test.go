@@ -317,6 +317,67 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		})
 	}
 }
+func TestCompileFunctionAsValue(t *testing.T) {
+	cases := []struct {
+		Name string
+		Body string
+	}{
+		{
+			Name: "assignment",
+			Body: "var x float; x = f; return vec4(x)",
+		},
+		{
+			Name: "assignment builtin",
+			Body: "var x float; x = abs; return vec4(x)",
+		},
+		{
+			Name: "composite literal",
+			Body: "a := [2]float{f, 1}; return vec4(a[0])",
+		},
+		{
+			Name: "index",
+			Body: "var a [2]float; return vec4(a[f])",
+		},
+		{
+			Name: "argument",
+			Body: "return vec4(abs(f))",
+		},
+		{
+			Name: "binary operand",
+			Body: "return vec4(f + 1)",
+		},
+		{
+			Name: "return",
+			Body: "return f",
+		},
+		{
+			Name: "condition",
+			Body: "if f { return vec4(0) }; return vec4(1)",
+		},
+	}
+	for _, c := range cases {
+		src := []byte(fmt.Sprintf(`package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+}`, c.Body))
+		t.Run(c.Name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic when a function is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile(src, "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error when a function is used as a value, but got nil")
+			}
+		})
+	}
+}
+
 func TestCompileHugeShift(t *testing.T) {
 	src := `package main
 

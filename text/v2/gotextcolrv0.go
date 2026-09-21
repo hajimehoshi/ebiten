@@ -32,6 +32,10 @@ import (
 type colrV0Layer struct {
 	segments []opentype.Segment
 	color    color.Color
+
+	// foreground is true when the layer is filled with the text
+	// foreground color rather than a palette color.
+	foreground bool
 }
 
 // appendCOLRV0Layers converts COLRv0 layer records into colrV0Layers with
@@ -49,9 +53,11 @@ func (g *GoTextFaceSource) appendCOLRV0Layers(dst []colrV0Layer, layers tables.P
 		}
 
 		// A palette index of 0xFFFF means the text foreground color.
-		// White is used so that the usual color scaling applies.
+		// See https://learn.microsoft.com/en-us/typography/opentype/spec/colr#baseglyph-and-layer-records.
+		// Such a layer is rasterized in white (see glyphRenderData.colored).
 		var clr color.Color = color.White
-		if layer.PaletteIndex != 0xffff {
+		foreground := layer.PaletteIndex == 0xffff
+		if !foreground {
 			if len(palette) == 0 || int(layer.PaletteIndex) >= len(palette[0]) {
 				continue
 			}
@@ -68,8 +74,9 @@ func (g *GoTextFaceSource) appendCOLRV0Layers(dst []colrV0Layer, layers tables.P
 			}
 		}
 		dst = append(dst, colrV0Layer{
-			segments: segs,
-			color:    clr,
+			segments:   segs,
+			color:      clr,
+			foreground: foreground,
 		})
 	}
 	return dst

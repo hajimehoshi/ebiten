@@ -94,6 +94,13 @@ type remoteBackend struct {
 	// updateInputStateForFrame, like the cursor.
 	rawTouches []rawTouch
 
+	// touchIDs issues the IDs the game sees for the host's IDs. A host is not supposed to reuse an ID
+	// for a later touch, but that is not guaranteed.
+	touchIDs touchIDAllocator
+
+	// platformTouchIDsBuf is reused by updateTouchIDs.
+	platformTouchIDsBuf []int
+
 	// outsideWidth and outsideHeight are the host-supplied outside size, in device-independent
 	// pixels. screenWidth and screenHeight are the host-supplied size of the screen the guest
 	// renders into, in pixels. scale is the host's device scale factor, pulled per tick.
@@ -316,11 +323,11 @@ func (r *remoteBackend) serveLoop(dec *vmprotocol.Decoder, enc *vmprotocol.Encod
 		case vmprotocol.HostMessageKindUpdateGamepads:
 			r.updateGamepads(msg.GamepadStates)
 		case vmprotocol.HostMessageKindPressTouch:
-			r.setTouch(TouchID(msg.Code), msg.X, msg.Y)
+			r.setTouch(msg.Code, msg.X, msg.Y)
 		case vmprotocol.HostMessageKindMoveTouch:
-			r.setTouch(TouchID(msg.Code), msg.X, msg.Y)
+			r.setTouch(msg.Code, msg.X, msg.Y)
 		case vmprotocol.HostMessageKindReleaseTouch:
-			r.releaseTouch(TouchID(msg.Code))
+			r.releaseTouch(msg.Code)
 		case vmprotocol.HostMessageKindTextInputState:
 			vmguest.RunTextInputStateHandler(msg.TextInputID, msg.TextInputState)
 		case vmprotocol.HostMessageKindEndTextInput:
@@ -485,7 +492,7 @@ func (r *remoteBackend) updateInputStateForFrame(deviceScaleFactor float64) erro
 			continue
 		}
 		r.inputState.Touches = append(r.inputState.Touches, Touch{
-			ID: t.id,
+			ID: r.touchIDs.id(t.id),
 			X:  tx,
 			Y:  ty,
 		})
@@ -555,15 +562,15 @@ func (r *remoteBackend) typeRune(c rune) {
 // rawTouch is one active touch's position, in outside-screen device-independent pixels, pending
 // translation to logical coordinates in updateInputStateForFrame.
 type rawTouch struct {
-	id TouchID
+	id int
 	x  float64
 	y  float64
 }
 
-// setTouch starts or moves the touch identified by id. A press and a move are applied identically: the
-// touch set is membership-based (just-pressed and just-released are recovered by the guest's own
-// inpututil diffing the set across ticks), so both upsert the position.
-func (r *remoteBackend) setTouch(id TouchID, x, y float64) {
+// setTouch starts or moves the touch the host identifies by id. A press and a move are applied
+// identically: the touch set is membership-based (just-pressed and just-released are recovered by the
+// guest's own inpututil diffing the set across ticks), so both upsert the position.
+func (r *remoteBackend) setTouch(id int, x, y float64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.rawTouches {
@@ -574,18 +581,30 @@ func (r *remoteBackend) setTouch(id TouchID, x, y float64) {
 		}
 	}
 	r.rawTouches = append(r.rawTouches, rawTouch{id: id, x: x, y: y})
+	r.updateTouchIDs()
 }
 
-// releaseTouch ends the touch identified by id. Releasing an unknown touch is a no-op.
-func (r *remoteBackend) releaseTouch(id TouchID) {
+// releaseTouch ends the touch the host identifies by id. Releasing an unknown touch is a no-op.
+func (r *remoteBackend) releaseTouch(id int) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := range r.rawTouches {
 		if r.rawTouches[i].id == id {
 			r.rawTouches = slices.Delete(r.rawTouches, i, i+1)
+			r.updateTouchIDs()
 			return
 		}
 	}
+}
+
+// updateTouchIDs reports the touches that are down to the allocator, so that a host ID pressed again
+// after a release becomes a new touch. r.mu must be held.
+func (r *remoteBackend) updateTouchIDs() {
+	r.platformTouchIDsBuf = r.platformTouchIDsBuf[:0]
+	for i := range r.rawTouches {
+		r.platformTouchIDsBuf = append(r.platformTouchIDsBuf, r.rawTouches[i].id)
+	}
+	r.touchIDs.setTouchesFromPlatformIDs(r.platformTouchIDsBuf)
 }
 
 // updateGamepads replaces the connected gamepads with the host's snapshot. Gamepads are a global

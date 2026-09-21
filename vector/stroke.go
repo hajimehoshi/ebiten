@@ -88,14 +88,21 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		return
 	}
 
-	origN := len(p.subPaths)
 	// p might be the same as src. Use srcN to avoid modifying the overlapped region.
 	srcN := len(src.subPaths)
+
+	// origN is the index of the first sub-path added by this call. MoveTo does not always add a new sub-path, so
+	// origN is determined right after the first MoveTo.
+	origN := -1
 
 	// Normalize each source sub-path to simplify the logic to generate a stroke path.
 	// Normalize into a scratch sub-path so that src is not modified. p.opsBuf is reused as its operations.
 	normalized := subPath{ops: p.opsBuf[:0]}
 	for i := range src.subPaths[:srcN] {
+		// When p is src, the sub-paths at origN and later are stroke output, not sources.
+		if src == p && origN >= 0 && i >= origN {
+			break
+		}
 		normalizeSubPath(&normalized, &src.subPaths[i])
 		if len(normalized.ops) == 0 {
 			continue
@@ -103,6 +110,12 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 
 		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&normalized, options.Width/2)
 		p.MoveTo(sp4.x, sp4.y)
+		if origN < 0 {
+			// The last sub-path is the first stroke output whether MoveTo added it or reused an empty one.
+			// normalized has an op here, so the outline gets ops. Even if the outline stayed empty, the next
+			// MoveTo would reuse the same sub-path, so origN would still hold.
+			origN = len(p.subPaths) - 1
+		}
 
 		appendParalleledPathFromSubPath(p, &normalized, &options.StrokeOptions)
 		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&normalized, options.Width/2)
@@ -140,7 +153,7 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 	}
 	p.opsBuf = normalized.ops[:0]
 
-	if options.GeoM != (ebiten.GeoM{}) {
+	if origN >= 0 && options.GeoM != (ebiten.GeoM{}) {
 		for i, subPath := range p.subPaths[origN:] {
 			x, y := options.GeoM.Apply(float64(subPath.start.x), float64(subPath.start.y))
 			p.subPaths[origN+i].start = point{x: float32(x), y: float32(y)}
@@ -428,16 +441,17 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 	case LineJoinBevel:
 		strokePath.LineTo(p1.x, p1.y)
 	case LineJoinRound:
-		dir := vec2{
-			x: dir0.x - dir1.x,
-			y: dir0.y - dir1.y,
-		}.norm()
-		cp := p.add(dir.mul(options.Width / 2))
-		cp0 := crossingPointForTwoLines(p0, p0.add(dir0), cp, cp.add(dir.perp()))
-		cp1 := crossingPointForTwoLines(p1, p1.add(dir1), cp, cp.add(dir.perp()))
-		if isRegularF32(cp.x) && isRegularF32(cp.y) && isRegularF32(cp0.x) && isRegularF32(cp0.y) && isRegularF32(cp1.x) && isRegularF32(cp1.y) {
-			strokePath.ArcTo(cp0.x, cp0.y, cp.x, cp.y, options.Width/2)
-			strokePath.ArcTo(cp1.x, cp1.y, p1.x, p1.y, options.Width/2)
+		// Sweep an arc around p from p0 to p1 on the outer side of the turn.
+		// Derive the sweep angle from the directions, as the atan2 of p0 and p1
+		// can straddle the ±π branch cut at a nearly straight joint.
+		// math.Abs clears a negative zero, so a cusp sweeps π rather than -π.
+		// The explicit conversions avoid FMSUBS.
+		a0 := float32(math.Atan2(float64(v0.y), float64(v0.x)))
+		cross := math.Abs(float64(float32(dir0.x*dir1.y) - float32(dir0.y*dir1.x)))
+		dot := float64(dir0.x*dir1.x + dir0.y*dir1.y)
+		a1 := a0 - float32(math.Atan2(cross, dot))
+		if isRegularF32(a0) && isRegularF32(a1) {
+			strokePath.Arc(p.x, p.y, options.Width/2, a0, a1, CounterClockwise)
 		} else {
 			strokePath.LineTo(p1.x, p1.y)
 		}
