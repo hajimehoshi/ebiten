@@ -207,10 +207,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 	case *ast.CallExpr:
 		var (
-			callee shaderir.Expr
-			args   []shaderir.Expr
-			argts  []shaderir.Type
-			stmts  []shaderir.Stmt
+			args  []shaderir.Expr
+			argts []shaderir.Type
+			stmts []shaderir.Stmt
 		)
 
 		// Parse the argument first for the order of the statements.
@@ -224,10 +223,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				return nil, nil, nil, false
 			}
 			for _, expr := range es {
-				if expr.Type == shaderir.FunctionExpr || expr.Type == shaderir.BuiltinFuncExpr {
-					cs.addError(e.Pos(), fmt.Sprintf("function name cannot be an argument: %s", e.Fun))
-					return nil, nil, nil, false
-				}
 				if expr.Type == shaderir.Blank {
 					cs.addError(e.Pos(), "cannot use _ as value")
 					return nil, nil, nil, false
@@ -238,17 +233,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			stmts = append(stmts, ss...)
 		}
 
-		// TODO: When len(ss) is not 0?
-		es, _, ss, ok := cs.parseExpr(block, fname, e.Fun, markLocalVariableUsed)
+		callee, ok := cs.parseCallee(block, e.Fun)
 		if !ok {
 			return nil, nil, nil, false
 		}
-		if len(es) != 1 {
-			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a callee: %s", e.Fun))
-			return nil, nil, nil, false
-		}
-		callee = es[0]
-		stmts = append(stmts, ss...)
 
 		// For built-in functions, we can call this in this position. Return an expression for the function
 		// call.
@@ -856,11 +844,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}, []shaderir.Type{finalType}, stmts, true
 		}
 
-		if callee.Type != shaderir.FunctionExpr {
-			cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e.Fun))
-			return nil, nil, nil, false
-		}
-
 		f := cs.funcs[callee.Index]
 
 		if len(f.ir.InParams) < len(args) {
@@ -959,68 +942,15 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				},
 			}, []shaderir.Type{{}}, nil, true
 		}
-		if i, t, ok := block.findLocalVariable(e.Name, markLocalVariableUsed); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.LocalVariable,
-					Index: i,
-				},
-			}, []shaderir.Type{t}, nil, true
+		expr, t, ok := cs.parseIdent(block, e, markLocalVariableUsed)
+		if !ok {
+			return nil, nil, nil, false
 		}
-		if c, ok := block.findConstant(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.NumberExpr,
-					Const: c.value,
-				},
-			}, []shaderir.Type{c.typ}, nil, true
+		if expr.Type == shaderir.FunctionExpr || expr.Type == shaderir.BuiltinFuncExpr {
+			cs.addError(e.Pos(), fmt.Sprintf("function %s is used as a value without a call", e.Name))
+			return nil, nil, nil, false
 		}
-		if i, ok := cs.findFunction(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.FunctionExpr,
-					Index: i,
-				},
-			}, nil, nil, true
-		}
-		if i, ok := cs.findUniformVariable(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.UniformVariable,
-					Index: i,
-				},
-			}, []shaderir.Type{cs.ir.Uniforms[i]}, nil, true
-		}
-		if f, ok := shaderir.ParseBuiltinFunc(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:        shaderir.BuiltinFuncExpr,
-					BuiltinFunc: f,
-				},
-			}, nil, nil, true
-		}
-		if m := textureVariableRe.FindStringSubmatch(e.Name); m != nil {
-			i, _ := strconv.Atoi(m[1])
-			if i >= cs.ir.TextureCount {
-				cs.addError(e.Pos(), fmt.Sprintf("texture index out of range: %s", e.Name))
-				return nil, nil, nil, false
-			}
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.TextureVariable,
-					Index: i,
-				},
-			}, []shaderir.Type{{Main: shaderir.Texture}}, nil, true
-		}
-		if e.Name == "true" || e.Name == "false" {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.NumberExpr,
-					Const: gconstant.MakeBool(e.Name == "true"),
-				},
-			}, []shaderir.Type{{Main: shaderir.Bool}}, nil, true
-		}
-		cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
+		return []shaderir.Expr{expr}, []shaderir.Type{t}, nil, true
 
 	case *ast.ParenExpr:
 		return cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
@@ -1337,6 +1267,85 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		cs.addError(e.Pos(), fmt.Sprintf("expression not implemented: %#v", e))
 	}
 	return nil, nil, nil, false
+}
+
+// parseIdent resolves a non-blank identifier in the scope of block.
+//
+// A function name resolves to an expression without a type.
+func (cs *compileState) parseIdent(block *block, e *ast.Ident, markLocalVariableUsed bool) (shaderir.Expr, shaderir.Type, bool) {
+	if i, t, ok := block.findLocalVariable(e.Name, markLocalVariableUsed); ok {
+		return shaderir.Expr{
+			Type:  shaderir.LocalVariable,
+			Index: i,
+		}, t, true
+	}
+	if c, ok := block.findConstant(e.Name); ok {
+		return shaderir.Expr{
+			Type:  shaderir.NumberExpr,
+			Const: c.value,
+		}, c.typ, true
+	}
+	if i, ok := cs.findFunction(e.Name); ok {
+		return shaderir.Expr{
+			Type:  shaderir.FunctionExpr,
+			Index: i,
+		}, shaderir.Type{}, true
+	}
+	if i, ok := cs.findUniformVariable(e.Name); ok {
+		return shaderir.Expr{
+			Type:  shaderir.UniformVariable,
+			Index: i,
+		}, cs.ir.Uniforms[i], true
+	}
+	if f, ok := shaderir.ParseBuiltinFunc(e.Name); ok {
+		return shaderir.Expr{
+			Type:        shaderir.BuiltinFuncExpr,
+			BuiltinFunc: f,
+		}, shaderir.Type{}, true
+	}
+	if m := textureVariableRe.FindStringSubmatch(e.Name); m != nil {
+		i, _ := strconv.Atoi(m[1])
+		if i >= cs.ir.TextureCount {
+			cs.addError(e.Pos(), fmt.Sprintf("texture index out of range: %s", e.Name))
+			return shaderir.Expr{}, shaderir.Type{}, false
+		}
+		return shaderir.Expr{
+			Type:  shaderir.TextureVariable,
+			Index: i,
+		}, shaderir.Type{Main: shaderir.Texture}, true
+	}
+	if e.Name == "true" || e.Name == "false" {
+		return shaderir.Expr{
+			Type:  shaderir.NumberExpr,
+			Const: gconstant.MakeBool(e.Name == "true"),
+		}, shaderir.Type{Main: shaderir.Bool}, true
+	}
+	cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
+	return shaderir.Expr{}, shaderir.Type{}, false
+}
+
+// parseCallee resolves the callee of a call expression to a function expression.
+func (cs *compileState) parseCallee(block *block, e ast.Expr) (shaderir.Expr, bool) {
+	switch e := e.(type) {
+	case *ast.ParenExpr:
+		return cs.parseCallee(block, e.X)
+	case *ast.Ident:
+		if e.Name == "_" {
+			cs.addError(e.Pos(), "cannot use _ as value")
+			return shaderir.Expr{}, false
+		}
+		expr, _, ok := cs.parseIdent(block, e, false)
+		if !ok {
+			return shaderir.Expr{}, false
+		}
+		if expr.Type != shaderir.FunctionExpr && expr.Type != shaderir.BuiltinFuncExpr {
+			cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e.Name))
+			return shaderir.Expr{}, false
+		}
+		return expr, true
+	}
+	cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e))
+	return shaderir.Expr{}, false
 }
 
 func isValidSwizzling(swizzling string, t shaderir.Type) bool {
