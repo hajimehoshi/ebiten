@@ -104,6 +104,7 @@ type goTextGlyphImageCacheKey struct {
 	xoffset    fixed.Int26_6
 	yoffset    fixed.Int26_6
 	variations string
+	sideways   bool
 }
 
 // glyphImageCachesSoftLimit indicates the soft limit of the number of the caches, one per face size.

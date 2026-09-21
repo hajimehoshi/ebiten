@@ -97,6 +97,62 @@ func TestGlyphImageCacheSizeEviction(t *testing.T) {
 	}
 }
 
+func TestGlyphImageCacheSideways(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "MPLUS1p-Regular.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pixels := func(img *ebiten.Image) []byte {
+		if img == nil {
+			return nil
+		}
+		b := img.Bounds()
+		pix := make([]byte, 4*b.Dx()*b.Dy())
+		img.ReadPixels(pix)
+		return pix
+	}
+
+	const (
+		str  = "L"
+		size = 200
+	)
+	for _, horizontalFirst := range []bool{true, false} {
+		src := newGoTextFaceSourceForTest(t, data)
+		horizontal := &text.GoTextFace{
+			Source: src,
+			Size:   size,
+		}
+		vertical := &text.GoTextFace{
+			Source:    src,
+			Size:      size,
+			Direction: text.DirectionTopToBottomAndLeftToRight,
+		}
+		var hg, vg []text.Glyph
+		if horizontalFirst {
+			hg = text.AppendGlyphs(nil, str, horizontal, nil)
+			vg = text.AppendGlyphs(nil, str, vertical, nil)
+		} else {
+			vg = text.AppendGlyphs(nil, str, vertical, nil)
+			hg = text.AppendGlyphs(nil, str, horizontal, nil)
+		}
+		if len(hg) != 1 || len(vg) != 1 {
+			t.Fatalf("got %d horizontal and %d vertical glyphs, want 1 each", len(hg), len(vg))
+		}
+		if hg[0].Image == nil || vg[0].Image == nil {
+			t.Fatal("a glyph image is nil")
+		}
+		hb := hg[0].Image.Bounds()
+		vb := vg[0].Image.Bounds()
+		if hb.Dx() != vb.Dy() || hb.Dy() != vb.Dx() {
+			t.Errorf("horizontal first: %t: vertical glyph image size %dx%d is not the horizontal size %dx%d rotated", horizontalFirst, vb.Dx(), vb.Dy(), hb.Dx(), hb.Dy())
+		}
+		if bytes.Equal(pixels(hg[0].Image), pixels(vg[0].Image)) {
+			t.Errorf("horizontal first: %t: the vertical glyph image must not be the horizontal glyph image", horizontalFirst)
+		}
+	}
+}
+
 // variableFontData returns the bytes of a font with variation axes.
 func variableFontData(t *testing.T) []byte {
 	t.Helper()
