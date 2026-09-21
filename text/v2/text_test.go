@@ -1078,16 +1078,17 @@ func TestAdvanceAtRTLLineUnderChunker(t *testing.T) {
 	//   א=0 ב=2 .=4 ' '=5 ג=6 ד=8 .=10
 	const s = "אב. גד."
 
-	// Sample two RTL bytes inside the single L1 chunk (AdvanceAt(0)
-	// is hardcoded to 0, so it can't witness the right-edge
-	// convention of an RTL byte).
+	leadAlef := text.AdvanceAt(s, 0, face)  // leading edge of א
 	leadBet := text.AdvanceAt(s, 2, face)   // leading edge of ב
 	leadDaled := text.AdvanceAt(s, 8, face) // leading edge of ד
 
-	// ב is logically before ד within the RTL run, so visually ב
-	// sits to the right of ד. Under the leading-edge convention for
-	// RTL, the leading edge of ב must therefore lie strictly to the
-	// right of the leading edge of ד.
+	// א is logically before ב, which is before ד, within the RTL run,
+	// so each sits visually to the right of the next. Under the
+	// leading-edge convention for RTL, the leading edges must therefore
+	// decrease strictly in logical order, including at index 0.
+	if !(leadAlef > leadBet+eps) {
+		t.Errorf("RTL layout: leading(א)=%v should be > leading(ב)=%v", leadAlef, leadBet)
+	}
 	if !(leadBet > leadDaled+eps) {
 		t.Errorf("RTL layout: leading(ב)=%v should be > leading(ד)=%v", leadBet, leadDaled)
 	}

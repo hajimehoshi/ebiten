@@ -647,7 +647,7 @@ func buildAdvances(outputs []shaping.Output, text string) []fixed.Int26_6 {
 func (g *GoTextFaceSource) advanceAt(text string, face *GoTextFace, indexInBytes int) fixed.Int26_6 {
 	g.copyCheck()
 
-	if indexInBytes <= 0 {
+	if indexInBytes < 0 {
 		return 0
 	}
 

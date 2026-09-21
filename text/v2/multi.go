@@ -16,6 +16,8 @@ package text
 
 import (
 	"errors"
+	"iter"
+	"slices"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
@@ -90,25 +92,28 @@ func (m *MultiFace) Metrics() Metrics {
 func (m *MultiFace) advanceAt(text string, indexInBytes int) float64 {
 	firstLineLen := textutil.FirstLineLen(text)
 	indexInBytes = min(indexInBytes, firstLineLen)
-	if indexInBytes <= 0 {
+	if indexInBytes < 0 {
 		return 0
 	}
 	firstLine := text[:firstLineLen]
+	chunks := m.splitText(firstLine)
+
+	// The caret belongs to the chunk containing the byte at indexInBytes.
+	// No chunk contains it when indexInBytes is the end of the line.
+	target := slices.IndexFunc(chunks, func(c textChunk) bool {
+		return indexInBytes < c.textEndIndex
+	})
+
+	// Sum the widths of the chunks laid out before the target, then add the caret
+	// position within the target as its own face reports it.
 	var a float64
-	for _, c := range m.splitText(firstLine) {
-		if c.faceIndex == -1 {
-			continue
-		}
+	for i, c := range m.chunksInVisualOrder(chunks) {
 		f := m.faces[c.faceIndex]
 		chunk := firstLine[c.textStartIndex:c.textEndIndex]
-		if c.textEndIndex <= indexInBytes {
-			a += f.advanceAt(chunk, len(chunk))
-			continue
+		if i == target {
+			return a + f.advanceAt(chunk, indexInBytes-c.textStartIndex)
 		}
-		if c.textStartIndex < indexInBytes {
-			a += f.advanceAt(chunk, indexInBytes-c.textStartIndex)
-		}
-		break
+		a += f.advanceAt(chunk, len(chunk))
 	}
 	return a
 }
@@ -125,29 +130,22 @@ func (m *MultiFace) hasGlyph(r rune) bool {
 
 // appendLazyGlyphsForLine implements Face.
 func (m *MultiFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
-	for _, c := range m.splitText(line) {
-		if c.faceIndex == -1 {
-			continue
-		}
+	for _, c := range m.chunksInVisualOrder(m.splitText(line)) {
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
-		glyphs = f.appendLazyGlyphsForLine(glyphs, t, indexOffset, originX, originY, keepGlyph)
+		glyphs = f.appendLazyGlyphsForLine(glyphs, t, indexOffset+c.textStartIndex, originX, originY, keepGlyph)
 		if a := f.advanceAt(t, len(t)); f.direction().isHorizontal() {
 			originX += a
 		} else {
 			originY += a
 		}
-		indexOffset += len(t)
 	}
 	return glyphs
 }
 
 // appendVectorPathForLine implements Face.
 func (m *MultiFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
-	for _, c := range m.splitText(line) {
-		if c.faceIndex == -1 {
-			continue
-		}
+	for _, c := range m.chunksInVisualOrder(m.splitText(line)) {
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
 		f.appendVectorPathForLine(path, t, originX, originY)
@@ -175,6 +173,16 @@ type textChunk struct {
 	textStartIndex int
 	textEndIndex   int
 	faceIndex      int
+}
+
+// chunksInVisualOrder yields the chunks with their logical indices in layout order.
+// A face lays out a line from the origin toward the positive direction, so a horizontal
+// right-to-left face places the logically first chunk last.
+func (m *MultiFace) chunksInVisualOrder(chunks []textChunk) iter.Seq2[int, textChunk] {
+	if m.direction() == DirectionRightToLeft {
+		return slices.Backward(chunks)
+	}
+	return slices.All(chunks)
 }
 
 func (m *MultiFace) splitText(text string) []textChunk {
