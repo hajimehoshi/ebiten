@@ -909,6 +909,104 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	}
 }
 
+func TestAddStrokeAfterMoveTo(t *testing.T) {
+	testCases := []struct {
+		name string
+		dst  func(p *vector.Path)
+	}{
+		{
+			name: "moveTo",
+			dst: func(p *vector.Path) {
+				p.MoveTo(5, 5)
+			},
+		},
+		{
+			name: "moveTo and close",
+			dst: func(p *vector.Path) {
+				p.MoveTo(5, 5)
+				p.Close()
+			},
+		},
+	}
+
+	var src vector.Path
+	src.MoveTo(0, 0)
+	src.LineTo(100, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+	op.GeoM.Translate(100, 100)
+
+	var stroked vector.Path
+	stroked.AddStroke(&src, op)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var dst vector.Path
+			tc.dst(&dst)
+			dst.AddStroke(&src, op)
+			if got, want := vector.PathOperationsString(&dst), vector.PathOperationsString(&stroked); got != want {
+				t.Errorf("got:\n%v\nwant:\n%v", got, want)
+			}
+		})
+	}
+}
+
+func TestAddStrokeNothingAfterMoveTo(t *testing.T) {
+	var src vector.Path
+	src.MoveTo(0, 0)
+	src.LineTo(0, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var dst vector.Path
+	dst.MoveTo(5, 5)
+	dst.Close()
+	dst.AddStroke(&src, op)
+	if got, want := vector.PathOperationsString(&dst), "MoveTo(5, 5)\nClose()\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+
+	dst.LineTo(10, 10)
+	if got, want := vector.PathOperationsString(&dst), "MoveTo(5, 5)\nClose()\nMoveTo(5, 5)\nLineTo(10, 10)\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestAddStrokeSelfAfterMoveTo(t *testing.T) {
+	var line1 vector.Path
+	line1.MoveTo(0, 0)
+	line1.LineTo(100, 0)
+
+	var line2 vector.Path
+	line2.MoveTo(0, 50)
+	line2.LineTo(100, 50)
+
+	var empty vector.Path
+	empty.MoveTo(300, 300)
+
+	var src vector.Path
+	src.AddPath(&empty, nil)
+	src.AddPath(&line1, nil)
+	src.AddPath(&empty, nil)
+	src.AddPath(&line2, nil)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var stroked vector.Path
+	stroked.AddStroke(&src, op)
+
+	var p vector.Path
+	p.AddPath(&src, nil)
+	p.MoveTo(200, 200)
+	p.AddStroke(&p, op)
+	if got, want := vector.PathOperationsString(&p), vector.PathOperationsString(&src)+vector.PathOperationsString(&stroked); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
 func TestAddStrokeAllocs(t *testing.T) {
 	testCases := []struct {
 		name  string

@@ -88,14 +88,21 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		return
 	}
 
-	origN := len(p.subPaths)
 	// p might be the same as src. Use srcN to avoid modifying the overlapped region.
 	srcN := len(src.subPaths)
+
+	// origN is the index of the first sub-path added by this call. MoveTo does not always add a new sub-path, so
+	// origN is determined right after the first MoveTo.
+	origN := -1
 
 	// Normalize each source sub-path to simplify the logic to generate a stroke path.
 	// Normalize into a scratch sub-path so that src is not modified. p.opsBuf is reused as its operations.
 	normalized := subPath{ops: p.opsBuf[:0]}
 	for i := range src.subPaths[:srcN] {
+		// When p is src, the sub-paths at origN and later are stroke output, not sources.
+		if src == p && origN >= 0 && i >= origN {
+			break
+		}
 		normalizeSubPath(&normalized, &src.subPaths[i])
 		if len(normalized.ops) == 0 {
 			continue
@@ -103,6 +110,12 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 
 		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&normalized, options.Width/2)
 		p.MoveTo(sp4.x, sp4.y)
+		if origN < 0 {
+			// The last sub-path is the first stroke output whether MoveTo added it or reused an empty one.
+			// normalized has an op here, so the outline gets ops. Even if the outline stayed empty, the next
+			// MoveTo would reuse the same sub-path, so origN would still hold.
+			origN = len(p.subPaths) - 1
+		}
 
 		appendParalleledPathFromSubPath(p, &normalized, &options.StrokeOptions)
 		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&normalized, options.Width/2)
@@ -140,7 +153,7 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 	}
 	p.opsBuf = normalized.ops[:0]
 
-	if options.GeoM != (ebiten.GeoM{}) {
+	if origN >= 0 && options.GeoM != (ebiten.GeoM{}) {
 		for i, subPath := range p.subPaths[origN:] {
 			x, y := options.GeoM.Apply(float64(subPath.start.x), float64(subPath.start.y))
 			p.subPaths[origN+i].start = point{x: float32(x), y: float32(y)}
