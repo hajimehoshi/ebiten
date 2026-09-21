@@ -101,7 +101,6 @@ type controllerState struct {
 	buttons [32]uint8
 	axes    [32]float32
 	hat     uint8
-	touches [gcTouchSlotMax]gcTouchState
 }
 
 // ObjC classes (initialized in init after loading GameController framework).
@@ -157,6 +156,10 @@ var (
 	sel_touchpads                                  objc.SEL
 	sel_touchSurface                               objc.SEL
 	sel_touchState                                 objc.SEL
+	sel_setValueChangedHandler                     objc.SEL
+	sel_setTouchDown                               objc.SEL
+	sel_setTouchMoved                              objc.SEL
+	sel_setTouchUp                                 objc.SEL
 	sel_retain                                     objc.SEL
 	sel_release                                    objc.SEL
 )
@@ -231,6 +234,10 @@ func init() {
 	sel_touchpads = objc.RegisterName("touchpads")
 	sel_touchSurface = objc.RegisterName("touchSurface")
 	sel_touchState = objc.RegisterName("touchState")
+	sel_setValueChangedHandler = objc.RegisterName("setValueChangedHandler:")
+	sel_setTouchDown = objc.RegisterName("setTouchDown:")
+	sel_setTouchMoved = objc.RegisterName("setTouchMoved:")
+	sel_setTouchUp = objc.RegisterName("setTouchUp:")
 	sel_retain = objc.RegisterName("retain")
 	sel_release = objc.RegisterName("release")
 
@@ -469,8 +476,7 @@ func getHatState(dpad objc.ID) uint8 {
 
 // getControllerStateGC reads the current input state from a GCController.
 func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
-	hasDualShockTouchpad, hasXboxPaddles, hasXboxShareButton bool,
-	touchSlots [gcTouchSlotMax]gcTouchSlotKind) controllerState {
+	hasDualShockTouchpad, hasXboxPaddles, hasXboxShareButton bool) controllerState {
 
 	controller := objc.ID(controllerPtr)
 	var state controllerState
@@ -554,14 +560,6 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 		state.hat = getHatState(extGamepad.Send(sel_dpad))
 	}
 
-	// Touch surface.
-	if n := gcTouchSlotCount(touchSlots); n > 0 {
-		profile := controller.Send(sel_physicalInputProfile)
-		for i := range n {
-			state.touches[i] = readGCTouchSlot(profile, i, touchSlots[i])
-		}
-	}
-
 	return state
 }
 
@@ -631,6 +629,7 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 		rightMotor:           createGCRumbleMotor(controller, 1),
 	}
 	gp.native = n
+	n.startTouchTracking()
 	n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadGC) {
 		n.close()
 	}, n)
@@ -712,7 +711,7 @@ func initializeGCGamepads() {
 
 func (g *nativeGamepadGC) updateGCGamepad() {
 	state := getControllerStateGC(g.controller, g.buttonMask, len(g.hats),
-		g.hasDualShockTouchpad, g.hasXboxPaddles, g.hasXboxShareButton, g.touchSlots)
+		g.hasDualShockTouchpad, g.hasXboxPaddles, g.hasXboxShareButton)
 
 	nButtons := len(g.buttons) - len(g.hats)*4
 	for i := range nButtons {
@@ -736,13 +735,5 @@ func (g *nativeGamepadGC) updateGCGamepad() {
 		g.hats[0] = int(state.hat)
 	}
 
-	// The framework's positive y points up; the touch API has -1 at the top of the surface.
-	for i := range g.touches {
-		t := state.touches[i]
-		g.touches[i] = touchContact{
-			active: t.active,
-			x:      float64(t.x),
-			y:      -float64(t.y),
-		}
-	}
+	g.updateTouches()
 }

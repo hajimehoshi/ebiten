@@ -149,6 +149,74 @@ func TestTouchContactIDChangeIsNewTouch(t *testing.T) {
 	checkTouchPosition(t, g, 2, 0.3, 0.4)
 }
 
+// updateFromTracker hands the tracker's slots to the gamepad as one surface, as a backend that
+// tracks contacts from callbacks does at each update.
+func updateFromTracker(g *gamepad.Gamepad, tracker *gamepad.TouchSlotTracker) {
+	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{tracker.Contacts()})
+}
+
+func TestTouchSlotTrackerTellsContactsApart(t *testing.T) {
+	g := gamepad.NewGamepadForTest("")
+	tracker := gamepad.NewTouchSlotTrackerForTest(2)
+
+	// A finger down between two updates is a contact at the next one.
+	tracker.Report(0, true, -0.5, 0.25)
+	updateFromTracker(g, tracker)
+	if got, want := touchIDs(g, 0), []gamepad.TouchID{1}; !slices.Equal(got, want) {
+		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
+	}
+	checkTouchPosition(t, g, 1, -0.5, 0.25)
+
+	// Movement within one contact, however many reports of it arrive between updates, keeps the ID
+	// and updates the position.
+	tracker.Report(0, true, 0, 0)
+	tracker.Report(0, true, 0.5, 0.75)
+	updateFromTracker(g, tracker)
+	if got, want := touchIDs(g, 0), []gamepad.TouchID{1}; !slices.Equal(got, want) {
+		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
+	}
+	checkTouchPosition(t, g, 1, 0.5, 0.75)
+
+	// The finger lifted and another put down in the same slot between two updates is a new touch
+	// with a new ID, even though the slot is active at both updates.
+	tracker.Report(0, false, 0.5, 0.75)
+	tracker.Report(0, true, -1, -1)
+	updateFromTracker(g, tracker)
+	if got, want := touchIDs(g, 0), []gamepad.TouchID{2}; !slices.Equal(got, want) {
+		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
+	}
+	checkTouchPosition(t, g, 1, 0, 0)
+	checkTouchPosition(t, g, 2, -1, -1)
+
+	// A contact in another slot does not disturb the first slot's contact.
+	tracker.Report(1, true, 1, 1)
+	updateFromTracker(g, tracker)
+	if got, want := touchIDs(g, 0), []gamepad.TouchID{2, 3}; !slices.Equal(got, want) {
+		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
+	}
+
+	// A finger lifted between two updates retires its ID; one lifted and put back while another
+	// slot's finger stays gets a new ID while the other keeps its own.
+	tracker.Report(0, false, -1, -1)
+	tracker.Report(1, false, 1, 1)
+	tracker.Report(1, true, 0.5, 0.5)
+	updateFromTracker(g, tracker)
+	if got, want := touchIDs(g, 0), []gamepad.TouchID{4}; !slices.Equal(got, want) {
+		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
+	}
+	checkTouchPosition(t, g, 2, 0, 0)
+	checkTouchPosition(t, g, 3, 0, 0)
+	checkTouchPosition(t, g, 4, 0.5, 0.5)
+
+	// A slot the tracker does not have is ignored.
+	tracker.Report(2, true, 0, 0)
+	tracker.Report(-1, true, 0, 0)
+	updateFromTracker(g, tracker)
+	if got, want := touchIDs(g, 0), []gamepad.TouchID{4}; !slices.Equal(got, want) {
+		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
+	}
+}
+
 func TestTouchSurfaces(t *testing.T) {
 	g := gamepad.NewGamepadForTest("")
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{

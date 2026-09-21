@@ -44,6 +44,46 @@ type nativeGamepadTouch interface {
 	touchContactAt(surface, slot int) touchContact
 }
 
+// touchSlotTracker numbers the contacts of a surface's slots for a backend whose device does not
+// number them but that observes each slot's transitions as they happen, such as through callbacks.
+// A report that puts a finger on an empty slot begins a new contact and gives it the next number,
+// so a finger lifted and put back between two updates is told apart from one held the whole time.
+// The tracker does no locking; a backend whose reports arrive on another thread guards it.
+type touchSlotTracker struct {
+	slots    []touchContact
+	contacts int
+}
+
+func newTouchSlotTracker(slotCount int) touchSlotTracker {
+	return touchSlotTracker{
+		slots: make([]touchContact, slotCount),
+	}
+}
+
+// report records the slot's state as the backend observed it. It ignores a slot the tracker does
+// not have.
+func (t *touchSlotTracker) report(slot int, active bool, x, y float64) {
+	if slot < 0 || slot >= len(t.slots) {
+		return
+	}
+	c := &t.slots[slot]
+	if active && !c.active {
+		t.contacts++
+		c.id = t.contacts
+	}
+	c.active = active
+	c.x, c.y = x, y
+}
+
+// contactAt returns the slot's contact as last reported. A slot the tracker does not have is
+// empty.
+func (t *touchSlotTracker) contactAt(slot int) touchContact {
+	if slot < 0 || slot >= len(t.slots) {
+		return touchContact{}
+	}
+	return t.slots[slot]
+}
+
 // touch is the public view of one touch slot: its ID while a contact is active, or 0 when the slot
 // is empty, and the contact's last report.
 type touch struct {

@@ -82,6 +82,37 @@ type TouchContactForTest struct {
 	X, Y   float64
 }
 
+// TouchSlotTracker is a touch slot tracker driven by a test's reports.
+type TouchSlotTracker struct {
+	t touchSlotTracker
+}
+
+func NewTouchSlotTrackerForTest(slotCount int) *TouchSlotTracker {
+	return &TouchSlotTracker{
+		t: newTouchSlotTracker(slotCount),
+	}
+}
+
+// Report records one observation of a slot, as a backend's callback does.
+func (t *TouchSlotTracker) Report(slot int, active bool, x, y float64) {
+	t.t.report(slot, active, x, y)
+}
+
+// Contacts returns the tracker's slots as a backend hands them to the update.
+func (t *TouchSlotTracker) Contacts() []TouchContactForTest {
+	contacts := make([]TouchContactForTest, len(t.t.slots))
+	for i := range contacts {
+		c := t.t.contactAt(i)
+		contacts[i] = TouchContactForTest{
+			Active: c.active,
+			ID:     c.id,
+			X:      c.x,
+			Y:      c.y,
+		}
+	}
+	return contacts
+}
+
 // NewGamepadForTest returns a gamepad with the given SDL ID that takes its standard layout from
 // gamepaddb, as a device does. The gamepad is not in the gamepad list, and its raw state is written
 // with [Gamepad.SetReportForTest].

@@ -278,16 +278,12 @@ func touchFromRecord(b []byte, w, h int) Touch {
 // returns prev when the payload carries no touch sample: the simplified
 // Bluetooth report is too short to hold one, and a DualShock 4 report with a
 // packet count of 0 holds none.
-//
-// In the DualShock 4 layout byte 32 counts the packets that follow, each a
-// timestamp byte and two records, oldest first. The last packet the payload
-// has room for is decoded: it is the most recent sample, and a finger lifted
-// in it stays lifted when the reports that follow carry no packet. In the
-// DualSense layout the two records are at byte 32.
 func touchesFromPayload(model model, p []byte, prev [TouchCount]Touch) [TouchCount]Touch {
 	var offset int
 	switch model {
 	case modelDualShock4:
+		// Byte 32 counts the packets that follow, each a timestamp byte and
+		// two records, oldest first.
 		const packetSize = 1 + 4*TouchCount
 		if len(p) < 33+packetSize {
 			return prev
@@ -299,8 +295,12 @@ func touchesFromPayload(model model, p []byte, prev [TouchCount]Touch) [TouchCou
 		if n == 0 {
 			return prev
 		}
+		// The last packet the payload has room for is the most recent
+		// sample, and a finger lifted in it stays lifted when the reports
+		// that follow carry no packet.
 		offset = 34 + packetSize*(n-1)
 	case modelDualSense:
+		// The two records are at byte 32.
 		if len(p) < 32+4*TouchCount {
 			return prev
 		}

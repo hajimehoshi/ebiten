@@ -88,14 +88,23 @@ type nativeGamepadGC struct {
 	buttons []bool
 	hats    []int
 
-	// touches is the touch surface's finger slots, one per element found in the profile; it is
-	// empty for a controller without a touch surface.
+	// touchMu guards touchTracker, which the finger elements' handlers write on the framework's
+	// handler queue and the update reads.
+	touchMu      sync.Mutex
+	touchTracker touchSlotTracker
+
+	// touchElements is the finger elements the handlers are set on, cleared by close.
+	touchElements []gcTouchElement
+
+	// touches is the update's snapshot of the touch surface's finger slots, one per element found
+	// in the profile; it is empty for a controller without a touch surface.
 	touches []touchContact
 }
 
 // close releases g's native resources. close can be called multiple times.
 func (g *nativeGamepadGC) close() {
 	g.cleanup.Stop()
+	g.stopTouchTracking()
 	releaseGCRumbleMotor(g.leftMotor)
 	releaseGCRumbleMotor(g.rightMotor)
 	g.leftMotor = nil
