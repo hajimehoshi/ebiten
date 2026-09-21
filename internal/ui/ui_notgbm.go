@@ -27,7 +27,7 @@ type gbmBackend struct{}
 // maybeNewGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
 // concept.
 func maybeNewGBMBackend(u *UserInterface) (*gbmBackend, error) {
-	return nil, errors.New("a DRM/KMS GBM display is a Linux feature")
+	return nil, errors.New("ui: a DRM/KMS GBM display is not available in this environment")
 }
 
 func (b *gbmBackend) run(game Game, options *RunOptions) error {

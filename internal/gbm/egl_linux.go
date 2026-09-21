@@ -18,25 +18,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ebitengine/purego"
 	"golang.org/x/sys/unix"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/egl"
 )
 
 const (
-	_EGL_NONE                   = 0x3038
-	_EGL_SURFACE_TYPE           = 0x3033
-	_EGL_WINDOW_BIT             = 0x0004
-	_EGL_RENDERABLE_TYPE        = 0x3040
-	_EGL_OPENGL_ES2_BIT         = 0x0004
-	_EGL_RED_SIZE               = 0x3024
-	_EGL_GREEN_SIZE             = 0x3023
-	_EGL_BLUE_SIZE              = 0x3022
-	_EGL_ALPHA_SIZE             = 0x3021
-	_EGL_NATIVE_VISUAL_ID       = 0x302E
-	_EGL_OPENGL_ES_API          = 0x30A0
-	_EGL_CONTEXT_CLIENT_VERSION = 0x3098
-	_EGL_PLATFORM_GBM           = 0x31D7
-	_EGL_SUCCESS                = 0x3000
+	_EGL_PLATFORM_GBM = 0x31d7
 
 	_DRM_MODE_PAGE_FLIP_EVENT = 0x01
 	_DRM_MODE_PAGE_FLIP_ASYNC = 0x02
@@ -44,36 +32,11 @@ const (
 	_DRM_FORMAT_MOD_INVALID   = 0x00ffffffffffffff
 )
 
-type eglAPI struct {
-	GetPlatformDisplay  func(platform uint32, nativeDisplay uintptr, attribList *int) uintptr
-	Initialize          func(display uintptr, major, minor *int32) bool
-	Terminate           func(display uintptr) bool
-	BindAPI             func(api int32) bool
-	ChooseConfig        func(display uintptr, attribList *int32, configs *uintptr, configSize int32, numConfig *int32) bool
-	GetConfigAttrib     func(display, config uintptr, attribute int32, value *int32) bool
-	CreateWindowSurface func(display, config, win uintptr, attribList *int32) uintptr
-	CreateContext       func(display, config, shareContext uintptr, attribList *int32) uintptr
-	DestroySurface      func(display, surface uintptr) bool
-	DestroyContext      func(display, ctx uintptr) bool
-	MakeCurrent         func(display, draw, read, ctx uintptr) bool
-	SwapBuffers         func(display, surface uintptr) bool
-	SwapInterval        func(display uintptr, interval int32) bool
-	GetError            func() int32
-}
-
+// Context presents an EGL frame through GBM and KMS.
 type Context struct {
-	d   *Display
-	egl eglAPI
-	lib uintptr
-
-	display    uintptr
-	config     uintptr
-	surface    uintptr
-	context    uintptr
+	*egl.Context
+	d          *Display
 	gbmSurface uintptr
-
-	width  int
-	height int
 
 	swapInterval             int
 	modesetDone              bool
@@ -84,134 +47,71 @@ type Context struct {
 }
 
 func NewContext(d *Display) (*Context, error) {
-	c := &Context{d: d, swapInterval: -1}
-	if err := c.loadEGL(); err != nil {
+	e, err := egl.NewContext()
+	if err != nil {
 		return nil, err
 	}
-
-	c.display = c.egl.GetPlatformDisplay(_EGL_PLATFORM_GBM, d.gbmDev, nil)
-	if c.display == 0 {
-		return nil, fmt.Errorf("gbm: eglGetPlatformDisplay failed: %w", c.lastError())
+	c := &Context{Context: e, d: d, swapInterval: -1}
+	fail := func(err error) (*Context, error) {
+		return nil, errors.Join(fmt.Errorf("gbm: %w", err), c.Close())
 	}
-	var major, minor int32
-	if !c.egl.Initialize(c.display, &major, &minor) {
-		return nil, fmt.Errorf("gbm: eglInitialize failed: %w", c.lastError())
+	var getPlatformDisplay func(platform uint32, nativeDisplay uintptr, attribList *int) uintptr
+	if err := e.RegisterFunc(&getPlatformDisplay, "eglGetPlatformDisplay"); err != nil {
+		return fail(err)
 	}
-	if !c.egl.BindAPI(_EGL_OPENGL_ES_API) {
-		return nil, errors.Join(fmt.Errorf("gbm: eglBindAPI failed: %w", c.lastError()), c.Close())
+	if err := e.Initialize(getPlatformDisplay(_EGL_PLATFORM_GBM, d.gbmDev, nil)); err != nil {
+		return fail(err)
 	}
-
 	config, err := c.chooseConfig()
 	if err != nil {
-		return nil, errors.Join(err, c.Close())
+		return fail(err)
 	}
-	c.config = config
-
 	c.gbmSurface = gbml.SurfaceCreate(d.gbmDev, uint32(d.width), uint32(d.height), gbmFormatXRGB8888, gbmUseScanout|gbmUseRendering)
 	if c.gbmSurface == 0 {
-		return nil, errors.Join(fmt.Errorf("gbm: gbm_surface_create failed"), c.Close())
+		return fail(errors.New("gbm_surface_create failed"))
 	}
-
-	c.surface = c.egl.CreateWindowSurface(c.display, config, c.gbmSurface, nil)
-	if c.surface == 0 {
-		return nil, errors.Join(fmt.Errorf("gbm: eglCreateWindowSurface failed: %w", c.lastError()), c.Close())
+	if err := e.CreateWindowSurface(config, c.gbmSurface, nil); err != nil {
+		return fail(err)
 	}
-
-	for _, version := range []int32{3, 2} {
-		attribs := []int32{_EGL_CONTEXT_CLIENT_VERSION, version, _EGL_NONE}
-		c.context = c.egl.CreateContext(c.display, config, 0, &attribs[0])
-		if c.context != 0 {
-			break
-		}
+	if err := e.CreateES3Context(config); err != nil {
+		return fail(err)
 	}
-	if c.context == 0 {
-		return nil, errors.Join(fmt.Errorf("gbm: eglCreateContext failed: %w", c.lastError()), c.Close())
-	}
-
-	c.width = d.width
-	c.height = d.height
+	e.SetSize(d.width, d.height)
 	return c, nil
-}
-
-func (c *Context) loadEGL() error {
-	lib, err := dlopenAny("libEGL.so.1", "libEGL.so")
-	if err != nil {
-		return err
-	}
-	c.lib = lib
-	for _, f := range []struct {
-		ptr  any
-		name string
-	}{
-		{&c.egl.GetPlatformDisplay, "eglGetPlatformDisplay"},
-		{&c.egl.Initialize, "eglInitialize"},
-		{&c.egl.Terminate, "eglTerminate"},
-		{&c.egl.BindAPI, "eglBindAPI"},
-		{&c.egl.ChooseConfig, "eglChooseConfig"},
-		{&c.egl.GetConfigAttrib, "eglGetConfigAttrib"},
-		{&c.egl.CreateWindowSurface, "eglCreateWindowSurface"},
-		{&c.egl.CreateContext, "eglCreateContext"},
-		{&c.egl.DestroySurface, "eglDestroySurface"},
-		{&c.egl.DestroyContext, "eglDestroyContext"},
-		{&c.egl.MakeCurrent, "eglMakeCurrent"},
-		{&c.egl.SwapBuffers, "eglSwapBuffers"},
-		{&c.egl.SwapInterval, "eglSwapInterval"},
-		{&c.egl.GetError, "eglGetError"},
-	} {
-		sym, err := purego.Dlsym(lib, f.name)
-		if err != nil || sym == 0 {
-			return fmt.Errorf("gbm: %s not found in libEGL: %w", f.name, err)
-		}
-		purego.RegisterFunc(f.ptr, sym)
-	}
-	return nil
 }
 
 func (c *Context) chooseConfig() (uintptr, error) {
 	attribs := []int32{
-		_EGL_SURFACE_TYPE, _EGL_WINDOW_BIT,
-		_EGL_RENDERABLE_TYPE, _EGL_OPENGL_ES2_BIT,
-		_EGL_RED_SIZE, 8, _EGL_GREEN_SIZE, 8, _EGL_BLUE_SIZE, 8, _EGL_ALPHA_SIZE, 0,
-		_EGL_NONE,
+		egl.SurfaceType, egl.WindowBit,
+		egl.RenderableType, egl.OpenGLES3Bit,
+		egl.RedSize, 8, egl.GreenSize, 8, egl.BlueSize, 8, egl.AlphaSize, 0,
+		egl.None,
 	}
-	configs := make([]uintptr, 32)
-	var num int32
-	if !c.egl.ChooseConfig(c.display, &attribs[0], &configs[0], int32(len(configs)), &num) || num == 0 {
-		return 0, fmt.Errorf("gbm: eglChooseConfig found no config: %w", c.lastError())
+	configs, err := c.Context.ChooseConfigs(attribs)
+	if err != nil {
+		return 0, err
 	}
-	// Mesa needs the config's native visual id to be the gbm format.
-	for i := 0; i < int(num); i++ {
-		var vis int32
-		if c.egl.GetConfigAttrib(c.display, configs[i], _EGL_NATIVE_VISUAL_ID, &vis) && uint32(vis) == gbmFormatXRGB8888 {
-			return configs[i], nil
+	// Mesa needs the config's native visual ID to match the GBM format.
+	for _, config := range configs {
+		vis, err := c.Context.ConfigAttrib(config, egl.NativeVisualID)
+		if err == nil && uint32(vis) == gbmFormatXRGB8888 {
+			return config, nil
 		}
 	}
 	return configs[0], nil
 }
 
-func (c *Context) Size() (width, height int) { return c.width, c.height }
-
-func (c *Context) MakeContextCurrent() error {
-	if !c.egl.MakeCurrent(c.display, c.surface, c.surface, c.context) {
-		return fmt.Errorf("gbm: eglMakeCurrent failed: %w", c.lastError())
-	}
-	return nil
-}
-
 func (c *Context) SwapInterval(interval int) error {
-	if c.swapInterval == interval {
-		return nil
-	}
-	if !c.egl.SwapInterval(c.display, int32(interval)) {
-		return fmt.Errorf("gbm: eglSwapInterval failed: %w", c.lastError())
+	if err := c.Context.SwapInterval(interval); err != nil {
+		return err
 	}
 	c.swapInterval = interval
 	return nil
 }
 
 func (c *Context) SwapBuffers() error {
-	if !c.egl.SwapBuffers(c.display, c.surface) {
-		return fmt.Errorf("gbm: eglSwapBuffers failed: %w", c.lastError())
+	if err := c.Context.SwapBuffers(); err != nil {
+		return err
 	}
 	bo := gbml.LockFront(c.gbmSurface)
 	if bo == 0 {
@@ -228,7 +128,6 @@ func (c *Context) SwapBuffers() error {
 	}
 
 	if !c.modesetDone {
-		// The first frame sets the mode; later frames page-flip and wait.
 		if r := drml.SetCrtc(c.d.fd, c.d.crtcID, fb, 0, 0, &c.d.connID, 1, &c.d.mode); r != 0 {
 			release()
 			return fmt.Errorf("gbm: drmModeSetCrtc failed: %d", r)
@@ -242,7 +141,6 @@ func (c *Context) SwapBuffers() error {
 		}
 		r := drml.PageFlip(c.d.fd, c.d.crtcID, fb, flags, 0)
 		if r != 0 && async {
-			// Fall back permanently when the driver rejects asynchronous flips.
 			c.asyncPageFlipUnsupported = true
 			r = drml.PageFlip(c.d.fd, c.d.crtcID, fb, _DRM_MODE_PAGE_FLIP_EVENT, 0)
 		}
@@ -286,44 +184,16 @@ func (c *Context) addFB(bo uintptr) (uint32, error) {
 }
 
 func (c *Context) Close() error {
-	if c.display != 0 {
-		c.egl.MakeCurrent(c.display, 0, 0, 0)
-		if c.prevBo != 0 {
-			drml.RmFB(c.d.fd, c.prevFB)
-			gbml.ReleaseBuffer(c.gbmSurface, c.prevBo)
-			c.prevBo = 0
-		}
-		if c.context != 0 {
-			c.egl.DestroyContext(c.display, c.context)
-			c.context = 0
-		}
-		if c.surface != 0 {
-			c.egl.DestroySurface(c.display, c.surface)
-			c.surface = 0
-		}
-		c.egl.Terminate(c.display)
-		c.display = 0
+	c.Context.Unbind()
+	if c.prevBo != 0 {
+		drml.RmFB(c.d.fd, c.prevFB)
+		gbml.ReleaseBuffer(c.gbmSurface, c.prevBo)
+		c.prevBo = 0
 	}
+	err := c.Context.Close()
 	if c.gbmSurface != 0 {
 		gbml.SurfaceDestroy(c.gbmSurface)
 		c.gbmSurface = 0
 	}
-	return nil
-}
-
-type eglError int32
-
-func (e eglError) Error() string {
-	return fmt.Sprintf("EGL error 0x%x", int32(e))
-}
-
-func (c *Context) lastError() error {
-	if c.egl.GetError == nil {
-		return nil
-	}
-	code := c.egl.GetError()
-	if code == _EGL_SUCCESS {
-		return nil
-	}
-	return eglError(code)
+	return err
 }

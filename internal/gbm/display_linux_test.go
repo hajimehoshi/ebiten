@@ -38,20 +38,13 @@ const (
 
 // Compile-time libdrm ABI checks.
 var (
-	_ [wantDRMModeResSize - drmModeResSize]byte
-	_ [drmModeResSize - wantDRMModeResSize]byte
-	_ [wantDRMModeResCountConnectorsOffset - drmModeResCountConnectorsOffset]byte
-	_ [drmModeResCountConnectorsOffset - wantDRMModeResCountConnectorsOffset]byte
-	_ [wantDRMModeResConnectorsOffset - drmModeResConnectorsOffset]byte
-	_ [drmModeResConnectorsOffset - wantDRMModeResConnectorsOffset]byte
-	_ [wantDRMModeConnectorSize - drmModeConnectorSize]byte
-	_ [drmModeConnectorSize - wantDRMModeConnectorSize]byte
-	_ [wantDRMModeConnectorModesOffset - drmModeConnectorModesOffset]byte
-	_ [drmModeConnectorModesOffset - wantDRMModeConnectorModesOffset]byte
-	_ [68 - drmModeModeInfoSize]byte
-	_ [drmModeModeInfoSize - 68]byte
-	_ [24 - drmModeModeInfoVRefreshOffset]byte
-	_ [drmModeModeInfoVRefreshOffset - 24]byte
+	_ [0]byte = [wantDRMModeResSize - drmModeResSize]byte{}
+	_ [0]byte = [wantDRMModeResCountConnectorsOffset - drmModeResCountConnectorsOffset]byte{}
+	_ [0]byte = [wantDRMModeResConnectorsOffset - drmModeResConnectorsOffset]byte{}
+	_ [0]byte = [wantDRMModeConnectorSize - drmModeConnectorSize]byte{}
+	_ [0]byte = [wantDRMModeConnectorModesOffset - drmModeConnectorModesOffset]byte{}
+	_ [0]byte = [68 - drmModeModeInfoSize]byte{}
+	_ [0]byte = [24 - drmModeModeInfoVRefreshOffset]byte{}
 )
 
 func TestCRTCForEncoder(t *testing.T) {
