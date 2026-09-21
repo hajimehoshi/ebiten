@@ -165,6 +165,11 @@ var (
 	gcControllerDidConnectNotification    uintptr
 	gcControllerDidDisconnectNotification uintptr
 	gcInputDualShockTouchpadButton        objc.ID
+	gcInputButtonB                        objc.ID
+	gcInputButtonY                        objc.ID
+	gcInputLeftShoulder                   objc.ID
+	gcInputRightShoulder                  objc.ID
+	gcInputButtonOptions                  objc.ID
 	gcInputXboxPaddleOne                  objc.ID
 	gcInputXboxPaddleTwo                  objc.ID
 	gcInputXboxPaddleThree                objc.ID
@@ -250,6 +255,11 @@ func init() {
 	}
 
 	gcInputDualShockTouchpadButton = loadNSStringSymbol("GCInputDualShockTouchpadButton")
+	gcInputButtonB = loadNSStringSymbol("GCInputButtonB")
+	gcInputButtonY = loadNSStringSymbol("GCInputButtonY")
+	gcInputLeftShoulder = loadNSStringSymbol("GCInputLeftShoulder")
+	gcInputRightShoulder = loadNSStringSymbol("GCInputRightShoulder")
+	gcInputButtonOptions = loadNSStringSymbol("GCInputButtonOptions")
 	gcInputXboxPaddleOne = loadNSStringSymbol("GCInputXboxPaddleOne")
 	gcInputXboxPaddleTwo = loadNSStringSymbol("GCInputXboxPaddleTwo")
 	gcInputXboxPaddleThree = loadNSStringSymbol("GCInputXboxPaddleThree")
@@ -419,6 +429,27 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 		prop.buttonMask |= 1 << kControllerButtonA
 		prop.buttonMask |= 1 << kControllerButtonX
 		prop.nButtons += 2
+		if controller.Send(sel_respondsToSelector, sel_physicalInputProfile) != 0 {
+			profile := controller.Send(sel_physicalInputProfile)
+			if profile != 0 {
+				buttons := profile.Send(sel_buttons)
+				for _, button := range []struct {
+					name objc.ID
+					mask uint32
+				}{
+					{gcInputButtonB, 1 << kControllerButtonB},
+					{gcInputButtonY, 1 << kControllerButtonY},
+					{gcInputLeftShoulder, 1 << kControllerButtonLeftShoulder},
+					{gcInputRightShoulder, 1 << kControllerButtonRightShoulder},
+					{gcInputButtonOptions, 1 << kControllerButtonBack},
+				} {
+					if button.name != 0 && buttons.Send(sel_objectForKeyedSubscript, button.name) != 0 {
+						prop.buttonMask |= button.mask
+						prop.nButtons++
+					}
+				}
+			}
+		}
 
 		// buttonMenu is macOS 10.15+ / iOS 13+.
 		if microGamepad.Send(sel_respondsToSelector, sel_buttonMenu) != 0 && microGamepad.Send(sel_buttonMenu) != 0 {
@@ -569,8 +600,7 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 }
 
 // getMicroControllerStateGC reads the input state of a controller that has only a micro gamepad
-// profile. The button order matches the mask set in getControllerPropertyFromController: A, X, then
-// the menu button where the profile has one.
+// profile. The compacted button order is microButtonOrder.
 func getMicroControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int) controllerState {
 	controller := objc.ID(controllerPtr)
 	var state controllerState
@@ -592,7 +622,21 @@ func getMicroControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats i
 		buttonCount++
 	}
 	setButton(getIsPressed(microGamepad.Send(sel_buttonA)))
+	var profileButtons objc.ID
+	if buttonMask&microPhysicalButtonMask != 0 {
+		profileButtons = controller.Send(sel_physicalInputProfile).Send(sel_buttons)
+	}
+	setPhysicalButton := func(mask uint32, name objc.ID) {
+		if buttonMask&mask != 0 {
+			setButton(getIsPressed(profileButtons.Send(sel_objectForKeyedSubscript, name)))
+		}
+	}
+	setPhysicalButton(1<<kControllerButtonB, gcInputButtonB)
 	setButton(getIsPressed(microGamepad.Send(sel_buttonX)))
+	setPhysicalButton(1<<kControllerButtonY, gcInputButtonY)
+	setPhysicalButton(1<<kControllerButtonLeftShoulder, gcInputLeftShoulder)
+	setPhysicalButton(1<<kControllerButtonRightShoulder, gcInputRightShoulder)
+	setPhysicalButton(1<<kControllerButtonBack, gcInputButtonOptions)
 	if buttonMask&(1<<kControllerButtonStart) != 0 {
 		setButton(getIsPressed(microGamepad.Send(sel_buttonMenu)))
 	}

@@ -143,14 +143,21 @@ func (g *nativeGamepadGC) standardButtonInOwnMapping(button gamepaddb.StandardBu
 	}
 	switch button {
 	case gamepaddb.StandardButtonRightBottom: // A
-		return buttonMappingInput{g: g, button: 0}
+		return buttonMappingInput{g: g, button: g.microButtonIndex(kControllerButtonA)}
+	case gamepaddb.StandardButtonRightRight: // B
+		return g.microButtonMapping(kControllerButtonB)
 	case gamepaddb.StandardButtonRightLeft: // X
-		return buttonMappingInput{g: g, button: 1}
+		return buttonMappingInput{g: g, button: g.microButtonIndex(kControllerButtonX)}
+	case gamepaddb.StandardButtonRightTop: // Y
+		return g.microButtonMapping(kControllerButtonY)
+	case gamepaddb.StandardButtonFrontTopLeft:
+		return g.microButtonMapping(kControllerButtonLeftShoulder)
+	case gamepaddb.StandardButtonFrontTopRight:
+		return g.microButtonMapping(kControllerButtonRightShoulder)
+	case gamepaddb.StandardButtonCenterLeft: // Options / Back
+		return g.microButtonMapping(kControllerButtonBack)
 	case gamepaddb.StandardButtonCenterRight: // Menu
-		if g.buttonMask&(1<<kControllerButtonStart) == 0 {
-			return nil
-		}
-		return buttonMappingInput{g: g, button: 2}
+		return g.microButtonMapping(kControllerButtonStart)
 	case gamepaddb.StandardButtonLeftTop:
 		return hatMappingInput{g: g, hat: 0, direction: int(kHatUp)}
 	case gamepaddb.StandardButtonLeftBottom:
@@ -161,6 +168,43 @@ func (g *nativeGamepadGC) standardButtonInOwnMapping(button gamepaddb.StandardBu
 		return hatMappingInput{g: g, hat: 0, direction: int(kHatRight)}
 	}
 	return nil
+}
+
+var microButtonOrder = [...]int{
+	kControllerButtonA,
+	kControllerButtonB,
+	kControllerButtonX,
+	kControllerButtonY,
+	kControllerButtonLeftShoulder,
+	kControllerButtonRightShoulder,
+	kControllerButtonBack,
+	kControllerButtonStart,
+}
+
+const microPhysicalButtonMask = 1<<kControllerButtonB |
+	1<<kControllerButtonY |
+	1<<kControllerButtonLeftShoulder |
+	1<<kControllerButtonRightShoulder |
+	1<<kControllerButtonBack
+
+func (g *nativeGamepadGC) microButtonIndex(button int) int {
+	index := 0
+	for _, b := range microButtonOrder {
+		if b == button {
+			return index
+		}
+		if g.buttonMask&(1<<b) != 0 {
+			index++
+		}
+	}
+	return -1
+}
+
+func (g *nativeGamepadGC) microButtonMapping(button int) mappingInput {
+	if g.buttonMask&(1<<button) == 0 {
+		return nil
+	}
+	return buttonMappingInput{g: g, button: g.microButtonIndex(button)}
 }
 
 func (g *nativeGamepadGC) axisCount() int {

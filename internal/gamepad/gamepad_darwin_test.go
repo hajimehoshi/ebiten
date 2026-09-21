@@ -175,6 +175,9 @@ func TestGameControllerOwnsClaimedDevices(t *testing.T) {
 			for _, b := range []gamepaddb.StandardButton{
 				gamepaddb.StandardButtonRightRight,
 				gamepaddb.StandardButtonRightTop,
+				gamepaddb.StandardButtonFrontTopLeft,
+				gamepaddb.StandardButtonFrontTopRight,
+				gamepaddb.StandardButtonCenterLeft,
 			} {
 				if microGP.IsStandardButtonAvailable(b) {
 					t.Errorf("micro IsStandardButtonAvailable(%d) = true, want false", b)
@@ -225,14 +228,9 @@ func TestGameControllerOwnsClaimedDevices(t *testing.T) {
 			if err := microGP.UpdateForTest(&pads); err != nil {
 				t.Fatal(err)
 			}
-			for i := range microGP.ButtonCountWithHats() {
-				if microGP.IsButtonPressedWithHats(i) {
-					t.Errorf("micro button %d pressed on an idle controller", i)
-				}
-			}
 			for b := gamepaddb.StandardButton(0); b <= gamepaddb.StandardButtonMax; b++ {
 				if microGP.IsStandardButtonPressed(b) {
-					t.Errorf("micro standard button %d pressed on an idle controller", b)
+					t.Errorf("micro IsStandardButtonPressed(%d) = true, want false", b)
 				}
 			}
 
@@ -254,5 +252,93 @@ func TestGameControllerOwnsClaimedDevices(t *testing.T) {
 				t.Error("micro controller missing after reconnect")
 			}
 		})
+	}
+}
+
+func TestMicroGamepadPhysicalProfileButtons(t *testing.T) {
+	if !gamepad.SupportsTestControllers() {
+		t.Skip("+[GCController controllerWithMicroGamepad] needs macOS 11")
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+	if err := gamepad.InitializeCF(); err != nil {
+		t.Fatal(err)
+	}
+	restore, err := gamepad.InstallTestHIDBoundary(func(gamepad.HIDDeviceRef) bool { return true })
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer restore()
+
+	for _, test := range []struct {
+		name   string
+		input  int
+		button gamepaddb.StandardButton
+	}{
+		{"B", gamepad.ControllerButtonB, gamepaddb.StandardButtonRightRight},
+		{"Y", gamepad.ControllerButtonY, gamepaddb.StandardButtonRightTop},
+		{"left shoulder", gamepad.ControllerButtonLeftShoulder, gamepaddb.StandardButtonFrontTopLeft},
+		{"right shoulder", gamepad.ControllerButtonRightShoulder, gamepaddb.StandardButtonFrontTopRight},
+		{"Options", gamepad.ControllerButtonBack, gamepaddb.StandardButtonCenterLeft},
+	} {
+		for _, gcFirst := range []bool{true, false} {
+			t.Run(fmt.Sprintf("%s/gcFirst=%v", test.name, gcFirst), func(t *testing.T) {
+				runtime.LockOSThread()
+				defer runtime.UnlockOSThread()
+				pool := cocoa.NSAutoreleasePool_new()
+				defer pool.Release()
+
+				controller, err := gamepad.NewPressedButtonMicroControllerForTest(test.input)
+				if err != nil {
+					t.Fatal(err)
+				}
+				var pads gamepad.Gamepads
+				defer pads.CloseAll()
+				backend := gamepad.NewDarwinGamepadsForTest()
+				device := gamepad.NewHIDDeviceForTest("usb gamepad", 0x0810, 0xe501)
+				defer gamepad.ReleaseHIDDeviceForTest(device)
+				connect := func() {
+					gamepad.AddController(controller)
+					if err := backend.Update(&pads); err != nil {
+						t.Fatal(err)
+					}
+				}
+				arrive := func() {
+					gamepad.HIDDeviceArrived(device)
+					if err := backend.Update(&pads); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if gcFirst {
+					connect()
+					arrive()
+				} else {
+					arrive()
+					connect()
+				}
+				registered := pads.AppendRegisteredGamepads(nil)
+				if len(registered) != 1 {
+					t.Fatalf("registered %d gamepads, want 1", len(registered))
+				}
+				if registered[0].Native != gamepad.NativeGC {
+					t.Fatalf("registered backend = %q, want %q", registered[0].Native, gamepad.NativeGC)
+				}
+				gp := registered[0].Gamepad
+				if err := gp.UpdateForTest(&pads); err != nil {
+					t.Fatal(err)
+				}
+				if !gp.IsStandardButtonAvailable(test.button) {
+					t.Errorf("IsStandardButtonAvailable(%d) = false, want true", test.button)
+				}
+				for b := gamepaddb.StandardButton(0); b <= gamepaddb.StandardButtonMax; b++ {
+					if got, want := gp.IsStandardButtonPressed(b), b == test.button; got != want {
+						t.Errorf("IsStandardButtonPressed(%d) = %v, want %v", b, got, want)
+					}
+				}
+			})
+		}
 	}
 }

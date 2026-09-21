@@ -17,6 +17,7 @@
 package gamepad
 
 import (
+	"reflect"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -29,9 +30,14 @@ type (
 )
 
 const (
-	ControllerButtonA     = kControllerButtonA
-	ControllerButtonX     = kControllerButtonX
-	ControllerButtonStart = kControllerButtonStart
+	ControllerButtonA             = kControllerButtonA
+	ControllerButtonB             = kControllerButtonB
+	ControllerButtonX             = kControllerButtonX
+	ControllerButtonY             = kControllerButtonY
+	ControllerButtonBack          = kControllerButtonBack
+	ControllerButtonStart         = kControllerButtonStart
+	ControllerButtonLeftShoulder  = kControllerButtonLeftShoulder
+	ControllerButtonRightShoulder = kControllerButtonRightShoulder
 )
 
 var (
@@ -48,6 +54,8 @@ var gcControllerClassForTest objc.Class
 // gcClaimsDeviceForTest stands in for +[GCController supportsHIDDevice:] while the boundary is
 // installed.
 var gcClaimsDeviceForTest func(HIDDeviceRef) bool
+
+var testMicroControllerClass objc.Class
 
 // realGCControllerClass returns the GCController class, also while the boundary is installed.
 func realGCControllerClass() objc.Class {
@@ -141,6 +149,73 @@ func (g *nativeGamepadsDarwin) Update(gamepads *gamepads) error {
 // NewMicroControllerForTest returns an autoreleased GCController with only a micro gamepad profile.
 func NewMicroControllerForTest() Controller {
 	return objc.ID(realGCControllerClass()).Send(sel_controllerWithMicroGamepad)
+}
+
+// NewPressedButtonMicroControllerForTest returns a controller with a micro gamepad profile and one
+// pressed input in its physical input profile.
+func NewPressedButtonMicroControllerForTest(input int) (Controller, error) {
+	if testMicroControllerClass == 0 {
+		var err error
+		testMicroControllerClass, err = objc.RegisterClass("EbitengineFullButtonMicroController", objc.GetClass("NSObject"), nil, []objc.FieldDef{
+			{Name: "microGamepad", Type: reflect.TypeFor[objc.ID](), Attribute: objc.ReadOnly},
+			{Name: "physicalInputProfile", Type: reflect.TypeFor[objc.ID](), Attribute: objc.ReadOnly},
+			{Name: "vendorName", Type: reflect.TypeFor[objc.ID](), Attribute: objc.ReadOnly},
+		}, []objc.MethodDef{{
+			Cmd: sel_extendedGamepad,
+			Fn:  func(objc.ID, objc.SEL) objc.ID { return 0 },
+		}})
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	buttonClass := objc.GetClass("EbitenginePressedButton")
+	if buttonClass == 0 {
+		var err error
+		buttonClass, err = objc.RegisterClass("EbitenginePressedButton", objc.GetClass("NSObject"), nil, nil, []objc.MethodDef{{
+			Cmd: sel_isPressed,
+			Fn:  func(objc.ID, objc.SEL) bool { return true },
+		}})
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	buttons := objc.ID(objc.GetClass("NSMutableDictionary")).Send(sel_alloc).Send(sel_init)
+	buttons.Send(objc.RegisterName("autorelease"))
+	name := map[int]string{
+		kControllerButtonB:             "Button B",
+		kControllerButtonY:             "Button Y",
+		kControllerButtonBack:          "Button Options",
+		kControllerButtonLeftShoulder:  "Left Shoulder",
+		kControllerButtonRightShoulder: "Right Shoulder",
+	}[input]
+	key := objc.ID(objc.GetClass("NSString")).Send(sel_alloc).Send(sel_initWithUTF8String, name+"\x00")
+	button := objc.ID(buttonClass).Send(sel_alloc).Send(sel_init)
+	buttons.Send(sel_setObject_forKey, button, key)
+	button.Send(sel_release)
+	key.Send(sel_release)
+	profile := objc.ID(objc.GetClass("EbitenginePhysicalInputProfile"))
+	if profile == 0 {
+		var err error
+		class, err := objc.RegisterClass("EbitenginePhysicalInputProfile", objc.GetClass("NSObject"), nil, []objc.FieldDef{
+			{Name: "buttons", Type: reflect.TypeFor[objc.ID](), Attribute: objc.ReadOnly},
+		}, nil)
+		if err != nil {
+			return 0, err
+		}
+		profile = objc.ID(class)
+	}
+	p := profile.Send(sel_alloc).Send(sel_init)
+	p.Send(objc.RegisterName("autorelease"))
+	p.SetIvar(objc.Class(profile).InstanceVariable("buttons"), buttons)
+
+	microController := NewMicroControllerForTest()
+	c := objc.ID(testMicroControllerClass).Send(sel_alloc).Send(sel_init)
+	c.SetIvar(testMicroControllerClass.InstanceVariable("microGamepad"), microController.Send(sel_microGamepad))
+	c.SetIvar(testMicroControllerClass.InstanceVariable("physicalInputProfile"), p)
+	c.SetIvar(testMicroControllerClass.InstanceVariable("vendorName"), microController.Send(sel_vendorName))
+	return c.Send(objc.RegisterName("autorelease")), nil
 }
 
 // NewExtendedControllerForTest returns an autoreleased GCController with an extended gamepad profile.
