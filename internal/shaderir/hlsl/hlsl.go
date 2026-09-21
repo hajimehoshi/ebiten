@@ -501,6 +501,8 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					}
 				case shaderir.Mat2F:
 					if len(args) == 1 {
+						// A single argument is always a float scalar: the front end lowers a matrix
+						// argument to the argument itself.
 						// In HLSL, casting a scalar to a matrix initializes all the components.
 						// There seems to be no easy way to have an identity matrix.
 						return fmt.Sprintf("float2x2FromScalar(%s)", args[0])

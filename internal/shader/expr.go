@@ -398,6 +398,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				if len(args) == 1 && argts[0].Main == shaderir.Mat2 {
+					// A matrix constructor with a matrix argument is a copy. Return the argument itself
+					// so that the backends see a single argument only for a scalar.
+					return args, argts, stmts, true
+				}
 				for i := range args {
 					if args[i].Const == nil {
 						continue
@@ -411,6 +416,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				if len(args) == 1 && argts[0].Main == shaderir.Mat3 {
+					return args, argts, stmts, true
+				}
 				for i := range args {
 					if args[i].Const == nil {
 						continue
@@ -423,6 +431,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				if err := checkArgsForMat4BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
+				}
+				if len(args) == 1 && argts[0].Main == shaderir.Mat4 {
+					return args, argts, stmts, true
 				}
 				for i := range args {
 					if args[i].Const == nil {
