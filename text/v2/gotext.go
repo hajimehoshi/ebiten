@@ -391,6 +391,7 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		xoffset:    args.subpixelOffset.X,
 		yoffset:    args.subpixelOffset.Y,
 		variations: face.variationsString,
+		sideways:   rd.sideways,
 	}
 	subpixelOffset := args.subpixelOffset
 	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
