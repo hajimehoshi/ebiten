@@ -259,6 +259,42 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestCompileHLSLSwizzlingStpq(t *testing.T) {
+	src := []byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	v := vec4(1, 2, 3, 4)
+	w := vec4(v.p)
+	w += vec4(v.stpq)
+	w += vec4(v.qp.yx, 0, 0)
+	return w
+}`)
+	s, err := graphics.CompileShader(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, ps, _, _ := hlsl.Compile(s)
+	i := strings.Index(ps, "PSMain")
+	if i < 0 {
+		t.Fatalf("HLSL pixel shader should have a PSMain function, but got:\n%s", ps)
+	}
+	body := ps[i:]
+	// HLSL supports only the xyzw and rgba component naming sets, so stpq
+	// swizzles must be normalized to xyzw (#3741).
+	for _, c := range []string{".s", ".t", ".p", ".q"} {
+		if strings.Contains(body, c) {
+			t.Errorf("HLSL PSMain should not contain the %q swizzling, but got:\n%s", c, body)
+		}
+	}
+	for _, want := range []string{"(l0).z", "(l0).xyzw", "(l0).wz"} {
+		if !strings.Contains(body, want) {
+			t.Errorf("HLSL PSMain should contain %s, but got:\n%s", want, body)
+		}
+	}
+}
+
 func TestCompileVaryingTypeMismatchPosition(t *testing.T) {
 	src := `package main
 
