@@ -81,6 +81,11 @@ func RunBeforeUpdateHooksWithVMGuestInfo(vmGuest bool) error {
 }
 
 var (
+	// audioMu serializes the audio suspend and resume transitions and guards audioSuspended. Unlike mu,
+	// it is held while the suspend or resume hook runs, so those hooks must not call [SuspendAudio] or
+	// [ResumeAudio].
+	audioMu sync.Mutex
+
 	audioSuspended bool
 	onSuspendAudio func() error
 	onResumeAudio  func() error
@@ -98,40 +103,56 @@ func OnResumeAudio(f func() error) {
 	onResumeAudio = f
 }
 
-// suspendAudioHook marks the audio as suspended and returns the hook to run, or nil when the audio was
-// already suspended or no hook is registered.
 func suspendAudioHook() func() error {
 	mu.Lock()
 	defer mu.Unlock()
-	if audioSuspended {
-		return nil
-	}
-	audioSuspended = true
 	return onSuspendAudio
 }
 
-func SuspendAudio() error {
-	if f := suspendAudioHook(); f != nil {
-		return f()
-	}
-	return nil
-}
-
-// resumeAudioHook marks the audio as resumed and returns the hook to run, or nil when the audio was not
-// suspended or no hook is registered.
 func resumeAudioHook() func() error {
 	mu.Lock()
 	defer mu.Unlock()
-	if !audioSuspended {
-		return nil
-	}
-	audioSuspended = false
 	return onResumeAudio
 }
 
-func ResumeAudio() error {
-	if f := resumeAudioHook(); f != nil {
-		return f()
+// SuspendAudio runs the suspend hook unless the audio is already suspended.
+//
+// The audio is recorded as suspended only when the hook succeeds, so a failed call leaves the state
+// unchanged and the next call runs the hook again. Concurrent calls are serialized: a call that finds
+// its transition already made by another call returns nil.
+func SuspendAudio() error {
+	audioMu.Lock()
+	defer audioMu.Unlock()
+
+	if audioSuspended {
+		return nil
 	}
+	if f := suspendAudioHook(); f != nil {
+		if err := f(); err != nil {
+			return err
+		}
+	}
+	audioSuspended = true
+	return nil
+}
+
+// ResumeAudio runs the resume hook unless the audio is not suspended.
+//
+// The audio is recorded as resumed only when the hook succeeds, so a failed call leaves the state
+// unchanged and the next call runs the hook again. Concurrent calls are serialized: a call that finds
+// its transition already made by another call returns nil.
+func ResumeAudio() error {
+	audioMu.Lock()
+	defer audioMu.Unlock()
+
+	if !audioSuspended {
+		return nil
+	}
+	if f := resumeAudioHook(); f != nil {
+		if err := f(); err != nil {
+			return err
+		}
+	}
+	audioSuspended = false
 	return nil
 }
