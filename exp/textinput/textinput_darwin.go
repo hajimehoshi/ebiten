@@ -26,6 +26,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/objcutil"
 )
 
 type textInputImpl struct {
@@ -475,5 +476,5 @@ func doCommandBySelector(_ objc.ID, _ objc.SEL, _ objc.SEL) {
 
 func resignFirstResponder(self objc.ID, cmd objc.SEL) bool {
 	theTextInputImpl.endIfNeeded()
-	return objc.SendSuper[bool](self, cmd)
+	return objcutil.SendSuper[bool](self, class_EbitengineTextInputClient, cmd)
 }

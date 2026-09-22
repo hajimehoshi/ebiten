@@ -15,6 +15,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/objcutil"
 )
 
 // NSPasteboardType strings.
@@ -500,7 +501,7 @@ func registerGLFWClasses() error {
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) bool {
 					window := getGoWindow(self)
 					if window == nil {
-						return objc.SendSuper[bool](self, sel_performKeyEquivalent, event)
+						return objcutil.SendSuper[bool](self, class_GLFWContentView, sel_performKeyEquivalent, event)
 					}
 					keyCode := uint16(event.Send(sel_keyCode))
 					key := translateKey(keyCode)
@@ -520,7 +521,7 @@ func registerGLFWClasses() error {
 						return true
 					}
 
-					return objc.SendSuper[bool](self, sel_performKeyEquivalent, event)
+					return objcutil.SendSuper[bool](self, class_GLFWContentView, sel_performKeyEquivalent, event)
 				},
 			},
 			{
@@ -647,7 +648,7 @@ func registerGLFWClasses() error {
 					trackingArea.Send(sel_release)
 
 					// Call super.
-					self.SendSuper(objc.RegisterName("updateTrackingAreas"))
+					objcutil.SendSuper[struct{}](self, class_GLFWContentView, objc.RegisterName("updateTrackingAreas"))
 				},
 			},
 			{
@@ -659,7 +660,7 @@ func registerGLFWClasses() error {
 						window.platform.markedText = 0
 					}
 					delete(theGoWindows, self)
-					self.SendSuper(objc.RegisterName("dealloc"))
+					objcutil.SendSuper[struct{}](self, class_GLFWContentView, objc.RegisterName("dealloc"))
 				},
 			},
 			{

@@ -30,6 +30,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/objcutil"
 )
 
 var class_EbitengineWindowDelegate objc.Class
@@ -69,7 +70,7 @@ func (u *UserInterface) initializePlatform() error {
 			{
 				Cmd: sel_initWithOrigDelegate,
 				Fn: func(id objc.ID, cmd objc.SEL, origDelegate objc.ID) objc.ID {
-					self := id.SendSuper(sel_init)
+					self := objcutil.SendSuper[objc.ID](id, class_EbitengineWindowDelegate, sel_init)
 					if self != 0 {
 						id.Send(sel_setOrigDelegate, origDelegate)
 					}
