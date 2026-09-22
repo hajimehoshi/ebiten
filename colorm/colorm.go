@@ -161,15 +161,34 @@ func (c *ColorM) ReadElements(body []float32, translation []float32) {
 	c.affineColorM().Elements(body, translation)
 }
 
-func uniforms(c ColorM) map[string]any {
-	var body [16]float32
-	var translation [4]float32
-	c.affineColorM().Elements(body[:], translation[:])
+// theUniformsPool reuses the uniform maps and their buffers. DrawImage and DrawTriangles
+// can be called once per sprite at every frame, and the map is consumed synchronously by
+// DrawRectShader/DrawTrianglesShader.
+type uniformsPoolValue struct {
+	uniforms    map[string]any
+	body        [16]float32
+	translation [4]float32
+}
 
-	uniforms := map[string]any{}
-	uniforms[colormshader.UniformColorMBody] = body[:]
-	uniforms[colormshader.UniformColorMTranslation] = translation[:]
-	return uniforms
+var theUniformsPool = sync.Pool{
+	New: func() any {
+		return &uniformsPoolValue{
+			uniforms: map[string]any{},
+		}
+	},
+}
+
+func acquireUniforms(c ColorM) *uniformsPoolValue {
+	u := theUniformsPool.Get().(*uniformsPoolValue)
+	c.affineColorM().Elements(u.body[:], u.translation[:])
+	u.uniforms[colormshader.UniformColorMBody] = u.body[:]
+	u.uniforms[colormshader.UniformColorMTranslation] = u.translation[:]
+	return u
+}
+
+func releaseUniforms(u *uniformsPoolValue) {
+	clear(u.uniforms)
+	theUniformsPool.Put(u)
 }
 
 type builtinShaderKey struct {

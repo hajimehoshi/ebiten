@@ -56,7 +56,9 @@ func DrawImage(dst, src *ebiten.Image, colorM ColorM, op *DrawImageOptions) {
 	opShader.ColorScale = op.ColorScale
 	opShader.CompositeMode = ebiten.CompositeModeCustom
 	opShader.Blend = op.Blend
-	opShader.Uniforms = uniforms(colorM)
+	u := acquireUniforms(colorM)
+	defer releaseUniforms(u)
+	opShader.Uniforms = u.uniforms
 	opShader.Images[0] = src
 	s := builtinShader(colormshader.Filter(op.Filter), colormshader.AddressUnsafe)
 	dst.DrawRectShader(src.Bounds().Dx(), src.Bounds().Dy(), s, opShader)
@@ -127,7 +129,9 @@ func DrawTriangles(dst *ebiten.Image, vertices []ebiten.Vertex, indices []uint16
 	opShader.Blend = op.Blend
 	opShader.FillRule = op.FillRule
 	opShader.AntiAlias = op.AntiAlias
-	opShader.Uniforms = uniforms(colorM)
+	u := acquireUniforms(colorM)
+	defer releaseUniforms(u)
+	opShader.Uniforms = u.uniforms
 	opShader.Images[0] = img
 	s := builtinShader(colormshader.Filter(op.Filter), colormshader.Address(op.Address))
 	dst.DrawTrianglesShader(vertices, indices, s, opShader)
