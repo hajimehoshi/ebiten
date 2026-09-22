@@ -18,23 +18,31 @@ import (
 	"sync"
 )
 
-var m sync.Mutex
+// mu guards the registries below. It is never held while a hook runs, so a hook may call any of the
+// registration functions in this package.
+var mu sync.Mutex
 
 var onBeforeUpdateHooks []func() error
 
 // AppendHookOnBeforeUpdate appends a hook function that is run before the main update function every
 // tick.
 func AppendHookOnBeforeUpdate(f func() error) {
-	m.Lock()
+	mu.Lock()
+	defer mu.Unlock()
 	onBeforeUpdateHooks = append(onBeforeUpdateHooks, f)
-	m.Unlock()
+}
+
+// beforeUpdateHooks returns a snapshot of the registered hooks that is safe to iterate without the lock.
+func beforeUpdateHooks() []func() error {
+	mu.Lock()
+	defer mu.Unlock()
+	// Appends never overwrite the elements within the current length, so the slice header alone is a
+	// stable snapshot.
+	return onBeforeUpdateHooks
 }
 
 func RunBeforeUpdateHooks() error {
-	m.Lock()
-	defer m.Unlock()
-
-	for _, f := range onBeforeUpdateHooks {
+	for _, f := range beforeUpdateHooks() {
 		if err := f(); err != nil {
 			return err
 		}
@@ -48,16 +56,23 @@ var onBeforeUpdateWithVMGuestInfoHooks []func(vmGuest bool) error
 // function every tick, the same as [AppendHookOnBeforeUpdate], but is passed whether the process is
 // running as a virtualization guest.
 func AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool) error) {
-	m.Lock()
-	defer m.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 	onBeforeUpdateWithVMGuestInfoHooks = append(onBeforeUpdateWithVMGuestInfoHooks, f)
 }
 
-func RunBeforeUpdateHooksWithVMGuestInfo(vmGuest bool) error {
-	m.Lock()
-	defer m.Unlock()
+// beforeUpdateWithVMGuestInfoHooks returns a snapshot of the registered hooks that is safe to iterate
+// without the lock.
+func beforeUpdateWithVMGuestInfoHooks() []func(vmGuest bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+	// Appends never overwrite the elements within the current length, so the slice header alone is a
+	// stable snapshot.
+	return onBeforeUpdateWithVMGuestInfoHooks
+}
 
-	for _, f := range onBeforeUpdateWithVMGuestInfoHooks {
+func RunBeforeUpdateHooksWithVMGuestInfo(vmGuest bool) error {
+	for _, f := range beforeUpdateWithVMGuestInfoHooks() {
 		if err := f(vmGuest); err != nil {
 			return err
 		}
@@ -72,39 +87,51 @@ var (
 )
 
 func OnSuspendAudio(f func() error) {
-	m.Lock()
+	mu.Lock()
+	defer mu.Unlock()
 	onSuspendAudio = f
-	m.Unlock()
 }
 
 func OnResumeAudio(f func() error) {
-	m.Lock()
+	mu.Lock()
+	defer mu.Unlock()
 	onResumeAudio = f
-	m.Unlock()
 }
 
-func SuspendAudio() error {
-	m.Lock()
-	defer m.Unlock()
+// suspendAudioHook marks the audio as suspended and returns the hook to run, or nil when the audio was
+// already suspended or no hook is registered.
+func suspendAudioHook() func() error {
+	mu.Lock()
+	defer mu.Unlock()
 	if audioSuspended {
 		return nil
 	}
 	audioSuspended = true
-	if onSuspendAudio != nil {
-		return onSuspendAudio()
+	return onSuspendAudio
+}
+
+func SuspendAudio() error {
+	if f := suspendAudioHook(); f != nil {
+		return f()
 	}
 	return nil
 }
 
-func ResumeAudio() error {
-	m.Lock()
-	defer m.Unlock()
+// resumeAudioHook marks the audio as resumed and returns the hook to run, or nil when the audio was not
+// suspended or no hook is registered.
+func resumeAudioHook() func() error {
+	mu.Lock()
+	defer mu.Unlock()
 	if !audioSuspended {
 		return nil
 	}
 	audioSuspended = false
-	if onResumeAudio != nil {
-		return onResumeAudio()
+	return onResumeAudio
+}
+
+func ResumeAudio() error {
+	if f := resumeAudioHook(); f != nil {
+		return f()
 	}
 	return nil
 }
