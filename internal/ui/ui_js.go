@@ -395,6 +395,9 @@ func (u *UserInterface) loopGame() error {
 	var cf js.Func
 	f := func() {
 		if err := u.error(); err != nil {
+			close(reqStopAudioCh)
+			<-resStopAudioCh
+
 			errCh <- err
 			return
 		}
@@ -453,14 +456,16 @@ func (u *UserInterface) loopGame() error {
 		for {
 			select {
 			case <-t.C:
+				// A hook error is recorded like errors from the other event handlers.
+				// f reports it and stops the loop on the next frame.
 				if u.suspended() {
 					if err := hook.SuspendAudio(); err != nil {
-						errCh <- err
+						u.setError(err)
 						return
 					}
 				} else {
 					if err := hook.ResumeAudio(); err != nil {
-						errCh <- err
+						u.setError(err)
 						return
 					}
 				}
