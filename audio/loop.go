@@ -272,8 +272,6 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 
 	// Read the afterLoop part if necessary.
 	if i.pos == i.length() && err == nil {
-		// Retry the capture as long as it is empty: a source can return no
-		// data at the first arrival at the loop end.
 		if len(i.afterLoop) == 0 {
 			buflen := min(int64(256*i.bytesPerSample), i.length())
 
