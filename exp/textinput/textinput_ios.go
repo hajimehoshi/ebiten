@@ -23,6 +23,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
+	"github.com/hajimehoshi/ebiten/v2/internal/objcutil"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -251,7 +252,7 @@ func (t *textInputImpl) ensureUIKit() {
 						if insertTextOnMain(self, text) {
 							return
 						}
-						self.SendSuper(sel_insertText, text)
+						objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, sel_insertText, text)
 					},
 				},
 				{
@@ -260,7 +261,7 @@ func (t *textInputImpl) ensureUIKit() {
 						if deleteBackwardOnMain(self) {
 							return
 						}
-						self.SendSuper(sel_deleteBackward)
+						objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, sel_deleteBackward)
 					},
 				},
 				{
@@ -632,11 +633,11 @@ func (t *textInputImpl) pressesOnMain(self, presses, event objc.ID, cmd objc.SEL
 		if kept != 0 {
 			kept.Send(sel_release)
 		}
-		self.SendSuper(cmd, presses, event)
+		objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, cmd, presses, event)
 		return
 	}
 	if kept != 0 {
-		self.SendSuper(cmd, kept, event)
+		objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, cmd, kept, event)
 		kept.Send(sel_release)
 	}
 }
