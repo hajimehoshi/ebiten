@@ -2229,6 +2229,7 @@ func (u *glfwBackend) maximizeWindow() error {
 		if err := glfw.PollEvents(); err != nil {
 			return err
 		}
+		time.Sleep(time.Second / 60)
 	}
 
 	return nil
@@ -2273,6 +2274,7 @@ func (u *glfwBackend) iconifyWindow() error {
 		if err := glfw.PollEvents(); err != nil {
 			return err
 		}
+		time.Sleep(time.Second / 60)
 	}
 
 	return nil
