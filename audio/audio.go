@@ -75,8 +75,7 @@ type Context struct {
 	m sync.Mutex
 	// cond is signalled under m when a player is added to playingPlayers. The goroutine
 	// updating the players waits on it while playingPlayers is empty.
-	cond      *sync.Cond
-	semaphore chan struct{}
+	cond *sync.Cond
 }
 
 var (
@@ -107,14 +106,12 @@ func NewContext(sampleRate int) *Context {
 		sampleRate:     sampleRate,
 		playerFactory:  newPlayerFactory(sampleRate),
 		playingPlayers: map[*playerImpl]struct{}{},
-		semaphore:      make(chan struct{}, 1),
 	}
 	c.cond = sync.NewCond(&c.m)
 	theContext = c
 
 	h := getHook()
 	h.OnSuspendAudio(func() error {
-		c.semaphore <- struct{}{}
 		if err := c.playerFactory.suspend(); err != nil {
 			return err
 		}
@@ -124,7 +121,6 @@ func NewContext(sampleRate int) *Context {
 		return nil
 	})
 	h.OnResumeAudio(func() error {
-		<-c.semaphore
 		if err := c.playerFactory.resume(); err != nil {
 			return err
 		}
