@@ -449,6 +449,72 @@ func TestInfiniteLoopBlendWithPartialFrameReads(t *testing.T) {
 	}
 }
 
+// emptyOnceReader reports (0, nil) for the first read at or after afterPos, like a source whose
+// data after the loop is not ready yet, and delegates to the source afterwards.
+type emptyOnceReader struct {
+	src      io.ReadSeeker
+	afterPos int64
+	emptied  bool
+}
+
+func (r *emptyOnceReader) Read(buf []byte) (int, error) {
+	if !r.emptied && len(buf) > 0 {
+		pos, err := r.src.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		if pos >= r.afterPos {
+			r.emptied = true
+			return 0, nil
+		}
+	}
+	return r.src.Read(buf)
+}
+
+func (r *emptyOnceReader) Seek(offset int64, whence int) (int64, error) {
+	return r.src.Seek(offset, whence)
+}
+
+func TestInfiniteLoopBlendAfterEmptyAfterLoopRead(t *testing.T) {
+	const (
+		length         = 16
+		bytesPerSample = 4
+	)
+
+	// The loop part is silent and the part after the loop is not, so the first sample of a blended
+	// lap, whose blend rate is 1, must be exactly the first sample after the loop.
+	src := make([]byte, length*2)
+	for i := length; i < len(src); i++ {
+		src[i] = byte(100 + i - length)
+	}
+	l := audio.NewInfiniteLoop(&emptyOnceReader{
+		src:      bytes.NewReader(src),
+		afterPos: length,
+	}, length)
+
+	buf := make([]byte, length)
+	var out []byte
+	for len(out) < length*2+bytesPerSample {
+		n, err := l.Read(buf)
+		if err != nil {
+			t.Fatal(err)
+		}
+		out = append(out, buf[:n]...)
+	}
+
+	// The first two laps are not blended: the data after the loop is captured only when the loop
+	// end is reached again after the empty read.
+	for i, got := range out[:length*2] {
+		if want := byte(0); got != want {
+			t.Errorf("index: %d, got: %v, want: %v", i, got, want)
+			break
+		}
+	}
+	if got, want := out[length*2:length*2+bytesPerSample], src[length:length+bytesPerSample]; !bytes.Equal(got, want) {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
 func TestInfiniteLoopKeepsBlendingOnFailedSeek(t *testing.T) {
 	cases := []struct {
 		name           string

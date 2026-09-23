@@ -300,6 +300,7 @@ func (c *IconCursor) readStyleAttr(curStyle *PathStyle, k, v string) error {
 			curStyle.Dash = dList
 			break
 		}
+		curStyle.Dash = nil
 	case "opacity", "stroke-opacity", "fill-opacity":
 		op, err := parseFloat(v, 64)
 		if err != nil {

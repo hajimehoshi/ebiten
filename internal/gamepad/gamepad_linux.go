@@ -296,7 +296,9 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	buf := make([]byte, 16384)
 	n, err := unix.Read(g.inotifyPlus1-1, buf[:])
 	if err != nil {
-		if err == unix.EAGAIN {
+		// EINTR means the read was interrupted before any event arrived.
+		// Retry at the next update instead of reporting an error.
+		if err == unix.EAGAIN || err == unix.EINTR {
 			return nil
 		}
 		return fmt.Errorf("gamepad: Read failed: %w", err)
@@ -402,7 +404,9 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 		buf := make([]byte, unsafe.Sizeof(input_event{}))
 		// TODO: Should the returned byte count be cared about?
 		if _, err := unix.Read(g.fdPlus1-1, buf); err != nil {
-			if err == unix.EAGAIN {
+			// EINTR means no event was read. Retry at the next update instead of
+			// treating this as an error and dropping the gamepad.
+			if err == unix.EAGAIN || err == unix.EINTR {
 				break
 			}
 			return fmt.Errorf("gamepad: Read failed: %w", err)
