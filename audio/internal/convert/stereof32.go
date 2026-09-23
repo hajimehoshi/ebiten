@@ -17,14 +17,16 @@ package convert
 import (
 	"fmt"
 	"io"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 type StereoF32 struct {
 	source io.ReadSeeker
 	mono   bool
 	eof    bool
-	// buf holds the bytes read from the source but not converted yet. After Read, buf is
-	// shorter than one source frame.
+	// buf holds the bytes read from the source but not converted yet. A short destination buffer can
+	// leave a whole source frame pending.
 	buf []byte
 }
 
@@ -43,12 +45,8 @@ func (s *StereoF32) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	// A buffer shorter than one destination frame cannot receive any converted data.
-	if len(b) < 8 {
-		return 0, io.ErrShortBuffer
-	}
-
-	l := len(b) / 8 * frameSize
+	// Buffer at least one frame to distinguish EOF from a short destination buffer.
+	l := max(len(b)/8, 1) * frameSize
 
 	// Read source bytes. Keep reading until one frame is available so that a source returning
 	// less than one frame at a time doesn't make Read return (0, nil).
@@ -71,6 +69,16 @@ func (s *StereoF32) Read(b []byte) (int, error) {
 		if len(s.buf) >= frameSize || n == 0 {
 			break
 		}
+	}
+
+	if len(b) < 8 {
+		if readErr != nil {
+			return 0, readErr
+		}
+		if s.eof && len(s.buf) < frameSize {
+			return 0, io.EOF
+		}
+		return 0, io.ErrShortBuffer
 	}
 
 	// Convert the whole frames and fill b. An incomplete frame is left for the next read.
@@ -112,38 +120,31 @@ func (s *StereoF32) sourceFrameSize() int64 {
 	return 8
 }
 
-// presentedPosition converts a position in the source's byte space to the stereo-f32 byte space
-// this wrapper presents.
-func (s *StereoF32) presentedPosition(pos int64) int64 {
+// presentedPosition returns the output byte position, or (0, false) if it overflows int64.
+func (s *StereoF32) presentedPosition(pos int64) (int64, bool) {
 	if s.mono {
-		pos *= 2
+		return mathutil.Mul(pos, 2)
 	}
-	return pos
+	return pos, true
 }
 
 func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 	// Resolve the requested position before rounding the offset toward the frame boundary
 	// below, as the rounding truncates toward zero and would turn a small negative position
 	// into 0. An unknown whence is left to the source.
-	var pos int64
+	var base int64
+	ok := true
 	// alignedEnd is the source position just past the last whole frame. It is resolved only
 	// for io.SeekEnd.
 	var alignedEnd int64
 	switch whence {
 	case io.SeekStart:
-		pos = offset
 	case io.SeekCurrent:
-		// The position this wrapper presents is never negative, so only a negative offset can
-		// resolve before the start.
-		if offset < 0 {
-			cur, err := s.source.Seek(0, io.SeekCurrent)
-			if err != nil {
-				return 0, err
-			}
-			// The buffered bytes were read from the source but are not converted yet, so the
-			// source is ahead of the position this wrapper presents.
-			pos = s.presentedPosition(cur-int64(len(s.buf))) + offset
+		cur, err := s.source.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
 		}
+		base, ok = s.presentedPosition(cur - int64(len(s.buf)))
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the frame size.
 		// Resolve the offset from the last whole frame so that the source is
@@ -162,10 +163,13 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 		}
 		frameSize := s.sourceFrameSize()
 		alignedEnd = end / frameSize * frameSize
-		pos = s.presentedPosition(alignedEnd) + offset
+		base, ok = s.presentedPosition(alignedEnd)
 	}
-	if pos < 0 {
-		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
+	if !ok {
+		return 0, fmt.Errorf("convert: position overflows int64")
+	}
+	if _, ok := mathutil.AddForSeek(base, offset); !ok {
+		return 0, fmt.Errorf("convert: invalid seek position")
 	}
 
 	offset = offset / 8 * 8
@@ -187,10 +191,15 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 
+	pos, ok := s.presentedPosition(srcPos)
+	if !ok {
+		return 0, fmt.Errorf("convert: position overflows int64")
+	}
+
 	// Drop the buffered bytes only after the seek has succeeded, as the position this
 	// wrapper presents is behind the source by their length.
 	s.buf = s.buf[:0]
 	s.eof = false
 
-	return s.presentedPosition(srcPos), nil
+	return pos, nil
 }

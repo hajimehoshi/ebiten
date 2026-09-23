@@ -1047,3 +1047,73 @@ func TestInfiniteLoopAfterLoopSourceErrorWithData(t *testing.T) {
 		})
 	}
 }
+
+func TestInfiniteLoopShortBufferEOFAndRecovery(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		depth   int
+		newLoop func(io.ReadSeeker, int64, int64) *audio.InfiniteLoop
+	}{
+		{
+			name:    "Int16",
+			depth:   2,
+			newLoop: audio.NewInfiniteLoopWithIntro,
+		},
+		{
+			name:    "Float32",
+			depth:   4,
+			newLoop: audio.NewInfiniteLoopWithIntroF32,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, intro := range []int64{0, 16} {
+				for size := 1; size < tc.depth; size++ {
+					l := tc.newLoop(bytes.NewReader(nil), intro, 16)
+					for range 2 {
+						if n, err := l.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+							t.Errorf("short Read from empty loop = (%d, %v)", n, err)
+						}
+					}
+				}
+			}
+			src := make([]byte, 128)
+			for i := range src {
+				src[i] = byte(i)
+			}
+			want := make([]byte, 256)
+			if _, err := io.ReadFull(tc.newLoop(bytes.NewReader(src), 16, 32), want); err != nil {
+				t.Fatal(err)
+			}
+			for _, fail := range []bool{false, true} {
+				var source io.ReadSeeker = bytes.NewReader(src)
+				wantErr := io.ErrShortBuffer
+				if fail {
+					source = &dataWithErrorReadSeeker{
+						src:    source,
+						failAt: 1,
+						dataN:  1,
+					}
+					wantErr = errSourceFailed
+				}
+				l := tc.newLoop(source, 16, 32)
+				if n, err := l.Read(make([]byte, 1)); n != 0 || !errors.Is(err, wantErr) {
+					t.Errorf("short Read = (%d, %v), want %v", n, err, wantErr)
+				}
+				got := make([]byte, len(want))
+				if _, err := io.ReadFull(l, got); err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Error("loop audio changed after short Read")
+				}
+			}
+			l := tc.newLoop(bytes.NewReader(src), 16, 32)
+			if _, err := l.Read(make([]byte, 1)); !errors.Is(err, io.ErrShortBuffer) {
+				t.Fatal(err)
+			}
+			if pos, err := l.Seek(0, io.SeekCurrent); err != nil || pos != 0 {
+				t.Errorf("current after short Read = (%d, %v), want 0", pos, err)
+			}
+		})
+	}
+}

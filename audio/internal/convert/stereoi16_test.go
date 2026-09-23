@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/rand/v2"
 	"testing"
 
@@ -719,6 +720,34 @@ func TestStereoI16SourceErrorWithData(t *testing.T) {
 					t.Errorf("got % x, want % x", got, want)
 				}
 			})
+		}
+	}
+}
+
+func TestStereoI16SourcePositionOverflow(t *testing.T) {
+	r := convert.NewStereoI16ReadSeeker(bytes.NewReader(make([]byte, 96)), false, convert.FormatS24)
+	const pos = int64(math.MaxInt64 / 16 * 8)
+	if _, err := r.Seek(pos, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		offset int64
+		whence int
+	}{
+		{
+			offset: math.MaxInt64,
+			whence: io.SeekStart,
+		},
+		{
+			offset: math.MaxInt64 / 16 * 4,
+			whence: io.SeekCurrent,
+		},
+	} {
+		if _, err := r.Seek(tc.offset, tc.whence); err == nil {
+			t.Errorf("Seek(%d, %d) did not reject source position overflow", tc.offset, tc.whence)
+		}
+		if got, err := r.Seek(0, io.SeekCurrent); err != nil || got != pos {
+			t.Errorf("position after rejected seek = (%d, %v), want %d", got, err, pos)
 		}
 	}
 }

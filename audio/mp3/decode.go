@@ -27,6 +27,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 const (
@@ -56,23 +57,23 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	// Resolve the position here: the underlying decoder panics for a negative position.
-	var pos int64
+	var base int64
 	switch whence {
 	case io.SeekStart:
-		pos = offset
 	case io.SeekCurrent:
 		cur, err := s.readSeeker.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return 0, err
 		}
-		pos = cur + offset
+		base = cur
 	case io.SeekEnd:
-		pos = s.length + offset
+		base = s.length
 	default:
 		return 0, fmt.Errorf("mp3: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if pos < 0 {
-		return 0, fmt.Errorf("mp3: position must be >= 0 but was %d", pos)
+	pos, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("mp3: invalid seek offset %d for position %d", offset, base)
 	}
 	return s.readSeeker.Seek(pos, io.SeekStart)
 }
@@ -141,7 +142,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 
 // DecodeWithSampleRate decodes an MP3 source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// DecodeWithSampleRate returns error when decoding fails or IO error happens.
+// DecodeWithSampleRate returns error when decoding fails or IO error happens, or when sampleRate is not positive.
 //
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
@@ -153,6 +154,9 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 // Resampling can be a very heavy task. Stream has a cache for resampling, but the size is limited.
 // Do not expect that Stream has a resampling cache even after whole data is played.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
+	if sampleRate <= 0 {
+		return nil, fmt.Errorf("mp3: sample rate must be positive but was %d", sampleRate)
+	}
 	d, err := mp3.NewDecoder(src)
 	if err != nil {
 		return nil, err

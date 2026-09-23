@@ -265,3 +265,46 @@ func TestInt16BytesReaderErrorWithData(t *testing.T) {
 		t.Errorf("Read: got %v, want %v", got, want)
 	}
 }
+
+func TestInt16ShortBufferEOFAndData(t *testing.T) {
+	for _, channels := range []int{1, 2} {
+		for _, data := range [][]float32{nil, {0.1, 0.2, 0.3, 0.4}} {
+			for size := 1; size < 2*channels; size++ {
+				r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32eofReader{
+					data: data,
+				}, channels)
+				wantErr := io.ErrShortBuffer
+				if len(data) == 0 {
+					wantErr = io.EOF
+				}
+				if n, err := r.Read(make([]byte, size)); n != 0 || !errors.Is(err, wantErr) {
+					t.Errorf("short Read = (%d, %v), want %v", n, err, wantErr)
+				}
+				got, err := io.ReadAll(r)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want, err := io.ReadAll(vorbis.NewInt16BytesReaderFromFloat32Reader(&f32eofReader{
+					data: data,
+				}, channels))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Errorf("ReadAll after short Read = %x, want %x", got, want)
+				}
+			}
+		}
+		r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32errorReader{
+			data: []float32{0.1, 0.2},
+		}, channels)
+		if n, err := r.Read(make([]byte, 1)); n != 0 || !errors.Is(err, errSourceRead) {
+			t.Errorf("short Read with source error = (%d, %v)", n, err)
+		}
+		buf := make([]byte, 4)
+		n, _ := r.Read(buf)
+		if n == 0 {
+			t.Error("buffered audio lost after source error")
+		}
+	}
+}

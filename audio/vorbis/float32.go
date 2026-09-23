@@ -21,6 +21,8 @@ import (
 	"math"
 
 	"github.com/jfreymuth/oggvorbis"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 var _ io.ReadSeeker = (*float32BytesReadSeeker)(nil)
@@ -37,24 +39,48 @@ type float32BytesReadSeeker struct {
 	seekable bool
 	fbuf     []float32
 	pos      int64
+	eof      bool
 }
 
 func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
+	channels := r.r.Channels()
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	// A buffer shorter than one frame cannot receive any converted data.
-	if len(buf) < 4*r.r.Channels() {
+	if r.eof && len(r.fbuf) < channels {
+		return 0, io.EOF
+	}
+	// Buffer at least one frame to distinguish EOF from a short destination buffer.
+	l := max(len(buf)/4/channels, 1) * channels
+	var readErr error
+	for len(r.fbuf) < l && !r.eof {
+		origLen := len(r.fbuf)
+		if cap(r.fbuf) < l {
+			r.fbuf = append(r.fbuf, make([]float32, l-origLen)...)
+		}
+		n, err := r.r.Read(r.fbuf[origLen:l])
+		r.fbuf = r.fbuf[:origLen+n]
+		if err != nil && err != io.EOF {
+			readErr = err
+			break
+		}
+		if err == io.EOF {
+			r.eof = true
+		}
+		if len(r.fbuf) >= channels || n == 0 {
+			break
+		}
+	}
+	if len(buf) < 4*channels {
+		if readErr != nil {
+			return 0, readErr
+		}
+		if r.eof && len(r.fbuf) < channels {
+			return 0, io.EOF
+		}
 		return 0, io.ErrShortBuffer
 	}
-
-	l := len(buf) / 4 / r.r.Channels() * r.r.Channels()
-	if cap(r.fbuf) < l {
-		r.fbuf = make([]float32, l)
-	}
-
-	n, err := r.r.Read(r.fbuf[:l])
-
+	n := min(len(r.fbuf)/channels, len(buf)/4/channels) * channels
 	for i := range n {
 		v := math.Float32bits(r.fbuf[i])
 		buf[4*i] = byte(v)
@@ -62,10 +88,16 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 		buf[4*i+2] = byte(v >> 16)
 		buf[4*i+3] = byte(v >> 24)
 	}
-
+	copy(r.fbuf, r.fbuf[n:])
+	r.fbuf = r.fbuf[:len(r.fbuf)-n]
 	r.pos += int64(n * 4)
-
-	return n * 4, err
+	if readErr != nil {
+		return n * 4, readErr
+	}
+	if r.eof {
+		return n * 4, io.EOF
+	}
+	return n * 4, nil
 }
 
 func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
@@ -75,25 +107,29 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 
 	sampleSize := int64(r.r.Channels()) * 4
 
+	var base int64
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
-		offset += r.pos
+		base = r.pos
 	case io.SeekEnd:
 		if r.r.Length() == 0 {
-			return 0, fmt.Errorf("vorbis: the length is unknown and SeekEnd is unavailable: %w", errors.ErrUnsupported)
+			return 0, fmt.Errorf("vorbis: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
 		}
-		offset += r.r.Length() * sampleSize
+		base = r.r.Length() * sampleSize
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if offset < 0 {
-		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", offset)
+	offset, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("vorbis: invalid seek position")
 	}
 	pos := offset / sampleSize * sampleSize
 	if err := r.r.SetPosition(pos / sampleSize); err != nil {
 		return 0, err
 	}
 	r.pos = pos
+	r.fbuf = r.fbuf[:0]
+	r.eof = false
 	return r.pos, nil
 }
