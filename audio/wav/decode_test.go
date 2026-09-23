@@ -319,11 +319,6 @@ func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 			whence: io.SeekStart,
 		},
 		{
-			name:   "SeekStartPastEnd",
-			offset: size + 4,
-			whence: io.SeekStart,
-		},
-		{
 			name:   "SeekCurrentNegative",
 			offset: -100,
 			whence: io.SeekCurrent,
@@ -331,11 +326,6 @@ func TestDecodeSeekOutOfRangeLeavesStreamIntact(t *testing.T) {
 		{
 			name:   "SeekEndBeforeStart",
 			offset: -(size + 100),
-			whence: io.SeekEnd,
-		},
-		{
-			name:   "SeekEndPastEnd",
-			offset: 100,
 			whence: io.SeekEnd,
 		},
 	} {
@@ -923,5 +913,145 @@ func checkSeekOverflow(t *testing.T, r io.ReadSeeker) {
 	}
 	if !bytes.Equal(got, want[64:]) {
 		t.Error("audio changed after rejected seeks")
+	}
+}
+
+func TestSeekEOF(t *testing.T) {
+	for _, channels := range []int{1, 2} {
+		for _, bits := range []int{8, 16} {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*wav.Stream, error)
+			}{
+				{
+					name: "Int16",
+					f:    wav.DecodeWithoutResampling,
+				},
+				{
+					name: "Float32",
+					f:    wav.DecodeF32,
+				},
+				{
+					name: "Resampled",
+					f: func(src io.Reader) (*wav.Stream, error) {
+						return wav.DecodeWithSampleRate(testSampleRate*2, src)
+					},
+				},
+			} {
+				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
+					data := make([]byte, 8000)
+					for i := range data {
+						data[i] = byte(i)
+					}
+					s, err := decode.f(bytes.NewReader(pcmWavFile(channels, bits, data)))
+					if err != nil {
+						t.Fatal(err)
+					}
+					checkEOFSeeks(t, s)
+				})
+			}
+		}
+	}
+}
+
+func checkEOFSeeks(t *testing.T, s interface {
+	io.ReadSeeker
+	Length() int64
+}) {
+	t.Helper()
+	want := make([]byte, 64)
+	if _, err := io.ReadFull(s, want); err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []int64{s.Length(), s.Length() + 32, 1 << 40, math.MaxInt64/8*8 - 1024} {
+		for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+			if _, err := s.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			offset := target
+			if whence == io.SeekEnd {
+				offset -= s.Length()
+			}
+			pos, err := s.Seek(offset, whence)
+			if err != nil {
+				t.Fatalf("Seek(%d, %d): %v", offset, whence, err)
+			}
+			if pos != target {
+				t.Errorf("Seek(%d, %d) = %d, want %d", offset, whence, pos, target)
+			}
+			buf := make([]byte, 64)
+			for _, size := range []int{1, 3, len(buf), len(buf)} {
+				if n, err := s.Read(buf[:size]); n != 0 || !errors.Is(err, io.EOF) {
+					t.Errorf("Read at %d = (%d, %v), want (0, EOF)", target, n, err)
+				}
+			}
+			if pos, err := s.Seek(0, io.SeekCurrent); err != nil || pos != target {
+				t.Errorf("current = (%d, %v), want %d", pos, err, target)
+			}
+			if pos, err := s.Seek(8, io.SeekCurrent); err != nil || pos != target+8 {
+				t.Errorf("advance = (%d, %v), want %d", pos, err, target+8)
+			}
+			if pos, err := s.Seek(-target-8, io.SeekCurrent); err != nil || pos != 0 {
+				t.Fatalf("seek back = (%d, %v)", pos, err)
+			}
+			if _, err := io.ReadFull(s, buf); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(buf, want) {
+				t.Error("reading after seeking back returned different bytes")
+			}
+		}
+	}
+}
+
+type failingSeekSource struct {
+	*bytes.Reader
+	err error
+}
+
+func (s *failingSeekSource) Seek(offset int64, whence int) (int64, error) {
+	if s.err != nil {
+		return 0, s.err
+	}
+	return s.Reader.Seek(offset, whence)
+}
+
+func TestSeekEOFSourceError(t *testing.T) {
+	for _, decode := range []struct {
+		name string
+		f    func(io.Reader) (*wav.Stream, error)
+	}{
+		{
+			name: "Int16",
+			f:    wav.DecodeWithoutResampling,
+		},
+		{
+			name: "Float32",
+			f:    wav.DecodeF32,
+		},
+	} {
+		t.Run(decode.name, func(t *testing.T) {
+			src := &failingSeekSource{
+				Reader: bytes.NewReader(pcmWavFile(2, 16, make([]byte, 8000))),
+			}
+			s, err := decode.f(src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sentinel := errors.New("source seek failed")
+			src.err = sentinel
+			for _, pos := range []int64{s.Length(), s.Length() + 32, 1 << 40} {
+				if _, err := s.Seek(pos, io.SeekStart); !errors.Is(err, sentinel) {
+					t.Errorf("Seek(%d, SeekStart): got %v, want source error", pos, err)
+				}
+			}
+			src.err = nil
+			if _, err := s.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := io.ReadFull(s, make([]byte, 64)); err != nil {
+				t.Error(err)
+			}
+		})
 	}
 }

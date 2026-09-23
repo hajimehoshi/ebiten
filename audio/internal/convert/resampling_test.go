@@ -1090,7 +1090,7 @@ func TestResamplingSeekPastEndUnknownLength(t *testing.T) {
 							if err != nil {
 								t.Fatal(err)
 							}
-							if got, want := pos, wantLength; got != want {
+							if got, want := pos, wantLength+offsetFromEnd; got != want {
 								t.Errorf("Seek past the end after the length is known: got %d, want %d", got, want)
 							}
 							if n, err := r.Read(make([]byte, 4096)); n != 0 || err != io.EOF {

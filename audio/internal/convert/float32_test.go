@@ -665,3 +665,102 @@ func TestStereoSeekEndPositionOverflow(t *testing.T) {
 		})
 	}
 }
+
+func TestSeekEOF(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		newReader func(io.ReadSeeker) io.ReadSeeker
+	}{
+		{
+			name:      "Float32",
+			newReader: convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker,
+		},
+		{
+			name:      "ResamplingInt16",
+			newReader: func(src io.ReadSeeker) io.ReadSeeker { return convert.NewResampling(src, 256, 44100, 48000, 2) },
+		},
+		{
+			name:      "ResamplingFloat32",
+			newReader: func(src io.ReadSeeker) io.ReadSeeker { return convert.NewResampling(src, 256, 44100, 48000, 4) },
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) { checkConvertedEOFSeeks(t, tc.newReader, math.MaxInt64/8*8-1024) })
+	}
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("StereoF32/mono=%t", mono), func(t *testing.T) {
+			checkConvertedEOFSeeks(t, func(src io.ReadSeeker) io.ReadSeeker { return convert.NewStereoF32(src, mono) }, math.MaxInt64/8*8-1024)
+		})
+		for _, format := range []convert.Format{convert.FormatU8, convert.FormatS16, convert.FormatS24} {
+			t.Run(fmt.Sprintf("StereoI16/mono=%t/format=%d", mono, format), func(t *testing.T) {
+				maxTarget := int64(math.MaxInt64/8*8 - 1024)
+				if !mono && format == convert.FormatS24 {
+					maxTarget = math.MaxInt64 / 16 * 8
+				}
+				checkConvertedEOFSeeks(t, func(src io.ReadSeeker) io.ReadSeeker { return convert.NewStereoI16ReadSeeker(src, mono, format) }, maxTarget)
+			})
+		}
+	}
+}
+
+func checkConvertedEOFSeeks(t *testing.T, newReader func(io.ReadSeeker) io.ReadSeeker, maxTarget int64) {
+	t.Helper()
+	src := make([]byte, 256)
+	for i := range src {
+		src[i] = byte(i % 32)
+	}
+	data, err := io.ReadAll(newReader(bytes.NewReader(src)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	checkEOFSeeks(t, newReader(bytes.NewReader(src)), int64(len(data)), maxTarget)
+}
+
+func checkEOFSeeks(t *testing.T, s io.ReadSeeker, length int64, maxTarget int64) {
+	t.Helper()
+	want := make([]byte, 64)
+	if _, err := io.ReadFull(s, want); err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []int64{length, length + 32, 1 << 40, maxTarget} {
+		for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+			if _, err := s.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			offset := target
+			if whence == io.SeekEnd {
+				offset -= length
+			}
+			pos, err := s.Seek(offset, whence)
+			if err != nil {
+				t.Fatalf("Seek(%d, %d): %v", offset, whence, err)
+			}
+			if pos != target {
+				t.Errorf("Seek(%d, %d) = %d, want %d", offset, whence, pos, target)
+			}
+			buf := make([]byte, 64)
+			for _, size := range []int{1, 3, len(buf), len(buf)} {
+				if n, err := s.Read(buf[:size]); n != 0 || !errors.Is(err, io.EOF) {
+					t.Errorf("Read at %d = (%d, %v), want (0, EOF)", target, n, err)
+				}
+			}
+			if pos, err := s.Seek(target+1, io.SeekStart); err != nil || pos != target {
+				t.Errorf("unaligned seek beyond EOF = (%d, %v), want %d", pos, err, target)
+			}
+			if pos, err := s.Seek(0, io.SeekCurrent); err != nil || pos != target {
+				t.Errorf("current = (%d, %v), want %d", pos, err, target)
+			}
+			if pos, err := s.Seek(8, io.SeekCurrent); err != nil || pos != target+8 {
+				t.Errorf("advance = (%d, %v), want %d", pos, err, target+8)
+			}
+			if pos, err := s.Seek(-target-8, io.SeekCurrent); err != nil || pos != 0 {
+				t.Fatalf("seek back = (%d, %v)", pos, err)
+			}
+			if _, err := io.ReadFull(s, buf); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(buf, want) {
+				t.Error("reading after seeking back returned different bytes")
+			}
+		}
+	}
+}

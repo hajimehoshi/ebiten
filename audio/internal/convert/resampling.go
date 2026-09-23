@@ -446,10 +446,6 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	}
 	r.eof = false
 	r.pos = pos
-	// The position can be clamped by the length only when the length is known.
-	if r.srcLength() >= 0 && r.Length() <= r.pos {
-		r.pos = r.Length()
-	}
 	size := r.bytesPerSample()
 	r.pos = r.pos / int64(size) * int64(size)
 	return r.pos, nil

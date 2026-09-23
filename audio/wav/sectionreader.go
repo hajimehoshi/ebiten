@@ -76,9 +76,6 @@ func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("wav: invalid seek position")
 	}
-	if pos > s.size {
-		return 0, fmt.Errorf("wav: position must be in [0, %d] but was %d", s.size, pos)
-	}
 	sourcePos, ok := mathutil.AddForSeek(pos, s.offset)
 	if !ok {
 		return 0, fmt.Errorf("wav: source position overflows int64")
