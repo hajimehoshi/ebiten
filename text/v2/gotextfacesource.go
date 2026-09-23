@@ -866,9 +866,10 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 	for i, input := range inputs {
 		out := g.shaper.Shape(input)
 		outputs[i] = out
-
-		(shaping.Line{out}).AdjustBaselines()
 	}
+	// Baselines must shift a whole line at once; per-output calls drift
+	// sideways runs apart in vertical writing.
+	(shaping.Line(outputs)).AdjustBaselines()
 	return outputs
 }
 
