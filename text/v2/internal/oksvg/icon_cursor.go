@@ -49,7 +49,9 @@ func (c *IconCursor) ReadGradURL(v string, defaultColor any) (grad rasterx.Gradi
 func (c *IconCursor) ReadGradAttr(attr xml.Attr) (err error) {
 	switch attr.Name.Local {
 	case "gradientTransform":
-		c.grad.Matrix, err = c.parseTransform(attr.Value)
+		// A gradient transform lives in its own coordinate space: starting
+		// from the ancestor matrix would apply it twice.
+		c.grad.Matrix, err = c.parseTransformFrom(rasterx.Identity, attr.Value)
 	case "gradientUnits":
 		switch strings.TrimSpace(attr.Value) {
 		case "userSpaceOnUse":
@@ -166,8 +168,12 @@ func (c *IconCursor) readTransformAttr(m1 rasterx.Matrix2D, k string) (rasterx.M
 }
 
 func (c *IconCursor) parseTransform(v string) (rasterx.Matrix2D, error) {
+	return c.parseTransformFrom(c.StyleStack[len(c.StyleStack)-1].mAdder.M, v)
+}
+
+func (c *IconCursor) parseTransformFrom(base rasterx.Matrix2D, v string) (rasterx.Matrix2D, error) {
 	ts := strings.Split(v, ")")
-	m1 := c.StyleStack[len(c.StyleStack)-1].mAdder.M
+	m1 := base
 	for _, t := range ts {
 		t = strings.TrimSpace(t)
 		if len(t) == 0 {
