@@ -23,7 +23,12 @@ type MonitorType ui.Monitor
 
 // Name returns the monitor's name. On Linux, this reports the monitors in xrandr format.
 // On Windows, this reports "Generic PnP Monitor" for all monitors.
+//
+// Name panics if m is nil.
 func (m *MonitorType) Name() string {
+	if m == nil {
+		panic("ebiten: the receiver of MonitorType.Name must not be nil")
+	}
 	return (*ui.Monitor)(m).Name()
 }
 
@@ -33,7 +38,12 @@ func (m *MonitorType) Name() string {
 // otherwise DeviceScaleFactor returns 1.
 //
 // On mobiles, DeviceScaleFactor returns 1 before the game starts e.g. in init functions.
+//
+// DeviceScaleFactor panics if m is nil.
 func (m *MonitorType) DeviceScaleFactor() float64 {
+	if m == nil {
+		panic("ebiten: the receiver of MonitorType.DeviceScaleFactor must not be nil")
+	}
 	return (*ui.Monitor)(m).DeviceScaleFactor()
 }
 
@@ -46,7 +56,12 @@ func (m *MonitorType) DeviceScaleFactor() float64 {
 // Size's use cases are limited. If you are making a fullscreen application, you can use RunGame and
 // the Game interface's Layout function instead. If you are making a not-fullscreen application but the application's
 // behavior depends on the monitor size, Size is useful.
+//
+// Size panics if m is nil.
 func (m *MonitorType) Size() (int, int) {
+	if m == nil {
+		panic("ebiten: the receiver of MonitorType.Size must not be nil")
+	}
 	return (*ui.Monitor)(m).Size()
 }
 
@@ -67,7 +82,12 @@ func Monitor() *MonitorType {
 }
 
 // SetMonitor sets the monitor that the window should be on. This can be called before or after RunGame.
+//
+// SetMonitor panics if monitor is nil.
 func SetMonitor(monitor *MonitorType) {
+	if monitor == nil {
+		panic("ebiten: the given monitor to SetMonitor must not be nil")
+	}
 	ui.Get().Window().SetMonitor((*ui.Monitor)(monitor))
 }
 

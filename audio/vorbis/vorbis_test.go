@@ -18,7 +18,9 @@ import (
 	"bytes"
 	_ "embed"
 	"errors"
+	"fmt"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/jfreymuth/oggvorbis"
@@ -593,5 +595,294 @@ func TestSeekSmallNegativePosition(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+var errSourceRead = errors.New("vorbis_test: source read failed")
+
+// failOnceReadSeeker returns the bytes before failAt together with errSourceRead the first time a
+// Read reaches failAt. A negative failAt disables the failure.
+type failOnceReadSeeker struct {
+	src    *bytes.Reader
+	failAt int64
+}
+
+func (f *failOnceReadSeeker) Read(buf []byte) (int, error) {
+	pos := f.src.Size() - int64(f.src.Len())
+	if f.failAt <= pos || f.failAt > pos+int64(len(buf)) {
+		return f.src.Read(buf)
+	}
+	n, err := f.src.Read(buf[:f.failAt-pos])
+	f.failAt = -1
+	if err != nil {
+		return n, err
+	}
+	return n, errSourceRead
+}
+
+func (f *failOnceReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return f.src.Seek(offset, whence)
+}
+
+func TestDecodeSourceErrorWithData(t *testing.T) {
+	cases := []struct {
+		name   string
+		data   []byte
+		decode func(src io.Reader) (*vorbis.Stream, error)
+	}{
+		{
+			name:   "DecodeF32,mono",
+			data:   test_mono_ogg,
+			decode: vorbis.DecodeF32,
+		},
+		{
+			name:   "DecodeF32,stereo",
+			data:   test_stereo_ogg,
+			decode: vorbis.DecodeF32,
+		},
+		{
+			name:   "DecodeWithoutResampling,mono",
+			data:   test_mono_ogg,
+			decode: vorbis.DecodeWithoutResampling,
+		},
+		{
+			name:   "DecodeWithoutResampling,stereo",
+			data:   test_stereo_ogg,
+			decode: vorbis.DecodeWithoutResampling,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s, err := c.decode(bytes.NewReader(c.data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, err := io.ReadAll(s)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			src := &failOnceReadSeeker{
+				src:    bytes.NewReader(c.data),
+				failAt: -1,
+			}
+			s, err = c.decode(src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			src.failAt = int64(len(c.data) / 2)
+
+			buf := make([]byte, len(want))
+			n, err := s.Read(buf)
+			if !errors.Is(err, errSourceRead) {
+				t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+			}
+			if n <= 0 {
+				t.Errorf("Read: got %d bytes, want a positive count delivered with the error", n)
+			}
+			if !bytes.Equal(buf[:n], want[:n]) {
+				t.Errorf("Read: the %d bytes delivered with the error differ from a stream without the error", n)
+			}
+
+			pos, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(n); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+			}
+		})
+	}
+}
+
+func TestShortBufferEOFAndRecovery(t *testing.T) {
+	for _, src := range [][]byte{test_mono_ogg, test_stereo_ogg} {
+		for _, decode := range []struct {
+			name string
+			f    func(io.Reader) (*vorbis.Stream, error)
+		}{
+			{
+				name: "Float32",
+				f:    vorbis.DecodeF32,
+			},
+			{
+				name: "Int16",
+				f:    vorbis.DecodeWithoutResampling,
+			},
+		} {
+			t.Run(decode.name, func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := make([]byte, 64)
+				if _, err := io.ReadFull(s, want); err != nil {
+					t.Fatal(err)
+				}
+				for _, size := range []int{1, 2, 3} {
+					if _, err := s.Seek(0, io.SeekEnd); err != nil {
+						t.Fatal(err)
+					}
+					if n, err := s.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+						t.Errorf("short Read at EOF = (%d, %v)", n, err)
+					}
+					if _, err := s.Seek(0, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					for range 2 {
+						if n, err := s.Read(make([]byte, 1)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+							t.Errorf("short Read with data = (%d, %v)", n, err)
+						}
+					}
+					got := make([]byte, len(want))
+					if _, err := io.ReadFull(s, got); err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(got, want) {
+						t.Error("audio changed after short reads")
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestSeekOverflow(t *testing.T) {
+	for idx, src := range [][]byte{test_mono_ogg, test_stereo_ogg} {
+		for _, decode := range []struct {
+			name string
+			f    func(io.Reader) (*vorbis.Stream, error)
+		}{
+			{
+				name: "Int16",
+				f:    vorbis.DecodeWithoutResampling,
+			},
+			{
+				name: "Float32",
+				f:    vorbis.DecodeF32,
+			},
+			{
+				name: "Resampled",
+				f:    func(src io.Reader) (*vorbis.Stream, error) { return vorbis.DecodeWithSampleRate(32000, src) },
+			},
+		} {
+			t.Run(fmt.Sprintf("%s/source=%d", decode.name, idx), func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				checkSeekOverflow(t, s)
+			})
+		}
+	}
+}
+
+func checkSeekOverflow(t *testing.T, r io.ReadSeeker) {
+	t.Helper()
+	want := make([]byte, 128)
+	if _, err := io.ReadFull(r, want); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Seek(64, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekCurrent, io.SeekEnd} {
+		if _, err := r.Seek(math.MaxInt64, whence); err == nil {
+			t.Errorf("Seek(MaxInt64, %d) succeeded", whence)
+		}
+		if pos, err := r.Seek(0, io.SeekCurrent); err != nil || pos != 64 {
+			t.Errorf("position after rejected seek = (%d, %v), want 64", pos, err)
+		}
+	}
+	got := make([]byte, 64)
+	if _, err := io.ReadFull(r, got); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want[64:]) {
+		t.Error("audio changed after rejected seeks")
+	}
+}
+
+func TestSeekEOF(t *testing.T) {
+	for idx, src := range [][]byte{test_mono_ogg, test_stereo_ogg} {
+		for _, decode := range []struct {
+			name string
+			f    func(io.Reader) (*vorbis.Stream, error)
+		}{
+			{
+				name: "Int16",
+				f:    vorbis.DecodeWithoutResampling,
+			},
+			{
+				name: "Float32",
+				f:    vorbis.DecodeF32,
+			},
+			{
+				name: "Resampled",
+				f:    func(src io.Reader) (*vorbis.Stream, error) { return vorbis.DecodeWithSampleRate(32000, src) },
+			},
+		} {
+			t.Run(fmt.Sprintf("%s/source=%d", decode.name, idx), func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				checkEOFSeeks(t, s)
+			})
+		}
+	}
+}
+
+func checkEOFSeeks(t *testing.T, s interface {
+	io.ReadSeeker
+	Length() int64
+}) {
+	t.Helper()
+	want := make([]byte, 64)
+	if _, err := io.ReadFull(s, want); err != nil {
+		t.Fatal(err)
+	}
+	for _, target := range []int64{s.Length(), s.Length() + 32, 1 << 40, math.MaxInt64/8*8 - 1024} {
+		for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+			if _, err := s.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			offset := target
+			if whence == io.SeekEnd {
+				offset -= s.Length()
+			}
+			pos, err := s.Seek(offset, whence)
+			if err != nil {
+				t.Fatalf("Seek(%d, %d): %v", offset, whence, err)
+			}
+			if pos != target {
+				t.Errorf("Seek(%d, %d) = %d, want %d", offset, whence, pos, target)
+			}
+			buf := make([]byte, 64)
+			for _, size := range []int{1, 3, len(buf), len(buf)} {
+				if n, err := s.Read(buf[:size]); n != 0 || !errors.Is(err, io.EOF) {
+					t.Errorf("Read at %d = (%d, %v), want (0, EOF)", target, n, err)
+				}
+			}
+			if pos, err := s.Seek(target+1, io.SeekStart); err != nil || pos != target {
+				t.Errorf("unaligned seek beyond EOF = (%d, %v), want %d", pos, err, target)
+			}
+			if pos, err := s.Seek(0, io.SeekCurrent); err != nil || pos != target {
+				t.Errorf("current = (%d, %v), want %d", pos, err, target)
+			}
+			if pos, err := s.Seek(8, io.SeekCurrent); err != nil || pos != target+8 {
+				t.Errorf("advance = (%d, %v), want %d", pos, err, target+8)
+			}
+			if pos, err := s.Seek(-target-8, io.SeekCurrent); err != nil || pos != 0 {
+				t.Fatalf("seek back = (%d, %v)", pos, err)
+			}
+			if _, err := io.ReadFull(s, buf); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(buf, want) {
+				t.Error("reading after seeking back returned different bytes")
+			}
+		}
 	}
 }

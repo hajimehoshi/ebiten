@@ -95,7 +95,12 @@ func (c *ColorScale) SetA(a float32) {
 }
 
 // SetWithColor overwrites the current scale with the given color.
+//
+// SetWithColor panics if clr is nil.
 func (c *ColorScale) SetWithColor(clr color.Color) {
+	if clr == nil {
+		panic("ebiten: the given color to SetWithColor must not be nil")
+	}
 	cr, cg, cb, ca := clr.RGBA()
 	c.Set(float32(cr)/0xffff, float32(cg)/0xffff, float32(cb)/0xffff, float32(ca)/0xffff)
 }
@@ -121,7 +126,12 @@ func (c *ColorScale) ScaleAlpha(a float32) {
 }
 
 // ScaleWithColor multiplies the given color values to the current scale.
+//
+// ScaleWithColor panics if clr is nil.
 func (c *ColorScale) ScaleWithColor(clr color.Color) {
+	if clr == nil {
+		panic("ebiten: the given color to ScaleWithColor must not be nil")
+	}
 	cr, cg, cb, ca := clr.RGBA()
 	c.Scale(float32(cr)/0xffff, float32(cg)/0xffff, float32(cb)/0xffff, float32(ca)/0xffff)
 }

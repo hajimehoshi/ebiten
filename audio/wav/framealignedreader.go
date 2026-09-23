@@ -57,6 +57,7 @@ func (r *frameAlignedReader) Read(p []byte) (int, error) {
 	// Keep reading until one frame is available so that a source returning less than one frame
 	// at a time doesn't make Read return (0, nil).
 	l := max(len(p), r.frameSize)
+	var readErr error
 	for len(r.buf) < l && !r.eof {
 		origLen := len(r.buf)
 		if cap(r.buf) < l {
@@ -69,7 +70,8 @@ func (r *frameAlignedReader) Read(p []byte) (int, error) {
 			break
 		}
 		if err != nil {
-			return 0, err
+			readErr = err
+			break
 		}
 		if r.available() > 0 || n == 0 {
 			break
@@ -79,6 +81,9 @@ func (r *frameAlignedReader) Read(p []byte) (int, error) {
 	n := copy(p, r.buf[:r.available()])
 	r.pos += int64(n)
 	r.buf = r.buf[:copy(r.buf, r.buf[n:])]
+	if readErr != nil {
+		return n, readErr
+	}
 	if r.eof && r.available() == 0 {
 		return n, io.EOF
 	}

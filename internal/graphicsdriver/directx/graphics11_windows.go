@@ -170,7 +170,7 @@ type graphics11 struct {
 	window       windows.HWND
 }
 
-func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr error) {
+func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, err error) {
 	g := &graphics11{
 		vsyncEnabled: true,
 	}
@@ -201,7 +201,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 	}
 	g.device = (*_ID3D11Device)(d)
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.device.Release()
 			g.device = nil
 		}
@@ -209,7 +209,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 	g.featureLevel = fl
 	g.deviceContext = (*_ID3D11DeviceContext)(ctx)
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.deviceContext.Release()
 			g.deviceContext = nil
 		}
@@ -242,7 +242,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 	}
 	g.graphicsInfra = gi
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.graphicsInfra.release()
 			g.graphicsInfra = nil
 		}
@@ -252,7 +252,8 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 
 	// Set the rasterizer state.
 	if g.rasterizerState == nil {
-		rs, err := g.device.CreateRasterizerState(&_D3D11_RASTERIZER_DESC{
+		var rs *_ID3D11RasterizerState
+		rs, err = g.device.CreateRasterizerState(&_D3D11_RASTERIZER_DESC{
 			FillMode:              _D3D11_FILL_SOLID,
 			CullMode:              _D3D11_CULL_NONE,
 			FrontCounterClockwise: 0,
@@ -269,7 +270,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 		}
 		g.rasterizerState = rs
 		defer func() {
-			if ferr != nil {
+			if err != nil {
 				g.rasterizerState.Release()
 				g.rasterizerState = nil
 			}

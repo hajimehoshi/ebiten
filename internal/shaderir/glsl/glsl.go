@@ -96,9 +96,10 @@ out vec4 fragColor;`
 }
 
 type compileContext struct {
-	version     GLSLVersion
-	structNames map[string]string
-	structTypes []shaderir.Type
+	version            GLSLVersion
+	structNames        map[string]string
+	structTypes        []shaderir.Type
+	assignedAttributes []bool
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -119,8 +120,9 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 	p = adjustProgram(p)
 
 	c := &compileContext{
-		version:     version,
-		structNames: map[string]string{},
+		version:            version,
+		structNames:        map[string]string{},
+		assignedAttributes: p.AssignedAttributes(),
 	}
 
 	// Vertex func
@@ -205,6 +207,12 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 			vslines = append(vslines, "void main(void) {")
 			if len(touchUniformsFunc) > 0 {
 				vslines = append(vslines, "\ttouchUniforms();")
+			}
+			for i, t := range p.Attributes {
+				if !c.assignedAttributes[i] {
+					continue
+				}
+				vslines = append(vslines, fmt.Sprintf("\t%s = A%d;", c.varDecl(p, &t, attributeCopyName(i)), i))
 			}
 			vslines = append(vslines, c.block(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 			vslines = append(vslines, "}")
@@ -393,6 +401,12 @@ func constantToNumberLiteral(v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
+// attributeCopyName returns the name of the local variable that holds a copy of an assigned attribute.
+// An attribute itself is read-only in a vertex shader.
+func attributeCopyName(idx int) string {
+	return fmt.Sprintf("a%d", idx)
+}
+
 func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
 	switch topBlock {
 	case p.VertexFunc.Block:
@@ -400,6 +414,9 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		nv := len(p.Varyings)
 		switch {
 		case idx < na:
+			if c.assignedAttributes[idx] {
+				return attributeCopyName(idx)
+			}
 			return fmt.Sprintf("A%d", idx)
 		case idx == na:
 			return "gl_Position"

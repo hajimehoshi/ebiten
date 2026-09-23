@@ -64,7 +64,12 @@ func (c *ColorM) Reset() {
 // where r, g, b, and a are clr's values in straight-alpha format.
 // In other words, Apply calculates ColorM * (r, g, b, a, 1)^T.
 // The result values are clamped to be in the range [0, 1].
+//
+// Apply panics if clr is nil.
 func (c *ColorM) Apply(clr color.Color) color.Color {
+	if clr == nil {
+		panic("colorm: the given color to Apply must not be nil")
+	}
 	return c.affineColorM().Apply(clr)
 }
 
@@ -84,7 +89,12 @@ func (c *ColorM) Scale(r, g, b, a float64) {
 }
 
 // ScaleWithColor scales the matrix by clr.
+//
+// ScaleWithColor panics if clr is nil.
 func (c *ColorM) ScaleWithColor(clr color.Color) {
+	if clr == nil {
+		panic("colorm: the given color to ScaleWithColor must not be nil")
+	}
 	cr, cg, cb, ca := clr.RGBA()
 	if ca == 0 {
 		c.Scale(0, 0, 0, 0)
@@ -161,15 +171,34 @@ func (c *ColorM) ReadElements(body []float32, translation []float32) {
 	c.affineColorM().Elements(body, translation)
 }
 
-func uniforms(c ColorM) map[string]any {
-	var body [16]float32
-	var translation [4]float32
-	c.affineColorM().Elements(body[:], translation[:])
+// theUniformsPool reuses the uniform maps and their buffers. DrawImage and DrawTriangles
+// can be called once per sprite at every frame, and the map is consumed synchronously by
+// DrawRectShader/DrawTrianglesShader.
+type uniformsPoolValue struct {
+	uniforms    map[string]any
+	body        [16]float32
+	translation [4]float32
+}
 
-	uniforms := map[string]any{}
-	uniforms[colormshader.UniformColorMBody] = body[:]
-	uniforms[colormshader.UniformColorMTranslation] = translation[:]
-	return uniforms
+var theUniformsPool = sync.Pool{
+	New: func() any {
+		return &uniformsPoolValue{
+			uniforms: map[string]any{},
+		}
+	},
+}
+
+func acquireUniforms(c ColorM) *uniformsPoolValue {
+	u := theUniformsPool.Get().(*uniformsPoolValue)
+	c.affineColorM().Elements(u.body[:], u.translation[:])
+	u.uniforms[colormshader.UniformColorMBody] = u.body[:]
+	u.uniforms[colormshader.UniformColorMTranslation] = u.translation[:]
+	return u
+}
+
+func releaseUniforms(u *uniformsPoolValue) {
+	clear(u.uniforms)
+	theUniformsPool.Put(u)
 }
 
 type builtinShaderKey struct {
@@ -183,6 +212,13 @@ var (
 )
 
 func builtinShader(filter colormshader.Filter, address colormshader.Address) *ebiten.Shader {
+	if filter < 0 || filter >= colormshader.FilterCount {
+		panic(fmt.Sprintf("colorm: invalid filter: %d", filter))
+	}
+	if address < 0 || address >= colormshader.AddressCount {
+		panic(fmt.Sprintf("colorm: invalid address: %d", address))
+	}
+
 	builtinShadersM.Lock()
 	defer builtinShadersM.Unlock()
 

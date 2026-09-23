@@ -354,6 +354,9 @@ func (c ColorMIdentity) Invert() ColorM {
 }
 
 func (c colorMImplScale) Invert() ColorM {
+	if !c.IsInvertible() {
+		panic("affine: c is not invertible")
+	}
 	return colorMImplScale{
 		scale: [4]float32{
 			1 / c.scale[0],

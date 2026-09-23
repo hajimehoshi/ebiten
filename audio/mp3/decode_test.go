@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/mp3"
@@ -85,6 +86,91 @@ func TestSeekNegativePosition(t *testing.T) {
 			buf := make([]byte, 64)
 			if _, err := io.ReadFull(s, buf); err != nil {
 				t.Fatal(err)
+			}
+		})
+	}
+}
+
+func TestSeekRejectedPositionRecovery(t *testing.T) {
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			s, err := decode.f(bytes.NewReader(resources.Ragtime_mp3))
+			if err != nil {
+				t.Fatal(err)
+			}
+			const position = 1024
+			want := make([]byte, position+64)
+			if _, err := io.ReadFull(s, want); err != nil {
+				t.Fatal(err)
+			}
+
+			for _, tc := range []struct {
+				name   string
+				offset int64
+				whence int
+			}{
+				{
+					name:   "CurrentOverflow",
+					offset: math.MaxInt64,
+					whence: io.SeekCurrent,
+				},
+				{
+					name:   "EndOverflow",
+					offset: math.MaxInt64,
+					whence: io.SeekEnd,
+				},
+				{
+					name:   "StartNegative",
+					offset: -1,
+					whence: io.SeekStart,
+				},
+				{
+					name:   "CurrentNegative",
+					offset: -position - 1,
+					whence: io.SeekCurrent,
+				},
+				{
+					name:   "EndNegative",
+					offset: -s.Length() - 1,
+					whence: io.SeekEnd,
+				},
+				{
+					name:   "CurrentMinInt64",
+					offset: math.MinInt64,
+					whence: io.SeekCurrent,
+				},
+				{
+					name:   "EndMinInt64",
+					offset: math.MinInt64,
+					whence: io.SeekEnd,
+				},
+			} {
+				t.Run(tc.name, func(t *testing.T) {
+					s, err := decode.f(bytes.NewReader(resources.Ragtime_mp3))
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, err := io.CopyN(io.Discard, s, position); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := s.Seek(tc.offset, tc.whence); err == nil {
+						t.Errorf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
+					}
+					pos, err := s.Seek(0, io.SeekCurrent)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if pos != position {
+						t.Errorf("position after rejected seek: got %d, want %d", pos, position)
+					}
+					got := make([]byte, len(want)-position)
+					if _, err := io.ReadFull(s, got); err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(got, want[position:]) {
+						t.Error("data after rejected seek differs from uninterrupted decoding")
+					}
+				})
 			}
 		})
 	}

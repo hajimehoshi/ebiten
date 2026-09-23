@@ -150,7 +150,7 @@ type pipelineStates struct {
 
 const numConstantBufferAndSourceTextures = 1 + graphics.ShaderSrcImageCount
 
-func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
+func (p *pipelineStates) initialize(device *_ID3D12Device) (err error) {
 	// Create a CBV/SRV/UAV descriptor heap.
 	//   5n+0:        constants
 	//   5n+m (1<=m<=4): textures
@@ -165,7 +165,7 @@ func (p *pipelineStates) initialize(device *_ID3D12Device) (ferr error) {
 	}
 	p.shaderDescriptorHeap = shaderH
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			p.release()
 		}
 	}()

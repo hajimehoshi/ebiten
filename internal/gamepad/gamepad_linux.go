@@ -40,6 +40,16 @@ func isBitSet(s []byte, bit int) bool {
 	return s[bit/8]&(1<<(bit%8)) != 0
 }
 
+// openDevice opens path, retrying on EINTR.
+func openDevice(path string, flags int) (int, error) {
+	for {
+		fd, err := unix.Open(path, flags, 0)
+		if err != unix.EINTR {
+			return fd, err
+		}
+	}
+}
+
 // isDisconnectError reports whether err indicates that the device was removed.
 func isDisconnectError(err error) bool {
 	// Some drivers report EIO instead of ENODEV on removal.
@@ -125,10 +135,10 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	// Fall back to read-only when write access is not permitted: the gamepad
 	// still works, without rumble.
 	writable := true
-	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
+	fd, err := openDevice(path, unix.O_RDWR|unix.O_NONBLOCK|unix.O_CLOEXEC)
 	if err == unix.EACCES || err == unix.EPERM {
 		writable = false
-		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
+		fd, err = openDevice(path, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC)
 	}
 	if err != nil {
 		if err == unix.EACCES {

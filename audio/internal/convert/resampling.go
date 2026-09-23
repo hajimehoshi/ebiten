@@ -108,6 +108,11 @@ type Resampling struct {
 	srcBufR               map[int64][]float64
 	lruSrcBlocks          []int64
 	eof                   bool
+
+	// partialSrcBuf is the beginning of the block partialSrcBlock read before a source error.
+	// The source position is right after it. partialSrcBuf is nil when there is no such block.
+	partialSrcBlock int64
+	partialSrcBuf   []byte
 }
 
 // NewResampling returns a stream that converts the sample rate of source.
@@ -173,7 +178,11 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 	nextPos := int64(i) / resamplingBufferSize
 	if _, ok := r.srcBufL[nextPos]; !ok {
 		blockStart := nextPos * resamplingBufferSize * sizePerSample
-		if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != nextPos {
+		buf := make([]byte, resamplingBufferSize*sizePerSample)
+		var c int
+		if r.partialSrcBuf != nil && r.partialSrcBlock == nextPos {
+			c = copy(buf, r.partialSrcBuf)
+		} else if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != nextPos {
 			seeker, ok := r.source.(io.Seeker)
 			if !ok {
 				return 0, 0, fmt.Errorf("convert: source must be io.Seeker")
@@ -182,8 +191,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 				return 0, 0, err
 			}
 		}
-		buf := make([]byte, resamplingBufferSize*sizePerSample)
-		var c int
+		r.partialSrcBuf = nil
 		var eof bool
 		for c < len(buf) {
 			n, err := r.source.Read(buf[c:])
@@ -202,6 +210,12 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 					break
 				}
 				r.lastReadSrcBlockValid = false
+				// Keep the bytes read so far, as a source that is not an io.Seeker cannot deliver them again.
+				if c > 0 {
+					r.partialSrcBlock = nextPos
+					r.partialSrcBuf = buf[:c]
+					r.srcReadEnd = max(r.srcReadEnd, blockStart+int64(c))
+				}
 				return 0, 0, err
 			}
 			// A source making no progress must not spin here.
@@ -315,7 +329,7 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 }
 
 func (r *Resampling) Read(b []byte) (int, error) {
-	if r.eof {
+	if r.eof || (r.srcLength() >= 0 && r.pos >= r.Length()) {
 		return 0, io.EOF
 	}
 	if len(b) == 0 {
@@ -323,8 +337,18 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	}
 
 	size := r.bytesPerSample()
-	// A buffer shorter than one frame cannot receive any resampled data.
 	if len(b) < size {
+		if r.srcLength() < 0 {
+			// Resolve EOF through the source cache without advancing the output position.
+			_, _, err := r.at(r.pos / int64(size))
+			if err != nil && err != io.EOF {
+				return 0, err
+			}
+			if (err == io.EOF && r.srcLength() < 0) || (r.srcLength() >= 0 && r.pos >= r.Length()) {
+				r.eof = true
+				return 0, io.EOF
+			}
+		}
 		return 0, io.ErrShortBuffer
 	}
 
@@ -403,29 +427,25 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
-	pos := r.pos
+	var base int64
 	switch whence {
 	case io.SeekStart:
-		pos = offset
 	case io.SeekCurrent:
-		pos += offset
+		base = r.pos
 	case io.SeekEnd:
 		if r.srcLength() < 0 {
 			return 0, fmt.Errorf("convert: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
 		}
-		pos = r.Length() + offset
+		base = r.Length()
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if pos < 0 {
-		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
+	pos, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("convert: invalid seek position")
 	}
 	r.eof = false
 	r.pos = pos
-	// The position can be clamped by the length only when the length is known.
-	if r.srcLength() >= 0 && r.Length() <= r.pos {
-		r.pos = r.Length()
-	}
 	size := r.bytesPerSample()
 	r.pos = r.pos / int64(size) * int64(size)
 	return r.pos, nil

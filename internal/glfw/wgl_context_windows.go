@@ -348,6 +348,10 @@ func destroyContextWGL(window *Window) error {
 		}
 		window.context.platform.handle = 0
 	}
+	if window.context.platform.dc != 0 {
+		_ReleaseDC(window.platform.handle, window.context.platform.dc)
+		window.context.platform.dc = 0
+	}
 	return nil
 }
 
@@ -375,6 +379,8 @@ func initWGL() error {
 	if err != nil {
 		return err
 	}
+	defer _ReleaseDC(_glfw.platformWindow.helperWindowHandle, dc)
+
 	pfd := _PIXELFORMATDESCRIPTOR{
 		nVersion:   1,
 		dwFlags:    _PFD_DRAW_TO_WINDOW | _PFD_SUPPORT_OPENGL | _PFD_DOUBLEBUFFER,

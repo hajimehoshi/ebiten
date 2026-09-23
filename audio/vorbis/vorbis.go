@@ -24,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 const (
@@ -119,10 +120,7 @@ func (s *i16Stream) Read(b []byte) (int, error) {
 	l := int64(len(b))
 retry:
 	n, err := s.i16Reader.Read(b[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
-	if n == 0 && l > 0 && err != io.EOF {
+	if n == 0 && l > 0 && err == nil {
 		// When l is too small, decoder's Read might return 0 for a while. Let's retry.
 		goto retry
 	}
@@ -135,19 +133,19 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("vorbis: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 
-	var next int64
+	var base int64
 	switch whence {
 	case io.SeekStart:
-		next = offset
 	case io.SeekCurrent:
-		next = int64(s.posInBytes) + offset
+		base = s.posInBytes
 	case io.SeekEnd:
-		next = int64(s.totalBytes()) + offset
+		base = s.totalBytes()
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if next < 0 {
-		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", next)
+	next, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("vorbis: invalid seek position")
 	}
 	sampleSize := int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
 	pos := next / sampleSize * sampleSize

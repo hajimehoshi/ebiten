@@ -515,6 +515,70 @@ func TestInfiniteLoopBlendAfterEmptyAfterLoopRead(t *testing.T) {
 	}
 }
 
+func TestInfiniteLoopKeepsBlendingOnFailedSeek(t *testing.T) {
+	cases := []struct {
+		name           string
+		bytesPerSample int
+		length         int
+		newLoop        func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:           "int16",
+			bytesPerSample: 2 * 2,
+			length:         2 * 2 * 4,
+			newLoop:        audio.NewInfiniteLoop,
+		},
+		{
+			name:           "float32",
+			bytesPerSample: 4 * 2,
+			length:         4 * 2 * 4,
+			newLoop:        audio.NewInfiniteLoopF32,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// The loop part is silent and the part after the loop is not, so a blended sample at the
+			// loop start, whose blend rate is 1, differs from the raw silent loop data.
+			src := make([]byte, c.length*2)
+			for i := c.length; i < len(src); i++ {
+				src[i] = byte(100 + i - c.length)
+			}
+			l := c.newLoop(bytes.NewReader(src), int64(c.length))
+
+			// Read through the loop boundary so that the data after the loop is read and blending
+			// becomes active.
+			buf := make([]byte, c.length+c.bytesPerSample)
+			firstLap := make([]byte, 0, c.length)
+			for len(firstLap) < c.length {
+				n, err := l.Read(buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+				firstLap = append(firstLap, buf[:n]...)
+			}
+			// The first lap is not blended as the data after the loop was not read yet.
+			if got, want := firstLap[:c.length], src[:c.length]; !bytes.Equal(got, want) {
+				t.Fatalf("first lap: got: %v, want: %v", got, want)
+			}
+
+			// Seeking to a negative position fails, and the loop is left at the loop start.
+			if _, err := l.Seek(-1, io.SeekStart); err == nil {
+				t.Fatal("Seek(-1, io.SeekStart): got no error, want an error")
+			}
+
+			// The next samples must still be blended: the first sample at the loop start, whose blend
+			// rate is 1, must be the first sample after the loop rather than the raw silent loop start.
+			if _, err := l.Read(buf); err != nil {
+				t.Fatal(err)
+			}
+			if got, want := buf[:c.bytesPerSample], src[c.length:c.length+c.bytesPerSample]; !bytes.Equal(got, want) {
+				t.Errorf("blending after a failed seek: got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
+
 func TestInfiniteLoopSeekClearsExtra(t *testing.T) {
 	// The source returns 5 bytes at most, which is larger than any bit depth but not a multiple of
 	// any, so a read returns a complete value and leaves a remainder.
@@ -830,5 +894,226 @@ func TestInfiniteLoopRewindClearsExtra(t *testing.T) {
 	}
 	if got, want := buf[:4], []byte{0, 1, 2, 3}; !bytes.Equal(got[:4], want) {
 		t.Errorf("got: %v, want: %v (n: %d)", got, want, n)
+	}
+}
+
+// dataWithErrorReadSeeker returns at most dataN bytes together with errSourceFailed on the Read
+// call with the given 1-based number.
+type dataWithErrorReadSeeker struct {
+	src    io.ReadSeeker
+	failAt int
+	dataN  int
+	reads  int
+}
+
+func (d *dataWithErrorReadSeeker) Read(buf []byte) (int, error) {
+	d.reads++
+	if d.reads != d.failAt {
+		return d.src.Read(buf)
+	}
+	n, err := d.src.Read(buf[:min(len(buf), d.dataN)])
+	if err != nil {
+		return n, err
+	}
+	return n, errSourceFailed
+}
+
+func (d *dataWithErrorReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return d.src.Seek(offset, whence)
+}
+
+func TestInfiniteLoopSourceErrorWithData(t *testing.T) {
+	cases := []struct {
+		name           string
+		bytesPerSample int
+		newLoop        func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:           "int16",
+			bytesPerSample: 2 * 2,
+			newLoop:        audio.NewInfiniteLoop,
+		},
+		{
+			name:           "float32",
+			bytesPerSample: 4 * 2,
+			newLoop:        audio.NewInfiniteLoopF32,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			length := 16 * c.bytesPerSample
+			src := make([]byte, 2*length)
+			for i := range src {
+				src[i] = byte(i + 1)
+			}
+			want := make([]byte, 3*length)
+			if _, err := io.ReadFull(c.newLoop(bytes.NewReader(src), int64(length)), want); err != nil {
+				t.Fatal(err)
+			}
+
+			l := c.newLoop(&dataWithErrorReadSeeker{
+				src:    bytes.NewReader(src),
+				failAt: 1,
+				dataN:  2*c.bytesPerSample + 1,
+			}, int64(length))
+
+			buf := make([]byte, length/2)
+			n, err := l.Read(buf)
+			if !errors.Is(err, errSourceFailed) {
+				t.Errorf("Read: got error %v, want %v", err, errSourceFailed)
+			}
+			if got, want := n, 2*c.bytesPerSample; got != want {
+				t.Errorf("Read: got %d bytes, want %d", got, want)
+			}
+			if got, want := buf[:n], want[:n]; !bytes.Equal(got, want) {
+				t.Errorf("Read: got %v, want %v", got, want)
+			}
+
+			pos, err := l.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(n); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+			}
+
+			rest := make([]byte, len(want)-n)
+			if _, err := io.ReadFull(l, rest); err != nil {
+				t.Fatal(err)
+			}
+			if got, want := rest, want[n:]; !bytes.Equal(got, want) {
+				t.Errorf("reading on after the error: got %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestInfiniteLoopAfterLoopSourceErrorWithData(t *testing.T) {
+	cases := []struct {
+		name           string
+		bytesPerSample int
+		newLoop        func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:           "int16",
+			bytesPerSample: 2 * 2,
+			newLoop:        audio.NewInfiniteLoop,
+		},
+		{
+			name:           "float32",
+			bytesPerSample: 4 * 2,
+			newLoop:        audio.NewInfiniteLoopF32,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			length := 16 * c.bytesPerSample
+			src := make([]byte, 2*length)
+			for i := length; i < len(src); i++ {
+				src[i] = byte(100 + i - length)
+			}
+			want := make([]byte, 3*length)
+			if _, err := io.ReadFull(c.newLoop(bytes.NewReader(src), int64(length)), want); err != nil {
+				t.Fatal(err)
+			}
+
+			l := c.newLoop(&dataWithErrorReadSeeker{
+				src:    bytes.NewReader(src),
+				failAt: 2,
+				dataN:  c.bytesPerSample + 1,
+			}, int64(length))
+
+			buf := make([]byte, length)
+			n, err := l.Read(buf)
+			if !errors.Is(err, errSourceFailed) {
+				t.Errorf("Read: got error %v, want %v", err, errSourceFailed)
+			}
+			if got, want := n, length; got != want {
+				t.Errorf("Read: got %d bytes, want %d", got, want)
+			}
+			if got, want := buf[:n], want[:n]; !bytes.Equal(got, want) {
+				t.Errorf("Read: got %v, want %v", got, want)
+			}
+
+			rest := make([]byte, len(want)-n)
+			if _, err := io.ReadFull(l, rest); err != nil {
+				t.Fatal(err)
+			}
+			if got, want := rest, want[n:]; !bytes.Equal(got, want) {
+				t.Errorf("reading on after the error: got %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestInfiniteLoopShortBufferEOFAndRecovery(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		depth   int
+		newLoop func(io.ReadSeeker, int64, int64) *audio.InfiniteLoop
+	}{
+		{
+			name:    "Int16",
+			depth:   2,
+			newLoop: audio.NewInfiniteLoopWithIntro,
+		},
+		{
+			name:    "Float32",
+			depth:   4,
+			newLoop: audio.NewInfiniteLoopWithIntroF32,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, intro := range []int64{0, 16} {
+				for size := 1; size < tc.depth; size++ {
+					l := tc.newLoop(bytes.NewReader(nil), intro, 16)
+					for range 2 {
+						if n, err := l.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+							t.Errorf("short Read from empty loop = (%d, %v)", n, err)
+						}
+					}
+				}
+			}
+			src := make([]byte, 128)
+			for i := range src {
+				src[i] = byte(i)
+			}
+			want := make([]byte, 256)
+			if _, err := io.ReadFull(tc.newLoop(bytes.NewReader(src), 16, 32), want); err != nil {
+				t.Fatal(err)
+			}
+			for _, fail := range []bool{false, true} {
+				var source io.ReadSeeker = bytes.NewReader(src)
+				wantErr := io.ErrShortBuffer
+				if fail {
+					source = &dataWithErrorReadSeeker{
+						src:    source,
+						failAt: 1,
+						dataN:  1,
+					}
+					wantErr = errSourceFailed
+				}
+				l := tc.newLoop(source, 16, 32)
+				if n, err := l.Read(make([]byte, 1)); n != 0 || !errors.Is(err, wantErr) {
+					t.Errorf("short Read = (%d, %v), want %v", n, err, wantErr)
+				}
+				got := make([]byte, len(want))
+				if _, err := io.ReadFull(l, got); err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Error("loop audio changed after short Read")
+				}
+			}
+			l := tc.newLoop(bytes.NewReader(src), 16, 32)
+			if _, err := l.Read(make([]byte, 1)); !errors.Is(err, io.ErrShortBuffer) {
+				t.Fatal(err)
+			}
+			if pos, err := l.Seek(0, io.SeekCurrent); err != nil || pos != 0 {
+				t.Errorf("current after short Read = (%d, %v), want 0", pos, err)
+			}
+		})
 	}
 }

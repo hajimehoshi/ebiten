@@ -45,7 +45,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 
-			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, true)
+			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, true)
 			if !ok {
 				return nil, false
 			}
@@ -55,7 +55,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				cs.addError(stmt.Pos(), "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
-			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, inParams, false)
+			ss, ok := cs.assign(block, fname, stmt.Pos(), stmt.Lhs, stmt.Rhs, false)
 			if !ok {
 				return nil, false
 			}
@@ -81,7 +81,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 
-			if lhs[0].Type == shaderir.UniformVariable {
+			if isUniformVariableRef(&lhs[0]) {
 				cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
 				return nil, false
 			}
@@ -322,7 +322,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), fmt.Sprintf("the operand of %s must be a single value", stmt.Tok))
 			return nil, false
 		}
-		if exprs[0].Type == shaderir.UniformVariable {
+		if isUniformVariableRef(&exprs[0]) {
 			cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
 			return nil, false
 		}
@@ -524,7 +524,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 	return stmts, true
 }
 
-func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, rhs []ast.Expr, inParams []variable, define bool) ([]shaderir.Stmt, bool) {
+func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, rhs []ast.Expr, define bool) ([]shaderir.Stmt, bool) {
 	var stmts []shaderir.Stmt
 	var rhsExprs []shaderir.Expr
 	var rhsTypes []shaderir.Type
@@ -598,24 +598,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				continue
 			}
 
-			var isAssignmentForbidden func(e *shaderir.Expr) bool
-			isAssignmentForbidden = func(e *shaderir.Expr) bool {
-				switch e.Type {
-				case shaderir.UniformVariable:
-					return true
-				case shaderir.LocalVariable:
-					if fname == cs.vertexEntry || fname == cs.fragmentEntry {
-						return e.Index < len(inParams)
-					}
-				case shaderir.FieldSelector:
-					return isAssignmentForbidden(&e.Exprs[0])
-				case shaderir.Index:
-					return isAssignmentForbidden(&e.Exprs[0])
-				}
-				return false
-			}
-
-			if isAssignmentForbidden(&l[0]) {
+			if isUniformVariableRef(&l[0]) {
 				cs.addError(pos, "a uniform variable cannot be assigned")
 				return nil, false
 			}
@@ -731,6 +714,11 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			if l[0].Type == shaderir.Blank {
 				continue
 			}
+
+			if isUniformVariableRef(&l[0]) {
+				cs.addError(pos, "a uniform variable cannot be assigned")
+				return nil, false
+			}
 			allblank = false
 
 			if !canAssign(&lts[0], &rhsTypes[i], rhsExprs[i].Const) {
@@ -764,6 +752,17 @@ func toDefaultType(v gconstant.Value) shaderir.Type {
 	}
 	// TODO: Should this be an error?
 	return shaderir.Type{}
+}
+
+// isUniformVariableRef reports whether e is a uniform variable, or a swizzle or an index of one.
+func isUniformVariableRef(e *shaderir.Expr) bool {
+	switch e.Type {
+	case shaderir.UniformVariable:
+		return true
+	case shaderir.FieldSelector, shaderir.Index:
+		return isUniformVariableRef(&e.Exprs[0])
+	}
+	return false
 }
 
 func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {
