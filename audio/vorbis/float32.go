@@ -107,25 +107,19 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 
 	sampleSize := int64(r.r.Channels()) * 4
 
-	var ok bool
+	var base int64
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
-		offset, ok = mathutil.AddForSeek(r.pos, offset)
-		if !ok {
-			return 0, fmt.Errorf("vorbis: position overflows int64")
-		}
+		base = r.pos
 	case io.SeekEnd:
-		end := r.r.Length() * sampleSize
-		offset, ok = mathutil.AddForSeek(end, offset)
-		if !ok {
-			return 0, fmt.Errorf("vorbis: position overflows int64")
-		}
+		base = r.r.Length() * sampleSize
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if offset < 0 {
-		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", offset)
+	offset, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("vorbis: invalid seek position")
 	}
 	pos := offset / sampleSize * sampleSize
 	if err := r.r.SetPosition(pos / sampleSize); err != nil {

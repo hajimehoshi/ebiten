@@ -628,3 +628,40 @@ func checkSeekOverflow(t *testing.T, r io.ReadSeeker) {
 		t.Error("audio changed after rejected seeks")
 	}
 }
+
+func TestStereoSeekEndPositionOverflow(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		newReader func(io.ReadSeeker) io.ReadSeeker
+	}{
+		{
+			name: "Float32",
+			newReader: func(src io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoF32(src, true)
+			},
+		},
+		{
+			name: "Int16",
+			newReader: func(src io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoI16ReadSeeker(src, true, convert.FormatS16)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := io.NewSectionReader(bytes.NewReader(make([]byte, 128)), 0, math.MaxInt64)
+			r := tc.newReader(src)
+			if _, err := r.Seek(8, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := r.Seek(8, io.SeekEnd); err == nil {
+				t.Error("SeekEnd accepted an overflowing output position")
+			}
+			if pos, err := r.Seek(0, io.SeekCurrent); err != nil || pos != 8 {
+				t.Errorf("position after rejected seek = (%d, %v), want 8", pos, err)
+			}
+			if _, err := io.ReadFull(r, make([]byte, 8)); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}

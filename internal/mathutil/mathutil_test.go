@@ -202,7 +202,7 @@ func TestAddForSeek(t *testing.T) {
 	for _, x := range values {
 		for _, y := range values {
 			sum := new(big.Int).Add(big.NewInt(x), big.NewInt(y))
-			wantOK := sum.IsInt64()
+			wantOK := sum.IsInt64() && sum.Sign() >= 0
 			var want int64
 			if wantOK {
 				want = sum.Int64()

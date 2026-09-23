@@ -114,24 +114,19 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	// Resolve the requested position before rounding the offset toward the sample boundary
 	// below, as the rounding truncates toward zero and would turn a small negative position
 	// into 0.
-	var pos int64
+	var base int64
 	// alignedEnd is the source position just past the last whole sample. It is resolved only
 	// for io.SeekEnd.
 	var alignedEnd int64
 	switch whence {
 	case io.SeekStart:
-		pos = offset
 	case io.SeekCurrent:
 		cur, err := s.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return 0, err
 		}
 		samples := (cur - int64(len(r.i16Buf))) / 2
-		base, ok := mathutil.Mul(samples, 4)
-		if !ok {
-			return 0, fmt.Errorf("convert: position overflows int64")
-		}
-		pos, ok = mathutil.AddForSeek(base, offset)
+		base, ok = mathutil.Mul(samples, 4)
 		if !ok {
 			return 0, fmt.Errorf("convert: position overflows int64")
 		}
@@ -151,19 +146,15 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 			return 0, err
 		}
 		alignedEnd = end / 2 * 2
-		base, ok := mathutil.Mul(alignedEnd/2, 4)
-		if !ok {
-			return 0, fmt.Errorf("convert: position overflows int64")
-		}
-		pos, ok = mathutil.AddForSeek(base, offset)
+		base, ok = mathutil.Mul(alignedEnd/2, 4)
 		if !ok {
 			return 0, fmt.Errorf("convert: position overflows int64")
 		}
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if pos < 0 {
-		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
+	if _, ok := mathutil.AddForSeek(base, offset); !ok {
+		return 0, fmt.Errorf("convert: invalid seek position")
 	}
 
 	offset = offset / 4 * 2

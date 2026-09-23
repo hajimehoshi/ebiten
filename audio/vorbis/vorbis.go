@@ -133,26 +133,19 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("vorbis: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 
-	var next int64
-	var ok bool
+	var base int64
 	switch whence {
 	case io.SeekStart:
-		next = offset
 	case io.SeekCurrent:
-		next, ok = mathutil.AddForSeek(s.posInBytes, offset)
-		if !ok {
-			return 0, fmt.Errorf("vorbis: position overflows int64")
-		}
+		base = s.posInBytes
 	case io.SeekEnd:
-		next, ok = mathutil.AddForSeek(s.totalBytes(), offset)
-		if !ok {
-			return 0, fmt.Errorf("vorbis: position overflows int64")
-		}
+		base = s.totalBytes()
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if next < 0 {
-		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", next)
+	next, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("vorbis: invalid seek position")
 	}
 	sampleSize := int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
 	pos := next / sampleSize * sampleSize

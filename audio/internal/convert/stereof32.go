@@ -120,40 +120,31 @@ func (s *StereoF32) sourceFrameSize() int64 {
 	return 8
 }
 
-// presentedPosition returns the output byte position, or -1 if it overflows int64.
-func (s *StereoF32) presentedPosition(pos int64) int64 {
+// presentedPosition returns the output byte position, or (0, false) if it overflows int64.
+func (s *StereoF32) presentedPosition(pos int64) (int64, bool) {
 	if s.mono {
-		var ok bool
-		pos, ok = mathutil.Mul(pos, 2)
-		if !ok {
-			return -1
-		}
+		return mathutil.Mul(pos, 2)
 	}
-	return pos
+	return pos, true
 }
 
 func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 	// Resolve the requested position before rounding the offset toward the frame boundary
 	// below, as the rounding truncates toward zero and would turn a small negative position
 	// into 0. An unknown whence is left to the source.
-	var pos int64
-	var ok bool
+	var base int64
+	ok := true
 	// alignedEnd is the source position just past the last whole frame. It is resolved only
 	// for io.SeekEnd.
 	var alignedEnd int64
 	switch whence {
 	case io.SeekStart:
-		pos = offset
 	case io.SeekCurrent:
 		cur, err := s.source.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return 0, err
 		}
-		base := s.presentedPosition(cur - int64(len(s.buf)))
-		pos, ok = mathutil.AddForSeek(base, offset)
-		if base < 0 || !ok {
-			return 0, fmt.Errorf("convert: position overflows int64")
-		}
+		base, ok = s.presentedPosition(cur - int64(len(s.buf)))
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the frame size.
 		// Resolve the offset from the last whole frame so that the source is
@@ -172,14 +163,13 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 		}
 		frameSize := s.sourceFrameSize()
 		alignedEnd = end / frameSize * frameSize
-		base := s.presentedPosition(alignedEnd)
-		pos, ok = mathutil.AddForSeek(base, offset)
-		if base < 0 || !ok {
-			return 0, fmt.Errorf("convert: position overflows int64")
-		}
+		base, ok = s.presentedPosition(alignedEnd)
 	}
-	if pos < 0 {
-		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
+	if !ok {
+		return 0, fmt.Errorf("convert: position overflows int64")
+	}
+	if _, ok := mathutil.AddForSeek(base, offset); !ok {
+		return 0, fmt.Errorf("convert: invalid seek position")
 	}
 
 	offset = offset / 8 * 8
@@ -201,10 +191,15 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 
+	pos, ok := s.presentedPosition(srcPos)
+	if !ok {
+		return 0, fmt.Errorf("convert: position overflows int64")
+	}
+
 	// Drop the buffered bytes only after the seek has succeeded, as the position this
 	// wrapper presents is behind the source by their length.
 	s.buf = s.buf[:0]
 	s.eof = false
 
-	return s.presentedPosition(srcPos), nil
+	return pos, nil
 }

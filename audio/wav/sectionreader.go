@@ -62,24 +62,21 @@ func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("wav: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
-	var pos int64
+	var base int64
 	switch whence {
 	case io.SeekStart:
-		pos = offset
 	case io.SeekCurrent:
-		pos, ok = mathutil.AddForSeek(s.pos, offset)
-		if !ok {
-			return 0, fmt.Errorf("wav: position overflows int64")
-		}
+		base = s.pos
 	case io.SeekEnd:
-		pos, ok = mathutil.AddForSeek(s.size, offset)
-		if !ok {
-			return 0, fmt.Errorf("wav: position overflows int64")
-		}
+		base = s.size
 	default:
 		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if pos < 0 || pos > s.size {
+	pos, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("wav: invalid seek position")
+	}
+	if pos > s.size {
 		return 0, fmt.Errorf("wav: position must be in [0, %d] but was %d", s.size, pos)
 	}
 	sourcePos, ok := mathutil.AddForSeek(pos, s.offset)

@@ -32,12 +32,16 @@ func Clamp01(x float64) float64 {
 	return x
 }
 
-// AddForSeek returns position + offset, or (0, false) if the result does not fit in int64.
+// AddForSeek returns position + offset, or (0, false) if the result is negative or does not fit in int64.
 func AddForSeek(position, offset int64) (int64, bool) {
 	if (offset > 0 && position > math.MaxInt64-offset) || (offset < 0 && position < math.MinInt64-offset) {
 		return 0, false
 	}
-	return position + offset, true
+	pos := position + offset
+	if pos < 0 {
+		return 0, false
+	}
+	return pos, true
 }
 
 // Mul returns x * y, or (0, false) if the result does not fit in int64.
