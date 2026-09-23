@@ -329,7 +329,7 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 }
 
 func (r *Resampling) Read(b []byte) (int, error) {
-	if r.eof {
+	if r.eof || (r.srcLength() >= 0 && r.pos >= r.Length()) {
 		return 0, io.EOF
 	}
 	if len(b) == 0 {
@@ -337,8 +337,18 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	}
 
 	size := r.bytesPerSample()
-	// A buffer shorter than one frame cannot receive any resampled data.
 	if len(b) < size {
+		if r.srcLength() < 0 {
+			// Resolve EOF through the source cache without advancing the output position.
+			_, _, err := r.at(r.pos / int64(size))
+			if err != nil && err != io.EOF {
+				return 0, err
+			}
+			if (err == io.EOF && r.srcLength() < 0) || (r.srcLength() >= 0 && r.pos >= r.Length()) {
+				r.eof = true
+				return 0, io.EOF
+			}
+		}
 		return 0, io.ErrShortBuffer
 	}
 

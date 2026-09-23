@@ -1103,3 +1103,68 @@ func TestResamplingSeekPastEndUnknownLength(t *testing.T) {
 		})
 	}
 }
+
+func TestResamplingShortBufferEOF(t *testing.T) {
+	for _, depth := range []int{2, 4} {
+		for _, knownLength := range []bool{false, true} {
+			t.Run(fmt.Sprintf("depth=%d/knownLength=%t", depth, knownLength), func(t *testing.T) {
+				for _, frames := range []int{0, 1, 32} {
+					src := make([]byte, frames*2*depth)
+					length := int64(-1)
+					if knownLength {
+						length = int64(len(src))
+					}
+					newReader := func(source io.Reader) *convert.Resampling {
+						return convert.NewResampling(source, length, 44100, 48000, depth)
+					}
+					want, err := io.ReadAll(newReader(bytes.NewReader(src)))
+					if err != nil {
+						t.Fatal(err)
+					}
+					for size := 1; size < 2*depth; size++ {
+						r := newReader(bytes.NewReader(src))
+						wantErr := io.ErrShortBuffer
+						if len(want) == 0 {
+							wantErr = io.EOF
+						}
+						for range 2 {
+							if n, err := r.Read(make([]byte, size)); n != 0 || !errors.Is(err, wantErr) {
+								t.Errorf("frames=%d, short Read(%d) = (%d, %v), want %v", frames, size, n, err, wantErr)
+							}
+						}
+						got, err := io.ReadAll(r)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if !bytes.Equal(got, want) {
+							t.Errorf("ReadAll after short Read = %x, want %x", got, want)
+						}
+						if n, err := r.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+							t.Errorf("short Read after draining = (%d, %v)", n, err)
+						}
+					}
+				}
+			})
+		}
+	}
+	src := make([]byte, 128)
+	r := convert.NewResampling(&dataWithErrorReadSeeker{
+		src:    bytes.NewReader(src),
+		failAt: 1,
+		dataN:  8,
+	}, -1, 44100, 48000, 2)
+	if n, err := r.Read(make([]byte, 1)); n != 0 || !errors.Is(err, errSourceRead) {
+		t.Errorf("short Read with source error = (%d, %v)", n, err)
+	}
+	got, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := io.ReadAll(convert.NewResampling(bytes.NewReader(src), -1, 44100, 48000, 2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Error("resampled audio changed after a short read with a source error")
+	}
+}

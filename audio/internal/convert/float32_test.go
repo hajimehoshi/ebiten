@@ -486,3 +486,94 @@ func TestFloat32SourceErrorWithData(t *testing.T) {
 		t.Errorf("got %v, want %v", got, want)
 	}
 }
+
+func TestShortBufferEOFAndPosition(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		frameSize int
+		newReader func(io.ReadSeeker) io.ReadSeeker
+	}{
+		{
+			name:      "Float32",
+			frameSize: 4,
+			newReader: convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker,
+		},
+		{
+			name:      "StereoI16",
+			frameSize: 4,
+			newReader: func(src io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoI16ReadSeeker(src, true, convert.FormatS16)
+			},
+		},
+		{
+			name:      "StereoF32Mono",
+			frameSize: 8,
+			newReader: func(src io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoF32(src, true)
+			},
+		},
+		{
+			name:      "StereoF32Stereo",
+			frameSize: 8,
+			newReader: func(src io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoF32(src, false)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+			want, err := io.ReadAll(tc.newReader(bytes.NewReader(src)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, data := range [][]byte{nil, src} {
+				r := tc.newReader(bytes.NewReader(data))
+				if _, err := r.Seek(0, io.SeekEnd); err != nil {
+					t.Fatal(err)
+				}
+				for size := 1; size < tc.frameSize; size++ {
+					if n, err := r.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+						t.Errorf("Read(%d bytes) at EOF = (%d, %v), want (0, EOF)", size, n, err)
+					}
+				}
+			}
+			r := tc.newReader(bytes.NewReader(src))
+			if n, err := r.Read(make([]byte, 1)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+				t.Errorf("short Read = (%d, %v), want (0, ErrShortBuffer)", n, err)
+			}
+			if pos, err := r.Seek(0, io.SeekCurrent); err != nil || pos != 0 {
+				t.Errorf("current = (%d, %v), want (0, nil)", pos, err)
+			}
+			r = tc.newReader(bytes.NewReader(src))
+			for range 2 {
+				if n, err := r.Read(make([]byte, 1)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+					t.Errorf("repeated short Read = (%d, %v)", n, err)
+				}
+			}
+
+			got, err := io.ReadAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Errorf("ReadAll after short Read = %x, want %x", got, want)
+			}
+			r = tc.newReader(&dataWithErrorReadSeeker{
+				src:    bytes.NewReader(src),
+				failAt: 1,
+				dataN:  4,
+			})
+			if n, err := r.Read(make([]byte, 1)); n != 0 || !errors.Is(err, errSourceRead) {
+				t.Errorf("short Read with source error = (%d, %v)", n, err)
+			}
+			got, err = io.ReadAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Errorf("ReadAll after source error = %x, want %x", got, want)
+			}
+
+		})
+	}
+}

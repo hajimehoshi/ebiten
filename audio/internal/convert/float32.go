@@ -42,13 +42,10 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	if len(buf) < 4 {
-		return 0, io.ErrShortBuffer
-	}
-
 	// Read int16 bytes. Keep reading until one sample is available so that a source returning
 	// less than one sample at a time doesn't make Read return (0, nil).
-	i16LenToFill := len(buf) / 4 * 2
+	// Buffer at least one sample to distinguish EOF from a short destination buffer.
+	i16LenToFill := max(len(buf)/4, 1) * 2
 	var readErr error
 	for len(r.i16Buf) < i16LenToFill && !r.eof {
 		origLen := len(r.i16Buf)
@@ -68,6 +65,16 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 		if len(r.i16Buf) >= 2 || n == 0 {
 			break
 		}
+	}
+
+	if len(buf) < 4 {
+		if readErr != nil {
+			return 0, readErr
+		}
+		if r.eof && len(r.i16Buf) < 2 {
+			return 0, io.EOF
+		}
+		return 0, io.ErrShortBuffer
 	}
 
 	// Convert int16 bytes to float32 bytes and fill buf.

@@ -693,3 +693,55 @@ func TestDecodeSourceErrorWithData(t *testing.T) {
 		})
 	}
 }
+
+func TestShortBufferEOFAndRecovery(t *testing.T) {
+	for _, src := range [][]byte{test_mono_ogg, test_stereo_ogg} {
+		for _, decode := range []struct {
+			name string
+			f    func(io.Reader) (*vorbis.Stream, error)
+		}{
+			{
+				name: "Float32",
+				f:    vorbis.DecodeF32,
+			},
+			{
+				name: "Int16",
+				f:    vorbis.DecodeWithoutResampling,
+			},
+		} {
+			t.Run(decode.name, func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := make([]byte, 64)
+				if _, err := io.ReadFull(s, want); err != nil {
+					t.Fatal(err)
+				}
+				for _, size := range []int{1, 2, 3} {
+					if _, err := s.Seek(0, io.SeekEnd); err != nil {
+						t.Fatal(err)
+					}
+					if n, err := s.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+						t.Errorf("short Read at EOF = (%d, %v)", n, err)
+					}
+					if _, err := s.Seek(0, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					for range 2 {
+						if n, err := s.Read(make([]byte, 1)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+							t.Errorf("short Read with data = (%d, %v)", n, err)
+						}
+					}
+					got := make([]byte, len(want))
+					if _, err := io.ReadFull(s, got); err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(got, want) {
+						t.Error("audio changed after short reads")
+					}
+				}
+			})
+		}
+	}
+}

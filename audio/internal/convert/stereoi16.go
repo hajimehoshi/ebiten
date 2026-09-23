@@ -32,8 +32,8 @@ type StereoI16ReadSeeker struct {
 	mono   bool
 	format Format
 	eof    bool
-	// buf holds the bytes read from the source but not converted yet. After Read, buf is
-	// shorter than one source frame.
+	// buf holds the bytes read from the source but not converted yet. A short destination buffer can
+	// leave a whole source frame pending.
 	buf []byte
 }
 
@@ -53,12 +53,8 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	// A buffer shorter than one destination frame cannot receive any converted data.
-	if len(b) < 4 {
-		return 0, io.ErrShortBuffer
-	}
-
-	l := len(b) / 4 * frameSize
+	// Buffer at least one sample to distinguish EOF from a short destination buffer.
+	l := max(len(b)/4, 1) * frameSize
 
 	// Read source bytes. Keep reading until one frame is available so that a source returning
 	// less than one frame at a time doesn't make Read return (0, nil).
@@ -81,6 +77,16 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 		if len(s.buf) >= frameSize || n == 0 {
 			break
 		}
+	}
+
+	if len(b) < 4 {
+		if readErr != nil {
+			return 0, readErr
+		}
+		if s.eof && len(s.buf) < frameSize {
+			return 0, io.EOF
+		}
+		return 0, io.ErrShortBuffer
 	}
 
 	// Convert the whole frames and fill b. An incomplete frame is left for the next read.
