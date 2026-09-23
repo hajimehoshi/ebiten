@@ -40,9 +40,7 @@ func isBitSet(s []byte, bit int) bool {
 	return s[bit/8]&(1<<(bit%8)) != 0
 }
 
-// openDevice opens path and retries on EINTR. An open can block even with
-// O_NONBLOCK depending on the device, and unlike most calls it is not
-// restarted by a signal handler regardless of SA_RESTART.
+// openDevice opens path, retrying on EINTR.
 func openDevice(path string, flags int) (int, error) {
 	for {
 		fd, err := unix.Open(path, flags, 0)
