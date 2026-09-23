@@ -96,24 +96,8 @@ func (t *touchNode) HandleAbsEventForTest(code int, value int32) {
 	t.handleAbsEvent(code, value)
 }
 
-// ContactsForTest returns the node's slots.
-func (t *touchNode) ContactsForTest() []TouchContactForTest {
-	out := make([]TouchContactForTest, len(t.slots))
-	for i, c := range t.slots {
-		out[i] = TouchContactForTest{Active: c.active, ID: c.id, X: c.x, Y: c.y}
-	}
-	return out
-}
-
 // NewLinuxGamepadForTest returns a gamepad on the evdev backend with no node behind it and the
 // given touch surface, which may be nil.
 func NewLinuxGamepadForTest(t *TouchNode) *Gamepad {
 	return &Gamepad{native: &nativeGamepadImpl{touch: t}}
-}
-
-// UpdateForTest runs the update that derives the gamepad's touch IDs from its native state.
-func (g *Gamepad) UpdateForTest() {
-	if err := g.update(nil); err != nil {
-		panic(err)
-	}
 }

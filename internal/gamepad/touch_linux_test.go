@@ -17,7 +17,6 @@
 package gamepad_test
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
@@ -94,170 +93,210 @@ func TestClassifyEvdev(t *testing.T) {
 	}
 }
 
+// The tests below feed a touch surface node the events a kernel sends, advance the gamepad the node
+// belongs to, and read the result through the touch API, as a game does.
+
+// newTouchGamepad returns a gamepad with a DualSense touchpad node behind it, and the node to feed
+// events to.
+func newTouchGamepad(t *testing.T, slots int) (*gamepad.Gamepad, *gamepad.TouchNode) {
+	t.Helper()
+	node := gamepad.NewTouchNodeForTest(slots, dualSenseTouchXMax, dualSenseTouchYMax)
+	g := gamepad.NewLinuxGamepadForTest(node)
+	g.UpdateForTest()
+	if got := g.TouchSurfaceCount(); got != 1 {
+		t.Fatalf("TouchSurfaceCount() = %d; want 1", got)
+	}
+	return g, node
+}
+
 // touchPos converts a DualSense touchpad position to the touch API's 0..1.
 func touchPos(x, y int32) (float64, float64) {
 	return float64(x) / dualSenseTouchXMax, float64(y) / dualSenseTouchYMax
 }
 
-func checkContacts(t *testing.T, node *gamepad.TouchNode, want []gamepad.TouchContactForTest) {
+// checkTouchPositionAt asserts that the touch is where the touchpad position (x, y) maps to.
+func checkTouchPositionAt(t *testing.T, g *gamepad.Gamepad, id gamepad.TouchID, x, y int32) {
 	t.Helper()
-	got := node.ContactsForTest()
-	if len(got) != len(want) {
-		t.Fatalf("contacts = %+v; want %+v", got, want)
-	}
-	for i := range got {
-		// A lifted slot keeps its last position, which the API never reads; compare only what
-		// matters for an inactive slot.
-		if !want[i].Active {
-			if got[i].Active {
-				t.Errorf("slot %d = %+v; want inactive", i, got[i])
-			}
-			continue
-		}
-		if got[i] != want[i] {
-			t.Errorf("slot %d = %+v; want %+v", i, got[i], want[i])
-		}
-	}
+	wantX, wantY := touchPos(x, y)
+	checkTouchPosition(t, g, id, wantX, wantY)
+}
+
+// findTouchAt returns the ID of the surface's touch at the touchpad position (x, y).
+func findTouchAt(t *testing.T, g *gamepad.Gamepad, x, y int32) gamepad.TouchID {
+	t.Helper()
+	wantX, wantY := touchPos(x, y)
+	return findTouchID(t, g, 0, wantX, wantY)
 }
 
 func TestTouchNodeOneFinger(t *testing.T) {
-	node := gamepad.NewTouchNodeForTest(2, dualSenseTouchXMax, dualSenseTouchYMax)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{}, {}})
+	g, node := newTouchGamepad(t, 2)
+	checkTouchCount(t, g, 0, 0)
 
 	// Finger down on slot 0, which is current from the start so no slot event precedes it.
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 4)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1139)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 522)
-	x, y := touchPos(1139, 522)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{Active: true, ID: 4, X: x, Y: y}, {}})
+	g.UpdateForTest()
+	id := onlyTouchID(t, g, 0)
+	checkTouchPositionAt(t, g, id, 1139, 522)
 
-	// Movement is position events only.
+	// Movement is position events only, and the touch keeps its ID.
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1132)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 518)
-	x, y = touchPos(1132, 518)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{Active: true, ID: 4, X: x, Y: y}, {}})
+	g.UpdateForTest()
+	checkTouchKept(t, g, 0, id)
+	checkTouchPositionAt(t, g, id, 1132, 518)
 
 	// One axis can change alone.
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 390)
-	x, y = touchPos(1132, 390)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{Active: true, ID: 4, X: x, Y: y}, {}})
+	g.UpdateForTest()
+	checkTouchKept(t, g, 0, id)
+	checkTouchPositionAt(t, g, id, 1132, 390)
 
-	// Lift is a tracking id of -1; the position is not reset.
+	// Lift is a tracking id of -1.
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{}, {}})
+	g.UpdateForTest()
+	checkTouchCount(t, g, 0, 0)
+	checkTouchRetired(t, g, 0, id)
 }
 
 func TestTouchNodeTwoFingers(t *testing.T) {
-	node := gamepad.NewTouchNodeForTest(2, dualSenseTouchXMax, dualSenseTouchYMax)
+	g, node := newTouchGamepad(t, 2)
 
 	// Finger A down on slot 0.
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 5)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 751)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 304)
-	ax, ay := touchPos(751, 304)
 
 	// Finger B down on slot 1.
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 6)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1573)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 698)
-	bx, by := touchPos(1573, 698)
-	checkContacts(t, node, []gamepad.TouchContactForTest{
-		{Active: true, ID: 5, X: ax, Y: ay},
-		{Active: true, ID: 6, X: bx, Y: by},
-	})
+	g.UpdateForTest()
 
-	// Reports alternate between the slots, each carrying only what changed.
+	// Both fingers are on the surface at once, so they have distinct IDs.
+	checkTouchCount(t, g, 0, 2)
+	a := findTouchAt(t, g, 751, 304)
+	b := findTouchAt(t, g, 1573, 698)
+	checkDistinctTouchIDs(t, a, b)
+
+	// Reports alternate between the slots, each carrying only what changed. Both fingers keep their
+	// IDs while they move.
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 0)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 752)
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1569)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 701)
-	ax, ay = touchPos(752, 304)
-	bx, by = touchPos(1569, 701)
-	checkContacts(t, node, []gamepad.TouchContactForTest{
-		{Active: true, ID: 5, X: ax, Y: ay},
-		{Active: true, ID: 6, X: bx, Y: by},
-	})
+	g.UpdateForTest()
+	checkTouchCount(t, g, 0, 2)
+	checkTouchPositionAt(t, g, a, 752, 304)
+	checkTouchPositionAt(t, g, b, 1569, 701)
 
-	// B lifts first: slot 1 ends, A continues on slot 0.
+	// B lifts first: its ID is retired, and A continues on slot 0 with its own.
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 0)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 731)
-	ax, ay = touchPos(731, 304)
-	checkContacts(t, node, []gamepad.TouchContactForTest{
-		{Active: true, ID: 5, X: ax, Y: ay},
-		{},
-	})
+	g.UpdateForTest()
+	checkTouchKept(t, g, 0, a)
+	checkTouchRetired(t, g, 0, b)
+	checkTouchPositionAt(t, g, a, 731, 304)
 
-	// B comes back on slot 1 as a new contact.
+	// B comes back on slot 1 as a new contact, which is a new touch.
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 7)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1671)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 107)
-	bx, by = touchPos(1671, 107)
-	checkContacts(t, node, []gamepad.TouchContactForTest{
-		{Active: true, ID: 5, X: ax, Y: ay},
-		{Active: true, ID: 7, X: bx, Y: by},
-	})
+	g.UpdateForTest()
+	checkTouchCount(t, g, 0, 2)
+	b2 := findTouchAt(t, g, 1671, 107)
+	checkDistinctTouchIDs(t, a, b, b2)
 
-	// A lifts while B stays: B keeps slot 1 and its id.
+	// A lifts while B stays: B keeps its ID.
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 0)
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1558)
-	bx, by = touchPos(1558, 107)
-	checkContacts(t, node, []gamepad.TouchContactForTest{
-		{},
-		{Active: true, ID: 7, X: bx, Y: by},
-	})
+	g.UpdateForTest()
+	checkTouchKept(t, g, 0, b2)
+	checkTouchRetired(t, g, 0, a)
+	checkTouchPositionAt(t, g, b2, 1558, 107)
 
 	// B lifts last, on the current slot with no slot event.
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{}, {}})
+	g.UpdateForTest()
+	checkTouchCount(t, g, 0, 0)
+	checkTouchRetired(t, g, 0, b2)
+}
+
+// A finger lifted and put back in the same slot between two updates is a new touch, even though the
+// slot is active at both updates.
+func TestTouchNodeReleaseAndPressBetweenUpdates(t *testing.T) {
+	g, node := newTouchGamepad(t, 2)
+
+	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 5)
+	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 0)
+	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, dualSenseTouchYMax)
+	g.UpdateForTest()
+	first := onlyTouchID(t, g, 0)
+	checkTouchPositionAt(t, g, first, 0, dualSenseTouchYMax)
+
+	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
+	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 6)
+	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, dualSenseTouchXMax)
+	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 0)
+	g.UpdateForTest()
+	second := onlyTouchID(t, g, 0)
+	checkDistinctTouchIDs(t, first, second)
+	checkTouchRetired(t, g, 0, first)
+	checkTouchPositionAt(t, g, second, dualSenseTouchXMax, 0)
 }
 
 func TestTouchNodeIgnoresUnknownSlot(t *testing.T) {
-	node := gamepad.NewTouchNodeForTest(2, dualSenseTouchXMax, dualSenseTouchYMax)
+	g, node := newTouchGamepad(t, 2)
 
 	// Events for a slot the node did not report are dropped until a known slot is selected.
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 5)
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 9)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 100)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{}, {}})
+	g.UpdateForTest()
+	checkTouchCount(t, g, 0, 0)
 
 	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 9)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 100)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 200)
-	x, y := touchPos(100, 200)
-	checkContacts(t, node, []gamepad.TouchContactForTest{{}, {Active: true, ID: 9, X: x, Y: y}})
+	g.UpdateForTest()
+	id := onlyTouchID(t, g, 0)
+	checkTouchPositionAt(t, g, id, 100, 200)
 }
 
 func TestTouchNodePositionRange(t *testing.T) {
-	node := gamepad.NewTouchNodeForTest(1, dualSenseTouchXMax, dualSenseTouchYMax)
+	g, node := newTouchGamepad(t, 1)
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
 
 	tests := []struct {
+		name         string
 		x, y         int32
 		wantX, wantY float64
 	}{
-		{x: 0, y: 0, wantX: 0, wantY: 0},
-		{x: dualSenseTouchXMax, y: 0, wantX: 1, wantY: 0},
-		{x: 0, y: dualSenseTouchYMax, wantX: 0, wantY: 1},
-		{x: dualSenseTouchXMax, y: dualSenseTouchYMax, wantX: 1, wantY: 1},
+		{name: "top left", x: 0, y: 0, wantX: 0, wantY: 0},
+		{name: "top right", x: dualSenseTouchXMax, y: 0, wantX: 1, wantY: 0},
+		{name: "bottom left", x: 0, y: dualSenseTouchYMax, wantX: 0, wantY: 1},
+		{name: "bottom right", x: dualSenseTouchXMax, y: dualSenseTouchYMax, wantX: 1, wantY: 1},
 
 		// A device reporting past the range it declared stays inside the range the touch API
 		// documents.
-		{x: dualSenseTouchXMax + 1, y: dualSenseTouchYMax * 4, wantX: 1, wantY: 1},
-		{x: -1, y: -30000, wantX: 0, wantY: 0},
+		{name: "past the maxima", x: dualSenseTouchXMax + 1, y: dualSenseTouchYMax * 4, wantX: 1, wantY: 1},
+		{name: "below the minima", x: -1, y: -30000, wantX: 0, wantY: 0},
 	}
 	for _, test := range tests {
 		node.HandleAbsEventForTest(gamepad.ABSMTPositionX, test.x)
 		node.HandleAbsEventForTest(gamepad.ABSMTPositionY, test.y)
-		c := node.ContactsForTest()[0]
-		if c.X != test.wantX || c.Y != test.wantY {
-			t.Errorf("position (%d, %d) = (%v, %v); want (%v, %v)", test.x, test.y, c.X, c.Y, test.wantX, test.wantY)
+		g.UpdateForTest()
+		id := onlyTouchID(t, g, 0)
+		if x, y := g.TouchPosition(id); x != test.wantX || y != test.wantY {
+			t.Errorf("%s: position (%d, %d) = (%v, %v); want (%v, %v)", test.name, test.x, test.y, x, y, test.wantX, test.wantY)
 		}
 	}
 }
@@ -269,82 +308,40 @@ func TestTouchNodeCenterPosition(t *testing.T) {
 		yMax = 500
 	)
 	node := gamepad.NewTouchNodeForTest(1, xMax, yMax)
+	g := gamepad.NewLinuxGamepadForTest(node)
+
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, xMax/2)
 	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, yMax/2)
+	g.UpdateForTest()
 
-	c := node.ContactsForTest()[0]
-	if c.X != 0.5 || c.Y != 0.5 {
-		t.Errorf("position = (%v, %v); want (0.5, 0.5)", c.X, c.Y)
-	}
+	checkTouchPosition(t, g, onlyTouchID(t, g, 0), 0.5, 0.5)
 }
 
-// A node whose axes have an empty range has no position to report, so every value is the center
-// rather than the raw report leaking through.
+// A node whose axes have an empty range has no position to report, so the raw report does not leak
+// through.
 func TestTouchNodeEmptyPositionRange(t *testing.T) {
 	node := gamepad.NewTouchNodeForTest(1, 0, 0)
+	g := gamepad.NewLinuxGamepadForTest(node)
 	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
 
 	for _, v := range []int32{-5000, 0, 1, 5000} {
 		node.HandleAbsEventForTest(gamepad.ABSMTPositionX, v)
 		node.HandleAbsEventForTest(gamepad.ABSMTPositionY, v)
-		c := node.ContactsForTest()[0]
-		if c.X != 0 || c.Y != 0 {
-			t.Errorf("position %d = (%v, %v); want (0, 0)", v, c.X, c.Y)
+		g.UpdateForTest()
+		id := onlyTouchID(t, g, 0)
+		if x, y := g.TouchPosition(id); x != 0 || y != 0 {
+			t.Errorf("position %d = (%v, %v); want (0, 0)", v, x, y)
 		}
 	}
 }
 
-func TestLinuxGamepadTouch(t *testing.T) {
-	// A gamepad without a touch surface node.
+// A gamepad whose touch surface node was never paired has no touch surface.
+func TestLinuxGamepadWithoutTouchNode(t *testing.T) {
 	g := gamepad.NewLinuxGamepadForTest(nil)
 	g.UpdateForTest()
 	if got := g.TouchSurfaceCount(); got != 0 {
 		t.Errorf("TouchSurfaceCount() = %d; want 0", got)
 	}
-
-	// A gamepad with its touch surface node paired: the slots reach the public touch IDs.
-	node := gamepad.NewTouchNodeForTest(2, dualSenseTouchXMax, dualSenseTouchYMax)
-	g = gamepad.NewLinuxGamepadForTest(node)
-	g.UpdateForTest()
-	if got := g.TouchSurfaceCount(); got != 1 {
-		t.Fatalf("TouchSurfaceCount() = %d; want 1", got)
-	}
-	if got := g.AppendTouchIDs(0, nil); len(got) != 0 {
-		t.Errorf("AppendTouchIDs(0) = %v; want none", got)
-	}
-
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 5)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 0)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, dualSenseTouchYMax)
-	g.UpdateForTest()
-	if got, want := g.AppendTouchIDs(0, nil), []gamepad.TouchID{1}; !slices.Equal(got, want) {
-		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
-	}
-	if x, y := g.TouchPosition(1); x != 0 || y != 1 {
-		t.Errorf("TouchPosition(1) = (%v, %v); want (0, 1)", x, y)
-	}
-
-	// The tracking id changing between two updates is a new touch, even though the slot stayed
-	// active throughout.
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 6)
-	g.UpdateForTest()
-	if got, want := g.AppendTouchIDs(0, nil), []gamepad.TouchID{2}; !slices.Equal(got, want) {
-		t.Errorf("AppendTouchIDs(0) = %v; want %v", got, want)
-	}
-
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 7)
-	g.UpdateForTest()
-	if got, want := g.AppendTouchIDs(0, nil), []gamepad.TouchID{2, 3}; !slices.Equal(got, want) {
-		t.Errorf("AppendTouchIDs(0) = %v; want %v", got, want)
-	}
-
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 0)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
-	g.UpdateForTest()
-	if got, want := g.AppendTouchIDs(0, nil), []gamepad.TouchID{3}; !slices.Equal(got, want) {
-		t.Errorf("AppendTouchIDs(0) = %v; want %v", got, want)
-	}
+	checkTouchCount(t, g, 0, 0)
 }
