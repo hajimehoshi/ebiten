@@ -515,6 +515,70 @@ func TestInfiniteLoopBlendAfterEmptyAfterLoopRead(t *testing.T) {
 	}
 }
 
+func TestInfiniteLoopKeepsBlendingOnFailedSeek(t *testing.T) {
+	cases := []struct {
+		name           string
+		bytesPerSample int
+		length         int
+		newLoop        func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:           "int16",
+			bytesPerSample: 2 * 2,
+			length:         2 * 2 * 4,
+			newLoop:        audio.NewInfiniteLoop,
+		},
+		{
+			name:           "float32",
+			bytesPerSample: 4 * 2,
+			length:         4 * 2 * 4,
+			newLoop:        audio.NewInfiniteLoopF32,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// The loop part is silent and the part after the loop is not, so a blended sample at the
+			// loop start, whose blend rate is 1, differs from the raw silent loop data.
+			src := make([]byte, c.length*2)
+			for i := c.length; i < len(src); i++ {
+				src[i] = byte(100 + i - c.length)
+			}
+			l := c.newLoop(bytes.NewReader(src), int64(c.length))
+
+			// Read through the loop boundary so that the data after the loop is read and blending
+			// becomes active.
+			buf := make([]byte, c.length+c.bytesPerSample)
+			firstLap := make([]byte, 0, c.length)
+			for len(firstLap) < c.length {
+				n, err := l.Read(buf)
+				if err != nil {
+					t.Fatal(err)
+				}
+				firstLap = append(firstLap, buf[:n]...)
+			}
+			// The first lap is not blended as the data after the loop was not read yet.
+			if got, want := firstLap[:c.length], src[:c.length]; !bytes.Equal(got, want) {
+				t.Fatalf("first lap: got: %v, want: %v", got, want)
+			}
+
+			// Seeking to a negative position fails, and the loop is left at the loop start.
+			if _, err := l.Seek(-1, io.SeekStart); err == nil {
+				t.Fatal("Seek(-1, io.SeekStart): got no error, want an error")
+			}
+
+			// The next samples must still be blended: the first sample at the loop start, whose blend
+			// rate is 1, must be the first sample after the loop rather than the raw silent loop start.
+			if _, err := l.Read(buf); err != nil {
+				t.Fatal(err)
+			}
+			if got, want := buf[:c.bytesPerSample], src[c.length:c.length+c.bytesPerSample]; !bytes.Equal(got, want) {
+				t.Errorf("blending after a failed seek: got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
+
 func TestInfiniteLoopSeekClearsExtra(t *testing.T) {
 	// The source returns 5 bytes at most, which is larger than any bit depth but not a multiple of
 	// any, so a read returns a complete value and leaves a remainder.
