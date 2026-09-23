@@ -259,9 +259,12 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 		if code >= _ABS_HAT0X && code <= _ABS_HAT3Y {
 			// Write the hat index for both the X and the Y hat axes.
 			// That way, the hat can be referenced using either axis, which is used by the code building hatMappingInput.
+			// Only an even (X) code claims its neighbor: a lone odd (Y) code
+			// must not overwrite the following code or skip it.
 			n.absMap[code] = hatCount
-			code++
-			n.absMap[code] = hatCount
+			if code%2 == 0 && code+1 <= _ABS_HAT3Y {
+				n.absMap[code+1] = hatCount
+			}
 			hatCount++
 			continue
 		}
