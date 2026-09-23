@@ -391,6 +391,15 @@ func TestDecodeInvalidSampleRate(t *testing.T) {
 	}
 }
 
+func TestDecodeWithSampleRateInvalidSampleRate(t *testing.T) {
+	data := wavFile(testSampleRate, nil, nil, []byte{1, 2, 3, 4})
+	for _, sampleRate := range []int{0, -1} {
+		if _, err := wav.DecodeWithSampleRate(sampleRate, bytes.NewReader(data)); err == nil {
+			t.Errorf("wav.DecodeWithSampleRate(%d): got no error, want an error", sampleRate)
+		}
+	}
+}
+
 // pcmWavFile returns a linear PCM WAV file with the given channel count and bit depth
 // whose 'data' chunk holds data.
 func pcmWavFile(channelCount, bitsPerSample int, data []byte) []byte {

@@ -886,3 +886,11 @@ func checkEOFSeeks(t *testing.T, s interface {
 		}
 	}
 }
+
+func TestDecodeWithSampleRateInvalidSampleRate(t *testing.T) {
+	for _, sampleRate := range []int{0, -1} {
+		if _, err := vorbis.DecodeWithSampleRate(sampleRate, bytes.NewReader(test_stereo_ogg)); err == nil {
+			t.Errorf("vorbis.DecodeWithSampleRate(%d): got no error, want an error", sampleRate)
+		}
+	}
+}

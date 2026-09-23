@@ -142,7 +142,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 
 // DecodeWithSampleRate decodes an MP3 source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// DecodeWithSampleRate returns error when decoding fails or IO error happens.
+// DecodeWithSampleRate returns error when decoding fails or IO error happens, or when sampleRate is not positive.
 //
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
@@ -154,6 +154,9 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 // Resampling can be a very heavy task. Stream has a cache for resampling, but the size is limited.
 // Do not expect that Stream has a resampling cache even after whole data is played.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
+	if sampleRate <= 0 {
+		return nil, fmt.Errorf("mp3: sample rate must be positive but was %d", sampleRate)
+	}
 	d, err := mp3.NewDecoder(src)
 	if err != nil {
 		return nil, err

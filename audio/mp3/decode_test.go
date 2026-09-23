@@ -296,3 +296,11 @@ func TestDecodeWithSampleRateNonSeekableSource(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeWithSampleRateInvalidSampleRate(t *testing.T) {
+	for _, sampleRate := range []int{0, -1} {
+		if _, err := mp3.DecodeWithSampleRate(sampleRate, bytes.NewReader(resources.Ragtime_mp3)); err == nil {
+			t.Errorf("mp3.DecodeWithSampleRate(%d): got no error, want an error", sampleRate)
+		}
+	}
+}
