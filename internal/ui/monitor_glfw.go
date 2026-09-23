@@ -18,6 +18,7 @@ package ui
 
 import (
 	"image"
+	"math"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -74,10 +75,10 @@ func (m *Monitor) RefreshRate() int {
 func (m *Monitor) Size() (int, int) {
 	if m.virtual != nil {
 		w, h := m.virtual.outsideSize()
-		return int(w), int(h)
+		return int(math.Round(w)), int(math.Round(h))
 	}
 	w, h := m.sizeInDIP()
-	return int(w), int(h)
+	return int(math.Round(w)), int(math.Round(h))
 }
 
 func (m *Monitor) sizeInDIP() (float64, float64) {
