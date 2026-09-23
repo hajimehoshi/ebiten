@@ -23,9 +23,9 @@ func newNativeGamepadsImpl() nativeGamepads {
 		gc: newNativeGamepadsGC(),
 	}
 
-	// IOKit covers the generic HID devices the GameController framework does not
-	// enumerate. It is available on macOS but not iOS, and skips the devices the
-	// GameController backend claims so a shared controller is not listed twice.
+	// IOKit covers the generic HID devices the GameController backend cannot read.
+	// It is available on macOS but not iOS, and skips the devices the
+	// GameController backend accepts so a shared controller is not listed twice.
 	if runtime.GOOS == "darwin" {
 		n.iokit = newNativeGamepadsIOKit()
 	}

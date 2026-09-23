@@ -92,6 +92,17 @@ func initializeIOKit() error {
 		return err
 	}
 
+	purego.RegisterLibFunc(&_IOHIDDeviceGetService, iokit, "IOHIDDeviceGetService")
+	purego.RegisterLibFunc(&_IOServiceGetMatchingService, iokit, "IOServiceGetMatchingService")
+	purego.RegisterLibFunc(&_IORegistryEntryIDMatching, iokit, "IORegistryEntryIDMatching")
+	purego.RegisterLibFunc(&_IORegistryEntryGetRegistryEntryID, iokit, "IORegistryEntryGetRegistryEntryID")
+	purego.RegisterLibFunc(&_IORegistryEntryGetParentEntry, iokit, "IORegistryEntryGetParentEntry")
+	purego.RegisterLibFunc(&_IOObjectConformsTo, iokit, "IOObjectConformsTo")
+	purego.RegisterLibFunc(&_IOObjectRelease, iokit, "IOObjectRelease")
+	if addr, err := purego.Dlsym(iokit, "IOHIDServiceClientGetRegistryID"); err == nil {
+		purego.RegisterFunc(&_IOHIDServiceClientGetRegistryID, addr)
+	}
+
 	purego.RegisterLibFunc(&_IOHIDElementGetTypeID, iokit, "IOHIDElementGetTypeID")
 	purego.RegisterLibFunc(&_IOHIDManagerCreate, iokit, "IOHIDManagerCreate")
 	purego.RegisterLibFunc(&_IOHIDDeviceGetProperty, iokit, "IOHIDDeviceGetProperty")
@@ -129,4 +140,53 @@ var (
 	_IOHIDDeviceGetValue                        func(device _IOHIDDeviceRef, element _IOHIDElementRef, pValue *_IOHIDValueRef) _IOReturn
 	_IOHIDValueGetIntegerValue                  func(value _IOHIDValueRef) _CFIndex
 	_IOHIDDeviceCopyMatchingElements            func(device _IOHIDDeviceRef, matching _CFDictionaryRef, options _IOOptionBits) _CFArrayRef
+	_IOHIDDeviceGetService                      func(device _IOHIDDeviceRef) uint32
+	_IOHIDServiceClientGetRegistryID            func(service uintptr) _CFTypeRef
+	_IOServiceGetMatchingService                func(mainPort uint32, matching _CFDictionaryRef) uint32
+	_IORegistryEntryIDMatching                  func(entryID uint64) _CFDictionaryRef
+	_IORegistryEntryGetRegistryEntryID          func(entry uint32, entryID *uint64) _IOReturn
+	_IORegistryEntryGetParentEntry              func(entry uint32, plane string, parent *uint32) _IOReturn
+	_IOObjectConformsTo                         func(object uint32, className string) bool
+	_IOObjectRelease                            func(object uint32) _IOReturn
 )
+
+func hidDeviceRegistryID(device _IOHIDDeviceRef) uint64 {
+	service := _IOHIDDeviceGetService(device)
+	if service == 0 {
+		return 0
+	}
+	var id uint64
+	if _IORegistryEntryGetRegistryEntryID(service, &id) != kIOReturnSuccess {
+		return 0
+	}
+	return id
+}
+
+// hidDeviceRegistryIDForService returns the registry ID of the HID device containing serviceID.
+func hidDeviceRegistryIDForService(serviceID uint64) uint64 {
+	matching := _IORegistryEntryIDMatching(serviceID)
+	if matching == 0 {
+		return 0
+	}
+	// IOServiceGetMatchingService consumes matching. Each registry entry is owned by this loop.
+	entry := _IOServiceGetMatchingService(0, matching)
+	for entry != 0 {
+		if _IOObjectConformsTo(entry, "IOHIDDevice") {
+			var id uint64
+			result := _IORegistryEntryGetRegistryEntryID(entry, &id)
+			_IOObjectRelease(entry)
+			if result != kIOReturnSuccess {
+				return 0
+			}
+			return id
+		}
+		var parent uint32
+		result := _IORegistryEntryGetParentEntry(entry, "IOService", &parent)
+		_IOObjectRelease(entry)
+		if result != kIOReturnSuccess {
+			return 0
+		}
+		entry = parent
+	}
+	return 0
+}
