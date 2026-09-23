@@ -108,7 +108,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 // The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
-// DecodeWithSampleRate returns error when decoding fails or IO error happens.
+// DecodeWithSampleRate returns error when decoding fails or IO error happens, or when sampleRate is not positive.
 //
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
@@ -120,6 +120,9 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 // Resampling can be a very heavy task. Stream has a cache for resampling, but the size is limited.
 // Do not expect that Stream has a resampling cache even after whole data is played.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
+	if sampleRate <= 0 {
+		return nil, fmt.Errorf("wav: sample rate must be positive but was %d", sampleRate)
+	}
 	s, err := decode(src, bitDepthInBytesInt16)
 	if err != nil {
 		return nil, err

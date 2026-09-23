@@ -40,6 +40,16 @@ func isBitSet(s []byte, bit int) bool {
 	return s[bit/8]&(1<<(bit%8)) != 0
 }
 
+// openDevice opens path, retrying on EINTR.
+func openDevice(path string, flags int) (int, error) {
+	for {
+		fd, err := unix.Open(path, flags, 0)
+		if err != unix.EINTR {
+			return fd, err
+		}
+	}
+}
+
 // isDisconnectError reports whether err indicates that the device was removed.
 func isDisconnectError(err error) bool {
 	// Some drivers report EIO instead of ENODEV on removal.
@@ -147,10 +157,10 @@ func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
 	// Fall back to read-only when write access is not permitted: the gamepad
 	// still works, without rumble.
 	writable := true
-	fd, err := unix.Open(path, unix.O_RDWR|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
+	fd, err := openDevice(path, unix.O_RDWR|unix.O_NONBLOCK|unix.O_CLOEXEC)
 	if err == unix.EACCES || err == unix.EPERM {
 		writable = false
-		fd, err = unix.Open(path, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC, 0)
+		fd, err = openDevice(path, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC)
 	}
 	if err != nil {
 		if err == unix.EACCES {
@@ -413,7 +423,9 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	buf := make([]byte, 16384)
 	n, err := unix.Read(g.inotifyPlus1-1, buf[:])
 	if err != nil {
-		if err == unix.EAGAIN {
+		// EINTR means the read was interrupted before any event arrived.
+		// Retry at the next update instead of reporting an error.
+		if err == unix.EAGAIN || err == unix.EINTR {
 			return nil
 		}
 		return fmt.Errorf("gamepad: Read failed: %w", err)
@@ -458,7 +470,9 @@ func readInputEvent(fd int) (e input_event, ok bool, err error) {
 	buf := make([]byte, unsafe.Sizeof(input_event{}))
 	// TODO: Should the returned byte count be cared about?
 	if _, err := unix.Read(fd, buf); err != nil {
-		if err == unix.EAGAIN {
+		// EINTR means no event was read. Retry at the next update instead of
+		// treating this as an error and dropping the device.
+		if err == unix.EAGAIN || err == unix.EINTR {
 			return input_event{}, false, nil
 		}
 		return input_event{}, false, fmt.Errorf("gamepad: Read failed: %w", err)

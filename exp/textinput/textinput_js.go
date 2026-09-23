@@ -318,7 +318,7 @@ func (t *textInputImpl) Start(bounds image.Rectangle, textBeforeCaret, textAfter
 func (t *textInputImpl) deferStart(bounds image.Rectangle) {
 	t.events.end()
 	js.Global().Get("window").Set("_ebitengine_textinput_x", bounds.Min.X)
-	js.Global().Get("window").Set("_ebitengine_textinput_y", bounds.Max.Y)
+	js.Global().Get("window").Set("_ebitengine_textinput_y", bounds.Min.Y)
 }
 
 // discardIMEState makes the IME let go of the composition it holds for the

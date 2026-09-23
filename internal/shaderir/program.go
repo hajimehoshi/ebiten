@@ -382,7 +382,7 @@ func IsValidSwizzling(s string) bool {
 	const (
 		xyzw = "xyzw"
 		rgba = "rgba"
-		strq = "strq"
+		stpq = "stpq"
 	)
 
 	switch {
@@ -400,9 +400,9 @@ func IsValidSwizzling(s string) bool {
 			}
 		}
 		return true
-	case strings.IndexByte(strq, s[0]) >= 0:
+	case strings.IndexByte(stpq, s[0]) >= 0:
 		for _, c := range s {
-			if !strings.ContainsRune(strq, c) {
+			if !strings.ContainsRune(stpq, c) {
 				return false
 			}
 		}
@@ -440,6 +440,34 @@ func (p *Program) ReachableFuncsFromBlock(block *Block) []*Func {
 		funcs = append(funcs, indexToFunc[i])
 	}
 	return funcs
+}
+
+// AssignedAttributes reports, for each attribute, whether the vertex entry point assigns to the whole attribute or a part of it.
+func (p *Program) AssignedAttributes() []bool {
+	assigned := make([]bool, len(p.Attributes))
+	var walk func(block *Block)
+	walk = func(block *Block) {
+		if block == nil {
+			return
+		}
+		for _, s := range block.Stmts {
+			if s.Type == Assign {
+				// Attributes are the first in-params, whose indices are never reused by local variables.
+				e := &s.Exprs[0]
+				for e.Type == FieldSelector || e.Type == Index {
+					e = &e.Exprs[0]
+				}
+				if e.Type == LocalVariable && e.Index < len(assigned) {
+					assigned[e.Index] = true
+				}
+			}
+			for _, b := range s.Blocks {
+				walk(b)
+			}
+		}
+	}
+	walk(p.VertexFunc.Block)
+	return assigned
 }
 
 func walkExprs(f func(expr *Expr), block *Block) {

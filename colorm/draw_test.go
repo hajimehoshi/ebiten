@@ -312,3 +312,19 @@ func TestColorScale(t *testing.T) {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestDrawTrianglesWithInvalidColorScaleMode(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTriangles must panic but not")
+		}
+	}()
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+	vs := make([]ebiten.Vertex, 3)
+	is := []uint16{0, 1, 2}
+	op := &colorm.DrawTrianglesOptions{}
+	op.ColorScaleMode = ebiten.ColorScaleMode(99)
+	colorm.DrawTriangles(dst, vs, is, src, colorm.ColorM{}, op)
+}

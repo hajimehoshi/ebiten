@@ -224,9 +224,15 @@ type input_id struct {
 }
 
 func ioctl(fd int, request uint, ptr unsafe.Pointer) error {
-	r, _, e := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), uintptr(ptr))
-	if int32(r) < 0 {
-		return unix.Errno(e)
+	// Retry on EINTR: a signal like the Go runtime's preemption can interrupt the
+	// ioctl, and these ioctls just read or write the device state again.
+	for {
+		r, _, e := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), uintptr(ptr))
+		if int32(r) >= 0 {
+			return nil
+		}
+		if unix.Errno(e) != unix.EINTR {
+			return unix.Errno(e)
+		}
 	}
-	return nil
 }

@@ -567,13 +567,15 @@ func getControllerStateGC(controllerPtr uintptr, buttonMask uint32, nHats int,
 // here, while the controller is known to be alive. The controller is only guaranteed to stay alive
 // during the notification, so the queued entry takes a reference.
 func addController(controller objc.ID) {
-	// Ignore a controller without an extended gamepad profile, the only profile this backend reads
-	// (e.g., the Siri Remote, which has only a micro gamepad profile).
-	if controller.Send(sel_extendedGamepad) == 0 {
+	rejected := controller.Send(sel_extendedGamepad) == 0
+	if rejected && runtime.GOOS == "ios" {
 		return
 	}
 
-	prop := getControllerPropertyFromController(controller)
+	var prop controllerProperty
+	if !rejected {
+		prop = getControllerPropertyFromController(controller)
+	}
 
 	theGCGamepads.controllersMu.Lock()
 	defer theGCGamepads.controllersMu.Unlock()
@@ -582,6 +584,7 @@ func addController(controller objc.ID) {
 	theGCGamepads.controllersToAdd = append(theGCGamepads.controllersToAdd, gcControllerToAdd{
 		controller: uintptr(controller),
 		prop:       prop,
+		rejected:   rejected,
 	})
 }
 
@@ -736,4 +739,49 @@ func (g *nativeGamepadGC) updateGCGamepad() {
 	}
 
 	g.updateTouches()
+}
+
+// gcHIDDeviceRegistryIDs returns the registry IDs of a controller's underlying HID devices
+// and whether no further lookup retries are needed. Incomplete lookups return nil, false.
+func gcHIDDeviceRegistryIDs(controller objc.ID) ([]uint64, bool) {
+	if _IOHIDServiceClientGetRegistryID == nil {
+		return nil, true
+	}
+	// hidServices and service are private selectors used by GameController's HID backend.
+	// Missing selectors leave ownership with GameController because the device cannot be identified.
+	hidServicesSelector := objc.RegisterName("hidServices")
+	serviceSelector := objc.RegisterName("service")
+	if controller.Send(sel_respondsToSelector, hidServicesSelector) == 0 {
+		return nil, true
+	}
+	services := controller.Send(hidServicesSelector)
+	count := int(services.Send(sel_count))
+	if count == 0 {
+		return nil, false
+	}
+	var ids []uint64
+	for i := range count {
+		info := services.Send(sel_objectAtIndex, i)
+		if info == 0 {
+			return nil, false
+		}
+		if info.Send(sel_respondsToSelector, serviceSelector) == 0 {
+			continue
+		}
+		service := info.Send(serviceSelector)
+		if service == 0 {
+			return nil, false
+		}
+		registryID := _IOHIDServiceClientGetRegistryID(uintptr(service))
+		if registryID == 0 {
+			return nil, false
+		}
+		serviceID := objc.Send[uint64](objc.ID(registryID), objc.RegisterName("unsignedLongLongValue"))
+		id := hidDeviceRegistryIDForService(serviceID)
+		if id == 0 {
+			return nil, false
+		}
+		ids = append(ids, id)
+	}
+	return ids, true
 }

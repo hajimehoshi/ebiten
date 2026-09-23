@@ -15,12 +15,15 @@
 package ui
 
 import (
+	stdcontext "context"
 	"errors"
 	"math"
 	"sync"
 	"sync/atomic"
 	"syscall/js"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
@@ -388,26 +391,23 @@ func (u *UserInterface) loopGame() error {
 	// suspended() returns true and the update routine cannot start.
 	u.updateScreenSize()
 
-	errCh := make(chan error, 1)
-	reqStopAudioCh := make(chan struct{})
-	resStopAudioCh := make(chan struct{})
+	// The loop ends with the first error from a frame or from the audio watcher.
+	g, ctx := errgroup.WithContext(stdcontext.Background())
 
 	var cf js.Func
-	f := func() {
+	f := func() error {
+		if ctx.Err() != nil {
+			return nil
+		}
 		if err := u.error(); err != nil {
-			errCh <- err
-			return
+			return err
 		}
 		if u.needsUpdate() {
 			defer func() {
 				u.onceUpdateCalled = true
 			}()
 			if err := u.update(); err != nil {
-				close(reqStopAudioCh)
-				<-resStopAudioCh
-
-				errCh <- err
-				return
+				return err
 			}
 		}
 		switch u.FPSMode() {
@@ -418,24 +418,23 @@ func (u *UserInterface) loopGame() error {
 		case FPSModeVsyncOffMinimum:
 			requestAnimationFrame.Invoke(cf)
 		}
+		return nil
 	}
 
 	// TODO: Should cf be released after the game ends?
 	cf = js.FuncOf(func(this js.Value, args []js.Value) any {
 		// f can be blocked but callbacks must not be blocked. Create a goroutine (#1161).
-		go f()
+		g.Go(f)
 		return nil
 	})
 
-	// Call f asyncly since ch is used in f.
-	go f()
+	// Run the first frame asynchronously so that the audio watcher below starts right away.
+	g.Go(f)
 
 	// Run another loop to watch suspended() as the above update function is never called when the tab is hidden.
 	// To check the document's visibility, visibilitychange event should usually be used. However, this event is
 	// not reliable and sometimes it is not fired (#961). Then, watch the state regularly instead.
-	go func() {
-		defer close(resStopAudioCh)
-
+	g.Go(func() error {
 		const interval = 100 * time.Millisecond
 		t := time.NewTicker(interval)
 		defer func() {
@@ -455,22 +454,21 @@ func (u *UserInterface) loopGame() error {
 			case <-t.C:
 				if u.suspended() {
 					if err := hook.SuspendAudio(); err != nil {
-						errCh <- err
-						return
+						return err
 					}
 				} else {
 					if err := hook.ResumeAudio(); err != nil {
-						errCh <- err
-						return
+						return err
 					}
 				}
-			case <-reqStopAudioCh:
-				return
+			case <-ctx.Done():
+				return nil
 			}
 		}
-	}()
+	})
 
-	return <-errCh
+	// Wait returns the first error once the audio watcher and a frame in flight have finished.
+	return g.Wait()
 }
 
 func (u *UserInterface) init() error {

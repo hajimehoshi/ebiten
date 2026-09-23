@@ -950,10 +950,18 @@ event:
 	return nil
 }
 
-func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
+func (u *glfwBackend) initOnMainThread(options *RunOptions) (err error) {
 	if err := u.ensureGLFWInit(); err != nil {
 		return err
 	}
+
+	// GLFW is terminated at the end of the game loop. On a failure before the loop starts,
+	// terminate GLFW here so that the window, the cursors, and the platform resources are released.
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, u.terminateGLFW())
+		}
+	}()
 
 	// Center the window on the monitor if the position was not explicitly set.
 	if !options.WindowPositionSet {
@@ -1432,14 +1440,19 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 	return u.layoutSizes()
 }
 
+// terminateGLFW marks the UI terminated and terminates GLFW.
+//
+// terminateGLFW must be called from the main thread.
+func (u *glfwBackend) terminateGLFW() error {
+	// Mark termination before destroying GLFW so concurrent APIs stop accessing it.
+	u.setTerminated()
+	return glfw.Terminate()
+}
+
 func (u *glfwBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
-		if glfwErr := thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) error {
-			// Mark termination before destroying GLFW so concurrent APIs stop accessing it.
-			u.setTerminated()
-			return glfw.Terminate()
-		}, u); glfwErr != nil {
+		if glfwErr := thread.CallWithArgAndResult(u.mainThread, (*glfwBackend).terminateGLFW, u); glfwErr != nil {
 			err = errors.Join(err, glfwErr)
 		}
 	}()
@@ -2229,6 +2242,7 @@ func (u *glfwBackend) maximizeWindow() error {
 		if err := glfw.PollEvents(); err != nil {
 			return err
 		}
+		time.Sleep(time.Second / 60)
 	}
 
 	return nil
@@ -2273,6 +2287,7 @@ func (u *glfwBackend) iconifyWindow() error {
 		if err := glfw.PollEvents(); err != nil {
 			return err
 		}
+		time.Sleep(time.Second / 60)
 	}
 
 	return nil
@@ -2591,6 +2606,9 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
+		// The backend is published at the window creation in initOnMainThread.
+		defer u.setRunningBackend(nil)
+
 		type args struct {
 			u       *glfwBackend
 			options *RunOptions
@@ -2600,9 +2618,6 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 		}, args{u: u, options: options}); err != nil {
 			return err
 		}
-
-		// The backend is published at the window creation in initOnMainThread.
-		defer u.setRunningBackend(nil)
 
 		return u.loopGame()
 	})

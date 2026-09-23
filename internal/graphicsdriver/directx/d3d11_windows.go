@@ -504,7 +504,7 @@ type _ID3D11ClassInstance_Vtbl struct {
 
 type _ID3D11ClassLinkage struct {
 	_    structs.HostLayout
-	vtbl *_ID3D11ClassLinkage
+	vtbl *_ID3D11ClassLinkage_Vtbl
 }
 
 type _ID3D11ClassLinkage_Vtbl struct {

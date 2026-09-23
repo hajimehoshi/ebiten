@@ -853,6 +853,170 @@ func TestResamplingZeroReadInMiddle(t *testing.T) {
 	}
 }
 
+var errSourceRead = errors.New("source read failed")
+
+// failingReadSeeker fails the Read call with the given 1-based number once.
+type failingReadSeeker struct {
+	src    io.ReadSeeker
+	failAt int
+	reads  int
+}
+
+func (f *failingReadSeeker) Read(buf []byte) (int, error) {
+	f.reads++
+	if f.reads == f.failAt {
+		return 0, errSourceRead
+	}
+	return f.src.Read(buf)
+}
+
+func (f *failingReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return f.src.Seek(offset, whence)
+}
+
+// dataWithErrorReadSeeker returns at most dataN bytes together with errSourceRead on the Read call
+// with the given 1-based number.
+type dataWithErrorReadSeeker struct {
+	src    io.ReadSeeker
+	failAt int
+	dataN  int
+	reads  int
+}
+
+func (d *dataWithErrorReadSeeker) Read(buf []byte) (int, error) {
+	d.reads++
+	if d.reads != d.failAt {
+		return d.src.Read(buf)
+	}
+	n, err := d.src.Read(buf[:min(len(buf), d.dataN)])
+	if err != nil {
+		return n, err
+	}
+	return n, errSourceRead
+}
+
+func (d *dataWithErrorReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return d.src.Seek(offset, whence)
+}
+
+func TestResamplingSourceErrorWithData(t *testing.T) {
+	const (
+		from        = 44100
+		to          = 48000
+		blockFrames = 4096
+	)
+
+	for _, bitDepthInBytes := range []int{2, 4} {
+		for _, seekable := range []bool{false, true} {
+			t.Run(fmt.Sprintf("bitDepthInBytes=%d,seekable=%t", bitDepthInBytes, seekable), func(t *testing.T) {
+				bytesPerSample := bitDepthInBytes * 2
+				inB := newSoundBytesForFrames(from, 3*blockFrames, bitDepthInBytes)
+
+				wantB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				var src io.Reader = &dataWithErrorReadSeeker{
+					src:    bytes.NewReader(inB),
+					failAt: 2,
+					dataN:  blockFrames*bytesPerSample/2 + 1,
+				}
+				if !seekable {
+					src = &reader{
+						r: src,
+					}
+				}
+				r := convert.NewResampling(src, int64(len(inB)), from, to, bitDepthInBytes)
+
+				buf := make([]byte, 2*blockFrames*bytesPerSample)
+				n, err := r.Read(buf)
+				if !errors.Is(err, errSourceRead) {
+					t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+				}
+				if n <= 0 || n >= len(buf) || n%bytesPerSample != 0 {
+					t.Errorf("Read: got %d bytes, want a positive multiple of %d bytes less than %d", n, bytesPerSample, len(buf))
+				}
+				if !bytes.Equal(buf[:n], wantB[:n]) {
+					t.Errorf("Read: the %d bytes delivered with the error differ from a fresh stream", n)
+				}
+
+				if seekable {
+					pos, err := r.Seek(0, io.SeekCurrent)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if got, want := pos, int64(n); got != want {
+						t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+					}
+				}
+
+				rest, err := io.ReadAll(r)
+				if err != nil {
+					t.Fatalf("io.ReadAll after the error: %v", err)
+				}
+				if got := append(buf[:n:n], rest...); !bytes.Equal(got, wantB) {
+					t.Errorf("reading on after the error returned %d bytes in total, want the same %d bytes as a fresh stream", len(got), len(wantB))
+				}
+			})
+		}
+	}
+}
+
+func TestResamplingPartialReadThenSourceErrorThenRetry(t *testing.T) {
+	const (
+		from        = 44100
+		to          = 44100
+		blockFrames = 4096
+	)
+
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			bytesPerSample := bitDepthInBytes * 2
+			inB := newSoundBytesForFrames(from, 3*blockFrames, bitDepthInBytes)
+
+			wantB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// The first read delivers the first block, and the second read fails,
+			// so that a partial frame count is returned along with the error.
+			src := &failingReadSeeker{src: bytes.NewReader(inB), failAt: 2}
+			r := convert.NewResampling(src, int64(len(inB)), from, to, bitDepthInBytes)
+
+			buf := make([]byte, 2*blockFrames*bytesPerSample)
+			n, err := r.Read(buf)
+			if !errors.Is(err, errSourceRead) {
+				t.Fatalf("Read: got error %v, want %v", err, errSourceRead)
+			}
+			if n <= 0 || n >= len(buf) || n%bytesPerSample != 0 {
+				t.Fatalf("Read: got %d bytes written, want a partial positive multiple of %d bytes less than %d", n, bytesPerSample, len(buf))
+			}
+
+			// The position must reflect the already-written bytes.
+			pos, err := r.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(n); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+			}
+
+			// A retry must continue right after the delivered bytes.
+			gotB := append([]byte(nil), buf[:n]...)
+			rest, err := io.ReadAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			gotB = append(gotB, rest...)
+			if !bytes.Equal(gotB, wantB) {
+				t.Errorf("a retry after a source read error returned %d bytes, want the same %d bytes as a fresh stream", len(gotB), len(wantB))
+			}
+		})
+	}
+}
+
 func readAllInChunksLimited(t *testing.T, r io.Reader, chunkSizeInBytes int, limitInBytes int) []byte {
 	t.Helper()
 
@@ -926,7 +1090,7 @@ func TestResamplingSeekPastEndUnknownLength(t *testing.T) {
 							if err != nil {
 								t.Fatal(err)
 							}
-							if got, want := pos, wantLength; got != want {
+							if got, want := pos, wantLength+offsetFromEnd; got != want {
 								t.Errorf("Seek past the end after the length is known: got %d, want %d", got, want)
 							}
 							if n, err := r.Read(make([]byte, 4096)); n != 0 || err != io.EOF {
@@ -937,5 +1101,70 @@ func TestResamplingSeekPastEndUnknownLength(t *testing.T) {
 				})
 			}
 		})
+	}
+}
+
+func TestResamplingShortBufferEOF(t *testing.T) {
+	for _, depth := range []int{2, 4} {
+		for _, knownLength := range []bool{false, true} {
+			t.Run(fmt.Sprintf("depth=%d/knownLength=%t", depth, knownLength), func(t *testing.T) {
+				for _, frames := range []int{0, 1, 32} {
+					src := make([]byte, frames*2*depth)
+					length := int64(-1)
+					if knownLength {
+						length = int64(len(src))
+					}
+					newReader := func(source io.Reader) *convert.Resampling {
+						return convert.NewResampling(source, length, 44100, 48000, depth)
+					}
+					want, err := io.ReadAll(newReader(bytes.NewReader(src)))
+					if err != nil {
+						t.Fatal(err)
+					}
+					for size := 1; size < 2*depth; size++ {
+						r := newReader(bytes.NewReader(src))
+						wantErr := io.ErrShortBuffer
+						if len(want) == 0 {
+							wantErr = io.EOF
+						}
+						for range 2 {
+							if n, err := r.Read(make([]byte, size)); n != 0 || !errors.Is(err, wantErr) {
+								t.Errorf("frames=%d, short Read(%d) = (%d, %v), want %v", frames, size, n, err, wantErr)
+							}
+						}
+						got, err := io.ReadAll(r)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if !bytes.Equal(got, want) {
+							t.Errorf("ReadAll after short Read = %x, want %x", got, want)
+						}
+						if n, err := r.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+							t.Errorf("short Read after draining = (%d, %v)", n, err)
+						}
+					}
+				}
+			})
+		}
+	}
+	src := make([]byte, 128)
+	r := convert.NewResampling(&dataWithErrorReadSeeker{
+		src:    bytes.NewReader(src),
+		failAt: 1,
+		dataN:  8,
+	}, -1, 44100, 48000, 2)
+	if n, err := r.Read(make([]byte, 1)); n != 0 || !errors.Is(err, errSourceRead) {
+		t.Errorf("short Read with source error = (%d, %v)", n, err)
+	}
+	got, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := io.ReadAll(convert.NewResampling(bytes.NewReader(src), -1, 44100, 48000, 2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Error("resampled audio changed after a short read with a source error")
 	}
 }

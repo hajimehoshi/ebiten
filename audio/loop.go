@@ -32,11 +32,14 @@ type InfiniteLoop struct {
 	bitDepthInBytes int
 	bytesPerSample  int
 
-	// extra is the remainder in the case when the read byte sizes are not a multiple of the bit depth.
+	// extra holds source bytes buffered until a destination can receive a whole value.
 	extra []byte
 
 	// afterLoop is data after the loop.
 	afterLoop []byte
+
+	// partialAfterLoop is the part of afterLoop read before a source error. The source position is right after it.
+	partialAfterLoop []byte
 
 	// blending represents whether the loop start and afterLoop are blended or not.
 	blending bool
@@ -157,10 +160,8 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	// A buffer shorter than one sample cannot receive any data, and cannot hold the remainder
-	// carried over from the previous Read.
 	if len(b) < i.bitDepthInBytes {
-		return 0, io.ErrShortBuffer
+		return 0, i.readShortBuffer()
 	}
 
 	if err := i.ensurePos(); err != nil {
@@ -173,7 +174,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	for rewinds := 0; ; rewinds++ {
 		n, err := i.read(b)
 		if err != nil && err != io.EOF {
-			return 0, err
+			return n, err
 		}
 		atEnd := i.pos == i.length() || err == io.EOF
 		if !atEnd {
@@ -188,6 +189,42 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 		}
 		if n > 0 {
 			return n, nil
+		}
+	}
+}
+
+// readShortBuffer buffers one value to distinguish EOF from a short destination buffer.
+func (i *InfiniteLoop) readShortBuffer() error {
+	if err := i.ensurePos(); err != nil {
+		return err
+	}
+	for rewinds := 0; ; {
+		if len(i.extra) >= i.bitDepthInBytes {
+			return io.ErrShortBuffer
+		}
+		var buf [4]byte
+		size := min(int64(i.bitDepthInBytes-len(i.extra)), i.length()-i.pos)
+		n, err := i.src.Read(buf[:size])
+		i.extra = append(i.extra, buf[:n]...)
+		i.pos += int64(n)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		if len(i.extra) >= i.bitDepthInBytes {
+			return io.ErrShortBuffer
+		}
+		if err == io.EOF || i.pos == i.length() {
+			if i.pos == i.lstart || rewinds > 0 {
+				return io.EOF
+			}
+			if err := i.rewind(); err != nil {
+				return err
+			}
+			rewinds++
+			continue
+		}
+		if n == 0 {
+			return io.ErrShortBuffer
 		}
 	}
 }
@@ -207,10 +244,10 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 	var n int
 	var err error
 	for {
-		var m int
-		m, err = i.src.Read(b[extralen+n:])
-		n += m
-		if err != nil || m == 0 || extralen+n >= i.bitDepthInBytes {
+		var nn int
+		nn, err = i.src.Read(b[extralen+n:])
+		n += nn
+		if err != nil || nn == 0 || extralen+n >= i.bitDepthInBytes {
 			break
 		}
 	}
@@ -267,26 +304,28 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 	}
 
 	if err != nil && err != io.EOF {
-		return 0, err
+		return n, err
 	}
 
 	// Read the afterLoop part if necessary.
 	if i.pos == i.length() && err == nil {
-		if i.afterLoop == nil {
+		if len(i.afterLoop) == 0 {
 			buflen := min(int64(256*i.bytesPerSample), i.length())
 
 			buf := make([]byte, buflen)
-			var pos int
+			pos := copy(buf, i.partialAfterLoop)
+			i.partialAfterLoop = nil
 			for pos < len(buf) {
-				n, err := i.src.Read(buf[pos:])
+				nn, err := i.src.Read(buf[pos:])
+				pos += nn
 				if err != nil && err != io.EOF {
-					return 0, err
+					i.partialAfterLoop = buf[:pos]
+					return n, err
 				}
-				pos += n
 				// Break on EOF, and also when no progress is made so that a
 				// source returning (0, nil) does not spin here forever. The
 				// main read loop above has the same guard.
-				if err != nil || n == 0 {
+				if err != nil || nn == 0 {
 					break
 				}
 			}
@@ -309,6 +348,7 @@ func (i *InfiniteLoop) rewind() error {
 	}
 	i.pos = i.lstart
 	i.extra = i.extra[:0]
+	i.partialAfterLoop = nil
 	return nil
 }
 
@@ -325,7 +365,6 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop but was %d", whence)
 	}
 
-	i.blending = false
 	if err := i.ensurePos(); err != nil {
 		return 0, err
 	}
@@ -351,7 +390,9 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if _, err := i.src.Seek(next, io.SeekStart); err != nil {
 		return 0, err
 	}
+	i.blending = false
 	i.pos = next
 	i.extra = i.extra[:0]
+	i.partialAfterLoop = nil
 	return i.pos, nil
 }

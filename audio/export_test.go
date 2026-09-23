@@ -21,8 +21,15 @@ import (
 )
 
 type (
-	dummyContext struct{}
-	dummyPlayer  struct {
+	dummyContext struct {
+		// suspendErr and resumeErr are the errors Suspend and Resume return, to simulate a device
+		// which fails to suspend or resume.
+		suspendErr error
+		resumeErr  error
+
+		mu sync.Mutex
+	}
+	dummyPlayer struct {
 		r       io.Reader
 		playing bool
 		volume  float64
@@ -58,11 +65,15 @@ func (c *dummyContext) MaxBufferSize() int {
 }
 
 func (c *dummyContext) Suspend() error {
-	return nil
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.suspendErr
 }
 
 func (c *dummyContext) Resume() error {
-	return nil
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.resumeErr
 }
 
 func (c *dummyContext) Err() error {
@@ -192,18 +203,42 @@ func (p *dummyPlayer) Seek(offset int64, whence int) (int64, error) {
 	return 0, nil
 }
 
+var dummyContextForTesting = &dummyContext{}
+
 func init() {
-	driverForTesting = &dummyContext{}
+	driverForTesting = dummyContextForTesting
+}
+
+// SetSuspendErrorForTesting makes the simulated device fail to suspend with err, or succeed when err
+// is nil.
+func SetSuspendErrorForTesting(err error) {
+	c := dummyContextForTesting
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.suspendErr = err
+}
+
+// SetResumeErrorForTesting makes the simulated device fail to resume with err, or succeed when err is
+// nil.
+func SetResumeErrorForTesting(err error) {
+	c := dummyContextForTesting
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.resumeErr = err
 }
 
 type dummyHook struct {
-	updates []func(vmGuest bool) error
+	onSuspend func() error
+	onResume  func() error
+	updates   []func(vmGuest bool) error
 }
 
 func (h *dummyHook) OnSuspendAudio(f func() error) {
+	h.onSuspend = f
 }
 
 func (h *dummyHook) OnResumeAudio(f func() error) {
+	h.onResume = f
 }
 
 func (h *dummyHook) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool) error) {
@@ -212,6 +247,16 @@ func (h *dummyHook) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool)
 
 func init() {
 	hookerForTesting = &dummyHook{}
+}
+
+// SuspendForTesting runs the suspend hook the current context registered.
+func SuspendForTesting() error {
+	return hookerForTesting.(*dummyHook).onSuspend()
+}
+
+// ResumeForTesting runs the resume hook the current context registered.
+func ResumeForTesting() error {
+	return hookerForTesting.(*dummyHook).onResume()
 }
 
 func UpdateForTesting() error {

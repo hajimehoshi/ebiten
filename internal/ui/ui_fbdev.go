@@ -118,12 +118,18 @@ func (b *fbdevBackend) run(game Game, options *RunOptions) error {
 	return wg.Wait()
 }
 
-func (b *fbdevBackend) initOnMainThread(options *RunOptions) error {
+func (b *fbdevBackend) initOnMainThread(options *RunOptions) (err error) {
 	c, err := fbdev.NewContext(b.display)
 	if err != nil {
 		return err
 	}
 	b.eglContext = c
+	defer func() {
+		if err != nil {
+			b.eglContext = nil
+			err = errors.Join(err, c.Close())
+		}
+	}()
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {

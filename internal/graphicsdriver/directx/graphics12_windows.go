@@ -132,7 +132,7 @@ func newGraphics12(useWARP bool, useDebugLayer bool, useDRED bool, featureLevel 
 	return g, nil
 }
 
-func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED bool, featureLevel _D3D_FEATURE_LEVEL) (ferr error) {
+func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED bool, featureLevel _D3D_FEATURE_LEVEL) (err error) {
 	if err := d3d12.Load(); err != nil {
 		return err
 	}
@@ -142,13 +142,14 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED
 
 	// The debug interface is optional and might not exist.
 	if useDebugLayer {
-		d, err := _D3D12GetDebugInterface()
+		var d *_ID3D12Debug
+		d, err = _D3D12GetDebugInterface()
 		if err != nil {
 			return err
 		}
 		g.debug = d
 		defer func() {
-			if ferr != nil {
+			if err != nil {
 				g.debug.Release()
 				g.debug = nil
 			}
@@ -180,7 +181,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED
 	}
 	g.graphicsInfra = gi
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.graphicsInfra.release()
 			g.graphicsInfra = nil
 		}
@@ -230,7 +231,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED
 	}
 	g.device = (*_ID3D12Device)(d)
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.device.Release()
 			g.device = nil
 		}
@@ -240,7 +241,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED
 		return err
 	}
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.releaseMembers()
 		}
 	}()
@@ -256,7 +257,7 @@ func (g *graphics12) initializeDesktop(useWARP bool, useDebugLayer bool, useDRED
 	return nil
 }
 
-func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (ferr error) {
+func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (err error) {
 	if err := d3d12x.Load(); err != nil {
 		return err
 	}
@@ -276,7 +277,7 @@ func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (ferr erro
 	}
 	g.device = (*_ID3D12Device)(d)
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.device.Release()
 			g.device = nil
 		}
@@ -286,7 +287,7 @@ func (g *graphics12) initializeXbox(useWARP bool, useDebugLayer bool) (ferr erro
 		return err
 	}
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.releaseMembers()
 		}
 	}()
@@ -344,9 +345,9 @@ func (g *graphics12) registerFrameEventForXbox() error {
 	return nil
 }
 
-func (g *graphics12) initializeMembers() (ferr error) {
+func (g *graphics12) initializeMembers() (err error) {
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.releaseMembers()
 		}
 	}()
@@ -587,14 +588,15 @@ func (g *graphics12) initSwapChainDesktop(width, height int) error {
 	return nil
 }
 
-func (g *graphics12) initSwapChainXbox(width, height int) (ferr error) {
+func (g *graphics12) initSwapChainXbox(width, height int) (err error) {
 	h, err := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 	if err != nil {
 		return err
 	}
 
 	for i := range frameCount {
-		r, err := g.device.CreateCommittedResource(&_D3D12_HEAP_PROPERTIES{
+		var r *_ID3D12Resource
+		r, err = g.device.CreateCommittedResource(&_D3D12_HEAP_PROPERTIES{
 			Type:                 _D3D12_HEAP_TYPE_DEFAULT,
 			CPUPageProperty:      _D3D12_CPU_PAGE_PROPERTY_UNKNOWN,
 			MemoryPoolPreference: _D3D12_MEMORY_POOL_UNKNOWN,
@@ -623,7 +625,7 @@ func (g *graphics12) initSwapChainXbox(width, height int) (ferr error) {
 
 		g.renderTargets[i] = r
 		defer func(i int) {
-			if ferr != nil {
+			if err != nil {
 				g.renderTargets[i].Release()
 				g.renderTargets[i] = nil
 			}
@@ -715,20 +717,21 @@ func (g *graphics12) releaseRenderTargets() {
 	}
 }
 
-func (g *graphics12) createRenderTargetViewsDesktop() (ferr error) {
+func (g *graphics12) createRenderTargetViewsDesktop() (err error) {
 	// Create frame resources.
 	h, err := g.rtvDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
 	if err != nil {
 		return err
 	}
 	for i := range frameCount {
-		r, err := g.graphicsInfra.getBuffer(uint32(i), &_IID_ID3D12Resource)
+		var r unsafe.Pointer
+		r, err = g.graphicsInfra.getBuffer(uint32(i), &_IID_ID3D12Resource)
 		if err != nil {
 			return err
 		}
 		g.renderTargets[i] = (*_ID3D12Resource)(r)
 		defer func(i int) {
-			if ferr != nil {
+			if err != nil {
 				g.renderTargets[i].Release()
 				g.renderTargets[i] = nil
 			}
@@ -1062,7 +1065,7 @@ func (g *graphics12) SupportsDirectComposition() bool {
 	return g.graphicsInfra.supportsComposition(unsafe.Pointer(g.commandQueue))
 }
 
-func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr error) {
+func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (err error) {
 	// Create buffers if necessary.
 	vidx := len(g.vertices[g.frameIndex])
 	if cap(g.vertices[g.frameIndex]) > vidx {
@@ -1077,7 +1080,8 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr err
 	}
 	if g.vertices[g.frameIndex][vidx] == nil {
 		// TODO: Use the default heap for efficiency. See the official example HelloTriangle.
-		vs, err := createBuffer(g.device, uint64(vsize), _D3D12_HEAP_TYPE_UPLOAD)
+		var vs *_ID3D12Resource
+		vs, err = createBuffer(g.device, uint64(vsize), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
@@ -1086,7 +1090,7 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr err
 			sizeInBytes: vsize,
 		}
 		defer func() {
-			if ferr != nil {
+			if err != nil {
 				g.vertices[g.frameIndex][vidx].release()
 				g.vertices[g.frameIndex][vidx] = nil
 			}
@@ -1105,7 +1109,8 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr err
 		g.indices[g.frameIndex][iidx] = nil
 	}
 	if g.indices[g.frameIndex][iidx] == nil {
-		is, err := createBuffer(g.device, uint64(isize), _D3D12_HEAP_TYPE_UPLOAD)
+		var is *_ID3D12Resource
+		is, err = createBuffer(g.device, uint64(isize), _D3D12_HEAP_TYPE_UPLOAD)
 		if err != nil {
 			return err
 		}
@@ -1114,7 +1119,7 @@ func (g *graphics12) SetVertices(vertices []float32, indices []uint32) (ferr err
 			sizeInBytes: isize,
 		}
 		defer func() {
-			if ferr != nil {
+			if err != nil {
 				g.indices[g.frameIndex][iidx].release()
 				g.indices[g.frameIndex][iidx] = nil
 			}

@@ -15,6 +15,8 @@
 package colorm
 
 import (
+	"fmt"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/colormshader"
 )
@@ -46,9 +48,15 @@ type DrawImageOptions struct {
 // DrawImage draws src onto dst.
 //
 // DrawImage is basically the same as ebiten.DrawImage, but with a color matrix.
+//
+// When the given Filter is invalid, DrawImage panics.
 func DrawImage(dst, src *ebiten.Image, colorM ColorM, op *DrawImageOptions) {
 	if op == nil {
 		op = &DrawImageOptions{}
+	}
+
+	if src.Bounds().Empty() {
+		return
 	}
 
 	opShader := &ebiten.DrawRectShaderOptions{}
@@ -56,7 +64,9 @@ func DrawImage(dst, src *ebiten.Image, colorM ColorM, op *DrawImageOptions) {
 	opShader.ColorScale = op.ColorScale
 	opShader.CompositeMode = ebiten.CompositeModeCustom
 	opShader.Blend = op.Blend
-	opShader.Uniforms = uniforms(colorM)
+	u := acquireUniforms(colorM)
+	defer releaseUniforms(u)
+	opShader.Uniforms = u.uniforms
 	opShader.Images[0] = src
 	s := builtinShader(colormshader.Filter(op.Filter), colormshader.AddressUnsafe)
 	dst.DrawRectShader(src.Bounds().Dx(), src.Bounds().Dy(), s, opShader)
@@ -106,9 +116,17 @@ type DrawTrianglesOptions struct {
 // DrawTriangles draws triangles onto dst.
 //
 // DrawTriangles is basically the same as ebiten.DrawTriangles, but with a color matrix.
+//
+// When the given Filter, Address, or ColorScaleMode is invalid, DrawTriangles panics.
 func DrawTriangles(dst *ebiten.Image, vertices []ebiten.Vertex, indices []uint16, img *ebiten.Image, colorM ColorM, op *DrawTrianglesOptions) {
 	if op == nil {
 		op = &DrawTrianglesOptions{}
+	}
+
+	switch op.ColorScaleMode {
+	case ebiten.ColorScaleModeStraightAlpha, ebiten.ColorScaleModePremultipliedAlpha:
+	default:
+		panic(fmt.Sprintf("colorm: invalid color scale mode: %d", op.ColorScaleMode))
 	}
 
 	if op.ColorScaleMode == ebiten.ColorScaleModeStraightAlpha {
@@ -127,7 +145,9 @@ func DrawTriangles(dst *ebiten.Image, vertices []ebiten.Vertex, indices []uint16
 	opShader.Blend = op.Blend
 	opShader.FillRule = op.FillRule
 	opShader.AntiAlias = op.AntiAlias
-	opShader.Uniforms = uniforms(colorM)
+	u := acquireUniforms(colorM)
+	defer releaseUniforms(u)
+	opShader.Uniforms = u.uniforms
 	opShader.Images[0] = img
 	s := builtinShader(colormshader.Filter(op.Filter), colormshader.Address(op.Address))
 	dst.DrawTrianglesShader(vertices, indices, s, opShader)

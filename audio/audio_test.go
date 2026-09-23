@@ -850,3 +850,69 @@ func TestPlayOnIdleContext(t *testing.T) {
 		}
 	}
 }
+
+func callWithTimeout(t *testing.T, name string, f func() error) error {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() {
+		done <- f()
+	}()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s did not return", name)
+	}
+	return nil
+}
+
+func runWithTimeout(t *testing.T, name string, f func() error) {
+	t.Helper()
+	if err := callWithTimeout(t, name, f); err != nil {
+		t.Errorf("%s: %v", name, err)
+	}
+}
+
+var errDeviceFailed = errors.New("audio_test: device failed")
+
+func TestSuspendRetriesAfterError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	audio.SetSuspendErrorForTesting(errDeviceFailed)
+	defer audio.SetSuspendErrorForTesting(nil)
+	if err := callWithTimeout(t, "suspend", audio.SuspendForTesting); !errors.Is(err, errDeviceFailed) {
+		t.Errorf("suspend: got: %v, want: %v", err, errDeviceFailed)
+	}
+
+	audio.SetSuspendErrorForTesting(nil)
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
+}
+
+func TestResumeRetriesAfterError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+
+	audio.SetResumeErrorForTesting(errDeviceFailed)
+	defer audio.SetResumeErrorForTesting(nil)
+	if err := callWithTimeout(t, "resume", audio.ResumeForTesting); !errors.Is(err, errDeviceFailed) {
+		t.Errorf("resume: got: %v, want: %v", err, errDeviceFailed)
+	}
+
+	audio.SetResumeErrorForTesting(nil)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
+}

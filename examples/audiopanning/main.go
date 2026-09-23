@@ -162,9 +162,6 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 	}
 
 	readN, err := s.ReadSeeker.Read(p[bufN:])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
 
 	// Align the buffer size in multiples of 4. The extra part is pushed to the buffer for the
 	// next time.
