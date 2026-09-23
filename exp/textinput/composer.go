@@ -191,53 +191,67 @@ func (c *Composer) Update() (handled bool, err error) {
 			c.s = sess
 		}
 
-		if err = c.s.Update(); err != nil {
-			c.s = nil
-			c.dispatchEmptyComposition()
-			return handled, err
-		}
-
-		if c.s.IsCommitted() {
-			if c.OnCommit != nil {
-				c.OnCommit(c.s.Commit())
-			}
-			c.dispatchEmptyComposition()
-			// A commit whose key passes through to the game leaves handled false.
-			if !c.s.IsCommittedWithPassthroughKey() {
-				handled = true
-			}
-			endedByUser := c.s.IsClosedByUser()
-			c.s = nil
-			if endedByUser {
-				c.dispatchEndByUser()
-				break
-			}
-			continue
-		}
-
-		if c.s.IsClosed() {
-			// The user's ending discards no composition: what the user last saw
-			// is committed, as Confirm does.
-			if c.s.IsClosedByUser() && c.OnCommit != nil && c.s.loadComposition().text != "" {
-				c.OnCommit(c.s.compositionAsCommit())
-			}
-			endedByUser := c.s.IsClosedByUser()
-			c.s = nil
-			c.dispatchEmptyComposition()
-			if endedByUser {
-				c.dispatchEndByUser()
-			}
-			break
-		}
-
-		// Active session: composing or idle.
-		c.dispatchComposition(c.s.Composition())
-		if c.s.IsCompositing() {
+		var h, next bool
+		h, next, err = c.drain()
+		if h {
 			handled = true
 		}
-		break
+		if err != nil {
+			return handled, err
+		}
+		if !next {
+			break
+		}
 	}
 	return handled, nil
+}
+
+// drain pumps the events the platform delivered to the current session since
+// the last call and dispatches them through the callbacks. It reports whether
+// the IME consumed input, and whether the session ended with a commit that
+// leaves text inputting in progress, so that Update starts the next session.
+// The session is dropped when it ends or fails.
+func (c *Composer) drain() (handled, next bool, err error) {
+	if err = c.s.drain(); err != nil {
+		c.s = nil
+		c.dispatchEmptyComposition()
+		return false, false, err
+	}
+
+	if c.s.IsCommitted() {
+		if c.OnCommit != nil {
+			c.OnCommit(c.s.Commit())
+		}
+		c.dispatchEmptyComposition()
+		// A commit whose key passes through to the game leaves handled false.
+		handled = !c.s.IsCommittedWithPassthroughKey()
+		endedByUser := c.s.IsClosedByUser()
+		c.s = nil
+		if endedByUser {
+			c.dispatchEndByUser()
+			return handled, false, nil
+		}
+		return handled, true, nil
+	}
+
+	if c.s.IsClosed() {
+		// The user's ending discards no composition: what the user last saw
+		// is committed, as Confirm does.
+		endedByUser := c.s.IsClosedByUser()
+		if endedByUser && c.OnCommit != nil && c.s.loadComposition().text != "" {
+			c.OnCommit(c.s.compositionAsCommit())
+		}
+		c.s = nil
+		c.dispatchEmptyComposition()
+		if endedByUser {
+			c.dispatchEndByUser()
+		}
+		return false, false, nil
+	}
+
+	// Active session: composing or idle.
+	c.dispatchComposition(c.s.Composition())
+	return c.s.IsCompositing(), false, nil
 }
 
 // Confirm ends the current session if any. Any in-progress composition is
@@ -249,7 +263,8 @@ func (c *Composer) Confirm() {
 }
 
 // Cancel ends the current session if any, discarding an in-progress
-// composition: unlike [Composer.Confirm], nothing is committed.
+// composition: unlike [Composer.Confirm], nothing is committed. A commit the
+// IME has already delivered is still dispatched through OnCommit.
 // OnComposition is fired with an empty composition so the caller can clear
 // its preedit overlay.
 func (c *Composer) Cancel() {
@@ -259,6 +274,12 @@ func (c *Composer) Cancel() {
 // end ends the current session if any, committing an in-progress
 // composition through OnCommit only when commit is true.
 func (c *Composer) end(commit bool) {
+	if c.s == nil {
+		return
+	}
+	// Dispatch what the platform delivered since the last Update first, so
+	// that a delivered commit is not lost and the composition is current.
+	_, _, _ = c.drain()
 	if c.s == nil {
 		return
 	}

@@ -33,7 +33,7 @@ func canUseMipmap(imageType atlas.ImageType) bool {
 	return false
 }
 
-// Mipmap is a set of buffered.Image sorted by the order of mipmap level.
+// Mipmap is a set of buffered.Image indexed by the mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
 	width     int
@@ -124,7 +124,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 		}
 	}
 	if level == math.MaxInt32 {
-		panic("mipmap: level must be calculated at least once but not")
+		panic("mipmap: level must be calculated at least once")
 	}
 
 	var imgs [graphics.ShaderSrcImageCount]*buffered.Image
@@ -140,6 +140,9 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 					vertices[i+3] /= s
 				}
 				imgs[i] = img
+				// A sub-image shares the level images with its original image, so the region keeps
+				// describing the sub-image on the level image.
+				srcRegions[i] = src.regionForLevel(srcRegions[i], level)
 				continue
 			}
 		}
@@ -162,7 +165,7 @@ func (m *Mipmap) setImg(level int, img *buffered.Image) {
 
 func (m *Mipmap) level(level int) *buffered.Image {
 	if level == 0 {
-		panic("mipmap: level must be non-zero at level")
+		panic("mipmap: level must be non-zero")
 	}
 
 	if !canUseMipmap(m.imageType) {
@@ -228,6 +231,18 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	return m.imgs[level].img
 }
 
+// regionForLevel converts a region in the original image's coordinates to the level image's
+// coordinates. An empty region stays empty.
+func (m *Mipmap) regionForLevel(region image.Rectangle, level int) image.Rectangle {
+	if region.Empty() {
+		return region
+	}
+	// Min is rounded down and Max is rounded up so that the region covers every pixel of the level
+	// image that the original region overlaps.
+	r := image.Rect(region.Min.X>>level, region.Min.Y>>level, -(-region.Max.X >> level), -(-region.Max.Y >> level))
+	return r.Intersect(image.Rect(0, 0, sizeForLevel(m.width, level), sizeForLevel(m.height, level)))
+}
+
 func sizeForLevel(x int, level int) int {
 	for range level {
 		x /= 2
@@ -245,13 +260,11 @@ func (m *Mipmap) Deallocate() {
 		}
 		img.img.Deallocate()
 	}
-	for k := range m.imgs {
-		delete(m.imgs, k)
-	}
+	clear(m.imgs)
 	m.orig.Deallocate()
 }
 
-// mipmapLevel returns an appropriate mipmap level for the given distance.
+// mipmapLevelFromDistance returns an appropriate mipmap level for the given distance.
 func mipmapLevelFromDistance(dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1 float32) int {
 	const maxLevel = 6
 

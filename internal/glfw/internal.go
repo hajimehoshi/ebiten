@@ -8,6 +8,7 @@
 package glfw
 
 import (
+	"sync/atomic"
 	"unsafe"
 )
 
@@ -106,6 +107,20 @@ type context struct {
 	platform platformContextState
 }
 
+// ScrollUnit is the unit of the scroll amounts a ScrollCallback reports.
+type ScrollUnit int
+
+const (
+	// ScrollUnitNotch is one notch of a typical mouse wheel.
+	ScrollUnitNotch ScrollUnit = iota
+	// ScrollUnitLine is one line of text.
+	ScrollUnitLine
+	// ScrollUnitPixel is one device-independent pixel.
+	ScrollUnitPixel
+	// ScrollUnitPage is one page of the window's content area.
+	ScrollUnitPage
+)
+
 type (
 	PosCallback             func(w *Window, xpos int, ypos int)
 	SizeCallback            func(w *Window, width int, height int)
@@ -119,12 +134,14 @@ type (
 	MouseButtonCallback     func(w *Window, button MouseButton, action Action, mods ModifierKey)
 	CursorPosCallback       func(w *Window, xpos float64, ypos float64)
 	CursorEnterCallback     func(w *Window, entered bool)
-	ScrollCallback          func(w *Window, xoff float64, yoff float64)
-	KeyCallback             func(w *Window, key Key, scancode int, action Action, mods ModifierKey)
-	CharCallback            func(w *Window, char rune)
-	CharModsCallback        func(w *Window, char rune, mods ModifierKey)
-	DropCallback            func(w *Window, names []string)
-	MonitorCallback         func(monitor *Monitor, event PeripheralEvent)
+	// wheelX and wheelY are the raw wheel offsets in the platform's unit; scrollDeltaX and scrollDeltaY
+	// are the scroll amounts in unit.
+	ScrollCallback   func(w *Window, wheelX float64, wheelY float64, scrollDeltaX float64, scrollDeltaY float64, unit ScrollUnit)
+	KeyCallback      func(w *Window, key Key, scancode int, action Action, mods ModifierKey)
+	CharCallback     func(w *Window, char rune)
+	CharModsCallback func(w *Window, char rune, mods ModifierKey)
+	DropCallback     func(w *Window, names []string)
+	MonitorCallback  func(monitor *Monitor, event PeripheralEvent)
 )
 
 type Window struct {
@@ -140,6 +157,11 @@ type Window struct {
 	videoMode        VidMode
 	monitor          *Monitor
 	cursor           *Cursor
+
+	// hasMonitor mirrors whether monitor is not nil.
+	// monitor is accessible only from the main thread,
+	// while hasMonitor is accessible from any thread.
+	hasMonitor atomic.Bool
 
 	minwidth  int
 	minheight int

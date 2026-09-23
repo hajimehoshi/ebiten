@@ -22,10 +22,6 @@ func ConvertByteCountToUTF16Count(text string, c int) int {
 	return convertByteCountToUTF16Count(text, c)
 }
 
-func FindLineBounds(text string, selStart, selEnd int) (int, int) {
-	return findLineBounds(text, selStart, selEnd)
-}
-
 func ComputeReplacement(baseline, newText string, caretInBytes int) (string, int, int) {
 	return computeReplacement(baseline, newText, caretInBytes)
 }
@@ -77,8 +73,8 @@ func (s *TextInputEvents) End() {
 	s.end()
 }
 
-func (s *TextInputEvents) ClearQueue() {
-	s.clearQueue()
+func (s *TextInputEvents) DropQueuedCompositions() {
+	s.dropQueuedCompositions()
 }
 
 func (s *TextInputEvents) Send(state TextInputState) bool {
@@ -86,12 +82,12 @@ func (s *TextInputEvents) Send(state TextInputState) bool {
 }
 
 // StartSessionCommit starts a session on a freshly opened channel, as the
-// platform start() does (flushing any queued states), pumps one Update, and
+// platform start() does (flushing any queued states), pumps one drain, and
 // reports the committed text and whether a commit arrived.
 func (s *TextInputEvents) StartSessionCommit() (string, bool) {
 	ch, end := s.start()
 	sess := &session{ch: ch, end: end, events: s}
-	_ = sess.Update()
+	_ = sess.drain()
 	if !sess.IsCommitted() {
 		return "", false
 	}
@@ -99,12 +95,12 @@ func (s *TextInputEvents) StartSessionCommit() (string, bool) {
 }
 
 // StartSessionCompositing starts a session on a freshly opened channel, as the
-// platform start() does (flushing any queued states), pumps one Update, and
+// platform start() does (flushing any queued states), pumps one drain, and
 // reports whether the session observed a live composition.
 func (s *TextInputEvents) StartSessionCompositing() bool {
 	ch, end := s.start()
 	sess := &session{ch: ch, end: end, events: s}
-	_ = sess.Update()
+	_ = sess.drain()
 	return sess.IsCompositing()
 }
 
@@ -162,7 +158,7 @@ func (d *DiffSender) StartNextSession(textBeforeCaret, textAfterCaret string) {
 
 // Update drains the session's states, as a tick does.
 func (d *DiffSender) Update() error {
-	return d.session.Update()
+	return d.session.drain()
 }
 
 // EndByUser ends the events as the platform does for the user's dismissal.
@@ -223,10 +219,9 @@ func (d *DiffSender) PendingStateCount() int {
 // PlatformStateHandler drives handlePlatformState with its own events and
 // sender, mirroring a platform backend whose channel is open.
 type PlatformStateHandler struct {
-	events        textInputEvents
-	sender        diffSender
-	legacyCleared bool
-	ch            <-chan textInputState
+	events textInputEvents
+	sender diffSender
+	ch     <-chan textInputState
 }
 
 // NewPlatformStateHandler returns a handler whose diff baseline is value, as a
@@ -243,10 +238,9 @@ func NewPlatformStateHandler(value string) *PlatformStateHandler {
 	return h
 }
 
-// Handle reports a platform state with the caret pinned to the preedit's end,
-// and returns whether the platform buffer must be cleared.
-func (h *PlatformStateHandler) Handle(value string, selStartInUTF16, selEndInUTF16 int, kind CommitKind, fieldFocused bool) bool {
-	return handlePlatformState(&h.events, &h.sender, &h.legacyCleared, value, selStartInUTF16, selEndInUTF16, true, kind, fieldFocused)
+// Handle reports a platform state with the caret pinned to the preedit's end.
+func (h *PlatformStateHandler) Handle(value string, selStartInUTF16, selEndInUTF16 int, kind CommitKind) {
+	handlePlatformState(&h.events, &h.sender, value, selStartInUTF16, selEndInUTF16, true, kind)
 }
 
 // RegisterSession installs an active session with the given surrounding text.
@@ -281,11 +275,6 @@ func (h *PlatformStateHandler) IsOpen() bool {
 	return h.events.isOpen()
 }
 
-// LegacyCleared reports whether the legacy path cleared the buffer.
-func (h *PlatformStateHandler) LegacyCleared() bool {
-	return h.legacyCleared
-}
-
 // SeedGate re-exports the internal reseeding arbitration.
 type SeedGate = seedGate
 
@@ -307,4 +296,45 @@ func (g *SeedGate) Admit(generation int) (resetBaseline bool, ok bool) {
 // PendingValue returns the pending seed.
 func (g *SeedGate) PendingValue() string {
 	return g.pendingValue
+}
+
+// ComposerDriver drives a Composer whose session is fed by its own events, as
+// a platform backend does.
+type ComposerDriver struct {
+	Composer Composer
+	events   textInputEvents
+}
+
+// NewComposerDriver returns a driver whose Composer has an open session with
+// the given surrounding text.
+func NewComposerDriver(textBeforeCaret, textAfterCaret string) *ComposerDriver {
+	d := &ComposerDriver{}
+	d.events.tick = func() int64 {
+		return 0
+	}
+	ch, end := d.events.start()
+	d.Composer.s = &session{
+		ch:              ch,
+		end:             end,
+		events:          &d.events,
+		textBeforeCaret: textBeforeCaret,
+		textAfterCaret:  textAfterCaret,
+	}
+	return d
+}
+
+// Send reports a platform state to the session, and reports whether the
+// session took it.
+func (d *ComposerDriver) Send(state TextInputState) bool {
+	return d.events.send(state)
+}
+
+// EndByUser ends the events as the platform does for the user's dismissal.
+func (d *ComposerDriver) EndByUser() {
+	d.events.endByUser()
+}
+
+// SessionOpen reports whether the Composer holds a session.
+func (d *ComposerDriver) SessionOpen() bool {
+	return d.Composer.s != nil
 }

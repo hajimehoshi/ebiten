@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !ebitenginevm
+//go:build !ebitenginevmguest
 
 // This is a virtualization host that embeds any Ebitengine program as a guest process inside its own
 // window — roughly `go run <package>`, but the program runs as a guest driven by this host. Run it from
@@ -24,7 +24,7 @@
 // optionally with an @version query (e.g. example.com/game@latest), or a local path like
 // ./examples/paint. Because the host and guest speak a version-locked protocol, an import path is
 // built in a generated module that pins Ebitengine to the host's own version; a local path is built
-// in its own module. The host builds the guest with -tags ebitenginevm, runs it pointed at a private
+// in its own module. The host builds the guest with -tags ebitenginevmguest, runs it pointed at a private
 // socket, forwards the window's input (keyboard, mouse, touches, and gamepads) to it, composites its
 // rendered frames into the window, plays its audio, applies the gamepad and device vibrations it
 // requests, and mirrors its requested cursor shape.
@@ -470,6 +470,9 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		if wx, wy := ebiten.Wheel(); wx != 0 || wy != 0 {
 			s.ScrollWheel(wx, wy)
 		}
+		if sx, sy := ebiten.ScrollDelta(); sx != 0 || sy != 0 {
+			s.ScrollBy(sx, sy)
+		}
 	}
 
 	// Mouse button releases are forwarded regardless of hover, like the key releases above: a drag
@@ -715,13 +718,13 @@ func ebitengineModuleDir() (string, error) {
 	return dir, nil
 }
 
-// buildGuest builds spec into a binary at bin with the ebitenginevm build tag, forcing the guest onto
+// buildGuest builds spec into a binary at bin with the ebitenginevmguest build tag, forcing the guest onto
 // the host's Ebitengine version. spec is either a local path, built in its own module, or an import
 // path with an optional @version query, built in a module generated under workDir.
 func buildGuest(workDir, bin, spec string, pin ebitenginePin) error {
 	if isFileSystemPath(spec) {
 		// A local package is built in its own module, which already pins its Ebitengine version.
-		build := exec.Command("go", "build", "-tags", "ebitenginevm", "-o", bin, spec)
+		build := exec.Command("go", "build", "-tags", "ebitenginevmguest", "-o", bin, spec)
 		build.Stdout = os.Stderr
 		build.Stderr = os.Stderr
 		return build.Run()
@@ -767,7 +770,7 @@ func buildGuest(workDir, bin, spec string, pin ebitenginePin) error {
 		}
 	}
 
-	return goModuleCmd(md, "build", "-mod=mod", "-tags", "ebitenginevm", "-o", bin, pkg)
+	return goModuleCmd(md, "build", "-mod=mod", "-tags", "ebitenginevmguest", "-o", bin, pkg)
 }
 
 // goModuleCmd runs a go command in dir with the workspace disabled, so an enclosing go.work cannot
@@ -890,7 +893,7 @@ func startGuest(bin, sock, pkg string) (gp *guestProcess, err error) {
 
 		// Mirror each vibration the guest requests onto the host's own gamepad. The guest's gamepad IDs
 		// match the host's, because the host forwards its own gamepads to the guest.
-		OnGamepadVibration: func(v vmhost.GamepadVibration) {
+		OnGamepadVibration: func(v vmhost.GuestGamepadVibration) {
 			ebiten.VibrateGamepad(v.GamepadID, &ebiten.VibrateGamepadOptions{
 				Duration:        v.Duration,
 				StrongMagnitude: v.StrongMagnitude,
@@ -898,7 +901,7 @@ func startGuest(bin, sock, pkg string) (gp *guestProcess, err error) {
 			})
 		},
 		// Mirror the device vibration the guest requests onto the host's own device.
-		OnVibration: func(v vmhost.Vibration) {
+		OnVibration: func(v vmhost.GuestVibration) {
 			ebiten.Vibrate(&ebiten.VibrateOptions{
 				Duration:  v.Duration,
 				Magnitude: v.Magnitude,

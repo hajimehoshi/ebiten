@@ -168,7 +168,7 @@ var (
 				return err
 			}
 		}
-		if len(c.points) > 4 {
+		if len(c.points) >= 4 {
 			c.Path.Start(fixed.Point26_6{
 				X: fixed.Int26_6((c.points[0]) * 64),
 				Y: fixed.Int26_6((c.points[1]) * 64)})
@@ -182,7 +182,7 @@ var (
 	}
 	polygonF svgFunc = func(c *IconCursor, attrs []xml.Attr) error {
 		err := polylineF(c, attrs)
-		if len(c.points) > 4 {
+		if len(c.points) >= 4 {
 			c.Path.Stop(true)
 		}
 		return err
@@ -227,7 +227,7 @@ var (
 			switch attr.Name.Local {
 			case "id":
 				id := attr.Value
-				if len(id) >= 0 {
+				if len(id) > 0 {
 					c.icon.Grads[id] = c.grad
 				} else {
 					return errZeroLengthID
@@ -259,7 +259,7 @@ var (
 			switch attr.Name.Local {
 			case "id":
 				id := attr.Value
-				if len(id) >= 0 {
+				if len(id) > 0 {
 					c.icon.Grads[id] = c.grad
 				} else {
 					return errZeroLengthID
@@ -344,6 +344,13 @@ var (
 		defs, ok := c.icon.Defs[href[1:]]
 		if !ok {
 			return errors.New("href ID in use statement was not found in saved defs")
+		}
+		// Bound the expansion: a cyclic reference recurses until the stack
+		// overflows, and nested use tags can expand exponentially.
+		const maxUseExpansions = 10000
+		c.useExpansions += len(defs)
+		if c.useExpansions > maxUseExpansions {
+			return errors.New("too many elements expanded by use tags")
 		}
 		for _, def := range defs {
 			if def.Tag == "endg" {

@@ -95,10 +95,12 @@ type LayoutFer interface {
 	//
 	// If the game implements this interface, Layout is never called and LayoutF is called instead.
 	//
+	// If LayoutF returns non-positive numbers, the caller may panic.
+	//
 	// LayoutF accepts a native outside size in device-independent pixels and returns the game's logical screen
 	// size in pixels. The logical size is used for 1) the screen size given at Draw and 2) calculation of the
-	// scale from the screen to the final screen size. For 1), the actual screen size is a rounded up of the
-	// logical size.
+	// scale from the screen to the final screen size. For 1), the actual screen size is the logical size
+	// rounded up.
 	LayoutF(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 }
 
@@ -135,14 +137,14 @@ type FinalScreenDrawer interface {
 	DrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM)
 }
 
-// DefaultTPS represents a default ticks per second, that represents how many times game updating happens in a second.
+// DefaultTPS represents the default ticks per second, which represents how many times game updating happens in a second.
 const DefaultTPS = clock.DefaultTPS
 
-// ActualFPS returns the current number of FPS (frames per second), that represents
-// how many swapping buffer happens per second.
+// ActualFPS returns the current number of FPS (frames per second), which represents
+// how many buffer swaps happen per second.
 //
 // On some environments, ActualFPS doesn't return a reliable value since vsync doesn't work well there.
-// If you want to measure the application's speed, Use ActualTPS.
+// If you want to measure the application's speed, use ActualTPS.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
@@ -151,8 +153,8 @@ func ActualFPS() float64 {
 	return clock.ActualFPS()
 }
 
-// CurrentFPS returns the current number of FPS (frames per second), that represents
-// how many swapping buffer happens per second.
+// CurrentFPS returns the current number of FPS (frames per second), which represents
+// how many buffer swaps happen per second.
 //
 // Deprecated: as of v2.4. Use ActualFPS instead.
 func CurrentFPS() float64 {
@@ -226,7 +228,7 @@ var Termination = ui.RegularTermination
 // This is not related to framerate (display's refresh rate).
 //
 // RunGame returns an error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) Update returns an error. In the case of 3), RunGame returns the same error so far, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGame currently returns the error as is, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
@@ -268,7 +270,7 @@ type RunGameOptions struct {
 	// SingleThread indicates whether the single thread mode is used explicitly or not.
 	// The single thread mode disables Ebitengine's thread safety to unlock maximum performance.
 	// If you use this you will have to manage threads yourself.
-	// Functions like `SetWindowSize` will no longer be concurrent-safe with this build tag.
+	// Functions like `SetWindowSize` will no longer be concurrent-safe in the single thread mode.
 	// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
 	//
 	// SingleThread works only with desktops and consoles.
@@ -281,7 +283,7 @@ type RunGameOptions struct {
 
 	// DisableHiDPI indicates whether the rendering for HiDPI is disabled or not.
 	// If HiDPI is disabled, the device scale factor is always 1 i.e. Monitor's DeviceScaleFactor always returns 1.
-	// This is useful to get a better performance on HiDPI displays, in the expense of rendering quality.
+	// This is useful to get a better performance on HiDPI displays, at the expense of rendering quality.
 	//
 	// DisableHiDPI is available only on browsers.
 	//
@@ -316,7 +318,7 @@ type RunGameOptions struct {
 	// VMGuestEndpoint is the endpoint URL of a virtualization host, like unix:///path/to/socket or
 	// tcp://host:port. If it is not empty, the game runs as a virtualization guest of that host
 	// instead of opening a window. When VMGuestEndpoint is empty and the binary is built with the
-	// `ebitenginevm` build tag, the environment variable EBITENGINE_VM_ENDPOINT is used instead.
+	// `ebitenginevmguest` build tag, the environment variable EBITENGINE_VM_ENDPOINT is used instead.
 	//
 	// When the game runs as a virtualization guest, GraphicsLibrary is ignored, and the graphics
 	// library is always GraphicsLibraryRemote. ColorSpace is also ignored: the color space is
@@ -352,7 +354,7 @@ type RunGameOptions struct {
 // This is not related to framerate (display's refresh rate).
 //
 // RunGameWithOptions returns error when 1) an error happens in the underlying graphics driver, 2) an audio error happens
-// or 3) Update returns an error. In the case of 3), RunGameWithOptions returns the same error so far, but it is recommended to
+// or 3) Update returns an error. In the case of 3), RunGameWithOptions currently returns the error as is, but it is recommended to
 // use errors.Is when you check the returned error is the error you want, rather than comparing the values
 // with == or != directly.
 //
@@ -404,13 +406,13 @@ func ScreenSize() (int, int) {
 
 // ScreenSizeInFullscreen returns the size in device-independent pixels when the game is fullscreen.
 // The adopted monitor is the 'current' monitor which the window belongs to.
-// The returned value can be given to SetSize function if the perfectly fit fullscreen is needed.
+// The returned value can be given to [SetWindowSize] if a perfectly fitting fullscreen is needed.
 //
 // On browsers, ScreenSizeInFullscreen returns the 'window' (global object) size, not 'screen' size.
-// ScreenSizeInFullscreen's returning value is different from the actual screen size and this is a known issue (#2145).
+// ScreenSizeInFullscreen's return value is different from the actual screen size and this is a known issue (#2145).
 // For browsers, it is recommended to use Screen API (https://developer.mozilla.org/en-US/docs/Web/API/Screen) if needed.
 //
-// On mobiles, ScreenSizeInFullscreen returns (0, 0) so far.
+// On mobiles, ScreenSizeInFullscreen returns the current monitor size, or (0, 0) before the game starts.
 //
 // ScreenSizeInFullscreen's use cases are limited. If you are making a fullscreen application, you can use RunGame and
 // the Game interface's Layout function instead. If you are making a not-fullscreen application but the application's
@@ -446,7 +448,7 @@ func CursorMode() CursorModeType {
 //
 // On browsers, capturing a cursor requires a user gesture, otherwise SetCursorMode does nothing but leave an error message in console.
 // This behavior varies across browser implementations.
-// Check for user interaction before calling capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
+// Check for user interaction before capturing a cursor e.g. by IsMouseButtonPressed or IsKeyPressed.
 //
 // SetCursorMode does nothing on mobiles.
 //
@@ -489,31 +491,29 @@ func SetFullscreen(fullscreen bool) {
 // IsFocused returns a boolean value indicating whether
 // the game is in focus or in the foreground.
 //
-// IsFocused will only return true if IsRunnableOnUnfocused is false.
-//
 // IsFocused is concurrent-safe.
 func IsFocused() bool {
 	return ui.Get().IsFocused()
 }
 
 // IsRunnableOnUnfocused returns a boolean value indicating whether
-// the game runs even in background.
+// the game runs even in the background.
 //
 // IsRunnableOnUnfocused is concurrent-safe.
 func IsRunnableOnUnfocused() bool {
 	return ui.Get().IsRunnableOnUnfocused()
 }
 
-// SetRunnableOnUnfocused sets the state if the game runs even in background.
+// SetRunnableOnUnfocused sets the state if the game runs even in the background.
 //
-// If the given value is true, the game runs even in background e.g. when losing focus.
+// If the given value is true, the game runs even in the background e.g. when losing focus.
 // The initial state is true.
 //
 // Even when the given value is false, the game keeps running while the window is hidden by
 // [SetWindowVisible], since a hidden window can never be focused and would otherwise never run again.
 //
 // Known issue: On browsers, even if the state is on, the game doesn't run in background tabs.
-// This is because browsers throttles background tabs not to often update.
+// This is because browsers throttle background tabs so as not to update too often.
 //
 // SetRunnableOnUnfocused does nothing on mobiles so far.
 //
@@ -537,7 +537,11 @@ func SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 //
 // Deprecated: as of v2.6. Use Monitor().DeviceScaleFactor() instead.
 func DeviceScaleFactor() float64 {
-	return Monitor().DeviceScaleFactor()
+	m := Monitor()
+	if m == nil {
+		return 1
+	}
+	return m.DeviceScaleFactor()
 }
 
 // IsVsyncEnabled returns a boolean value indicating whether
@@ -585,7 +589,7 @@ const (
 	// FPSModeVsyncOffMinimum is useful for relatively static applications to save battery power.
 	//
 	// In FPSModeVsyncOffMinimum, the game's Update and Draw are called only when
-	// 1) new inputting except for gamepads is detected, or 2) ScheduleFrame is called.
+	// 1) new input except for gamepads is detected, or 2) ScheduleFrame is called.
 	// In FPSModeVsyncOffMinimum, TPS is SyncWithFPS no matter what TPS is specified at SetTPS.
 	//
 	// Deprecated: as of v2.5. Use SetScreenClearedEveryFrame(false) instead.
@@ -612,7 +616,7 @@ func SetFPSMode(mode FPSModeType) {
 	ui.Get().SetFPSMode(ui.FPSModeType(mode))
 }
 
-// ScheduleFrame schedules a next frame when the current FPS mode is FPSModeVsyncOffMinimum.
+// ScheduleFrame schedules the next frame when the current FPS mode is FPSModeVsyncOffMinimum.
 //
 // ScheduleFrame is concurrent-safe.
 //
@@ -637,7 +641,7 @@ func MaxTPS() int {
 }
 
 // ActualTPS returns the current TPS (ticks per second),
-// that represents how many times Update function is called in a second.
+// which represents how many times the Update function is called in a second.
 //
 // This value is for measurement and/or debug, and your game logic should not rely on this value.
 //
@@ -647,7 +651,7 @@ func ActualTPS() float64 {
 }
 
 // CurrentTPS returns the current TPS (ticks per second),
-// that represents how many times Update function is called in a second.
+// which represents how many times the Update function is called in a second.
 //
 // Deprecated: as of v2.4. Use ActualTPS instead.
 func CurrentTPS() float64 {
@@ -663,7 +667,7 @@ const SyncWithFPS = clock.SyncWithFPS
 const UncappedTPS = SyncWithFPS
 
 // SetTPS sets the maximum TPS (ticks per second),
-// that represents how many times updating function is called per second.
+// which represents how many times the updating function is called per second.
 // The initial value is 60.
 //
 // If tps is SyncWithFPS, TPS is uncapped and the game is updated per frame.
@@ -675,7 +679,7 @@ func SetTPS(tps int) {
 }
 
 // SetMaxTPS sets the maximum TPS (ticks per second),
-// that represents how many times updating function is called per second.
+// which represents how many times the updating function is called per second.
 //
 // Deprecated: as of v2.4. Use SetTPS instead.
 func SetMaxTPS(tps int) {
@@ -696,7 +700,8 @@ func IsScreenTransparent() bool {
 
 // SetScreenTransparent sets the state if the window is transparent.
 //
-// SetScreenTransparent panics if SetScreenTransparent is called after the main loop.
+// If SetScreenTransparent is called after the main loop starts, the window is not made transparent,
+// but [IsScreenTransparent] returns the given value.
 //
 // SetScreenTransparent does nothing on mobiles.
 //
@@ -714,7 +719,7 @@ var screenTransparent atomic.Bool
 //
 // SetInitFocused does nothing on mobile.
 //
-// SetInitFocused panics if this is called after the main loop.
+// SetInitFocused has no effect if this is called after the main loop starts.
 //
 // SetInitFocused is concurrent-safe.
 //
@@ -807,7 +812,8 @@ func Tick() int64 {
 // RunOnMainThread executes the function synchronously and returns after the function completes.
 //
 // If RunOnMainThread is called on the main thread, RunOnMainThread blocks forever.
-// Especially, RunOnMainThread can block forever if [RunGame] is not called yet.
+//
+// RunOnMainThread might not run the function e.g. before the game starts or after the game ends.
 //
 // RunOnMainThread is useful to access platform-specific APIs in a safe way.
 //

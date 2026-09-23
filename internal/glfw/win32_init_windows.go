@@ -20,7 +20,7 @@ func createKeyTables() {
 		_glfw.platformWindow.keycodes[i] = -1
 	}
 	for i := range _glfw.platformWindow.scancodes {
-		_glfw.platformWindow.keycodes[i] = -1
+		_glfw.platformWindow.scancodes[i] = -1
 	}
 
 	_glfw.platformWindow.keycodes[0x00B] = Key0
@@ -269,16 +269,16 @@ func initRemoteSession() error {
 		return nil
 	}
 
-	// Check if the current progress was started with Remote Desktop.
+	// Check if the current process was started with Remote Desktop.
 	r, err := _GetSystemMetrics(_SM_REMOTESESSION)
 	if err != nil {
 		return err
 	}
 	_glfw.platformWindow.isRemoteSession = r > 0
 
-	// With Remote desktop, we need to create a blank cursor because of the cursor is Set to nil
-	// if cannot be moved to center in capture mode. If not Remote Desktop platformWindow.blankCursor stays nil
-	// and will perform has before (normal).
+	// With Remote Desktop, we need to create a blank cursor because the cursor is set to nil
+	// if it cannot be moved to the center in capture mode. Without Remote Desktop,
+	// platformWindow.blankCursor stays nil and will perform as before (normal).
 	if _glfw.platformWindow.isRemoteSession {
 		if err := createBlankCursor(); err != nil {
 			return err

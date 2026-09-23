@@ -44,7 +44,7 @@ func (g *Game) Update() error {
 	// or otherwise, just extends the length of the given slice.
 	//
 	// This example passes an empty slice that might have a capacity in order to reduce the chances of slice allocations.
-	// You can also pass 'nil' to AppendJustReleasedTouchIDs if you don't care the cost of creating slices.
+	// You can also pass 'nil' to AppendJustReleasedTouchIDs if you don't care about the cost of creating slices.
 	// In this case, AppendJustReleasedTouchIDs would always create a new slice.
 	g.releasedTouchIDs = inpututil.AppendJustReleasedTouchIDs(g.releasedTouchIDs[:0])
 

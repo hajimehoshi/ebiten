@@ -88,6 +88,7 @@ func (w *Window) inputWindowCloseRequest() {
 
 func (w *Window) inputWindowMonitor(monitor *Monitor) {
 	w.monitor = monitor
+	w.hasMonitor.Store(monitor != nil)
 }
 
 func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (window *Window, ferr error) {
@@ -122,7 +123,6 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 			RefreshRate: _glfw.hints.refreshRate,
 		},
 
-		monitor:          monitor,
 		resizable:        wndconfig.resizable,
 		decorated:        wndconfig.decorated,
 		autoIconify:      wndconfig.autoIconify,
@@ -140,11 +140,12 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 		numer:     DontCare,
 		denom:     DontCare,
 	}
-	defer func() {
+	window.inputWindowMonitor(monitor)
+	defer func(window *Window) {
 		if ferr != nil {
 			_ = window.Destroy()
 		}
-	}()
+	}(window)
 	_glfw.windows = append(_glfw.windows, window)
 
 	// Open the actual window and create its context
@@ -160,7 +161,7 @@ func defaultWindowHints() error {
 		return NotInitialized
 	}
 
-	// The default is OpenGL with minimum version 1.0
+	// The default is NoAPI with minimum version 1.0
 	_glfw.hints.context = ctxconfig{
 		client: NoAPI, // This is different from the original GLFW, which uses OpenGLAPI by default.
 		source: NativeContextAPI,
@@ -324,7 +325,7 @@ func (w *Window) Destroy() error {
 		return nil
 	}
 
-	// Clear all callbacks to avoid exposing a half torn-down w object
+	// Clear all callbacks to avoid exposing a half torn-down object
 	w.callbacks.pos = nil
 	w.callbacks.size = nil
 	w.callbacks.close = nil
@@ -584,6 +585,33 @@ func (w *Window) Maximize() error {
 		return err
 	}
 	return nil
+}
+
+// MaximizeSupported reports whether Maximize can take effect on the window.
+func (w *Window) MaximizeSupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	if w.monitor != nil {
+		return false, nil
+	}
+	return w.platformMaximizeSupported(), nil
+}
+
+// IconifySupported reports whether Iconify can take effect on the window.
+func (w *Window) IconifySupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	return w.platformIconifySupported(), nil
+}
+
+// RestoreSupported reports whether Restore can take effect on the window.
+func (w *Window) RestoreSupported() (bool, error) {
+	if !_glfw.initialized {
+		return false, NotInitialized
+	}
+	return w.platformRestoreSupported(), nil
 }
 
 func (w *Window) Show() error {

@@ -25,7 +25,6 @@ type defaultContext struct {
 	fnBindAttribLocation       js.Value
 	fnBindBuffer               js.Value
 	fnBindFramebuffer          js.Value
-	fnBindRenderbuffer         js.Value
 	fnBindTexture              js.Value
 	fnBindVertexArray          js.Value
 	fnBlendEquationSeparate    js.Value
@@ -39,14 +38,12 @@ type defaultContext struct {
 	fnCreateBuffer             js.Value
 	fnCreateFramebuffer        js.Value
 	fnCreateProgram            js.Value
-	fnCreateRenderbuffer       js.Value
 	fnCreateShader             js.Value
 	fnCreateTexture            js.Value
 	fnCreateVertexArray        js.Value
 	fnDeleteBuffer             js.Value
 	fnDeleteFramebuffer        js.Value
 	fnDeleteProgram            js.Value
-	fnDeleteRenderbuffer       js.Value
 	fnDeleteShader             js.Value
 	fnDeleteTexture            js.Value
 	fnDeleteVertexArray        js.Value
@@ -56,7 +53,6 @@ type defaultContext struct {
 	fnEnable                   js.Value
 	fnEnableVertexAttribArray  js.Value
 	fnFinish                   js.Value
-	fnFramebufferRenderbuffer  js.Value
 	fnFramebufferTexture2D     js.Value
 	fnFlush                    js.Value
 	fnGetError                 js.Value
@@ -67,16 +63,14 @@ type defaultContext struct {
 	fnGetShaderInfoLog         js.Value
 	fnGetShaderParameter       js.Value
 	fnGetUniformLocation       js.Value
+	fnIsBuffer                 js.Value
 	fnIsProgram                js.Value
+	fnIsVertexArray            js.Value
 	fnLinkProgram              js.Value
 	fnPixelStorei              js.Value
 	fnReadPixels               js.Value
-	fnRenderbufferStorage      js.Value
 	fnScissor                  js.Value
 	fnShaderSource             js.Value
-	fnStencilFunc              js.Value
-	fnStencilMask              js.Value
-	fnStencilOpSeparate        js.Value
 	fnTexImage2D               js.Value
 	fnTexSubImage2D            js.Value
 	fnTexParameteri            js.Value
@@ -96,14 +90,20 @@ type defaultContext struct {
 	fnVertexAttribPointer      js.Value
 	fnViewport                 js.Value
 
-	buffers          values
-	framebuffers     values
-	programs         values
-	renderbuffers    values
-	shaders          values
-	textures         values
-	vertexArrays     values
-	uniformLocations map[uint32]*values
+	buffers      values
+	framebuffers values
+	programs     values
+	shaders      values
+	textures     values
+	vertexArrays values
+
+	// uniformLocations maps a location ID to a WebGLUniformLocation.
+	uniformLocations map[int32]js.Value
+
+	// programUniformLocations maps a program ID to the location IDs the program owns.
+	programUniformLocations map[uint32][]int32
+
+	lastUniformLocationID int32
 }
 
 type values struct {
@@ -134,14 +134,6 @@ func (v *values) getID(value js.Value) (uint32, bool) {
 	return 0, false
 }
 
-func (v *values) getOrCreate(value js.Value) uint32 {
-	id, ok := v.getID(value)
-	if ok {
-		return id
-	}
-	return v.create(value)
-}
-
 func (v *values) delete(id uint32) {
 	delete(v.idToValue, id)
 }
@@ -155,7 +147,6 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnBindAttribLocation:       v.Get("bindAttribLocation").Call("bind", v),
 		fnBindBuffer:               v.Get("bindBuffer").Call("bind", v),
 		fnBindFramebuffer:          v.Get("bindFramebuffer").Call("bind", v),
-		fnBindRenderbuffer:         v.Get("bindRenderbuffer").Call("bind", v),
 		fnBindTexture:              v.Get("bindTexture").Call("bind", v),
 		fnBindVertexArray:          v.Get("bindVertexArray").Call("bind", v),
 		fnBlendEquationSeparate:    v.Get("blendEquationSeparate").Call("bind", v),
@@ -169,14 +160,12 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnCreateBuffer:             v.Get("createBuffer").Call("bind", v),
 		fnCreateFramebuffer:        v.Get("createFramebuffer").Call("bind", v),
 		fnCreateProgram:            v.Get("createProgram").Call("bind", v),
-		fnCreateRenderbuffer:       v.Get("createRenderbuffer").Call("bind", v),
 		fnCreateShader:             v.Get("createShader").Call("bind", v),
 		fnCreateTexture:            v.Get("createTexture").Call("bind", v),
 		fnCreateVertexArray:        v.Get("createVertexArray").Call("bind", v),
 		fnDeleteBuffer:             v.Get("deleteBuffer").Call("bind", v),
 		fnDeleteFramebuffer:        v.Get("deleteFramebuffer").Call("bind", v),
 		fnDeleteProgram:            v.Get("deleteProgram").Call("bind", v),
-		fnDeleteRenderbuffer:       v.Get("deleteRenderbuffer").Call("bind", v),
 		fnDeleteShader:             v.Get("deleteShader").Call("bind", v),
 		fnDeleteTexture:            v.Get("deleteTexture").Call("bind", v),
 		fnDeleteVertexArray:        v.Get("deleteVertexArray").Call("bind", v),
@@ -186,7 +175,6 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnEnable:                   v.Get("enable").Call("bind", v),
 		fnEnableVertexAttribArray:  v.Get("enableVertexAttribArray").Call("bind", v),
 		fnFinish:                   v.Get("finish").Call("bind", v),
-		fnFramebufferRenderbuffer:  v.Get("framebufferRenderbuffer").Call("bind", v),
 		fnFramebufferTexture2D:     v.Get("framebufferTexture2D").Call("bind", v),
 		fnFlush:                    v.Get("flush").Call("bind", v),
 		fnGetError:                 v.Get("getError").Call("bind", v),
@@ -197,16 +185,14 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnGetShaderInfoLog:         v.Get("getShaderInfoLog").Call("bind", v),
 		fnGetShaderParameter:       v.Get("getShaderParameter").Call("bind", v),
 		fnGetUniformLocation:       v.Get("getUniformLocation").Call("bind", v),
+		fnIsBuffer:                 v.Get("isBuffer").Call("bind", v),
 		fnIsProgram:                v.Get("isProgram").Call("bind", v),
+		fnIsVertexArray:            v.Get("isVertexArray").Call("bind", v),
 		fnLinkProgram:              v.Get("linkProgram").Call("bind", v),
 		fnPixelStorei:              v.Get("pixelStorei").Call("bind", v),
 		fnReadPixels:               v.Get("readPixels").Call("bind", v),
-		fnRenderbufferStorage:      v.Get("renderbufferStorage").Call("bind", v),
 		fnScissor:                  v.Get("scissor").Call("bind", v),
 		fnShaderSource:             v.Get("shaderSource").Call("bind", v),
-		fnStencilFunc:              v.Get("stencilFunc").Call("bind", v),
-		fnStencilMask:              v.Get("stencilMask").Call("bind", v),
-		fnStencilOpSeparate:        v.Get("stencilOpSeparate").Call("bind", v),
 		fnTexImage2D:               v.Get("texImage2D").Call("bind", v),
 		fnTexSubImage2D:            v.Get("texSubImage2D").Call("bind", v),
 		fnTexParameteri:            v.Get("texParameteri").Call("bind", v),
@@ -231,8 +217,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 }
 
 func (c *defaultContext) getUniformLocation(location int32) js.Value {
-	program := uint32(location) >> 5
-	return c.uniformLocations[program].get(uint32(location) & ((1 << 5) - 1))
+	return c.uniformLocations[location]
 }
 
 func (c *defaultContext) LoadFunctions() error {
@@ -262,10 +247,6 @@ func (c *defaultContext) BindBuffer(target uint32, buffer uint32) {
 
 func (c *defaultContext) BindFramebuffer(target uint32, framebuffer uint32) {
 	c.fnBindFramebuffer.Invoke(target, c.framebuffers.get(framebuffer))
-}
-
-func (c *defaultContext) BindRenderbuffer(target uint32, renderbuffer uint32) {
-	c.fnBindRenderbuffer.Invoke(target, c.renderbuffers.get(renderbuffer))
 }
 
 func (c *defaultContext) BindTexture(target uint32, texture uint32) {
@@ -322,10 +303,6 @@ func (c *defaultContext) CreateProgram() uint32 {
 	return c.programs.create(c.fnCreateProgram.Invoke())
 }
 
-func (c *defaultContext) CreateRenderbuffer() uint32 {
-	return c.renderbuffers.create(c.fnCreateRenderbuffer.Invoke())
-}
-
 func (c *defaultContext) CreateShader(xtype uint32) uint32 {
 	return c.shaders.create(c.fnCreateShader.Invoke(xtype))
 }
@@ -339,7 +316,11 @@ func (c *defaultContext) CreateVertexArray() uint32 {
 }
 
 func (c *defaultContext) DeleteBuffer(buffer uint32) {
-	c.fnDeleteBuffer.Invoke(c.buffers.get(buffer))
+	// A buffer is already detached from the context after a context loss (at least on Chrome) and
+	// must not be deleted, but its ID must be released anyway.
+	if v := c.buffers.get(buffer); c.fnIsBuffer.Invoke(v).Bool() {
+		c.fnDeleteBuffer.Invoke(v)
+	}
 	c.buffers.delete(buffer)
 }
 
@@ -349,14 +330,16 @@ func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
 }
 
 func (c *defaultContext) DeleteProgram(program uint32) {
-	c.fnDeleteProgram.Invoke(c.programs.get(program))
+	// A program is no longer valid after a context loss and must not be deleted, but its ID and
+	// the IDs of its uniform locations must be released anyway.
+	if v := c.programs.get(program); c.fnIsProgram.Invoke(v).Bool() {
+		c.fnDeleteProgram.Invoke(v)
+	}
 	c.programs.delete(program)
-	delete(c.uniformLocations, program)
-}
-
-func (c *defaultContext) DeleteRenderbuffer(renderbuffer uint32) {
-	c.fnDeleteRenderbuffer.Invoke(c.renderbuffers.get(renderbuffer))
-	c.renderbuffers.delete(renderbuffer)
+	for _, id := range c.programUniformLocations[program] {
+		delete(c.uniformLocations, id)
+	}
+	delete(c.programUniformLocations, program)
 }
 
 func (c *defaultContext) DeleteShader(shader uint32) {
@@ -370,7 +353,11 @@ func (c *defaultContext) DeleteTexture(texture uint32) {
 }
 
 func (c *defaultContext) DeleteVertexArray(array uint32) {
-	c.fnDeleteVertexArray.Invoke(c.vertexArrays.get(array))
+	// A vertex array is already detached from the context after a context loss and must not be
+	// deleted, but its ID must be released anyway.
+	if v := c.vertexArrays.get(array); c.fnIsVertexArray.Invoke(v).Bool() {
+		c.fnDeleteVertexArray.Invoke(v)
+	}
 	c.vertexArrays.delete(array)
 }
 
@@ -400,10 +387,6 @@ func (c *defaultContext) Finish() {
 
 func (c *defaultContext) Flush() {
 	c.fnFlush.Invoke()
-}
-
-func (c *defaultContext) FramebufferRenderbuffer(target uint32, attachment uint32, renderbuffertarget uint32, renderbuffer uint32) {
-	c.fnFramebufferRenderbuffer.Invoke(target, attachment, renderbuffertarget, c.renderbuffers.get(renderbuffer))
 }
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
@@ -479,16 +462,21 @@ func (c *defaultContext) GetShaderi(shader uint32, pname uint32) int {
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
 	location := c.fnGetUniformLocation.Invoke(c.programs.get(program), name)
+
+	// A location ID must be unique in the whole context, not only in the program, as Uniform*
+	// functions take a location ID without a program.
+	c.lastUniformLocationID++
+	id := c.lastUniformLocationID
+
 	if c.uniformLocations == nil {
-		c.uniformLocations = map[uint32]*values{}
+		c.uniformLocations = map[int32]js.Value{}
 	}
-	vs, ok := c.uniformLocations[program]
-	if !ok {
-		vs = &values{}
-		c.uniformLocations[program] = vs
+	c.uniformLocations[id] = location
+	if c.programUniformLocations == nil {
+		c.programUniformLocations = map[uint32][]int32{}
 	}
-	idx := vs.getOrCreate(location)
-	return int32((program << 5) | idx)
+	c.programUniformLocations[program] = append(c.programUniformLocations[program], id)
+	return id
 }
 
 func (c *defaultContext) IsProgram(program uint32) bool {
@@ -513,24 +501,12 @@ func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, h
 	js.CopyBytesToGo(dst, p)
 }
 
-func (c *defaultContext) RenderbufferStorage(target uint32, internalFormat uint32, width int32, height int32) {
-	c.fnRenderbufferStorage.Invoke(target, internalFormat, width, height)
-}
-
 func (c *defaultContext) Scissor(x, y, width, height int32) {
 	c.fnScissor.Invoke(x, y, width, height)
 }
 
 func (c *defaultContext) ShaderSource(shader uint32, xstring string) {
 	c.fnShaderSource.Invoke(c.shaders.get(shader), xstring)
-}
-
-func (c *defaultContext) StencilFunc(func_ uint32, ref int32, mask uint32) {
-	c.fnStencilFunc.Invoke(func_, ref, mask)
-}
-
-func (c *defaultContext) StencilOpSeparate(face, sfail, dpfail, dppass uint32) {
-	c.fnStencilOpSeparate.Invoke(face, sfail, dpfail, dppass)
 }
 
 func (c *defaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {

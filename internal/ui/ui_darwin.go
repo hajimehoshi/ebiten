@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/ebitengine/purego/objc"
 
@@ -30,11 +31,19 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
+	"github.com/hajimehoshi/ebiten/v2/internal/objcutil"
 )
 
 var class_EbitengineWindowDelegate objc.Class
 
 func (u *UserInterface) initializePlatform() error {
+	invalidateFullscreen := func(transition bool) {
+		if b, ok := u.runningBackend().(*glfwBackend); ok {
+			b.nativeFullscreenTransition = transition
+			b.nativeFullscreenCache.invalidate()
+			b.layoutSizeCache.invalidate()
+		}
+	}
 	pushResizableState := func(id, win objc.ID) {
 		window := cocoa.NSWindow{ID: win}
 		id.Send(sel_setOrigResizable, window.StyleMask()&cocoa.NSWindowStyleMaskResizable != 0)
@@ -69,7 +78,7 @@ func (u *UserInterface) initializePlatform() error {
 			{
 				Cmd: sel_initWithOrigDelegate,
 				Fn: func(id objc.ID, cmd objc.SEL, origDelegate objc.ID) objc.ID {
-					self := id.SendSuper(sel_init)
+					self := objcutil.SendSuper[objc.ID](id, class_EbitengineWindowDelegate, sel_init)
 					if self != 0 {
 						id.Send(sel_setOrigDelegate, origDelegate)
 					}
@@ -117,12 +126,16 @@ func (u *UserInterface) initializePlatform() error {
 			{
 				Cmd: sel_windowDidChangeOcclusionState,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					if b, ok := u.runningBackend().(*glfwBackend); ok {
+						b.occlusionCache.invalidate()
+					}
 					id.Send(sel_origDelegate).Send(cmd, notification)
 				},
 			},
 			{
 				Cmd: sel_windowWillEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(true)
 					// The window delegate methods are invoked only while a GLFW window exists,
 					// so the running backend is the GLFW backend.
 					b, ok := u.runningBackend().(*glfwBackend)
@@ -139,14 +152,16 @@ func (u *UserInterface) initializePlatform() error {
 			{
 				Cmd: sel_windowDidEnterFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(false)
 					popResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 				},
 			},
 			{
 				Cmd: sel_windowWillExitFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(true)
 					pushResizableState(id, cocoa.NSNotification{ID: notification}.Object())
-					// Even a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
+					// Even if a window has a size limitation, a window can be fullscreen by calling SetFullscreen(true).
 					// In this case, the window size limitation is disabled temporarily.
 					// When exiting from fullscreen, reset the window size limitation.
 					// The window delegate methods are invoked only while a GLFW window exists,
@@ -162,8 +177,21 @@ func (u *UserInterface) initializePlatform() error {
 				},
 			},
 			{
+				Cmd: objc.RegisterName("windowDidFailToEnterFullScreen:"),
+				Fn: func(id objc.ID, cmd objc.SEL, window objc.ID) {
+					invalidateFullscreen(false)
+				},
+			},
+			{
+				Cmd: objc.RegisterName("windowDidFailToExitFullScreen:"),
+				Fn: func(id objc.ID, cmd objc.SEL, window objc.ID) {
+					invalidateFullscreen(false)
+				},
+			},
+			{
 				Cmd: sel_windowDidExitFullScreen,
 				Fn: func(id objc.ID, cmd objc.SEL, notification objc.ID) {
+					invalidateFullscreen(false)
 					popResizableState(id, cocoa.NSNotification{ID: notification}.Object())
 					// Do not call setFrame here (#2295). setFrame here causes unexpected results.
 				},
@@ -184,9 +212,15 @@ func (u *glfwBackend) setApplePressAndHoldEnabled(enabled bool) {
 		val = 1
 	}
 	defaults := objc.ID(class_NSMutableDictionary).Send(sel_alloc).Send(sel_init)
-	defaults.Send(sel_setObject_forKey,
-		objc.ID(class_NSNumber).Send(sel_alloc).Send(sel_initWithBool, val),
-		cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled").ID)
+	defer defaults.Send(sel_release)
+
+	num := objc.ID(class_NSNumber).Send(sel_alloc).Send(sel_initWithBool, val)
+	defer num.Send(sel_release)
+
+	key := cocoa.NSString_alloc().InitWithUTF8String("ApplePressAndHoldEnabled")
+	defer key.ID.Send(sel_release)
+
+	defaults.Send(sel_setObject_forKey, num, key.ID)
 	ud := objc.ID(class_NSUserDefaults).Send(sel_standardUserDefaults)
 	ud.Send(sel_registerDefaults, defaults)
 }
@@ -294,6 +328,7 @@ var (
 	sel_origDelegate                  = objc.RegisterName("origDelegate")
 	sel_isOrigResizable               = objc.RegisterName("isOrigResizable")
 	sel_registerDefaults              = objc.RegisterName("registerDefaults:")
+	sel_release                       = objc.RegisterName("release")
 	sel_setAppearance                 = objc.RegisterName("setAppearance:")
 	sel_setCollectionBehavior         = objc.RegisterName("setCollectionBehavior:")
 	sel_setDelegate                   = objc.RegisterName("setDelegate:")
@@ -343,7 +378,7 @@ func (u *glfwBackend) syncModKeysFromOS() {
 	if flags&nsEventModifierFlagCommand != 0 {
 		mods |= glfw.ModSuper
 	}
-	u.input.syncModKeys(mods, u.InputTime())
+	u.input.syncModKeys(mods)
 }
 
 // syncLockKeysFromOS updates the lock key state to the current OS state.
@@ -392,7 +427,9 @@ func monitorFromWindowByOS(w *glfw.Window) (*Monitor, error) {
 		screen = window.Screen()
 	}
 	screenDictionary := screen.DeviceDescription()
-	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber").ID)}
+	screenNumberKey := cocoa.NSString_alloc().InitWithUTF8String("NSScreenNumber")
+	screenID := cocoa.NSNumber{ID: screenDictionary.ObjectForKey(screenNumberKey.ID)}
+	screenNumberKey.ID.Send(sel_release)
 	aID := uintptr(screenID.UnsignedIntValue()) // CGDirectDisplayID
 	pool.Release()
 	for _, m := range theMonitors.append(nil) {
@@ -413,11 +450,20 @@ func (u *glfwBackend) nativeWindow() (uintptr, error) {
 
 // isWindowOccluded reports whether no part of the window is visible on the screen.
 func (u *glfwBackend) isWindowOccluded() (bool, error) {
+	if occluded, ok := u.occlusionCache.get(time.Now()); ok {
+		return occluded, nil
+	}
+	return u.refreshCachedOcclusion()
+}
+
+func (u *glfwBackend) refreshCachedOcclusion() (bool, error) {
 	w, err := u.window.GetCocoaWindow()
 	if err != nil {
 		return false, err
 	}
-	return cocoa.NSWindow{ID: objc.ID(w)}.OcclusionState()&cocoa.NSWindowOcclusionStateVisible == 0, nil
+	occluded := cocoa.NSWindow{ID: objc.ID(w)}.OcclusionState()&cocoa.NSWindowOcclusionStateVisible == 0
+	u.occlusionCache.set(occluded, time.Now())
+	return occluded, nil
 }
 
 func (u *glfwBackend) isNativeFullscreen() (bool, error) {
@@ -435,6 +481,10 @@ func (u *glfwBackend) isNativeFullscreenAvailable() bool {
 }
 
 func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
+	defer func() {
+		u.nativeFullscreenCache.invalidate()
+		u.layoutSizeCache.invalidate()
+	}()
 	// Toggling fullscreen might ignore events like keyUp. Ensure that events are fired.
 	if err := glfw.WaitEventsTimeout(0.1); err != nil {
 		return err
@@ -466,7 +516,7 @@ func (u *glfwBackend) setNativeFullscreen(fullscreen bool) error {
 }
 
 func (u *glfwBackend) isFullscreenAllowedFromUI(mode WindowResizingMode) bool {
-	s := u.desktopWindow.windowSizeLimit.Load().(windowSizeRange)
+	s := u.desktopWindow.windowSizeLimit.Load()
 	if s.maxWidthInDIP != glfw.DontCare || s.maxHeightInDIP != glfw.DontCare {
 		return false
 	}
@@ -497,7 +547,7 @@ func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error 
 
 func (u *glfwBackend) initializeWindowAfterCreation(w *glfw.Window) error {
 	// TODO: Register NSWindowWillEnterFullScreenNotification and so on.
-	// Enable resizing temporary before making the window fullscreen.
+	// Enable resizing temporarily before making the window fullscreen.
 	cocoaWindow, err := w.GetCocoaWindow()
 	if err != nil {
 		return err
@@ -523,7 +573,8 @@ func (u *glfwBackend) setDocumentEdited(edited bool) error {
 }
 
 func (u *glfwBackend) afterWindowCreation() error {
-	return nil
+	_, err := u.refreshCachedOcclusion()
+	return err
 }
 
 var (

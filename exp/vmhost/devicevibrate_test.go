@@ -29,10 +29,10 @@ import (
 func TestDeviceVibrationForwarding(t *testing.T) {
 	// The handler runs on this goroutine, during AdvanceTicks and WaitTicks, so the collected vibrations
 	// need no lock.
-	var got []vmhost.Vibration
+	var got []vmhost.GuestVibration
 
 	guest := startGuestWithOptions(t, "./testdata/devicevibrate", activateByEnv, "unix", &vmhost.NewGuestSessionOptions{
-		OnVibration: func(v vmhost.Vibration) {
+		OnVibration: func(v vmhost.GuestVibration) {
 			got = append(got, v)
 		},
 	})
@@ -53,7 +53,7 @@ func TestDeviceVibrationForwarding(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d vibrations; want 1: %+v", len(got), got)
 	}
-	want := vmhost.Vibration{
+	want := vmhost.GuestVibration{
 		Duration:  250 * time.Millisecond,
 		Magnitude: 0.5,
 		// The vibration was requested during the first tick, whose ebiten.Tick() is 0.

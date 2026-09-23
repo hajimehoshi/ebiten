@@ -38,9 +38,7 @@ func runOnGameUpdate(f func()) {
 }
 
 type game struct {
-	m     *testing.M
 	endCh chan struct{}
-	code  int
 }
 
 func (g *game) Update() error {
@@ -71,7 +69,6 @@ func TestMain(m *testing.M) {
 	}()
 
 	g := &game{
-		m:     m,
 		endCh: endCh,
 	}
 	if err := ebiten.RunGame(g); err != nil {
@@ -323,8 +320,8 @@ func TestGC(t *testing.T) {
 	runOnGameUpdate(func() {
 		runtime.GC()
 
-		// A finalizer should be called eventually, but this might not be immediate.
-		// Set a time out.
+		// A cleanup function should be called eventually, but this might not be immediate.
+		// Set a timeout.
 		select {
 		case <-imageGCedCh:
 			return

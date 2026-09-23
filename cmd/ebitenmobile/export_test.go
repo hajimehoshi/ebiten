@@ -14,4 +14,7 @@
 
 package main
 
-var IsValidJavaPackageName = isValidJavaPackageName
+var (
+	FrameworkName          = frameworkName
+	IsValidJavaPackageName = isValidJavaPackageName
+)

@@ -67,7 +67,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 	case *ast.BinaryExpr:
 		var stmts []shaderir.Stmt
 
-		// Prase LHS first for the order of the statements.
+		// Parse LHS first for the order of the statements.
 		lhs, ts, ss, ok := cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
 		if !ok {
 			return nil, nil, nil, false
@@ -97,6 +97,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 		rhst := ts[0]
+
+		if lhs[0].Type == shaderir.Blank || rhs[0].Type == shaderir.Blank {
+			cs.addError(e.Pos(), "cannot use _ as value")
+			return nil, nil, nil, false
+		}
 
 		op := e.Op
 		// https://pkg.go.dev/go/constant/#BinaryOp
@@ -192,15 +197,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}, []shaderir.Type{t}, stmts, true
 		}
 
-		// Most of the shading languages cannot compare arrays. Compare them element by element (#3535).
-		// An array-typed expression is always a local or a uniform variable, as an array can be neither
-		// a returning value (#2923) nor an array element. Then, evaluating the operands per element is safe.
-		if lhst.Main == shaderir.Array && (op2 == shaderir.EqualOp || op2 == shaderir.NotEqualOp) {
-			return []shaderir.Expr{
-				arrayComparisonExpr(op2, lhst, lhs[0], rhs[0]),
-			}, []shaderir.Type{t}, stmts, true
-		}
-
 		return []shaderir.Expr{
 			{
 				Type:  shaderir.Binary,
@@ -211,10 +207,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 	case *ast.CallExpr:
 		var (
-			callee shaderir.Expr
-			args   []shaderir.Expr
-			argts  []shaderir.Type
-			stmts  []shaderir.Stmt
+			args  []shaderir.Expr
+			argts []shaderir.Type
+			stmts []shaderir.Stmt
 		)
 
 		// Parse the argument first for the order of the statements.
@@ -228,8 +223,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				return nil, nil, nil, false
 			}
 			for _, expr := range es {
-				if expr.Type == shaderir.FunctionExpr || expr.Type == shaderir.BuiltinFuncExpr {
-					cs.addError(e.Pos(), fmt.Sprintf("function name cannot be an argument: %s", e.Fun))
+				if expr.Type == shaderir.Blank {
+					cs.addError(e.Pos(), "cannot use _ as value")
 					return nil, nil, nil, false
 				}
 			}
@@ -238,17 +233,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			stmts = append(stmts, ss...)
 		}
 
-		// TODO: When len(ss) is not 0?
-		es, _, ss, ok := cs.parseExpr(block, fname, e.Fun, markLocalVariableUsed)
+		callee, ok := cs.parseCallee(block, e.Fun)
 		if !ok {
 			return nil, nil, nil, false
 		}
-		if len(es) != 1 {
-			cs.addError(e.Pos(), fmt.Sprintf("multiple-value context is not available at a callee: %s", e.Fun))
-			return nil, nil, nil, false
-		}
-		callee = es[0]
-		stmts = append(stmts, ss...)
 
 		// For built-in functions, we can call this in this position. Return an expression for the function
 		// call.
@@ -398,6 +386,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				if len(args) == 1 && argts[0].Main == shaderir.Mat2 {
+					// A matrix constructor with a matrix argument is a copy. Return the argument itself
+					// so that the backends see a single argument only for a scalar.
+					return args, argts, stmts, true
+				}
 				for i := range args {
 					if args[i].Const == nil {
 						continue
@@ -411,6 +404,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
 				}
+				if len(args) == 1 && argts[0].Main == shaderir.Mat3 {
+					return args, argts, stmts, true
+				}
 				for i := range args {
 					if args[i].Const == nil {
 						continue
@@ -423,6 +419,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				if err := checkArgsForMat4BuiltinFunc(args, argts); err != nil {
 					cs.addError(e.Pos(), err.Error())
 					return nil, nil, nil, false
+				}
+				if len(args) == 1 && argts[0].Main == shaderir.Mat4 {
+					return args, argts, stmts, true
 				}
 				for i := range args {
 					if args[i].Const == nil {
@@ -569,7 +568,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					if !((argts[0].Equal(&argts[1]) && argts[0].Equal(&argts[2])) ||
 						(argts[0].IsFloatVector() && argts[1].Main == shaderir.Float && argts[2].Main == shaderir.Float) ||
 						(argts[0].IsIntVector() && argts[1].Main == shaderir.Int && argts[2].Main == shaderir.Int)) {
-						cs.addError(e.Pos(), fmt.Sprintf("the second and the third arguments for %s must equal to the first argument %s or float or int but %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the second and the third arguments for %s must equal the first argument %s or float or int but %s and %s", callee.BuiltinFunc, argts[0].String(), argts[1].String(), argts[2].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Mix:
@@ -578,12 +577,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 						return nil, nil, nil, false
 					}
 					if !argts[0].Equal(&argts[2]) && argts[2].Main != shaderir.Float {
-						cs.addError(e.Pos(), fmt.Sprintf("the third arguments for %s must equal to the first/second argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[2].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the third argument for %s must equal the first/second argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[2].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Smoothstep:
 					if (!argts[0].Equal(&argts[1]) || !argts[0].Equal(&argts[2])) && (argts[0].Main != shaderir.Float || argts[1].Main != shaderir.Float) {
-						cs.addError(e.Pos(), fmt.Sprintf("the first and the second arguments for %s must equal to the third argument %s or float but %s and %s", callee.BuiltinFunc, argts[2].String(), argts[0].String(), argts[1].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the first and the second arguments for %s must equal the third argument %s or float but %s and %s", callee.BuiltinFunc, argts[2].String(), argts[0].String(), argts[1].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Refract:
@@ -760,12 +759,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				switch callee.BuiltinFunc {
 				case shaderir.Mod:
 					if !argts[0].Equal(&argts[1]) && argts[1].Main != shaderir.Float {
-						cs.addError(e.Pos(), fmt.Sprintf("the second argument for %s must equal to the first argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the second argument for %s must equal the first argument %s or float but %s", callee.BuiltinFunc, argts[0].String(), argts[1].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Step:
 					if !argts[0].Equal(&argts[1]) && argts[0].Main != shaderir.Float {
-						cs.addError(e.Pos(), fmt.Sprintf("the first argument for %s must equal to the second argument %s or float but %s", callee.BuiltinFunc, argts[1].String(), argts[0].String()))
+						cs.addError(e.Pos(), fmt.Sprintf("the first argument for %s must equal the second argument %s or float but %s", callee.BuiltinFunc, argts[1].String(), argts[0].String()))
 						return nil, nil, nil, false
 					}
 				case shaderir.Cross:
@@ -822,7 +821,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					}
 				case shaderir.Abs, shaderir.Sign:
 					if argts[0].Main != shaderir.Float && !argts[0].IsFloatVector() && argts[0].Main != shaderir.Int && !argts[0].IsIntVector() {
-						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivenN value in argument to %s", argts[0].String(), callee.BuiltinFunc))
+						cs.addError(e.Pos(), fmt.Sprintf("cannot use %s as float, vecN, int, or ivecN value in argument to %s", argts[0].String(), callee.BuiltinFunc))
 						return nil, nil, nil, false
 					}
 				default:
@@ -843,11 +842,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					Exprs: append([]shaderir.Expr{callee}, args...),
 				},
 			}, []shaderir.Type{finalType}, stmts, true
-		}
-
-		if callee.Type != shaderir.FunctionExpr {
-			cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e.Fun))
-			return nil, nil, nil, false
 		}
 
 		f := cs.funcs[callee.Index]
@@ -924,7 +918,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			// TODO: Is this an error?
 		}
 
-		// These local-variable expressions are used for an outside function callers.
+		// These local-variable expressions are used by callers of an outside function.
 		var exprs []shaderir.Expr
 		for _, p := range outParams {
 			exprs = append(exprs, shaderir.Expr{
@@ -936,7 +930,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 	case *ast.Ident:
 		if e.Name == "_" {
-			// In the context where a local variable is marked as used, any expressions must have its
+			// In the context where a local variable is marked as used, any expression must have its
 			// meaning. Then, a blank identifier is not available there.
 			if markLocalVariableUsed {
 				cs.addError(e.Pos(), "cannot use _ as value")
@@ -948,64 +942,15 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				},
 			}, []shaderir.Type{{}}, nil, true
 		}
-		if i, t, ok := block.findLocalVariable(e.Name, markLocalVariableUsed); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.LocalVariable,
-					Index: i,
-				},
-			}, []shaderir.Type{t}, nil, true
+		expr, t, ok := cs.parseIdent(block, e, markLocalVariableUsed)
+		if !ok {
+			return nil, nil, nil, false
 		}
-		if c, ok := block.findConstant(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.NumberExpr,
-					Const: c.value,
-				},
-			}, []shaderir.Type{c.typ}, nil, true
+		if expr.Type == shaderir.FunctionExpr || expr.Type == shaderir.BuiltinFuncExpr {
+			cs.addError(e.Pos(), fmt.Sprintf("function %s is used as a value without a call", e.Name))
+			return nil, nil, nil, false
 		}
-		if i, ok := cs.findFunction(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.FunctionExpr,
-					Index: i,
-				},
-			}, nil, nil, true
-		}
-		if i, ok := cs.findUniformVariable(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.UniformVariable,
-					Index: i,
-				},
-			}, []shaderir.Type{cs.ir.Uniforms[i]}, nil, true
-		}
-		if f, ok := shaderir.ParseBuiltinFunc(e.Name); ok {
-			return []shaderir.Expr{
-				{
-					Type:        shaderir.BuiltinFuncExpr,
-					BuiltinFunc: f,
-				},
-			}, nil, nil, true
-		}
-		if m := textureVariableRe.FindStringSubmatch(e.Name); m != nil {
-			i, _ := strconv.Atoi(m[1])
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.TextureVariable,
-					Index: i,
-				},
-			}, []shaderir.Type{{Main: shaderir.Texture}}, nil, true
-		}
-		if e.Name == "true" || e.Name == "false" {
-			return []shaderir.Expr{
-				{
-					Type:  shaderir.NumberExpr,
-					Const: gconstant.MakeBool(e.Name == "true"),
-				},
-			}, []shaderir.Type{{Main: shaderir.Bool}}, nil, true
-		}
-		cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
+		return []shaderir.Expr{expr}, []shaderir.Type{t}, nil, true
 
 	case *ast.ParenExpr:
 		return cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
@@ -1078,6 +1023,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		if len(ts) == 0 {
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected unary operator: %s", e.X))
+			return nil, nil, nil, false
+		}
+		if exprs[0].Type == shaderir.Blank {
+			cs.addError(e.Pos(), "cannot use _ as value")
 			return nil, nil, nil, false
 		}
 
@@ -1320,6 +1269,85 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 	return nil, nil, nil, false
 }
 
+// parseIdent resolves a non-blank identifier in the scope of block.
+//
+// A function name resolves to an expression without a type.
+func (cs *compileState) parseIdent(block *block, e *ast.Ident, markLocalVariableUsed bool) (shaderir.Expr, shaderir.Type, bool) {
+	if i, t, ok := block.findLocalVariable(e.Name, markLocalVariableUsed); ok {
+		return shaderir.Expr{
+			Type:  shaderir.LocalVariable,
+			Index: i,
+		}, t, true
+	}
+	if c, ok := block.findConstant(e.Name); ok {
+		return shaderir.Expr{
+			Type:  shaderir.NumberExpr,
+			Const: c.value,
+		}, c.typ, true
+	}
+	if i, ok := cs.findFunction(e.Name); ok {
+		return shaderir.Expr{
+			Type:  shaderir.FunctionExpr,
+			Index: i,
+		}, shaderir.Type{}, true
+	}
+	if i, ok := cs.findUniformVariable(e.Name); ok {
+		return shaderir.Expr{
+			Type:  shaderir.UniformVariable,
+			Index: i,
+		}, cs.ir.Uniforms[i], true
+	}
+	if f, ok := shaderir.ParseBuiltinFunc(e.Name); ok {
+		return shaderir.Expr{
+			Type:        shaderir.BuiltinFuncExpr,
+			BuiltinFunc: f,
+		}, shaderir.Type{}, true
+	}
+	if m := textureVariableRe.FindStringSubmatch(e.Name); m != nil {
+		i, _ := strconv.Atoi(m[1])
+		if i >= cs.ir.TextureCount {
+			cs.addError(e.Pos(), fmt.Sprintf("texture index out of range: %s", e.Name))
+			return shaderir.Expr{}, shaderir.Type{}, false
+		}
+		return shaderir.Expr{
+			Type:  shaderir.TextureVariable,
+			Index: i,
+		}, shaderir.Type{Main: shaderir.Texture}, true
+	}
+	if e.Name == "true" || e.Name == "false" {
+		return shaderir.Expr{
+			Type:  shaderir.NumberExpr,
+			Const: gconstant.MakeBool(e.Name == "true"),
+		}, shaderir.Type{Main: shaderir.Bool}, true
+	}
+	cs.addError(e.Pos(), fmt.Sprintf("unexpected identifier: %s", e.Name))
+	return shaderir.Expr{}, shaderir.Type{}, false
+}
+
+// parseCallee resolves the callee of a call expression to a function expression.
+func (cs *compileState) parseCallee(block *block, e ast.Expr) (shaderir.Expr, bool) {
+	switch e := e.(type) {
+	case *ast.ParenExpr:
+		return cs.parseCallee(block, e.X)
+	case *ast.Ident:
+		if e.Name == "_" {
+			cs.addError(e.Pos(), "cannot use _ as value")
+			return shaderir.Expr{}, false
+		}
+		expr, _, ok := cs.parseIdent(block, e, false)
+		if !ok {
+			return shaderir.Expr{}, false
+		}
+		if expr.Type != shaderir.FunctionExpr && expr.Type != shaderir.BuiltinFuncExpr {
+			cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e.Name))
+			return shaderir.Expr{}, false
+		}
+		return expr, true
+	}
+	cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e))
+	return shaderir.Expr{}, false
+}
+
 func isValidSwizzling(swizzling string, t shaderir.Type) bool {
 	if !shaderir.IsValidSwizzling(swizzling) {
 		return false
@@ -1401,58 +1429,4 @@ func resolveConstKind(exprs []shaderir.Expr, ts []shaderir.Type) (kind gconstant
 	}
 
 	return gconstant.Int, true
-}
-
-// arrayComparisonExpr returns an expression comparing lhs and rhs of the array type t element by element.
-// op must be either shaderir.EqualOp or shaderir.NotEqualOp.
-// lhs and rhs must be free of side effects as they are evaluated once per element.
-func arrayComparisonExpr(op shaderir.Op, t shaderir.Type, lhs, rhs shaderir.Expr) shaderir.Expr {
-	elementOp := op
-	if t.Sub[0].IsFloatVector() || t.Sub[0].IsIntVector() {
-		if op == shaderir.EqualOp {
-			elementOp = shaderir.VectorEqualOp
-		} else {
-			elementOp = shaderir.VectorNotEqualOp
-		}
-	}
-	joinOp := shaderir.AndAnd
-	if op == shaderir.NotEqualOp {
-		joinOp = shaderir.OrOr
-	}
-
-	// The initial value is the result for an empty array, which always equals another empty array.
-	expr := shaderir.Expr{
-		Type:  shaderir.NumberExpr,
-		Const: gconstant.MakeBool(op == shaderir.EqualOp),
-	}
-	for i := range t.Length {
-		index := shaderir.Expr{
-			Type:  shaderir.NumberExpr,
-			Const: gconstant.MakeInt64(int64(i)),
-		}
-		e := shaderir.Expr{
-			Type: shaderir.Binary,
-			Op:   elementOp,
-			Exprs: []shaderir.Expr{
-				{
-					Type:  shaderir.Index,
-					Exprs: []shaderir.Expr{lhs, index},
-				},
-				{
-					Type:  shaderir.Index,
-					Exprs: []shaderir.Expr{rhs, index},
-				},
-			},
-		}
-		if i == 0 {
-			expr = e
-			continue
-		}
-		expr = shaderir.Expr{
-			Type:  shaderir.Binary,
-			Op:    joinOp,
-			Exprs: []shaderir.Expr{expr, e},
-		}
-	}
-	return expr
 }

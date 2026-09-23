@@ -62,7 +62,7 @@ type GoTextFace struct {
 	// Language is a hint for a language (BCP 47).
 	Language language.Tag
 
-	// Script is a hint for a script code hint of (ISO 15924).
+	// Script is a hint for a script code (ISO 15924).
 	// If this is empty, the script is guessed from the specified language.
 	//
 	// Deprecated: as of v2.9. Use Language instead.
@@ -391,6 +391,7 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		xoffset:    args.subpixelOffset.X,
 		yoffset:    args.subpixelOffset.Y,
 		variations: face.variationsString,
+		sideways:   rd.sideways,
 	}
 	subpixelOffset := args.subpixelOffset
 	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {

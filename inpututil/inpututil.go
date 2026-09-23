@@ -126,7 +126,7 @@ func (i *inputState) update() {
 	}
 }
 
-// AppendPressedKeys append currently pressed keyboard keys to keys and returns the extended buffer.
+// AppendPressedKeys appends currently pressed keyboard keys to keys and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendPressedKeys must be called in a game's Update, not Draw.
@@ -145,7 +145,7 @@ func PressedKeys() []ebiten.Key {
 	return AppendPressedKeys(nil)
 }
 
-// AppendJustPressedKeys append just pressed keyboard keys to keys and returns the extended buffer.
+// AppendJustPressedKeys appends just pressed keyboard keys to keys and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustPressedKeys must be called in a game's Update, not Draw.
@@ -155,7 +155,7 @@ func AppendJustPressedKeys(keys []ebiten.Key) []ebiten.Key {
 	return inputstate.AppendJustPressedKeys(keys)
 }
 
-// AppendJustReleasedKeys append just released keyboard keys to keys and returns the extended buffer.
+// AppendJustReleasedKeys appends just released keyboard keys to keys and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustReleasedKeys must be called in a game's Update, not Draw.
@@ -267,7 +267,7 @@ func JustConnectedGamepadIDs() []ebiten.GamepadID {
 }
 
 // IsGamepadJustDisconnected returns a boolean value indicating
-// whether the gamepad of the given id is released just in the current tick.
+// whether the gamepad of the given id is disconnected just in the current tick.
 //
 // IsGamepadJustDisconnected must be called in a game's Update, not Draw.
 //
@@ -281,7 +281,7 @@ func IsGamepadJustDisconnected(id ebiten.GamepadID) bool {
 	return !current && prev
 }
 
-// AppendPressedGamepadButtons append currently pressed gamepad buttons to buttons and returns the extended buffer.
+// AppendPressedGamepadButtons appends currently pressed gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendPressedGamepadButtons must be called in a game's Update, not Draw.
@@ -306,7 +306,7 @@ func AppendPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.GamepadBu
 	return buttons
 }
 
-// AppendJustPressedGamepadButtons append just pressed gamepad buttons to buttons and returns the extended buffer.
+// AppendJustPressedGamepadButtons appends just pressed gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustPressedGamepadButtons must be called in a game's Update, not Draw.
@@ -331,7 +331,7 @@ func AppendJustPressedGamepadButtons(id ebiten.GamepadID, buttons []ebiten.Gamep
 	return buttons
 }
 
-// AppendJustReleasedGamepadButtons append just released gamepad buttons to buttons and returns the extended buffer.
+// AppendJustReleasedGamepadButtons appends just released gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustReleasedGamepadButtons must be called in a game's Update, not Draw.
@@ -420,7 +420,7 @@ func GamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.GamepadButton
 	return state.buttonDurations[button]
 }
 
-// AppendPressedStandardGamepadButtons append currently pressed standard gamepad buttons to buttons and returns the extended buffer.
+// AppendPressedStandardGamepadButtons appends currently pressed standard gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendPressedStandardGamepadButtons must be called in a game's Update, not Draw.
@@ -445,7 +445,7 @@ func AppendPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebiten.S
 	return buttons
 }
 
-// AppendJustPressedStandardGamepadButtons append just pressed standard gamepad buttons to buttons and returns the extended buffer.
+// AppendJustPressedStandardGamepadButtons appends just pressed standard gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustPressedStandardGamepadButtons must be called in a game's Update, not Draw.
@@ -470,7 +470,7 @@ func AppendJustPressedStandardGamepadButtons(id ebiten.GamepadID, buttons []ebit
 	return buttons
 }
 
-// AppendJustReleasedStandardGamepadButtons append just released standard gamepad buttons to buttons and returns the extended buffer.
+// AppendJustReleasedStandardGamepadButtons appends just released standard gamepad buttons to buttons and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
 // AppendJustReleasedStandardGamepadButtons must be called in a game's Update, not Draw.
@@ -559,9 +559,14 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 	return state.standardButtonDurations[button]
 }
 
-// AppendJustPressedTouchIDs append touch IDs that are created just in the current tick to touchIDs,
+// AppendJustPressedTouchIDs appends touch IDs that are created just in the current tick to touchIDs,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
+//
+// The touches are sampled once per tick, so a touch which was created and released between two
+// ticks is not reported at all.
+// A new touch which reuses an ID that is still being tracked is not reported either, as its ID is
+// not new.
 //
 // AppendJustPressedTouchIDs must be called in a game's Update, not Draw.
 //
@@ -591,9 +596,12 @@ func JustPressedTouchIDs() []ebiten.TouchID {
 	return AppendJustPressedTouchIDs(nil)
 }
 
-// AppendJustReleasedTouchIDs append touch IDs that are released just in the current tick to touchIDs,
+// AppendJustReleasedTouchIDs appends touch IDs that are released just in the current tick to touchIDs,
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
+//
+// A touch which was created and released between two ticks is not reported as released, and a new
+// touch which reused the ID of a released one is reported as a continuation of the previous touch.
 //
 // AppendJustReleasedTouchIDs must be called in a game's Update, not Draw.
 //
@@ -621,6 +629,9 @@ func AppendJustReleasedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
 // IsTouchJustReleased returns a boolean value indicating
 // whether the given touch is released just in the current tick.
 //
+// A touch which was created and released between two ticks is not reported as released, and a new
+// touch which reused the ID of a released one is reported as a continuation of the previous touch.
+//
 // IsTouchJustReleased must be called in a game's Update, not Draw.
 //
 // IsTouchJustReleased is concurrent safe.
@@ -635,6 +646,9 @@ func IsTouchJustReleased(id ebiten.TouchID) bool {
 
 // TouchPressDuration returns how long the touch remains in ticks (Update).
 //
+// The duration is counted per touch ID, not per touch: a new touch which reused the ID of a touch
+// released between two ticks continues the duration of the previous touch.
+//
 // TouchPressDuration must be called in a game's Update, not Draw.
 //
 // TouchPressDuration is concurrent safe.
@@ -647,6 +661,9 @@ func TouchPressDuration(id ebiten.TouchID) int {
 // TouchPositionInPreviousTick returns the position in the previous tick.
 // If the touch is a just-released touch, TouchPositionInPreviousTick returns the last position of the touch.
 //
+// The position is tracked per touch ID, not per touch: a new touch which reused the ID of a touch
+// released between two ticks continues the position of the previous touch.
+//
 // TouchPositionInPreviousTick must be called in a game's Update, not Draw.
 //
 // TouchPositionInPreviousTick is concurrent safe.
@@ -657,6 +674,9 @@ func TouchPositionInPreviousTick(id ebiten.TouchID) (int, int) {
 
 // TouchPositionFInPreviousTick returns the high-precision position in the previous tick.
 // If the touch is a just-released touch, TouchPositionFInPreviousTick returns the last position of the touch.
+//
+// The position is tracked per touch ID, not per touch: a new touch which reused the ID of a touch
+// released between two ticks continues the position of the previous touch.
 //
 // TouchPositionFInPreviousTick must be called in a game's Update, not Draw.
 //

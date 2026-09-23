@@ -33,6 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 // maxImageSize is a maximum image size that should work in almost every environment.
@@ -322,6 +323,8 @@ func TestImageDispose(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)
 	img.Dispose()
+	img.Dispose()
+	img.Deallocate()
 
 	// The color is transparent (color.RGBA{}).
 	// Note that the value's type must be color.RGBA.
@@ -347,6 +350,7 @@ func TestImageReadPixelsDispose(t *testing.T) {
 func TestImageDeallocate(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)
+	img.Deallocate()
 	img.Deallocate()
 
 	// The color is transparent (color.RGBA{}).
@@ -502,7 +506,19 @@ func TestImageEdge(t *testing.T) {
 		}
 	}
 	img0.WritePixels(pixels)
-	img1 := ebiten.NewImage(img1Width, img1Height)
+
+	// Each case is rendered into its own tile of a larger destination image, so that a batch of
+	// them is drawn and then read back at once instead of one read-back per case.
+	const (
+		tilesX = 32
+		tilesY = 32
+
+		dstWidth  = img1Width * tilesX
+		dstHeight = img1Height * tilesY
+	)
+	dst := ebiten.NewImage(dstWidth, dstHeight)
+	dstPix := make([]byte, 4*dstWidth*dstHeight)
+
 	red := color.RGBA{R: 0xff, A: 0xff}
 	var transparent color.RGBA
 
@@ -515,100 +531,131 @@ func TestImageEdge(t *testing.T) {
 		angles = append(angles, float64(a)/4096*2*math.Pi)
 	}
 
+	type testCase struct {
+		scale             float64
+		filter            ebiten.Filter
+		angle             float64
+		testDrawTriangles bool
+	}
+	var cases []testCase
 	for _, s := range []float64{1, 0.5, 0.25} {
 		for _, f := range []ebiten.Filter{ebiten.FilterNearest, ebiten.FilterLinear} {
 			for _, a := range angles {
 				for _, testDrawTriangles := range []bool{false, true} {
-					img1.Clear()
-					w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
-					b := img0.Bounds()
-					var geo ebiten.GeoM
-					geo.Translate(-float64(w)/2, -float64(h)/2)
-					geo.Scale(s, s)
-					geo.Rotate(a)
-					geo.Translate(img1Width/2, img1Height/2)
-					if !testDrawTriangles {
-						op := &ebiten.DrawImageOptions{}
-						op.GeoM = geo
-						op.Filter = f
-						img1.DrawImage(img0, op)
-					} else {
-						op := &ebiten.DrawTrianglesOptions{}
-						dx0, dy0 := geo.Apply(0, 0)
-						dx1, dy1 := geo.Apply(float64(w), 0)
-						dx2, dy2 := geo.Apply(0, float64(h))
-						dx3, dy3 := geo.Apply(float64(w), float64(h))
-						vs := []ebiten.Vertex{
-							{
-								DstX:   float32(dx0),
-								DstY:   float32(dy0),
-								SrcX:   float32(b.Min.X),
-								SrcY:   float32(b.Min.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx1),
-								DstY:   float32(dy1),
-								SrcX:   float32(b.Max.X),
-								SrcY:   float32(b.Min.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx2),
-								DstY:   float32(dy2),
-								SrcX:   float32(b.Min.X),
-								SrcY:   float32(b.Max.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-							{
-								DstX:   float32(dx3),
-								DstY:   float32(dy3),
-								SrcX:   float32(b.Max.X),
-								SrcY:   float32(b.Max.Y),
-								ColorR: 1,
-								ColorG: 1,
-								ColorB: 1,
-								ColorA: 1,
-							},
-						}
-						is := []uint16{0, 1, 2, 1, 2, 3}
-						op.Filter = f
-						img1.DrawTriangles(vs, is, img0, op)
-					}
-					allTransparent := true
-					for j := range img1Height {
-						for i := range img1Width {
-							c := img1.At(i, j)
-							if c == transparent {
-								continue
-							}
-							allTransparent = false
-							switch f {
-							case ebiten.FilterNearest:
-								if c == red {
-									continue
-								}
-							case ebiten.FilterLinear:
-								if _, g, b, _ := c.RGBA(); g == 0 && b == 0 {
-									continue
-								}
-							}
-							t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) want: red or transparent, got: %v", i, j, f, s, a, testDrawTriangles, c)
-						}
-					}
-					if allTransparent {
-						t.Fatalf("img1 (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) is transparent but should not", f, s, a, testDrawTriangles)
-					}
+					cases = append(cases, testCase{
+						scale:             s,
+						filter:            f,
+						angle:             a,
+						testDrawTriangles: testDrawTriangles,
+					})
 				}
+			}
+		}
+	}
+
+	w, h := img0.Bounds().Dx(), img0.Bounds().Dy()
+	b := img0.Bounds()
+
+	for start := 0; start < len(cases); start += tilesX * tilesY {
+		batch := cases[start:min(start+tilesX*tilesY, len(cases))]
+
+		dst.Clear()
+		for idx, c := range batch {
+			ox := float64(idx % tilesX * img1Width)
+			oy := float64(idx / tilesX * img1Height)
+			var geo ebiten.GeoM
+			geo.Translate(-float64(w)/2, -float64(h)/2)
+			geo.Scale(c.scale, c.scale)
+			geo.Rotate(c.angle)
+			geo.Translate(ox+img1Width/2, oy+img1Height/2)
+			if !c.testDrawTriangles {
+				op := &ebiten.DrawImageOptions{}
+				op.GeoM = geo
+				op.Filter = c.filter
+				dst.DrawImage(img0, op)
+			} else {
+				op := &ebiten.DrawTrianglesOptions{}
+				dx0, dy0 := geo.Apply(0, 0)
+				dx1, dy1 := geo.Apply(float64(w), 0)
+				dx2, dy2 := geo.Apply(0, float64(h))
+				dx3, dy3 := geo.Apply(float64(w), float64(h))
+				vs := []ebiten.Vertex{
+					{
+						DstX:   float32(dx0),
+						DstY:   float32(dy0),
+						SrcX:   float32(b.Min.X),
+						SrcY:   float32(b.Min.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx1),
+						DstY:   float32(dy1),
+						SrcX:   float32(b.Max.X),
+						SrcY:   float32(b.Min.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx2),
+						DstY:   float32(dy2),
+						SrcX:   float32(b.Min.X),
+						SrcY:   float32(b.Max.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+					{
+						DstX:   float32(dx3),
+						DstY:   float32(dy3),
+						SrcX:   float32(b.Max.X),
+						SrcY:   float32(b.Max.Y),
+						ColorR: 1,
+						ColorG: 1,
+						ColorB: 1,
+						ColorA: 1,
+					},
+				}
+				is := []uint16{0, 1, 2, 1, 2, 3}
+				op.Filter = c.filter
+				dst.DrawTriangles(vs, is, img0, op)
+			}
+		}
+
+		dst.ReadPixels(dstPix)
+
+		for idx, c := range batch {
+			ox := idx % tilesX * img1Width
+			oy := idx / tilesX * img1Height
+			allTransparent := true
+			for j := range img1Height {
+				for i := range img1Width {
+					k := 4 * ((oy+j)*dstWidth + ox + i)
+					clr := color.RGBA{R: dstPix[k], G: dstPix[k+1], B: dstPix[k+2], A: dstPix[k+3]}
+					if clr == transparent {
+						continue
+					}
+					allTransparent = false
+					switch c.filter {
+					case ebiten.FilterNearest:
+						if clr == red {
+							continue
+						}
+					case ebiten.FilterLinear:
+						if _, g, b, _ := clr.RGBA(); g == 0 && b == 0 {
+							continue
+						}
+					}
+					t.Fatalf("img1.At(%d, %d) (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) want: red or transparent, got: %v", i, j, c.filter, c.scale, c.angle, c.testDrawTriangles, clr)
+				}
+			}
+			if allTransparent {
+				t.Fatalf("img1 (filter: %d, scale: %f, angle: %f, draw-triangles?: %t) is transparent but should not", c.filter, c.scale, c.angle, c.testDrawTriangles)
 			}
 		}
 	}
@@ -1743,6 +1790,79 @@ func TestImageDrawTrianglesWithSubImage(t *testing.T) {
 	}
 }
 
+// Issue #3734.
+func TestImageDrawTrianglesAddressWithoutMipmaps(t *testing.T) {
+	for _, use32 := range []bool{false, true} {
+		for _, address := range []ebiten.Address{ebiten.AddressRepeat, ebiten.AddressClampToZero} {
+			for _, disableMipmaps := range []bool{false, true} {
+				for _, region := range []image.Rectangle{
+					image.Rect(3, 5, 4, 12),
+					image.Rect(3, 5, 10, 6),
+					image.Rect(3, 5, 8, 12),
+					image.Rect(4, 4, 12, 12),
+				} {
+					name := fmt.Sprintf("use32=%t/address=%d/disableMipmaps=%t/region=%v", use32, address, disableMipmaps, region)
+					t.Run(name, func(t *testing.T) {
+						parent := ebiten.NewImage(32, 32)
+						defer parent.Deallocate()
+						parent.Fill(color.RGBA{
+							G: 255,
+							A: 255,
+						})
+						src := parent.SubImage(region).(*ebiten.Image)
+						red := color.RGBA{
+							R: 255,
+							A: 255,
+						}
+						src.Fill(red)
+						const size = 4
+						dst := ebiten.NewImage(size, size)
+						defer dst.Deallocate()
+
+						// Shrink by four, sampling texel centers inside and outside the region.
+						vertices := make([]ebiten.Vertex, 4)
+						for i := range vertices {
+							x, y := float32(i%2*size), float32(i/2*size)
+							vertices[i] = ebiten.Vertex{
+								DstX:   x,
+								DstY:   y,
+								SrcX:   float32(region.Min.X) - 5.5 + 4*x,
+								SrcY:   float32(region.Min.Y) - 5.5 + 4*y,
+								ColorR: 1,
+								ColorG: 1,
+								ColorB: 1,
+								ColorA: 1,
+							}
+						}
+						op := &ebiten.DrawTrianglesOptions{
+							Filter:         ebiten.FilterLinear,
+							Address:        address,
+							DisableMipmaps: disableMipmaps,
+						}
+						if use32 {
+							dst.DrawTriangles32(vertices, []uint32{0, 1, 2, 1, 2, 3}, src, op)
+						} else {
+							dst.DrawTriangles(vertices, []uint16{0, 1, 2, 1, 2, 3}, src, op)
+						}
+						for y := range size {
+							for x := range size {
+								p := image.Pt(region.Min.X-4+4*x, region.Min.Y-4+4*y)
+								var want color.RGBA
+								if address == ebiten.AddressRepeat || p.In(region) {
+									want = red
+								}
+								if got := dst.At(x, y).(color.RGBA); !sameColors(got, want, 1) {
+									t.Errorf("At(%d, %d): got %v, want %v", x, y, got, want)
+								}
+							}
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
 // Issue #823
 func TestImageAtAfterDisposingSubImage(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
@@ -1804,6 +1924,105 @@ func TestImageAtAfterDeallocateSubImage(t *testing.T) {
 	if got != want64 {
 		t.Errorf("RGBA64At(0,1) got: %v, want: %v", got, want64)
 	}
+}
+
+// A sub-image whose original image has been disposed behaves as a disposed image.
+func TestImageSubImageOfDisposedImage(t *testing.T) {
+	newSub := func() *ebiten.Image {
+		img := ebiten.NewImage(16, 16)
+		img.Fill(color.White)
+		sub := img.SubImage(image.Rect(0, 0, 8, 8)).(*ebiten.Image)
+		img.Dispose()
+		return sub
+	}
+
+	mustPanic := func(t *testing.T, name string, f func()) {
+		t.Helper()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Errorf("%s on a sub-image of a disposed image must panic", name)
+			}
+		}()
+		f()
+	}
+
+	t.Run("DrawImage", func(t *testing.T) {
+		sub := newSub()
+		src := ebiten.NewImage(4, 4)
+		src.Fill(color.White)
+		// DrawImage must not panic.
+		sub.DrawImage(src, nil)
+	})
+
+	t.Run("DrawImageSource", func(t *testing.T) {
+		sub := newSub()
+		dst := ebiten.NewImage(16, 16)
+		mustPanic(t, "DrawImage with the sub-image as the source", func() {
+			dst.DrawImage(sub, nil)
+		})
+	})
+
+	t.Run("Fill", func(t *testing.T) {
+		sub := newSub()
+		// Fill must not panic.
+		sub.Fill(color.White)
+	})
+
+	t.Run("At", func(t *testing.T) {
+		sub := newSub()
+		// The color is transparent (color.RGBA{}).
+		// Note that the value's type must be color.RGBA.
+		got := sub.At(0, 0)
+		var want color.RGBA
+		if got != want {
+			t.Errorf("sub.At(0, 0) got: %v, want: %v", got, want)
+		}
+		got64 := sub.RGBA64At(0, 0)
+		var want64 color.RGBA64
+		if got64 != want64 {
+			t.Errorf("sub.RGBA64At(0, 0) got: %v, want: %v", got64, want64)
+		}
+	})
+
+	t.Run("Set", func(t *testing.T) {
+		sub := newSub()
+		// Set must not panic.
+		sub.Set(0, 0, color.White)
+	})
+
+	t.Run("WritePixels", func(t *testing.T) {
+		sub := newSub()
+		// WritePixels must not panic.
+		sub.WritePixels(make([]byte, 4*8*8))
+	})
+
+	t.Run("ReadPixels", func(t *testing.T) {
+		sub := newSub()
+		mustPanic(t, "ReadPixels", func() {
+			sub.ReadPixels(make([]byte, 4*8*8))
+		})
+	})
+
+	t.Run("Bounds", func(t *testing.T) {
+		sub := newSub()
+		mustPanic(t, "Bounds", func() {
+			sub.Bounds()
+		})
+	})
+
+	t.Run("SubImage", func(t *testing.T) {
+		sub := newSub()
+		if got := sub.SubImage(image.Rect(0, 0, 4, 4)); got != nil {
+			t.Errorf("sub.SubImage got: %v, want: nil", got)
+		}
+	})
+
+	t.Run("Dispose", func(t *testing.T) {
+		sub := newSub()
+		// Dispose and Deallocate must not panic.
+		sub.Dispose()
+		sub.Deallocate()
+	})
 }
 
 func TestImageSubImageSubImage(t *testing.T) {
@@ -4054,7 +4273,25 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 
 	const w, h = 16, 1
-	dst := ebiten.NewImage(w, h)
+
+	factors := []ebiten.BlendFactor{
+		ebiten.BlendFactorZero,
+		ebiten.BlendFactorOne,
+		ebiten.BlendFactorSourceColor,
+		ebiten.BlendFactorOneMinusSourceColor,
+		ebiten.BlendFactorSourceAlpha,
+		ebiten.BlendFactorOneMinusSourceAlpha,
+		ebiten.BlendFactorDestinationColor,
+		ebiten.BlendFactorOneMinusDestinationColor,
+		ebiten.BlendFactorDestinationAlpha,
+		ebiten.BlendFactorOneMinusDestinationAlpha,
+	}
+
+	// The destination-factor combinations are laid out one per row of dst, so that a batch of
+	// them can be verified with a single read-back instead of one read-back each.
+	rows := len(factors) * len(factors)
+
+	dst := ebiten.NewImage(w, rows)
 	src := ebiten.NewImage(w, h)
 
 	dstColor := func(i int) (byte, byte, byte, byte) {
@@ -4076,13 +4313,16 @@ func TestImageBlendFactor(t *testing.T) {
 		return byte(x)
 	}
 
-	dstPix := make([]byte, 4*w*h)
-	for i := range w {
-		r, g, b, a := dstColor(i)
-		dstPix[4*i] = r
-		dstPix[4*i+1] = g
-		dstPix[4*i+2] = b
-		dstPix[4*i+3] = a
+	dstPix := make([]byte, 4*w*rows)
+	for j := range rows {
+		for i := range w {
+			r, g, b, a := dstColor(i)
+			idx := 4 * (j*w + i)
+			dstPix[idx] = r
+			dstPix[idx+1] = g
+			dstPix[idx+2] = b
+			dstPix[idx+3] = a
+		}
 	}
 	srcPix := make([]byte, 4*w*h)
 	for i := range w {
@@ -4094,25 +4334,16 @@ func TestImageBlendFactor(t *testing.T) {
 	}
 	src.WritePixels(srcPix)
 
-	factors := []ebiten.BlendFactor{
-		ebiten.BlendFactorZero,
-		ebiten.BlendFactorOne,
-		ebiten.BlendFactorSourceColor,
-		ebiten.BlendFactorOneMinusSourceColor,
-		ebiten.BlendFactorSourceAlpha,
-		ebiten.BlendFactorOneMinusSourceAlpha,
-		ebiten.BlendFactorDestinationColor,
-		ebiten.BlendFactorOneMinusDestinationColor,
-		ebiten.BlendFactorDestinationAlpha,
-		ebiten.BlendFactorOneMinusDestinationAlpha,
-	}
+	gotPix := make([]byte, 4*w*rows)
+
 	for _, srcRGBFactor := range factors {
 		for _, srcAlphaFactor := range factors {
-			for _, dstRGBFactor := range factors {
-				for _, dstAlphaFactor := range factors {
-					// Reset the destination state.
-					dst.WritePixels(dstPix)
+			// Reset the destination state.
+			dst.WritePixels(dstPix)
+			for j, dstRGBFactor := range factors {
+				for k, dstAlphaFactor := range factors {
 					op := &ebiten.DrawImageOptions{}
+					op.GeoM.Translate(0, float64(j*len(factors)+k))
 					op.Blend = ebiten.Blend{
 						BlendFactorSourceRGB:        srcRGBFactor,
 						BlendFactorSourceAlpha:      srcAlphaFactor,
@@ -4122,8 +4353,15 @@ func TestImageBlendFactor(t *testing.T) {
 						BlendOperationAlpha:         ebiten.BlendOperationAdd,
 					}
 					dst.DrawImage(src, op)
+				}
+			}
+			dst.ReadPixels(gotPix)
+			for j, dstRGBFactor := range factors {
+				for k, dstAlphaFactor := range factors {
+					row := j*len(factors) + k
 					for i := range w {
-						got := dst.At(i, 0).(color.RGBA)
+						idx := 4 * (row*w + i)
+						got := color.RGBA{R: gotPix[idx], G: gotPix[idx+1], B: gotPix[idx+2], A: gotPix[idx+3]}
 
 						sr, sg, sb, sa := colorToFloats(srcColor(i))
 						dr, dg, db, da := colorToFloats(dstColor(i))
@@ -4251,7 +4489,7 @@ func TestImageBlendFactor(t *testing.T) {
 							A: clamp(int(a * 0xff)),
 						}
 						if !sameColors(got, want, 1) {
-							t.Errorf("dst.At(%d, 0): factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
+							t.Errorf("color at %d: factors: %d, %d, %d, %d: got: %v, want: %v", i, srcRGBFactor, srcAlphaFactor, dstRGBFactor, dstAlphaFactor, got, want)
 						}
 					}
 				}
@@ -4521,6 +4759,46 @@ func TestImageDrawTrianglesShaderWithGreaterIndexThanVerticesCount(t *testing.T)
 		t.Fatalf("could not compile shader: %v", err)
 	}
 	dst.DrawTrianglesShader(vs, is, shader, nil)
+}
+
+func TestImageDrawTriangles32WithGreaterIndexThanVerticesCount(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTriangles32 must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	src := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, 4)
+	is := []uint32{0, 1, 2, 1, 2, math.MaxUint32}
+	dst.DrawTriangles32(vs, is, src, nil)
+}
+
+func TestImageDrawTrianglesShader32WithGreaterIndexThanVerticesCount(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTrianglesShader32 must panic but not")
+		}
+	}()
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+
+	vs := make([]ebiten.Vertex, 4)
+	is := []uint32{0, 1, 2, 1, 2, math.MaxUint32}
+	shader, err := ebiten.NewShader([]byte(`
+		package main
+		func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+			return color
+		}
+	`))
+	if err != nil {
+		t.Fatalf("could not compile shader: %v", err)
+	}
+	dst.DrawTrianglesShader32(vs, is, shader, nil)
 }
 
 // Issue #2733
@@ -5013,4 +5291,142 @@ func TestSubImageDrawImageInOppositeDirections(t *testing.T) {
 		}
 	})
 	wg.Wait()
+}
+
+// Registering a usage callback on a sub-image and deallocating the original image concurrently
+// must not race on the callback map.
+func TestImageDeallocateRaceConditionWithUsageCallback(t *testing.T) {
+	const w, h = 16, 16
+	img := ebiten.NewImage(w, h)
+	sub := img.SubImage(image.Rect(0, 0, w/2, h/2)).(*ebiten.Image)
+
+	var path vector.Path
+	path.MoveTo(0, 0)
+	path.LineTo(w/2, 0)
+	path.LineTo(0, h/2)
+	path.Close()
+
+	var wg sync.WaitGroup
+	wg.Go(func() {
+		for range 1000 {
+			// FillPath registers a usage callback on the original image of the destination.
+			vector.FillPath(sub, &path, nil, nil)
+		}
+	})
+	wg.Go(func() {
+		for range 1000 {
+			img.Deallocate()
+		}
+	})
+	wg.Wait()
+}
+
+// A disposed shader or a disposed source image must panic even when the destination is disposed.
+func TestImageDrawShaderWithDisposedArgumentOnDisposedDestination(t *testing.T) {
+	const w, h = 16, 16
+
+	src := []byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos)
+}
+`)
+
+	shader, err := ebiten.NewShader(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	disposedShader, err := ebiten.NewShader(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	disposedShader.Dispose()
+
+	disposedImage := ebiten.NewImage(w, h)
+	disposedImage.Dispose()
+
+	vs := []ebiten.Vertex{
+		{DstX: 0, DstY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: w, DstY: 0, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+		{DstX: 0, DstY: h, ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
+	}
+	is := []uint32{0, 1, 2}
+
+	drawTrianglesShaderWithDisposedShader := func(options *ebiten.DrawTrianglesShaderOptions) func(*ebiten.Image) {
+		return func(dst *ebiten.Image) {
+			dst.DrawTrianglesShader32(vs, is, disposedShader, options)
+		}
+	}
+	drawTrianglesShaderWithDisposedImage := func(options *ebiten.DrawTrianglesShaderOptions) func(*ebiten.Image) {
+		return func(dst *ebiten.Image) {
+			options.Images[0] = disposedImage
+			dst.DrawTrianglesShader32(vs, is, shader, options)
+		}
+	}
+
+	for _, tc := range []struct {
+		name string
+		draw func(dst *ebiten.Image)
+	}{
+		{
+			name: "DrawTrianglesShader32DisposedShader",
+			draw: drawTrianglesShaderWithDisposedShader(nil),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedShaderFillRule",
+			draw: drawTrianglesShaderWithDisposedShader(&ebiten.DrawTrianglesShaderOptions{
+				FillRule: ebiten.FillRuleNonZero,
+			}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedShaderAntiAlias",
+			draw: drawTrianglesShaderWithDisposedShader(&ebiten.DrawTrianglesShaderOptions{
+				AntiAlias: true,
+			}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedImage",
+			draw: drawTrianglesShaderWithDisposedImage(&ebiten.DrawTrianglesShaderOptions{}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedImageFillRule",
+			draw: drawTrianglesShaderWithDisposedImage(&ebiten.DrawTrianglesShaderOptions{
+				FillRule: ebiten.FillRuleNonZero,
+			}),
+		},
+		{
+			name: "DrawTrianglesShader32DisposedImageAntiAlias",
+			draw: drawTrianglesShaderWithDisposedImage(&ebiten.DrawTrianglesShaderOptions{
+				AntiAlias: true,
+			}),
+		},
+		{
+			name: "DrawRectShaderDisposedShader",
+			draw: func(dst *ebiten.Image) {
+				dst.DrawRectShader(w, h, disposedShader, nil)
+			},
+		},
+		{
+			name: "DrawRectShaderDisposedImage",
+			draw: func(dst *ebiten.Image) {
+				op := &ebiten.DrawRectShaderOptions{}
+				op.Images[0] = disposedImage
+				dst.DrawRectShader(w, h, shader, op)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dst := ebiten.NewImage(w, h)
+			dst.Dispose()
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("a disposed argument must panic even when the destination is disposed, but it did not")
+				}
+			}()
+			tc.draw(dst)
+		})
+	}
 }

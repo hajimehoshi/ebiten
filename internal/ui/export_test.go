@@ -17,6 +17,8 @@ package ui
 import (
 	"image"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
 func (i *InputState) SetKeyPressed(key Key, t InputTime) {
@@ -33,6 +35,18 @@ func (i *InputState) SetMouseButtonPressed(button MouseButton, t InputTime) {
 
 func (i *InputState) SetMouseButtonReleased(button MouseButton, t InputTime) {
 	i.setMouseButtonReleased(button, t)
+}
+
+type TouchIDAllocator struct {
+	a touchIDAllocator
+}
+
+func (a *TouchIDAllocator) NextTouches() {
+	a.a.nextTouches()
+}
+
+func (a *TouchIDAllocator) ID(platformID int) TouchID {
+	return a.a.id(platformID)
 }
 
 func IsConnectionReset(err error) bool {
@@ -71,4 +85,17 @@ func VsyncIgnoredForTest(frameTimes []time.Duration, refreshInterval time.Durati
 		ignored = c.updateVsyncIgnored(frameTime, refreshInterval)
 	}
 	return ignored
+}
+
+func FlushCommandsAndWaitForTesting(driver graphicsdriver.Graphics, present bool) error {
+	var c context
+	return c.flushCommandsAndWait(present, driver, false, 60)
+}
+
+func (i *InputState) NextInputTime() InputTime {
+	return i.nextInputTime()
+}
+
+func (i *InputState) CopyAndReset(dst *InputState) {
+	i.copyAndReset(dst)
 }

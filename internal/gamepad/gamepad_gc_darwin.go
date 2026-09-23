@@ -15,42 +15,137 @@
 package gamepad
 
 import (
+	"runtime"
+	"slices"
+	"sync"
 	"time"
 
+	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
-type nativeGamepadsGC struct{}
+// gcControllerToAdd is a controller waiting to be registered, along with the properties read from it
+// when it was enumerated or its connect notification arrived.
+type gcControllerToAdd struct {
+	controller uintptr
+	prop       controllerProperty
+	rejected   bool
+}
+
+type gcHIDDeviceLookup struct {
+	hidDeviceRegistryIDs []uint64
+	// lookupComplete reports whether the HID device lookup needs no further retries.
+	lookupComplete bool
+}
+
+type nativeGamepadsGC struct {
+	// controllersToAdd and controllersToRemove hold one reference per entry, which update releases or
+	// hands over to the gamepad.
+	controllersToAdd    []gcControllerToAdd
+	controllersToRemove []uintptr
+	controllersMu       sync.Mutex
+
+	// rejectedControllerHIDLookups maps rejected GC controllers to their HID device lookup results,
+	// holding one reference per controller until disconnection.
+	rejectedControllerHIDLookups map[uintptr]gcHIDDeviceLookup
+}
+
+// theGCGamepads is the running GameController backend. The notification blocks reference it
+// directly, as theGamepads.native is a composite backend rather than this one.
+var theGCGamepads *nativeGamepadsGC
 
 func newNativeGamepadsGC() nativeGamepads {
 	return &nativeGamepadsGC{}
 }
 
-func (*nativeGamepadsGC) init(gamepads *gamepads) error {
+func (g *nativeGamepadsGC) init(gamepads *gamepads) error {
+	theGCGamepads = g
+
 	initializeGCGamepads()
 	return nil
 }
 
-func (*nativeGamepadsGC) update(gamepads *gamepads) error {
+func (g *nativeGamepadsGC) update(gamepads *gamepads) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	g.controllersMu.Lock()
+	defer g.controllersMu.Unlock()
+
+	for _, c := range g.controllersToAdd {
+		if c.rejected {
+			if _, ok := g.rejectedControllerHIDLookups[c.controller]; ok {
+				objc.ID(c.controller).Send(sel_release)
+				continue
+			}
+			if g.rejectedControllerHIDLookups == nil {
+				g.rejectedControllerHIDLookups = map[uintptr]gcHIDDeviceLookup{}
+			}
+			g.rejectedControllerHIDLookups[c.controller] = gcHIDDeviceLookup{}
+			continue
+		}
+		gamepads.addGCGamepad(c.controller, c.prop)
+	}
+	for _, controller := range g.controllersToRemove {
+		if _, ok := g.rejectedControllerHIDLookups[controller]; ok {
+			delete(g.rejectedControllerHIDLookups, controller)
+			// Release the reference retained by addController and held by rejectedControllerHIDLookups.
+			objc.ID(controller).Send(sel_release)
+		}
+		gamepads.removeGCGamepad(controller)
+		// Release the separate reference retained by removeController for the removal queue.
+		objc.ID(controller).Send(sel_release)
+	}
+	g.controllersToAdd = g.controllersToAdd[:0]
+	g.controllersToRemove = g.controllersToRemove[:0]
+	for controller, rejected := range g.rejectedControllerHIDLookups {
+		if !rejected.lookupComplete {
+			rejected.hidDeviceRegistryIDs, rejected.lookupComplete = gcHIDDeviceRegistryIDs(objc.ID(controller))
+			g.rejectedControllerHIDLookups[controller] = rejected
+		}
+	}
 	return nil
 }
 
 type nativeGamepadGC struct {
 	controller           uintptr
 	buttonMask           uint32
-	hasDualshockTouchpad bool
+	hasDualShockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
 	leftMotor            *rumbleMotor
 	rightMotor           *rumbleMotor
 	vibEnd               time.Time
+	cleanup              runtime.Cleanup
 
 	axes    []float64
 	buttons []bool
 	hats    []int
 }
 
+// close releases g's native resources. close can be called multiple times.
+func (g *nativeGamepadGC) close() {
+	g.cleanup.Stop()
+	releaseGCRumbleMotor(g.leftMotor)
+	releaseGCRumbleMotor(g.rightMotor)
+	g.leftMotor = nil
+	g.rightMotor = nil
+	if g.controller != 0 {
+		objc.ID(g.controller).Send(sel_release)
+		g.controller = 0
+	}
+}
+
 func (g *nativeGamepadGC) update(gamepad *gamepads) error {
+	// The extendedGamepad and physicalInputProfile getters return autoreleased objects, and the
+	// gamepad update does not run inside an autorelease pool. The pool is safe here only because the
+	// update goroutine is locked to an OS thread.
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	g.updateGCGamepad()
 	if !g.vibEnd.IsZero() && time.Since(g.vibEnd) >= 0 {
 		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)
@@ -116,6 +211,9 @@ func (g *nativeGamepadGC) hatState(hat int) int {
 }
 
 func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		g.vibEnd = time.Time{}
 		vibrateGCGamepad(g.leftMotor, g.rightMotor, 0, 0)
@@ -123,4 +221,14 @@ func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float6
 	}
 	g.vibEnd = time.Now().Add(duration)
 	vibrateGCGamepad(g.leftMotor, g.rightMotor, strongMagnitude, weakMagnitude)
+}
+
+// isKnownRejectedHIDDevice reports whether the device is known to belong to a rejected GC controller.
+func (g *nativeGamepadsGC) isKnownRejectedHIDDevice(id uint64) bool {
+	for _, rejected := range g.rejectedControllerHIDLookups {
+		if slices.Contains(rejected.hidDeviceRegistryIDs, id) {
+			return true
+		}
+	}
+	return false
 }

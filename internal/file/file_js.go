@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"sync"
 	"syscall/js"
 	"time"
 )
@@ -89,13 +90,13 @@ func (f *FileEntryFS) Open(name string) (fs.File, error) {
 		})
 		defer cbFailure.Release()
 
-		chEntry = make(chan js.Value)
+		chEntry = make(chan js.Value, 1)
 		ent.Call("getFile", name, nil, cbSuccess, cbFailure)
 		if entry := <-chEntry; entry.Truthy() {
 			return &file{entry: entry}, nil
 		}
 
-		chEntry = make(chan js.Value)
+		chEntry = make(chan js.Value, 1)
 		ent.Call("getDirectory", name, nil, cbSuccess, cbFailure)
 		if entry := <-chEntry; entry.Truthy() {
 			return &dir{
@@ -171,39 +172,82 @@ type file struct {
 	file       js.Value
 	offset     int64
 	uint8Array js.Value
+
+	// mu guards the lazily fetched values and the offset. It is held even while a helper waits for
+	// a JavaScript callback: the callbacks run on the syscall/js callback goroutine and never take
+	// mu, so waiting under it cannot deadlock, and it is what makes a concurrent caller reuse the
+	// fetched value instead of fetching it again.
+	mu sync.Mutex
 }
 
-func getFile(entry js.Value) js.Value {
-	ch := make(chan js.Value, 1)
-	cb := js.FuncOf(func(this js.Value, args []js.Value) any {
-		ch <- args[0]
+func getFile(entry js.Value) (js.Value, error) {
+	chFile := make(chan js.Value, 1)
+	cbSuccess := js.FuncOf(func(this js.Value, args []js.Value) any {
+		chFile <- args[0]
 		return nil
 	})
-	defer cb.Release()
+	defer cbSuccess.Release()
 
-	entry.Call("file", cb)
-	return <-ch
+	chError := make(chan js.Value, 1)
+	cbFailure := js.FuncOf(func(this js.Value, args []js.Value) any {
+		chError <- args[0]
+		return nil
+	})
+	defer cbFailure.Release()
+
+	entry.Call("file", cbSuccess, cbFailure)
+	select {
+	case v := <-chFile:
+		return v, nil
+	case err := <-chError:
+		return js.Value{}, &fs.PathError{
+			Op:   "stat",
+			Path: entry.Get("name").String(),
+			Err:  errors.New(err.Call("toString").String()),
+		}
+	}
 }
 
-func (f *file) ensureFile() js.Value {
+// ensureFileLocked returns the JS File of the entry.
+//
+// The caller must hold f.mu.
+func (f *file) ensureFileLocked() (js.Value, error) {
 	if f.file.Truthy() {
-		return f.file
+		return f.file, nil
 	}
-
-	f.file = getFile(f.entry)
-	return f.file
+	v, err := getFile(f.entry)
+	if err != nil {
+		return js.Value{}, err
+	}
+	f.file = v
+	return f.file, nil
 }
 
 func (f *file) Stat() (fs.FileInfo, error) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	v, err := f.ensureFileLocked()
+	if err != nil {
+		return nil, err
+	}
 	return &fileInfo{
 		name: f.entry.Get("name").String(),
-		file: f.ensureFile(),
+		file: v,
 	}, nil
 }
 
-func (f *file) ensureUint8Array() (js.Value, error) {
+// ensureUint8ArrayLocked returns the contents of the file as a Uint8Array.
+//
+// The caller must hold f.mu.
+func (f *file) ensureUint8ArrayLocked() (js.Value, error) {
 	if f.uint8Array.Truthy() {
 		return f.uint8Array, nil
+	}
+
+	v, err := f.ensureFileLocked()
+	if err != nil {
+		return js.Value{}, err
 	}
 
 	chArrayBuffer := make(chan js.Value, 1)
@@ -220,7 +264,7 @@ func (f *file) ensureUint8Array() (js.Value, error) {
 	})
 	defer cbCatch.Release()
 
-	f.ensureFile().Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
+	v.Call("arrayBuffer").Call("then", cbThen).Call("catch", cbCatch)
 	select {
 	case ab := <-chArrayBuffer:
 		f.uint8Array = js.Global().Get("Uint8Array").New(ab)
@@ -232,7 +276,10 @@ func (f *file) ensureUint8Array() (js.Value, error) {
 }
 
 func (f *file) Read(buf []byte) (int, error) {
-	uint8Array, err := f.ensureUint8Array()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	uint8Array, err := f.ensureUint8ArrayLocked()
 	if err != nil {
 		return 0, err
 	}
@@ -257,7 +304,10 @@ func (f *file) Read(buf []byte) (int, error) {
 }
 
 func (f *file) readAll() ([]byte, error) {
-	uint8Array, err := f.ensureUint8Array()
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	uint8Array, err := f.ensureUint8ArrayLocked()
 	if err != nil {
 		return nil, err
 	}
@@ -283,6 +333,7 @@ type dir struct {
 	dirEntries  []js.Value
 	fileEntries []js.Value
 	offset      int
+	mu          sync.Mutex
 }
 
 func (d *dir) Stat() (fs.FileInfo, error) {
@@ -304,15 +355,21 @@ func (d *dir) Close() error {
 }
 
 func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.fileEntries == nil {
+		// The callbacks below run on another goroutine. fileEntries is published to d only after
+		// the channel delivers the result, so that d's fields are written by this goroutine alone.
+		var fileEntries []js.Value
 		names := map[string]struct{}{}
 		for _, dirEntry := range d.dirEntries {
-			ch := make(chan struct{})
+			ch := make(chan error, 1)
 			var rec js.Func
 			cb := js.FuncOf(func(this js.Value, args []js.Value) any {
 				entries := args[0]
 				if entries.Length() == 0 {
-					close(ch)
+					ch <- nil
 					return nil
 				}
 				for i := 0; i < entries.Length(); i++ {
@@ -329,7 +386,7 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 					if !ent.Get("isFile").Bool() && !ent.Get("isDirectory").Bool() {
 						continue
 					}
-					d.fileEntries = append(d.fileEntries, ent)
+					fileEntries = append(fileEntries, ent)
 					names[name] = struct{}{}
 				}
 				rec.Value.Call("call")
@@ -337,16 +394,29 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 			})
 			defer cb.Release()
 
+			cbFailure := js.FuncOf(func(this js.Value, args []js.Value) any {
+				ch <- errors.New(args[0].Call("toString").String())
+				return nil
+			})
+			defer cbFailure.Release()
+
 			reader := dirEntry.Call("createReader")
 			rec = js.FuncOf(func(this js.Value, args []js.Value) any {
-				reader.Call("readEntries", cb)
+				reader.Call("readEntries", cb, cbFailure)
 				return nil
 			})
 			defer rec.Release()
 
 			rec.Value.Call("call")
-			<-ch
+			if err := <-ch; err != nil {
+				return nil, &fs.PathError{
+					Op:   "readdir",
+					Path: d.name,
+					Err:  err,
+				}
+			}
 		}
+		d.fileEntries = fileEntries
 	}
 
 	n := len(d.fileEntries) - d.offset
@@ -369,7 +439,11 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 			name: entry.Get("name").String(),
 		}
 		if entry.Get("isFile").Bool() {
-			fi.file = getFile(entry)
+			v, err := getFile(entry)
+			if err != nil {
+				return nil, err
+			}
+			fi.file = v
 		}
 		ents[i] = fs.FileInfoToDirEntry(fi)
 	}

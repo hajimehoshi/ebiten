@@ -473,6 +473,10 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		return inputErrorX11(VersionUnavailable, "GLX: Failed to create context")
 	}
 
+	// Set the destroy function as soon as the context exists so that an error
+	// in the remaining steps still releases it.
+	window.context.destroy = destroyContextGLX
+
 	window.context.platform.glx.window =
 		glx.CreateWindow(_glfw.platformWindow.display, native, window.platform.handle, nil)
 	if window.context.platform.glx.window == 0 {
@@ -484,7 +488,6 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	window.context.swapInterval = swapIntervalGLX
 	window.context.extensionSupported = extensionSupportedGLX
 	window.context.getProcAddress = getProcAddressGLX
-	window.context.destroy = destroyContextGLX
 
 	return nil
 }

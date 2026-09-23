@@ -42,11 +42,12 @@ func (i *image12) ID() graphicsdriver.ImageID {
 }
 
 func (i *image12) Dispose() {
-	// Dipose the images later as this image might still be used.
+	// Dispose the image later as this image might still be used.
 	i.graphics.removeImage(i)
 }
 
 func (i *image12) disposeImpl() {
+	i.releaseUploadingStagingBuffers()
 	if i.rtvDescriptorHeap != nil {
 		i.rtvDescriptorHeap.Release()
 		i.rtvDescriptorHeap = nil
@@ -288,7 +289,7 @@ func (i *image12) setAsRenderTarget(drawCommandList *_ID3D12GraphicsCommandList,
 			return err
 		}
 		rtv.Offset(int32(i.graphics.backBufferIndex), i.graphics.rtvDescriptorSize)
-		drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
+		drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false)
 		return nil
 	}
 
@@ -297,7 +298,7 @@ func (i *image12) setAsRenderTarget(drawCommandList *_ID3D12GraphicsCommandList,
 		return err
 	}
 
-	drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false, nil)
+	drawCommandList.OMSetRenderTargets([]_D3D12_CPU_DESCRIPTOR_HANDLE{rtv}, false)
 	return nil
 }
 

@@ -16,10 +16,13 @@ package gamepad
 
 import (
 	"math"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
 	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 )
 
 // rumbleMotor manages a CoreHaptics engine and player for vibration.
@@ -55,10 +58,8 @@ var (
 	sel_initWithEventType_parameters_relativeTime_duration objc.SEL
 	sel_initWithEvents_parameters_error                    objc.SEL
 	sel_initWithParameterID_value_relativeTime             objc.SEL
-	sel_release                                            objc.SEL
-	sel_retain                                             objc.SEL
 	sel_init                                               objc.SEL
-	sel_arrayWithObjects_count                             objc.SEL
+	sel_initWithObjects_count                              objc.SEL
 	sel_array                                              objc.SEL
 )
 
@@ -110,10 +111,8 @@ func init() {
 	sel_initWithEventType_parameters_relativeTime_duration = objc.RegisterName("initWithEventType:parameters:relativeTime:duration:")
 	sel_initWithEvents_parameters_error = objc.RegisterName("initWithEvents:parameters:error:")
 	sel_initWithParameterID_value_relativeTime = objc.RegisterName("initWithParameterID:value:relativeTime:")
-	sel_release = objc.RegisterName("release")
-	sel_retain = objc.RegisterName("retain")
 	sel_init = objc.RegisterName("init")
-	sel_arrayWithObjects_count = objc.RegisterName("arrayWithObjects:count:")
+	sel_initWithObjects_count = objc.RegisterName("initWithObjects:count:")
 	sel_array = objc.RegisterName("array")
 
 	// Load string constants from GameController framework.
@@ -154,6 +153,12 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 		return nil
 	}
 
+	// The framework hands back autoreleased objects (the haptics, the localities, the engine, and the
+	// player), and the gamepad update does not run inside an autorelease pool. The pool is safe here
+	// only because the update goroutine is locked to an OS thread.
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	controllerObj := objc.ID(controller)
 	haptics := controllerObj.Send(sel_haptics)
 	if haptics == 0 {
@@ -182,7 +187,7 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 
 	// Start the engine.
 	var nsError objc.ID
-	engine.Send(sel_startAndReturnError, uintptr(unsafe.Pointer(&nsError)))
+	engine.Send(sel_startAndReturnError, unsafe.Pointer(&nsError))
 	if nsError != 0 {
 		return nil
 	}
@@ -205,6 +210,7 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 		float64(gcHapticDurationInfinite), // duration (NSTimeInterval)
 	)
 	intensityParam.Send(sel_release)
+	paramArray.Send(sel_release)
 
 	// Create pattern.
 	eventArray := makeNSArray(event)
@@ -215,9 +221,10 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 		sel_initWithEvents_parameters_error,
 		eventArray,
 		emptyArray,
-		uintptr(unsafe.Pointer(&nsError)),
+		unsafe.Pointer(&nsError),
 	)
 	event.Send(sel_release)
+	eventArray.Send(sel_release)
 	if nsError != 0 {
 		if pattern != 0 {
 			pattern.Send(sel_release)
@@ -228,23 +235,25 @@ func createGCRumbleMotor(controller uintptr, which int) *rumbleMotor {
 
 	// Create player.
 	nsError = 0
-	player := engine.Send(sel_createPlayerWithPattern_error, pattern, uintptr(unsafe.Pointer(&nsError)))
+	player := engine.Send(sel_createPlayerWithPattern_error, pattern, unsafe.Pointer(&nsError))
 	pattern.Send(sel_release)
 	if nsError != 0 {
 		engine.Send(sel_stopWithCompletionHandler, uintptr(0))
 		return nil
 	}
 
+	// engine and player are autoreleased. Retain them so that the motor owns one reference to each.
 	return &rumbleMotor{
 		engine: engine.Send(sel_retain),
 		player: player.Send(sel_retain),
 	}
 }
 
-// makeNSArray creates an NSArray containing a single object.
+// makeNSArray creates an NSArray containing a single object. The caller owns the returned array
+// and must release it.
 func makeNSArray(obj objc.ID) objc.ID {
 	objects := [1]uintptr{uintptr(obj)}
-	return objc.ID(class_NSArray).Send(sel_arrayWithObjects_count, uintptr(unsafe.Pointer(&objects[0])), 1)
+	return objc.ID(class_NSArray).Send(sel_alloc).Send(sel_initWithObjects_count, unsafe.Pointer(&objects[0]), 1)
 }
 
 func releaseGCRumbleMotor(motor *rumbleMotor) {
@@ -255,9 +264,18 @@ func releaseGCRumbleMotor(motor *rumbleMotor) {
 		return
 	}
 
+	// The pool must be pushed and popped on the same OS thread. The gamepad update runs on a locked
+	// thread, but the cleanup of a collected gamepad runs on a runtime goroutine that is not, so lock
+	// the thread here. The lock nests when the caller already holds one.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	if motor.active {
 		var nsError objc.ID
-		motor.player.Send(sel_stopAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
+		motor.player.Send(sel_stopAtTime_error, float64(0), unsafe.Pointer(&nsError))
 	}
 	motor.engine.Send(sel_stopWithCompletionHandler, uintptr(0))
 	motor.player.Send(sel_release)
@@ -278,11 +296,13 @@ func vibrateMotor(motor *rumbleMotor, intensity float64) {
 		return
 	}
 
+	// vibrateMotor can run on any goroutine, so it must not use an autorelease pool, and every object
+	// created here is owned and released explicitly.
 	var nsError objc.ID
 
 	if intensity <= 0 {
 		if motor.active {
-			motor.player.Send(sel_stopAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
+			motor.player.Send(sel_stopAtTime_error, float64(0), unsafe.Pointer(&nsError))
 			motor.active = false
 		}
 	} else {
@@ -294,10 +314,11 @@ func vibrateMotor(motor *rumbleMotor, intensity float64) {
 			float64(0), // relativeTime
 		)
 		paramArray := makeNSArray(param)
-		motor.player.Send(sel_sendParameters_atTime_error, paramArray, float64(0), uintptr(unsafe.Pointer(&nsError)))
+		motor.player.Send(sel_sendParameters_atTime_error, paramArray, float64(0), unsafe.Pointer(&nsError))
 		param.Send(sel_release)
+		paramArray.Send(sel_release)
 		if !motor.active {
-			motor.player.Send(sel_startAtTime_error, float64(0), uintptr(unsafe.Pointer(&nsError)))
+			motor.player.Send(sel_startAtTime_error, float64(0), unsafe.Pointer(&nsError))
 			motor.active = true
 		}
 	}

@@ -20,7 +20,7 @@ import (
 )
 
 // ManagedBytes is a managed byte slice.
-// The internal byte alice are managed in a pool.
+// The internal byte slices are managed in a pool.
 // ManagedBytes is useful when its lifetime is explicit, as the underlying byte slice can be reused for another ManagedBytes later.
 // This can reduce allocations and GCs.
 type ManagedBytes struct {
@@ -34,7 +34,7 @@ func (m *ManagedBytes) Len() int {
 	return len(m.bytes)
 }
 
-// Read reads the byte slice's content to dst.
+// Read reads the byte slice's content into dst.
 func (m *ManagedBytes) Read(dst []byte, from, to int) {
 	copy(dst, m.bytes[from:to])
 }
@@ -71,7 +71,7 @@ func (m *ManagedBytes) Release() {
 
 // NewManagedBytes returns a managed byte slice initialized by the given constructor f.
 //
-// The byte slice is not zero-cleared at the constructor.
+// The byte slice is not zero-cleared by the constructor.
 func NewManagedBytes(size int, f func([]byte)) *ManagedBytes {
 	bs := theBytesPool.get(size)
 	f(bs.bytes)
@@ -138,7 +138,7 @@ func (b *bytesPool) put(bs []byte) {
 func (b *bytesPool) totalSize() int {
 	var s int
 	for _, bs := range b.pool {
-		s += len(bs)
+		s += cap(bs)
 	}
 	return s
 }

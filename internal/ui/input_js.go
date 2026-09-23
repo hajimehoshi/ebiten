@@ -26,25 +26,20 @@ var (
 	stringMeta    = js.ValueOf("Meta")
 	stringShift   = js.ValueOf("Shift")
 
-	stringKeydown    = js.ValueOf("keydown")
-	stringKeyup      = js.ValueOf("keyup")
-	stringMousedown  = js.ValueOf("mousedown")
-	stringMouseup    = js.ValueOf("mouseup")
-	stringMousemove  = js.ValueOf("mousemove")
-	stringWheel      = js.ValueOf("wheel")
-	stringTouchstart = js.ValueOf("touchstart")
-	stringTouchend   = js.ValueOf("touchend")
-	stringTouchmove  = js.ValueOf("touchmove")
+	stringKeydown     = js.ValueOf("keydown")
+	stringKeyup       = js.ValueOf("keyup")
+	stringMousedown   = js.ValueOf("mousedown")
+	stringMouseup     = js.ValueOf("mouseup")
+	stringMousemove   = js.ValueOf("mousemove")
+	stringWheel       = js.ValueOf("wheel")
+	stringTouchstart  = js.ValueOf("touchstart")
+	stringTouchend    = js.ValueOf("touchend")
+	stringTouchmove   = js.ValueOf("touchmove")
+	stringTouchcancel = js.ValueOf("touchcancel")
 
 	stringCapsLock = js.ValueOf("CapsLock")
 	stringNumLock  = js.ValueOf("NumLock")
 )
-
-type touchInClient struct {
-	id TouchID
-	x  float64
-	y  float64
-}
 
 func jsCodeToID(code js.Value) Key {
 	// js.Value cannot be used as a map key.
@@ -74,7 +69,7 @@ func eventToKeys(e js.Value) (key0, key1 Key) {
 	// With a virtual keyboard on mobile devices, e.code is empty. Use a 'key' property instead (#2898).
 	key := e.Get("key")
 
-	// The key property doesn't distinghlish between left and right modifier keys.
+	// The key property doesn't distinguish between left and right modifier keys.
 	// Let's assume both keys are pressed.
 	switch {
 	case key.Equal(stringAlt):
@@ -101,7 +96,7 @@ func (u *UserInterface) keyDown(event js.Value) {
 	if event.Get("repeat").Bool() {
 		return
 	}
-	now := u.InputTime()
+	now := u.inputState.nextInputTime()
 	key0, key1 := eventToKeys(event)
 	if key0 >= 0 {
 		u.inputState.setKeyPressed(key0, now)
@@ -112,7 +107,7 @@ func (u *UserInterface) keyDown(event js.Value) {
 }
 
 func (u *UserInterface) keyUp(event js.Value) {
-	now := u.InputTime()
+	now := u.inputState.nextInputTime()
 	key0, key1 := eventToKeys(event)
 	if key0 >= 0 {
 		u.inputState.setKeyReleased(key0, now)
@@ -123,11 +118,19 @@ func (u *UserInterface) keyUp(event js.Value) {
 }
 
 func (u *UserInterface) mouseDown(code int) {
-	u.inputState.setMouseButtonPressed(codeToMouseButton[code], u.InputTime())
+	b, ok := codeToMouseButton[code]
+	if !ok {
+		return
+	}
+	u.inputState.setMouseButtonPressed(b, u.inputState.nextInputTime())
 }
 
 func (u *UserInterface) mouseUp(code int) {
-	u.inputState.setMouseButtonReleased(codeToMouseButton[code], u.InputTime())
+	b, ok := codeToMouseButton[code]
+	if !ok {
+		return
+	}
+	u.inputState.setMouseButtonReleased(b, u.inputState.nextInputTime())
 }
 
 func (u *UserInterface) updateInputFromEvent(e js.Value) error {
@@ -153,10 +156,31 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	case t.Equal(stringMousemove):
 		u.setMouseCursorFromEvent(e)
 	case t.Equal(stringWheel):
-		// TODO: What if e.deltaMode is not DOM_DELTA_PIXEL?
-		u.inputState.WheelX += -e.Get("deltaX").Float()
-		u.inputState.WheelY += -e.Get("deltaY").Float()
-	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove):
+		dx := -e.Get("deltaX").Float()
+		dy := -e.Get("deltaY").Float()
+		u.inputState.WheelX += dx
+		u.inputState.WheelY += dy
+
+		// deltaMode indicates the unit of deltaX and deltaY.
+		const (
+			domDeltaPixel = 0
+			domDeltaLine  = 1
+			domDeltaPage  = 2
+		)
+		switch e.Get("deltaMode").Int() {
+		case domDeltaPixel:
+			// CSS pixels are device-independent pixels.
+			u.inputState.ScrollDeltaX += dx
+			u.inputState.ScrollDeltaY += dy
+		case domDeltaLine:
+			u.inputState.ScrollDeltaX += dx * pixelsPerScrollLine
+			u.inputState.ScrollDeltaY += dy * pixelsPerScrollLine
+		case domDeltaPage:
+			window := js.Global().Get("window")
+			u.inputState.ScrollDeltaX += dx * window.Get("innerWidth").Float()
+			u.inputState.ScrollDeltaY += dy * window.Get("innerHeight").Float()
+		}
+	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove) || t.Equal(stringTouchcancel):
 		u.updateTouchesFromEvent(e)
 	}
 
@@ -198,12 +222,13 @@ func (u *UserInterface) recoverCursorPosition() {
 
 func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
 	u.touchesInClient = u.touchesInClient[:0]
+	u.touchIDs.nextTouches()
 
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {
 		t := touches.Call("item", i)
 		u.touchesInClient = append(u.touchesInClient, touchInClient{
-			id: TouchID(t.Get("identifier").Int()),
+			id: u.touchIDs.id(t.Get("identifier").Int()),
 			x:  t.Get("clientX").Float(),
 			y:  t.Get("clientY").Float(),
 		})
@@ -312,8 +337,8 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 
 	if !math.IsNaN(u.savedCursorX) && !math.IsNaN(u.savedCursorY) {
 		// If savedCursorX and savedCursorY are valid values, the cursor is saved just before entering or exiting from fullscreen.
-		// Even after entering or exiting from fullscreening, the outside (body) size is not updated for a while.
-		// Wait for the outside size updated.
+		// Even after entering or exiting from fullscreen, the outside (body) size is not updated for a while.
+		// Wait for the outside size to be updated.
 		if w, h := u.outsideSize(); u.savedOutsideWidth != w || u.savedOutsideHeight != h {
 			u.inputState.CursorX = u.savedCursorX
 			u.inputState.CursorY = u.savedCursorY

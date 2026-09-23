@@ -20,6 +20,8 @@
 
 extern "C" ebitengine_Error ebitengine_InitializeGraphics(void) { return {}; }
 
+extern "C" int ebitengine_MaxImageSize(void) { return 0; }
+
 extern "C" ebitengine_Error ebitengine_NewImage(int *image, int width,
                                                 int height) {
   return {};

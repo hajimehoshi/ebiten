@@ -15,7 +15,6 @@
 package ebitenmobileview
 
 import (
-	"fmt"
 	"unicode"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -35,7 +34,9 @@ func init() {
 // dispatchKeyPress records a key press, and its release, for a key the platform
 // text editor received instead of the game's view.
 func dispatchKeyPress(key ui.Key) {
-	keyPressedTimes[key] = ui.Get().InputTime()
+	inputMu.Lock()
+	defer inputMu.Unlock()
+	setKeyPressed(key)
 	setKeyReleased(key)
 	updateInput(nil)
 }
@@ -43,13 +44,17 @@ func dispatchKeyPress(key ui.Key) {
 // dispatchKeyDown records a key press for a key the platform text editor
 // received instead of the game's view.
 func dispatchKeyDown(key ui.Key) {
-	keyPressedTimes[key] = ui.Get().InputTime()
+	inputMu.Lock()
+	defer inputMu.Unlock()
+	setKeyPressed(key)
 	updateInput(nil)
 }
 
 // dispatchKeyUp records a key release for a key the platform text editor
 // received instead of the game's view.
 func dispatchKeyUp(key ui.Key) {
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	setKeyReleased(key)
 	updateInput(nil)
 }
@@ -70,29 +75,35 @@ func getIDFromPtr(ptr int64) int {
 }
 
 func UpdateTouchesOnIOS(phase int, ptr int64, x, y float64) {
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	switch phase {
 	case C.UITouchPhaseBegan, C.UITouchPhaseMoved, C.UITouchPhaseStationary:
 		id := getIDFromPtr(ptr)
-		touches[ui.TouchID(id)] = position{x, y}
+		touches[id] = position{x, y}
 		updateInput(nil)
 	case C.UITouchPhaseEnded, C.UITouchPhaseCancelled:
 		id := getIDFromPtr(ptr)
 		delete(ptrToID, ptr)
-		delete(touches, ui.TouchID(id))
+		delete(touches, id)
 		updateInput(nil)
+	case C.UITouchPhaseRegionEntered, C.UITouchPhaseRegionMoved, C.UITouchPhaseRegionExited:
+		// A region phase reports hovering over the view without contact.
 	default:
-		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
+		// UIKit can add phases: ignore unknown ones instead of crashing.
 	}
 }
 
 func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags int) {
+	inputMu.Lock()
+	defer inputMu.Unlock()
 	// TODO: If a key is kept pressed, ignore the repeated key events.
 	// There seems no way to check whether a key event is a repeated event or not so far.
 	updateLockKeys(modifierFlags)
 
 	switch phase {
 	case C.UIPressPhaseStationary:
-		// keyPressedTimes represents the time when a key is first pressed.
+		// A stationary key does not produce a new press.
 		// Do nothing here.
 	case C.UIPressPhaseBegan:
 		if ui.Get().IsKeyPressForComposition() {
@@ -101,16 +112,14 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 			return
 		}
 		if key, ok := iosKeyToUIKey[keyCode]; ok {
-			keyPressedTimes[key] = ui.Get().InputTime()
+			setKeyPressed(key)
 		}
 		var runes []rune
-		if phase == C.UITouchPhaseBegan {
-			for _, r := range keyString {
-				if !unicode.IsPrint(r) {
-					continue
-				}
-				runes = append(runes, r)
+		for _, r := range keyString {
+			if !unicode.IsPrint(r) {
+				continue
 			}
+			runes = append(runes, r)
 		}
 		updateInput(runes)
 	case C.UIPressPhaseEnded, C.UIPressPhaseCancelled:
@@ -119,7 +128,8 @@ func UpdatePressesOnIOS(phase int, keyCode int, keyString string, modifierFlags 
 		}
 		updateInput(nil)
 	default:
-		panic(fmt.Sprintf("ebitenmobileview: invalid phase: %d", phase))
+		// UIKit can add phases like UIPressPhaseChanged, which reports a force
+		// change rather than a new key: ignore unknown ones instead of crashing.
 	}
 }
 

@@ -21,8 +21,10 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/legacyshader"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -111,5 +113,72 @@ func TestGCShader(t *testing.T) {
 	diff := atlas.DeferredFuncCountForTesting() - c
 	if got, want := diff, 1; got != want {
 		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
+
+func TestGCShaderRemovesRegistryEntry(t *testing.T) {
+	const w, h = 1, 1
+	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, w, h)
+
+	// Ensure other objects are GCed, so that the base count is stable.
+	ensureGC()
+	base := atlas.ShaderCountWithInternalShaderForTesting()
+
+	const count = 10
+	shaders := make([]*atlas.Shader, 0, count)
+	for range count {
+		s := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff), "")
+		// Use the shader to initialize its internal shader.
+		vs := quadVertices(w, h, 0, 0, 1)
+		dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil)
+		shaders = append(shaders, s)
+	}
+
+	if got, want := atlas.ShaderCountWithInternalShaderForTesting(), base+count; got != want {
+		t.Errorf("shader count: got: %d, want: %d", got, want)
+	}
+
+	// Drop the references and let the shaders be collected.
+	shaders = nil
+	ensureGC()
+
+	if got, want := atlas.ShaderCountWithInternalShaderForTesting(), base; got != want {
+		t.Errorf("shader count after GC: got: %d, want: %d", got, want)
+	}
+}
+
+func TestBuiltinShaderSourceIDs(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		src    []byte
+		shader *atlas.Shader
+	}{
+		{
+			name:   "nearest",
+			src:    builtinshader.ShaderSource(builtinshader.FilterNearest, builtinshader.AddressUnsafe),
+			shader: atlas.NearestFilterShader,
+		},
+		{
+			name:   "linear",
+			src:    builtinshader.ShaderSource(builtinshader.FilterLinear, builtinshader.AddressUnsafe),
+			shader: atlas.LinearFilterShader,
+		},
+		{
+			name:   "clear",
+			src:    []byte(builtinshader.ClearShaderSource),
+			shader: atlas.ClearShaderForTesting(),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			want, err := legacyshader.CalcSourceID(tc.src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := tc.shader.SourceIDForTesting(); got != want {
+				t.Errorf("source ID: got: %s, want: %s", got, want)
+			}
+		})
 	}
 }

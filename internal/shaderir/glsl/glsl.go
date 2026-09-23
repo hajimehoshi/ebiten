@@ -32,7 +32,7 @@ const (
 	GLSLVersionES300
 )
 
-// utilFunctions is GLSL utility functions for old GLSL versions.
+// utilFunctions contains GLSL utility functions for old GLSL versions.
 const utilFunctions = `int modInt(int x, int y) {
 	return x - y*(x/y);
 }
@@ -148,7 +148,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 		if p.VertexFunc.Block != nil {
 			funcs = p.ReachableFuncsFromBlock(p.VertexFunc.Block)
 		} else {
-			// When a vertex entry point is not defined, allow to put all the functions. This is useful for testing.
+			// When a vertex entry point is not defined, allow putting all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
 				funcs = append(funcs, &f)
@@ -233,7 +233,7 @@ func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentSh
 		if p.VertexFunc.Block != nil {
 			funcs = p.ReachableFuncsFromBlock(p.FragmentFunc.Block)
 		} else {
-			// When a fragment entry point is not defined, allow to put all the functions. This is useful for testing.
+			// When a fragment entry point is not defined, allow putting all the functions. This is useful for testing.
 			funcs = make([]*shaderir.Func, 0, len(p.Funcs))
 			for _, f := range p.Funcs {
 				funcs = append(funcs, &f)
@@ -338,7 +338,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
 		t0, t1 := c.typ(p, t)
-		panic(fmt.Sprintf("?(unexpected type: %s%s)", t0, t1))
+		panic(fmt.Sprintf("glsl: unexpected type: %s%s", t0, t1))
 	}
 }
 
@@ -385,7 +385,7 @@ func constantToNumberLiteral(v constant.Value) string {
 		return fmt.Sprintf("%d", x)
 	case constant.Float:
 		x, _ := constant.Float64Val(v)
-		if i := math.Floor(x); i == x {
+		if i := math.Floor(x); i == x && math.Abs(x) < 1<<63 {
 			return fmt.Sprintf("%d.0", int64(i))
 		}
 		return fmt.Sprintf("%.10e", x)
@@ -608,7 +608,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			switch {
 			case topBlock == p.FragmentFunc.Block:
 				lines = append(lines, fmt.Sprintf("%sfragColor = %s;", idt, expr(&s.Exprs[0])))
-				// The 'return' statement is not required so far, as the fragment entrypoint has only one sentence so far. See adjustProgram implementation.
+				// The 'return' statement is not required so far, as the fragment entry point has only one statement. See the adjustProgram implementation.
 			case len(s.Exprs) == 0:
 				lines = append(lines, idt+"return;")
 			default:
@@ -637,7 +637,7 @@ func adjustProgram(p *shaderir.Program) *shaderir.Program {
 	newP.Funcs = make([]shaderir.Func, len(p.Funcs))
 	copy(newP.Funcs, p.Funcs)
 
-	// Create a new function whose body is the same is the fragment shader's entry point.
+	// Create a new function whose body is the same as the fragment shader's entry point.
 	// The entry point will call this.
 	// This indirect call is needed for these issues:
 	// - Assignment to gl_FragColor doesn't work (#2245)

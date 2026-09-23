@@ -18,6 +18,7 @@ package fbdev
 
 import (
 	"fmt"
+	"structs"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -26,6 +27,7 @@ import (
 const _FBIOGET_VSCREENINFO = 0x4600
 
 type fbBitfield struct {
+	_        structs.HostLayout
 	offset   uint32
 	length   uint32
 	msbRight uint32
@@ -34,6 +36,7 @@ type fbBitfield struct {
 // fbVarScreeninfo mirrors the kernel's fb_var_screeninfo. The whole layout is
 // declared because the ioctl fills all of it.
 type fbVarScreeninfo struct {
+	_           structs.HostLayout
 	xres        uint32
 	yres        uint32
 	xresVirtual uint32

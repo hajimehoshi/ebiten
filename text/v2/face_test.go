@@ -16,6 +16,7 @@ package text_test
 
 import (
 	"bytes"
+	"slices"
 	"testing"
 
 	"golang.org/x/image/font/gofont/goregular"
@@ -64,6 +65,46 @@ func TestLimitedFaceAdvanceAtNewline(t *testing.T) {
 			if got != want {
 				t.Errorf("%q index %d: LimitedFace.AdvanceAt got: %v, want: %v", str, idx, got, want)
 			}
+		}
+	}
+}
+
+func TestLimitedFaceAppendLazyGlyphsIndicesInOriginalText(t *testing.T) {
+	base := limitedFaceTestFace(t)
+	l := text.NewLimitedFace(base)
+	l.AddUnicodeRange('a', 'd')
+
+	for _, tc := range []struct {
+		line string
+		want []string
+	}{
+		{"abc", []string{"a", "b", "c"}},
+		// A replaced rune is shorter or longer than U+FFFD (3 bytes).
+		{"aébc", []string{"a", "é", "b", "c"}},
+		{"a😀bc", []string{"a", "😀", "b", "c"}},
+		// The first rune is replaced.
+		{"éabc", []string{"é", "a", "b", "c"}},
+		// An invalid byte is replaced with U+FFFD.
+		{"a\xffbc", []string{"a", "\xff", "b", "c"}},
+		// An invalid byte (1 byte) follows a replaced rune.
+		{"é\xffbc", []string{"é", "\xff", "b", "c"}},
+		// A replaced rune follows an invalid byte (1 byte).
+		{"ab\xffé", []string{"a", "b", "\xff", "é"}},
+		// A literal U+FFFD is replaced with U+FFFD, so the filtered string
+		// equals the original one.
+		{"\ufffdabc", []string{"\ufffd", "a", "b", "c"}},
+		// The indices of the second line are offset by the first line.
+		{"aé\nbc", []string{"a", "é", "b", "c"}},
+	} {
+		var got []string
+		for _, g := range text.AppendLazyGlyphs(nil, tc.line, l, nil) {
+			if g.StartIndexInBytes < 0 || g.EndIndexInBytes < g.StartIndexInBytes || len(tc.line) < g.EndIndexInBytes {
+				t.Fatalf("%q: glyph indices [%d, %d) are out of range", tc.line, g.StartIndexInBytes, g.EndIndexInBytes)
+			}
+			got = append(got, tc.line[g.StartIndexInBytes:g.EndIndexInBytes])
+		}
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("%q: glyphs: got %q, want %q", tc.line, got, tc.want)
 		}
 	}
 }

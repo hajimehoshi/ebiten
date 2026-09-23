@@ -74,9 +74,9 @@ func (w *Window) inputChar(codepoint rune, mods ModifierKey, plain bool) {
 	}
 }
 
-func (w *Window) inputScroll(xoffset, yoffset float64) {
+func (w *Window) inputScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY float64, unit ScrollUnit) {
 	if w.callbacks.scroll != nil {
-		w.callbacks.scroll(w, xoffset, yoffset)
+		w.callbacks.scroll(w, wheelX, wheelY, scrollDeltaX, scrollDeltaY, unit)
 	}
 }
 

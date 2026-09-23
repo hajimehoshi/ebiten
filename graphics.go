@@ -24,10 +24,10 @@ import (
 type Filter int
 
 const (
-	// FilterNearest represents nearest (crisp-edged) filter
+	// FilterNearest represents the nearest (crisp-edged) filter.
 	FilterNearest Filter = Filter(builtinshader.FilterNearest)
 
-	// FilterLinear represents linear filter
+	// FilterLinear represents the linear filter.
 	FilterLinear Filter = Filter(builtinshader.FilterLinear)
 
 	// FilterPixelated represents a pixelated filter.
@@ -39,10 +39,10 @@ const (
 type GraphicsLibrary int
 
 const (
-	// GraphicsLibraryAuto represents the automatic choose of graphics library by Ebitengine.
+	// GraphicsLibraryAuto represents the automatic choice of graphics library by Ebitengine.
 	GraphicsLibraryAuto GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryAuto)
 
-	// GraphicsLibraryUnknown represents the state at which graphics library cannot be determined,
+	// GraphicsLibraryUnknown represents the state in which the graphics library cannot be determined,
 	// e.g. hasn't loaded yet or failed to initialize.
 	GraphicsLibraryUnknown GraphicsLibrary = GraphicsLibrary(ui.GraphicsLibraryUnknown)
 
@@ -68,7 +68,7 @@ func (g GraphicsLibrary) String() string {
 	return ui.GraphicsLibrary(g).String()
 }
 
-// Ensures GraphicsLibraryAuto is zero (the default value for RunOptions).
+// Ensures GraphicsLibraryAuto is zero (the default value for RunGameOptions).
 var _ [GraphicsLibraryAuto]int = [0]int{}
 
 // DebugInfo is a struct to store debug info about the graphics.

@@ -16,8 +16,10 @@ package vmhost_test
 
 import (
 	"bytes"
+	"net"
 	"os"
 	"os/exec"
+	"sync"
 	"testing"
 	"time"
 
@@ -84,4 +86,212 @@ func TestCloseShutsGuestDownCleanly(t *testing.T) {
 	if code := cmd.ProcessState.ExitCode(); code != 0 {
 		t.Errorf("the guest's exit code = %d; want 0", code)
 	}
+}
+
+func TestCloseIsNotDelayedByTheIdleTimeout(t *testing.T) {
+	skipIfVMUnsupported(t)
+
+	const idleTimeout = 10 * time.Second
+	const budget = time.Second
+
+	conn := newSilentConn()
+	guest, err := vmhost.NewGuestSession(conn, &vmhost.NewGuestSessionOptions{
+		IdleTimeout: idleTimeout,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := guest.SetOutsideScreen(ebiten.NewImage(320, 240)); err != nil {
+		t.Fatal(err)
+	}
+	<-conn.writing
+
+	closed := make(chan error, 1)
+	go func() {
+		closed <- guest.Close()
+	}()
+	<-conn.poked
+	conn.release()
+
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Errorf("closing the guest session failed: %v", err)
+		}
+	case <-time.After(budget):
+		t.Fatalf("Close did not return within %v; the deadline poke was overwritten by an idle-timeout refresh", budget)
+	}
+}
+
+// silentConn is a connection whose peer answers the handshake and then never speaks again, so a read on
+// it ends only when its read deadline expires. Its first write after the handshake blocks until release
+// is called, and its writes ignore deadlines.
+type silentConn struct {
+	// writing is closed once the first write after the handshake is entered, and poked once SetDeadline
+	// is called. released lets that write finish, and closed ends every wait.
+	writing  chan struct{}
+	poked    chan struct{}
+	released chan struct{}
+	closed   chan struct{}
+
+	writingOnce  sync.Once
+	pokedOnce    sync.Once
+	releasedOnce sync.Once
+	closedOnce   sync.Once
+
+	mu sync.Mutex
+	// handshake holds the preamble the session wrote, served back by Read as the peer's answer.
+	handshake     []byte
+	handshakeSent bool
+	// readDeadline is the deadline reads end at; changed is closed and replaced whenever it is set, so a
+	// blocked read observes the new one.
+	readDeadline time.Time
+	changed      chan struct{}
+}
+
+func newSilentConn() *silentConn {
+	return &silentConn{
+		writing:  make(chan struct{}),
+		poked:    make(chan struct{}),
+		released: make(chan struct{}),
+		closed:   make(chan struct{}),
+		changed:  make(chan struct{}),
+	}
+}
+
+// release lets the blocked write finish.
+func (c *silentConn) release() {
+	c.releasedOnce.Do(func() {
+		close(c.released)
+	})
+}
+
+func (c *silentConn) Write(p []byte) (int, error) {
+	if c.recordHandshake(p) {
+		return len(p), nil
+	}
+	c.writingOnce.Do(func() {
+		close(c.writing)
+	})
+	select {
+	case <-c.released:
+	case <-c.closed:
+		return 0, net.ErrClosed
+	}
+	return len(p), nil
+}
+
+// recordHandshake keeps the first write, the handshake preamble, for Read to serve back. It reports
+// whether p was that write.
+func (c *silentConn) recordHandshake(p []byte) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.handshakeSent {
+		return false
+	}
+	c.handshakeSent = true
+	c.handshake = append(c.handshake, p...)
+	return true
+}
+
+func (c *silentConn) Read(p []byte) (int, error) {
+	if n := c.takeHandshake(p); n > 0 {
+		return n, nil
+	}
+	for {
+		deadline, changed := c.readDeadlineState()
+		if !deadline.IsZero() && !time.Now().Before(deadline) {
+			return 0, os.ErrDeadlineExceeded
+		}
+		if err := waitForDeadline(deadline, changed, c.closed); err != nil {
+			return 0, err
+		}
+	}
+}
+
+// waitForDeadline blocks until deadline (when one is set), changed is closed, or closed is closed,
+// which it reports as an error.
+func waitForDeadline(deadline time.Time, changed, closed <-chan struct{}) error {
+	var expired <-chan time.Time
+	if !deadline.IsZero() {
+		timer := time.NewTimer(time.Until(deadline))
+		defer timer.Stop()
+		expired = timer.C
+	}
+	select {
+	case <-expired:
+	case <-changed:
+	case <-closed:
+		return net.ErrClosed
+	}
+	return nil
+}
+
+// takeHandshake copies whatever is left of the peer's handshake answer into p.
+func (c *silentConn) takeHandshake(p []byte) int {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	n := copy(p, c.handshake)
+	c.handshake = c.handshake[n:]
+	return n
+}
+
+func (c *silentConn) SetDeadline(t time.Time) error {
+	c.pokedOnce.Do(func() {
+		close(c.poked)
+	})
+	c.setReadDeadline(t)
+	return nil
+}
+
+func (c *silentConn) SetReadDeadline(t time.Time) error {
+	c.setReadDeadline(t)
+	return nil
+}
+
+func (c *silentConn) SetWriteDeadline(time.Time) error {
+	return nil
+}
+
+// setReadDeadline records t and wakes a blocked read so that it observes the new deadline.
+func (c *silentConn) setReadDeadline(t time.Time) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.readDeadline = t
+	close(c.changed)
+	c.changed = make(chan struct{})
+}
+
+// readDeadlineState returns the current read deadline and the channel closed when it is replaced.
+func (c *silentConn) readDeadlineState() (time.Time, <-chan struct{}) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.readDeadline, c.changed
+}
+
+func (c *silentConn) Close() error {
+	c.closedOnce.Do(func() {
+		close(c.closed)
+	})
+	return nil
+}
+
+func (c *silentConn) LocalAddr() net.Addr {
+	return silentAddr{}
+}
+
+func (c *silentConn) RemoteAddr() net.Addr {
+	return silentAddr{}
+}
+
+// silentAddr is the address of both ends of a silentConn, which has no transport.
+type silentAddr struct{}
+
+func (silentAddr) Network() string {
+	return "silent"
+}
+
+func (silentAddr) String() string {
+	return "silent"
 }

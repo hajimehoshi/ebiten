@@ -59,7 +59,7 @@ func (s *shader11) disposeImpl() {
 				}
 			}
 		}
-		s.vertexShader = nil
+		s.vertexShaderBlob = nil
 	}
 	if s.inputLayout != nil {
 		s.inputLayout.Release()

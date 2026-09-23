@@ -125,7 +125,7 @@ func (g *Game) Update() error {
 		g.startY = y
 	}
 
-	// If a pinting device is pressed, adjust the offset by the movement.
+	// If a pointing device is pressed, adjust the offset by the movement.
 	if g.dragging {
 		g.setOffsetY(g.offsetStartY + y - g.startY)
 	}

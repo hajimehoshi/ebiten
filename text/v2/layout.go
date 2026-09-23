@@ -48,12 +48,12 @@ type DrawOptions struct {
 	LayoutOptions
 }
 
-// LayoutOptions represents options for layouting texts.
+// LayoutOptions represents options for laying out text.
 //
 // PrimaryAlign and SecondaryAlign determine where to put the text in the given region at Draw.
 // Draw might render the text outside of the specified image bounds, so you might have to specify GeoM to make the text visible.
 type LayoutOptions struct {
-	// LineSpacing is a distance between two adjacent lines's baselines.
+	// LineSpacing is a distance between two adjacent lines' baselines.
 	// The unit is in pixels.
 	LineSpacing float64
 
@@ -108,7 +108,7 @@ var theDrawGlyphEntriesPool = sync.Pool{
 // Then old glyphs might be evicted from the cache.
 // As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at Draw are cached.
 //
-// It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+// It is OK to call Draw with the same text and the same face at every frame in terms of performance.
 //
 // Draw is concurrent-safe.
 //
@@ -123,7 +123,7 @@ var theDrawGlyphEntriesPool = sync.Pool{
 //
 // # Alignments
 //
-// For horizontal directions, the start and end depends on the face.
+// For horizontal directions, the start and end depend on the face.
 // If the face is GoTextFace, the start and the end depend on the Direction property.
 // If the face is GoXFace, the start and the end are always left and right respectively.
 //
@@ -377,7 +377,7 @@ var theAppendGlyphsLazyBufPool = sync.Pool{
 	},
 }
 
-// forEachLine interates lines.
+// forEachLine iterates lines.
 func forEachLine(text string, face Face, options *LayoutOptions, f func(text string, indexOffset int, originX, originY float64)) {
 	if text == "" {
 		return

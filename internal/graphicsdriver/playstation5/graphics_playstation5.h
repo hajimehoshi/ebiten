@@ -86,6 +86,7 @@ typedef struct ebitengine_Blend {
 } ebitengine_Blend;
 
 ebitengine_Error ebitengine_InitializeGraphics(void);
+int ebitengine_MaxImageSize(void);
 ebitengine_Error ebitengine_NewImage(int *image, int width, int height);
 ebitengine_Error ebitengine_NewScreenFramebufferImage(int *image, int width,
                                                       int height);

@@ -21,7 +21,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// LineCap represents the way in which how the ends of the stroke are rendered.
+// LineCap represents the way in which the ends of the stroke are rendered.
 type LineCap int
 
 const (
@@ -30,7 +30,7 @@ const (
 	LineCapSquare
 )
 
-// LineJoin represents the way in which how two segments are joined.
+// LineJoin represents the way in which two segments are joined.
 type LineJoin int
 
 const (
@@ -46,21 +46,23 @@ type StrokeOptions struct {
 	// The default (zero) value is 0.
 	Width float32
 
-	// LineCap is the way in which how the ends of the stroke are rendered.
+	// LineCap is the way in which the ends of the stroke are rendered.
 	// Line caps are not rendered when the sub-path is marked as closed.
 	//
 	// The default (zero) value is [LineCapButt].
 	LineCap LineCap
 
-	// LineJoin is the way in which how two segments are joined.
+	// LineJoin is the way in which two segments are joined.
 	//
 	// The default (zero) value is [LineJoinMiter].
 	LineJoin LineJoin
 
 	// MiterLimit is the miter limit for [LineJoinMiter].
+	// A join whose miter ratio exceeds MiterLimit is rendered as a bevel join instead.
+	// The ratio is always 1 or greater, so a MiterLimit less than 1 renders every join as a bevel join.
 	// For details, see https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/stroke-miterlimit.
 	//
-	// The default (zero) value is 0.
+	// The default (zero) value is 0, which renders every join as a bevel join.
 	MiterLimit float32
 }
 
@@ -86,19 +88,38 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		return
 	}
 
-	// Normalize the source path to simplify the logic to generate a stroke path.
-	src.normalize()
-
-	origN := len(p.subPaths)
 	// p might be the same as src. Use srcN to avoid modifying the overlapped region.
 	srcN := len(src.subPaths)
-	for _, subPath := range src.subPaths[:srcN] {
-		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&subPath, options.Width/2)
-		p.MoveTo(sp4.x, sp4.y)
 
-		appendParalleledPathFromSubPath(p, &subPath, &options.StrokeOptions)
-		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&subPath, options.Width/2)
-		if subPath.closed {
+	// origN is the index of the first sub-path added by this call. MoveTo does not always add a new sub-path, so
+	// origN is determined right after the first MoveTo.
+	origN := -1
+
+	// Normalize each source sub-path to simplify the logic to generate a stroke path.
+	// Normalize into a scratch sub-path so that src is not modified. p.opsBuf is reused as its operations.
+	normalized := subPath{ops: p.opsBuf[:0]}
+	for i := range src.subPaths[:srcN] {
+		// When p is src, the sub-paths at origN and later are stroke output, not sources.
+		if src == p && origN >= 0 && i >= origN {
+			break
+		}
+		normalizeSubPath(&normalized, &src.subPaths[i])
+		if len(normalized.ops) == 0 {
+			continue
+		}
+
+		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&normalized, options.Width/2)
+		p.MoveTo(sp4.x, sp4.y)
+		if origN < 0 {
+			// The last sub-path is the first stroke output whether MoveTo added it or reused an empty one.
+			// normalized has an op here, so the outline gets ops. Even if the outline stayed empty, the next
+			// MoveTo would reuse the same sub-path, so origN would still hold.
+			origN = len(p.subPaths) - 1
+		}
+
+		appendParalleledPathFromSubPath(p, &normalized, &options.StrokeOptions)
+		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&normalized, options.Width/2)
+		if normalized.closed {
 			p.Close()
 			p.MoveTo(ep4.x, ep4.y)
 		} else {
@@ -114,8 +135,8 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 				p.LineTo(ep4.x, ep4.y)
 			}
 		}
-		appendParalleledPathFromSubPathReversed(p, &subPath, &options.StrokeOptions)
-		if !subPath.closed {
+		appendParalleledPathFromSubPathReversed(p, &normalized, &options.StrokeOptions)
+		if !normalized.closed {
 			switch options.LineCap {
 			case LineCapButt:
 				p.LineTo(sp4.x, sp4.y)
@@ -130,8 +151,9 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		}
 		p.Close()
 	}
+	p.opsBuf = normalized.ops[:0]
 
-	if options.GeoM != (ebiten.GeoM{}) {
+	if origN >= 0 && options.GeoM != (ebiten.GeoM{}) {
 		for i, subPath := range p.subPaths[origN:] {
 			x, y := options.GeoM.Apply(float64(subPath.start.x), float64(subPath.start.y))
 			p.subPaths[origN+i].start = point{x: float32(x), y: float32(y)}
@@ -147,6 +169,7 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 					p.subPaths[origN+i].ops[j].p2 = point{x: float32(x2), y: float32(y2)}
 				}
 			}
+			p.subPaths[origN+i].updateValidity()
 		}
 	}
 }
@@ -174,7 +197,7 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must have create a curve, not a line.
+	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalizeSubPath.
 
 	cur := subPath.start
 
@@ -187,6 +210,8 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 			appendParalleledQuad(strokePath, cur, op.p1, op.p2, options.Width/2)
 			cur = op.p2
 		}
+		// Add a joint between this operation and the next operation.
+		// This also renders the 180-degree turn at the tip of a cusp, which normalizeSubPath converted into two lines.
 		addJoint(strokePath, subPath, i, false, options)
 	}
 }
@@ -198,7 +223,7 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 
 	// As the source path is normalized, every operation is guaranteed to be valid.
 	// A line operation must have a different point from the start point.
-	// A quadratic curve operation must have create a curve, not a line.
+	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalizeSubPath.
 
 	for i, op := range slices.Backward(subPath.ops) {
 		nextP := subPath.startAtOp(i)
@@ -208,6 +233,8 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 		case opTypeQuadTo:
 			appendParalleledQuad(strokePath, op.p2, op.p1, nextP, options.Width/2)
 		}
+		// Add a joint between this operation and the previous operation.
+		// This also renders the 180-degree turn at the tip of a cusp, which normalizeSubPath converted into two lines.
 		addJoint(strokePath, subPath, i, true, options)
 	}
 }
@@ -228,7 +255,10 @@ func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist floa
 	if p0 == p1 && p0 == p2 {
 		panic("not reached")
 	}
-	// This curve is empty as the start and the end points are the same.
+	// A normalized path never has a cusp, whose start and end points are the same,
+	// as normalizeSubPath drops a single point and converts a cusp into two lines.
+	// This can happen only in doAppendParalleledQuad when a tiny curve is split,
+	// and then the split halves are empty in float32.
 	if p0 == p2 {
 		return true
 	}
@@ -385,7 +415,8 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 	p1 := p.add(v1)
 
 	// If the joint is an internal angle (< 180 degrees), the joint is not rendered. Just connect the two segments.
-	// [vec2.cross] has a precision issue. Use a comparison instead.
+	// A cross product can be calculated by dir0.x*dir1.y - dir0.y*dir1.x,
+	// but this can cause a floating-point precision issue due to FMSUBS. Avoid this subtraction.
 	if dir0.x*dir1.y > dir0.y*dir1.x {
 		strokePath.LineTo(p1.x, p1.y)
 		return
@@ -397,7 +428,8 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 	// Add a joint.
 	switch options.LineJoin {
 	case LineJoinMiter:
-		theta := math.Acos(float64(dir0.x*(-dir1.x) + dir0.y*(-dir1.y)))
+		dot := min(max(float64(dir0.x*(-dir1.x)+dir0.y*(-dir1.y)), -1.0), 1.0)
+		theta := math.Acos(dot)
 		exceed := float32(math.Abs(1/math.Sin(float64(theta/2)))) > options.MiterLimit
 		if !exceed {
 			cp := crossingPointForTwoLines(p0, p0.add(dir0), p1, p1.add(dir1))
@@ -409,16 +441,17 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 	case LineJoinBevel:
 		strokePath.LineTo(p1.x, p1.y)
 	case LineJoinRound:
-		dir := vec2{
-			x: dir0.x - dir1.x,
-			y: dir0.y - dir1.y,
-		}.norm()
-		cp := p.add(dir.mul(options.Width / 2))
-		cp0 := crossingPointForTwoLines(p0, p0.add(dir0), cp, cp.add(dir.perp()))
-		cp1 := crossingPointForTwoLines(p1, p1.add(dir1), cp, cp.add(dir.perp()))
-		if isRegularF32(cp.x) && isRegularF32(cp.y) && isRegularF32(cp0.x) && isRegularF32(cp0.y) && isRegularF32(cp1.x) && isRegularF32(cp1.y) {
-			strokePath.ArcTo(cp0.x, cp0.y, cp.x, cp.y, options.Width/2)
-			strokePath.ArcTo(cp1.x, cp1.y, p1.x, p1.y, options.Width/2)
+		// Sweep an arc around p from p0 to p1 on the outer side of the turn.
+		// Derive the sweep angle from the directions, as the atan2 of p0 and p1
+		// can straddle the ±π branch cut at a nearly straight joint.
+		// math.Abs clears a negative zero, so a cusp sweeps π rather than -π.
+		// The explicit conversions avoid FMSUBS.
+		a0 := float32(math.Atan2(float64(v0.y), float64(v0.x)))
+		cross := math.Abs(float64(float32(dir0.x*dir1.y) - float32(dir0.y*dir1.x)))
+		dot := float64(dir0.x*dir1.x + dir0.y*dir1.y)
+		a1 := a0 - float32(math.Atan2(cross, dot))
+		if isRegularF32(a0) && isRegularF32(a1) {
+			strokePath.Arc(p.x, p.y, options.Width/2, a0, a1, CounterClockwise)
 		} else {
 			strokePath.LineTo(p1.x, p1.y)
 		}

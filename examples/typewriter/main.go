@@ -28,7 +28,7 @@ const (
 	screenHeight = 480
 )
 
-// repeatingKeyPressed return true when key is pressed considering the repeat state.
+// repeatingKeyPressed returns true when the key is pressed considering the repeat state.
 func repeatingKeyPressed(key ebiten.Key) bool {
 	const (
 		delay    = 30

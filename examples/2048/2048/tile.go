@@ -40,18 +40,18 @@ func init() {
 	mplusFaceSource = s
 }
 
-// TileData represents a tile information like a value and a position.
+// TileData represents tile information like a value and a position.
 type TileData struct {
 	value int
 	x     int
 	y     int
 }
 
-// Tile represents a tile information including TileData and animation states.
+// Tile represents tile information including TileData and animation states.
 type Tile struct {
 	current TileData
 
-	// next represents a next tile information after moving.
+	// next represents the next tile information after moving.
 	// next is empty when the tile is not about to move.
 	next TileData
 
@@ -73,13 +73,13 @@ func (t *Tile) NextPos() (int, int) {
 }
 
 // Value returns the tile's current value.
-// Value is used only at testing so far.
+// Value is used only in tests so far.
 func (t *Tile) Value() int {
 	return t.current.value
 }
 
-// NextValue returns the tile's current value.
-// NextValue is used only at testing so far.
+// NextValue returns the tile's next value.
+// NextValue is used only in tests so far.
 func (t *Tile) NextValue() int {
 	return t.next.value
 }
@@ -118,7 +118,7 @@ func tileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 			continue
 		}
 		if result != nil {
-			panic("not reach")
+			panic("not reached")
 		}
 		result = t
 	}
@@ -138,7 +138,7 @@ func currentOrNextTileAt(tiles map[*Tile]struct{}, x, y int) *Tile {
 			}
 		}
 		if result != nil {
-			panic("not reach")
+			panic("not reached")
 		}
 		result = t
 	}
@@ -177,10 +177,10 @@ func MoveTiles(tiles map[*Tile]struct{}, size int, dir Dir) bool {
 				continue
 			}
 			if t.next != (TileData{}) {
-				panic("not reach")
+				panic("not reached")
 			}
 			if t.IsMoving() {
-				panic("not reach")
+				panic("not reached")
 			}
 			// (ii, jj) is the next position for tile t.
 			// (ii, jj) is updated until a mergeable tile is found or
@@ -246,7 +246,7 @@ func addRandomTile(tiles map[*Tile]struct{}, size int) error {
 	cells := make([]bool, size*size)
 	for t := range tiles {
 		if t.IsMoving() {
-			panic("not reach")
+			panic("not reached")
 		}
 		i := t.current.x + t.current.y*size
 		cells[i] = true

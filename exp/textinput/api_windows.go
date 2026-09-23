@@ -106,7 +106,7 @@ func _GetActiveWindow() windows.HWND {
 func _ImmAssociateContext(hwnd windows.HWND, hIMC uintptr) (uintptr, error) {
 	r, _, e := procImmAssociateContext.Call(uintptr(hwnd), hIMC)
 	if e != nil && !errors.Is(e, windows.ERROR_SUCCESS) {
-		return 0, fmt.Errorf("textinput: ImmAssociateContext failed: error code: %w", e)
+		return 0, fmt.Errorf("textinput: ImmAssociateContext failed: %w", e)
 	}
 	return r, nil
 }

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest exercises cursor-shape forwarding: it keeps the default shape, switches to a pointer at
 // tick 3, and back to the default at tick 5. The host asserts GuestSession.CursorShape tracks each

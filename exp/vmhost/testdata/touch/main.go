@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest that verifies the touch events the host forwards. The host drives a fixed sequence
 // of press, move, and release events; during each tick this reads the current touches through the
@@ -27,6 +27,7 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
@@ -39,12 +40,15 @@ type wantTouch struct {
 
 // wantByTick is the expected set of touches per tick; keep it in sync with the host's injected events.
 // The guest fills the whole window, so the device-independent positions the host injects map to the
-// same logical positions regardless of the device scale factor. Tick 0: two touches begin. Tick 1:
-// touch 1 moves and touch 2 ends. The positions have fractional parts well away from an integer
-// boundary, so that both the truncated and the high-precision accessors are pinned down.
+// same logical positions regardless of the device scale factor. The IDs are the ones the guest issues,
+// counting up from 0 in press order, not the host's. Tick 0: two touches begin. Tick 1: the first
+// touch moves and the second ends. Tick 2: the first touch ends and a new touch begins under the same
+// host ID, which must show up as a new touch. The positions have fractional parts well away from an
+// integer boundary, so that both the truncated and the high-precision accessors are pinned down.
 var wantByTick = [][]wantTouch{
-	{{id: 1, x: 3.75, y: 4.5}, {id: 2, x: 30.25, y: 20.5}},
-	{{id: 1, x: 5.5, y: 6.25}},
+	{{id: 0, x: 3.75, y: 4.5}, {id: 1, x: 30.25, y: 20.5}},
+	{{id: 0, x: 5.5, y: 6.25}},
+	{{id: 2, x: 10.5, y: 12.25}},
 }
 
 // eps is the tolerance for a position, which is scaled by the device scale factor and back and so is
@@ -97,6 +101,30 @@ func (g *game) check() bool {
 		}
 	}
 
+	// The touches that appeared since the previous tick are just pressed and the ones that
+	// disappeared are just released.
+	var prev []wantTouch
+	if g.tick > 0 {
+		prev = wantByTick[g.tick-1]
+	}
+	var wantPressed, wantReleased []ebiten.TouchID
+	for _, w := range want {
+		if !slices.ContainsFunc(prev, func(p wantTouch) bool { return p.id == w.id }) {
+			wantPressed = append(wantPressed, w.id)
+		}
+	}
+	for _, p := range prev {
+		if !slices.ContainsFunc(want, func(w wantTouch) bool { return w.id == p.id }) {
+			wantReleased = append(wantReleased, p.id)
+		}
+	}
+	if got := inpututil.AppendJustPressedTouchIDs(nil); !sameTouchIDs(got, wantPressed) {
+		fail("AppendJustPressedTouchIDs = %v; want %v", got, wantPressed)
+	}
+	if got := inpututil.AppendJustReleasedTouchIDs(nil); !sameTouchIDs(got, wantReleased) {
+		fail("AppendJustReleasedTouchIDs = %v; want %v", got, wantReleased)
+	}
+
 	// The previous tick's touches are still readable, including the ones released since.
 	if g.tick > 0 {
 		for _, w := range wantByTick[g.tick-1] {
@@ -111,6 +139,13 @@ func (g *game) check() bool {
 	}
 
 	return ok
+}
+
+// sameTouchIDs reports whether a and b hold the same IDs, in any order.
+func sameTouchIDs(a, b []ebiten.TouchID) bool {
+	a = slices.Sorted(slices.Values(a))
+	b = slices.Sorted(slices.Values(b))
+	return slices.Equal(a, b)
 }
 
 func (g *game) Draw(screen *ebiten.Image) {

@@ -186,7 +186,7 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 	}
 
 	// Avoid _D3D_FEATURE_LEVEL_11_1 as DirectX 11.0 doesn't recognize this.
-	// Avoid _D3D_FEATURE_LEVEL_9_* for some shaders features (#1431).
+	// Avoid _D3D_FEATURE_LEVEL_9_* for some shader features (#1431).
 	featureLevels := []_D3D_FEATURE_LEVEL{
 		_D3D_FEATURE_LEVEL_11_0,
 		_D3D_FEATURE_LEVEL_10_1,
@@ -200,8 +200,20 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 		return nil, err
 	}
 	g.device = (*_ID3D11Device)(d)
+	defer func() {
+		if ferr != nil {
+			g.device.Release()
+			g.device = nil
+		}
+	}()
 	g.featureLevel = fl
 	g.deviceContext = (*_ID3D11DeviceContext)(ctx)
+	defer func() {
+		if ferr != nil {
+			g.deviceContext.Release()
+			g.deviceContext = nil
+		}
+	}()
 
 	// Get IDXGIFactory from the current device and use it, instead of CreateDXGIFactory.
 	// Or, MakeWindowAssociation doesn't work well (#2661).
@@ -256,6 +268,12 @@ func newGraphics11(useWARP bool, useDebugLayer bool) (gr11 *graphics11, ferr err
 			return nil, err
 		}
 		g.rasterizerState = rs
+		defer func() {
+			if ferr != nil {
+				g.rasterizerState.Release()
+				g.rasterizerState = nil
+			}
+		}()
 	}
 	g.deviceContext.RSSetState(g.rasterizerState)
 
@@ -282,8 +300,8 @@ func (g *graphics11) IsOccluded() bool {
 	return g.graphicsInfra.occluded.Load()
 }
 
-func (g *graphics11) End(present bool) error {
-	if !present {
+func (g *graphics11) End(mode graphicsdriver.FlushMode) error {
+	if mode != graphicsdriver.FlushModePresent {
 		return nil
 	}
 
@@ -315,6 +333,7 @@ func (g *graphics11) SetVertices(vertices []float32, indices []uint32) error {
 		if g.vertexBuffer != nil {
 			g.vertexBuffer.Release()
 			g.vertexBuffer = nil
+			g.vertexBufferSizeInBytes = 0
 		}
 		b, err := g.device.CreateBuffer(&_D3D11_BUFFER_DESC{
 			ByteWidth:      size,
@@ -334,6 +353,7 @@ func (g *graphics11) SetVertices(vertices []float32, indices []uint32) error {
 		if g.indexBuffer != nil {
 			g.indexBuffer.Release()
 			g.indexBuffer = nil
+			g.indexBufferSizeInBytes = 0
 		}
 		b, err := g.device.CreateBuffer(&_D3D11_BUFFER_DESC{
 			ByteWidth:      size,
@@ -513,7 +533,7 @@ func (g *graphics11) removeShader(s *shader11) {
 
 func (g *graphics11) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32) error {
 	// Remove bound textures first. This is needed to avoid warnings on the debugger.
-	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil}, nil)
+	g.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{nil})
 	var srvs [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView
 	g.deviceContext.PSSetShaderResources(0, srvs[:])
 

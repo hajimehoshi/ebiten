@@ -437,6 +437,10 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		return fmt.Errorf("glfw: egl: failed to create context: %s: %w", getEGLErrorString(egl.GetError()), VersionUnavailable)
 	}
 
+	// Set the destroy function as soon as the context exists so that an error
+	// in the remaining steps still releases it.
+	window.context.destroy = destroyContextEGL
+
 	// Set up attributes for surface creation
 	attribs = attribs[:0]
 
@@ -497,7 +501,6 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	window.context.swapInterval = swapIntervalEGL
 	window.context.extensionSupported = extensionSupportedEGL
 	window.context.getProcAddress = getProcAddressEGL
-	window.context.destroy = destroyContextEGL
 
 	return nil
 }

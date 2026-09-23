@@ -58,6 +58,23 @@ constexpr sampler __texelSampler(coord::pixel, filter::nearest, address::clamp_t
 template<typename T, typename U>
 T mod(T x, U y) {
 	return x - y * floor(x/y);
+}
+
+// Metal defines sign only for floating-point types. These overloads cover int and ivecN arguments.
+int sign(int x) {
+	return int(x > 0) - int(x < 0);
+}
+
+int2 sign(int2 x) {
+	return int2(x > 0) - int2(x < 0);
+}
+
+int3 sign(int3 x) {
+	return int3(x > 0) - int3(x < 0);
+}
+
+int4 sign(int4 x) {
+	return int4(x > 0) - int4(x < 0);
 }`
 }
 
@@ -228,7 +245,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return fmt.Sprintf("%s(0)", basicTypeString(t.Main))
 	default:
 		t := c.typ(p, t)
-		panic(fmt.Sprintf("?(unexpected type: %s)", t))
+		panic(fmt.Sprintf("msl: unexpected type: %s", t))
 	}
 }
 
@@ -285,7 +302,7 @@ func constantToNumberLiteral(v constant.Value) string {
 		return fmt.Sprintf("%d", x)
 	case constant.Float:
 		x, _ := constant.Float64Val(v)
-		if i := math.Floor(x); i == x {
+		if i := math.Floor(x); i == x && math.Abs(x) < 1<<63 {
 			return fmt.Sprintf("%d.0", int64(i))
 		}
 		return fmt.Sprintf("%.10e", x)
@@ -448,7 +465,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			init := true
 			if topBlock == p.VertexFunc.Block {
 				// In the vertex function, varying values are the output parameters.
-				// These values are represented as a struct and not needed to be initialized.
+				// These values are represented as a struct and do not need to be initialized.
 				na := len(p.Attributes)
 				nv := len(p.Varyings)
 				if s.InitIndex < na+nv+1 {

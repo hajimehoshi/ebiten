@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest that runs IME sessions through an exp/textinput Composer and paints its state, so
 // the host can verify the text-input round trip from the composited frame: red = no activity yet,

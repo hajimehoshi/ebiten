@@ -67,7 +67,7 @@ func (f *Field) PieceDroppable(piece *Piece, x, y int, angle Angle) bool {
 	return !piece.collides(f, x, y+1, angle)
 }
 
-// DropPiece tries to drop the piece to the right
+// DropPiece tries to drop the piece downward
 // and returns the piece's next y position.
 func (f *Field) DropPiece(piece *Piece, x, y int, angle Angle) int {
 	if piece.collides(f, x, y+1, angle) {

@@ -58,13 +58,13 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		var err error
-		u.mainThread.Call(func() {
-			if mainErr := u.initOnMainThread(options); mainErr != nil {
-				err = mainErr
-			}
-		})
-		if err != nil {
+		type args struct {
+			u       *UserInterface
+			options *RunOptions
+		}
+		if err := thread.CallWithArgAndResult(u.mainThread, func(a args) error {
+			return a.u.initOnMainThread(a.options)
+		}, args{u: u, options: options}); err != nil {
 			return err
 		}
 
@@ -74,8 +74,9 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 		return u.loopGame()
 	})
 
-	// Run the main thread.
-	_ = u.mainThread.Loop(ctx)
+	// Run the main thread. The loop is the thread's whole life, so a call arriving after
+	// it ends is a no-op rather than a block forever.
+	_ = u.mainThread.LoopAndStop(ctx)
 	return wg.Wait()
 }
 

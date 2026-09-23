@@ -15,7 +15,7 @@
 package textinput
 
 import (
-	"errors"
+	"fmt"
 	"image"
 	"slices"
 	"sync"
@@ -126,7 +126,7 @@ func (v *vmGuestTextInput) handleState(id int64, state vmprotocol.TextInputState
 
 	var err error
 	if state.Err != "" {
-		err = errors.New("textinput: the host failed to serve text inputting: " + state.Err)
+		err = fmt.Errorf("textinput: the host failed to serve text input: %s", state.Err)
 	}
 
 	v.events.send(textInputState{

@@ -78,13 +78,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	w, h := g.highDPIImage.Bounds().Dx(), g.highDPIImage.Bounds().Dy()
 	op := &ebiten.DrawImageOptions{}
 
-	// Move the images's center to the upper left corner.
+	// Move the image's center to the upper left corner.
 	op.GeoM.Translate(float64(-w)/2, float64(-h)/2)
 
 	// The image is just too big. Adjust the scale.
 	op.GeoM.Scale(0.25, 0.25)
 
-	// Scale the image by the device ratio so that the rendering result can be same
+	// Scale the image by the device ratio so that the rendering result can be the same
 	// on various (different-DPI) environments.
 	scale := ebiten.Monitor().DeviceScaleFactor()
 	op.GeoM.Scale(scale, scale)

@@ -314,7 +314,7 @@ func (c *compileContext) varInit(p *shaderir.Program, t *shaderir.Type) string {
 		return "0.0"
 	default:
 		t0, t1 := c.typ(p, t)
-		panic(fmt.Sprintf("?(unexpected type: %s%s)", t0, t1))
+		panic(fmt.Sprintf("hlsl: unexpected type: %s%s", t0, t1))
 	}
 }
 
@@ -361,7 +361,7 @@ func constantToNumberLiteral(v constant.Value) string {
 		return fmt.Sprintf("%d", x)
 	case constant.Float:
 		x, _ := constant.Float64Val(v)
-		if i := math.Floor(x); i == x {
+		if i := math.Floor(x); i == x && math.Abs(x) < 1<<63 {
 			return fmt.Sprintf("%d.0", int64(i))
 		}
 		return fmt.Sprintf("%.10e", x)
@@ -501,8 +501,10 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					}
 				case shaderir.Mat2F:
 					if len(args) == 1 {
-						// In HSLS, casting a scalar to a matrix initializes all the components.
-						// There seems no easy way to have an identity matrix.
+						// A single argument is always a float scalar: the front end lowers a matrix
+						// argument to the argument itself.
+						// In HLSL, casting a scalar to a matrix initializes all the components.
+						// There seems to be no easy way to have an identity matrix.
 						return fmt.Sprintf("float2x2FromScalar(%s)", args[0])
 					}
 				case shaderir.Mat3F:

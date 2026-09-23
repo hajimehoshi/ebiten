@@ -37,7 +37,8 @@ const (
 
 var vertexShaderCache = map[string]*_ID3DBlob{}
 
-func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) {
+func compileShader(program *shaderir.Program) (_, _ *_ID3DBlob, ferr error) {
+	var vsh, psh *_ID3DBlob
 	defer func() {
 		if ferr == nil {
 			return
@@ -77,7 +78,7 @@ func compileShader(program *shaderir.Program) (vsh, psh *_ID3DBlob, ferr error) 
 	// Vertex shaders are likely the same. If so, reuse the same _ID3DBlob.
 	if v, ok := vertexShaderCache[vs]; ok {
 		// Increment the reference count not to release this object unexpectedly.
-		// The value will be removed when the count reached 0.
+		// The value will be removed when the count reaches 0.
 		// See (*Shader).disposeImpl.
 		v.AddRef()
 		vsh = v

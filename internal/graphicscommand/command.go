@@ -20,6 +20,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -39,25 +40,10 @@ type command interface {
 	NeedsSync() bool
 }
 
-type drawTrianglesCommandPool struct {
-	pool []*drawTrianglesCommand
-}
-
-func (p *drawTrianglesCommandPool) get() *drawTrianglesCommand {
-	if len(p.pool) == 0 {
+var theDrawTrianglesCommandPool = sync.Pool{
+	New: func() any {
 		return &drawTrianglesCommand{}
-	}
-	v := p.pool[len(p.pool)-1]
-	p.pool[len(p.pool)-1] = nil
-	p.pool = p.pool[:len(p.pool)-1]
-	return v
-}
-
-func (p *drawTrianglesCommandPool) put(v *drawTrianglesCommand) {
-	if len(p.pool) >= 1024 {
-		return
-	}
-	p.pool = append(p.pool, v)
+	},
 }
 
 // drawTrianglesCommand represents a drawing command to draw an image on another image.
@@ -251,10 +237,7 @@ func (c *writePixelsCommand) Exec(commandQueue *commandQueue, graphicsDriver gra
 	args := make([]graphicsdriver.PixelsArgs, 0, len(c.args))
 	for _, a := range c.args {
 		pix, f := a.pixels.GetAndRelease()
-		// A finalizer is executed when flushing the queue at the end of the frame.
-		// At the end of the frame, the last command is rendering triangles onto the screen,
-		// so the bytes are already sent to GPU and synced.
-		// TODO: This might be fragile. When is the better time to call finalizers by a command queue?
+		// Keep upload bytes alive until the frame's commands have been submitted.
 		commandQueue.addFinalizer(f)
 		args = append(args, graphicsdriver.PixelsArgs{
 			Pixels: pix,
@@ -390,30 +373,35 @@ func (c *newShaderCommand) NeedsSync() bool {
 	return true
 }
 
-// InitializeGraphicsDriverState initialize the current graphics driver state.
-func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
-	runOnRenderThread(func() {
-		err = graphicsDriver.Initialize()
-	}, true)
-	return
+// InitializeGraphicsDriverState initializes the current graphics driver state.
+func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
+	return runOnRenderThread(graphicsdriver.Graphics.Initialize, graphicsDriver)
 }
 
 // ResetGraphicsDriverState resets the current graphics driver state.
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
-func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) (err error) {
+func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
 	if r, ok := graphicsDriver.(graphicsdriver.Resetter); ok {
-		runOnRenderThread(func() {
-			err = r.Reset()
-		}, true)
+		return runOnRenderThread(graphicsdriver.Resetter.Reset, r)
 	}
 	return nil
 }
 
 // MaxImageSize returns the maximum size of an image.
 func MaxImageSize(graphicsDriver graphicsdriver.Graphics) int {
-	var size int
-	runOnRenderThread(func() {
-		size = graphicsDriver.MaxImageSize()
-	}, true)
-	return size
+	return runOnRenderThread(graphicsdriver.Graphics.MaxImageSize, graphicsDriver)
+}
+
+// FinishForcedFrame waits for a frame forced while the game loop is blocked to finish.
+// If the graphics driver doesn't have an API to wait, FinishForcedFrame does nothing.
+func FinishForcedFrame(graphicsDriver graphicsdriver.Graphics) error {
+	type frameFinisher interface{ FinishForcedFrame() error }
+	f, ok := graphicsDriver.(frameFinisher)
+	if !ok {
+		return nil
+	}
+
+	// Run this on the render thread so that it is ordered after the frame's flush, which can be
+	// asynchronous.
+	return runOnRenderThread(frameFinisher.FinishForcedFrame, f)
 }

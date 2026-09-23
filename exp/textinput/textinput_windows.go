@@ -36,10 +36,17 @@ type textInputImpl struct {
 
 	highSurrogate uint16
 
+	// compositing reports whether the last reported composition was non-empty.
+	compositing bool
+
 	initOnce sync.Once
 
 	err error
 }
+
+// errNoActiveWindow is returned by start when the application has no active
+// window, which is the case while it is not in the foreground.
+var errNoActiveWindow = errors.New("textinput: no active window")
 
 func (t *textInputImpl) markIMEDiscardNeeded() {
 }
@@ -55,8 +62,16 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 	ebiten.RunOnMainThread(func() {
 		t.events.end()
 		err = t.start(bounds)
+		if errors.Is(err, errNoActiveWindow) {
+			return
+		}
 		ch, _ = t.events.start()
 	})
+	if ch == nil {
+		// Text inputting needs the window, and it becomes active once the
+		// application comes to the foreground.
+		return nil, nil
+	}
 	if err != nil {
 		t.events.send(textInputState{Error: err})
 		t.events.end()
@@ -79,13 +94,16 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 }
 
 // start must be called from the main thread.
-func (t *textInputImpl) start(bounds image.Rectangle) error {
+func (t *textInputImpl) start(bounds image.Rectangle) (err error) {
 	if t.err != nil {
 		return t.err
 	}
 
 	if t.window == 0 {
 		t.window = _GetActiveWindow()
+	}
+	if t.window == 0 {
+		return errNoActiveWindow
 	}
 	if t.origWndProc == 0 {
 		if t.wndProcCallback == 0 {
@@ -101,7 +119,6 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 
 	// By default, IME was disabled by setting 0 as the IMM context.
 	// Restore the context once.
-	var err error
 	t.initOnce.Do(func() {
 		err = ui.Get().RestoreIMMContextOnMainThread()
 	})
@@ -116,6 +133,12 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 		t.immContext = 0
 	}
 	h := _ImmGetContext(t.window)
+	defer func() {
+		if winErr := _ImmReleaseContext(t.window, h); winErr != nil {
+			err = errors.Join(err, winErr)
+		}
+	}()
+
 	// CFS_EXCLUDE takes ptCurrentPos as the caret's top left corner and rcArea as
 	// the region the candidate window must not cover, so the input method places
 	// the window right below the caret, or above it when there is no room.
@@ -133,9 +156,6 @@ func (t *textInputImpl) start(bounds image.Rectangle) error {
 			bottom: int32(bounds.Max.Y),
 		},
 	}); err != nil {
-		return err
-	}
-	if err := _ImmReleaseContext(t.window, h); err != nil {
 		return err
 	}
 	return nil
@@ -165,7 +185,7 @@ func (t *textInputImpl) wndProc(hWnd uintptr, uMsg uint32, wParam, lParam uintpt
 			return 1
 		}
 	case _WM_IME_ENDCOMPOSITION:
-		t.send("", 0, 0, commitNone)
+		t.sendComposition("", 0, 0)
 		return 1
 	case _WM_CHAR, _WM_SYSCHAR:
 		if wParam >= 0xd800 && wParam <= 0xdbff {
@@ -217,6 +237,20 @@ func (t *textInputImpl) send(text string, startInBytes, endInBytes int, kind com
 	}
 }
 
+// sendComposition reports a composition update. An empty composition is
+// reported only after a non-empty one, and once: the input method reports a
+// cleared composition as an empty composition string, as the end of the
+// composition, or as both.
+//
+// sendComposition must be called from the main thread.
+func (t *textInputImpl) sendComposition(text string, startInBytes, endInBytes int) {
+	if text == "" && !t.compositing {
+		return
+	}
+	t.compositing = text != ""
+	t.send(text, startInBytes, endInBytes, commitNone)
+}
+
 // update must be called from the main thread.
 func (t *textInputImpl) update() (err error) {
 	if t.err != nil {
@@ -235,6 +269,7 @@ func (t *textInputImpl) update() (err error) {
 		return err
 	}
 	if len(buffer16) == 0 {
+		t.sendComposition("", 0, 0)
 		return nil
 	}
 
@@ -265,7 +300,7 @@ func (t *textInputImpl) update() (err error) {
 		}
 	}
 	text := windows.UTF16ToString(buffer16)
-	t.send(text, convertUTF16CountToByteCount(text, start16), convertUTF16CountToByteCount(text, end16), commitNone)
+	t.sendComposition(text, convertUTF16CountToByteCount(text, start16), convertUTF16CountToByteCount(text, end16))
 
 	return nil
 }

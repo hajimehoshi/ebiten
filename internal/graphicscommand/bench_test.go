@@ -15,11 +15,14 @@
 package graphicscommand_test
 
 import (
+	"context"
 	"image"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 func BenchmarkPrependPreservedUniforms(b *testing.B) {
@@ -30,5 +33,52 @@ func BenchmarkPrependPreservedUniforms(b *testing.B) {
 	sr := image.Rect(0, 0, 16, 16)
 	for i := 0; i < b.N; i++ {
 		graphicscommand.PrependPreservedUniforms(uniforms[:], nearestFilterShader, dst, [graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr})
+	}
+}
+
+func BenchmarkFlushThread(b *testing.B) {
+	defer graphicscommand.SetVsyncEnabled(true)
+	for _, name := range []string{"NoopThread", "OSThread"} {
+		b.Run(name, func(b *testing.B) {
+			var renderThread thread.Thread = thread.NewNoopThread()
+			if name == "OSThread" {
+				renderThread = thread.NewOSThread()
+				ctx, cancel := context.WithCancel(context.Background())
+				done := make(chan struct{})
+				go func() {
+					defer close(done)
+					_ = renderThread.LoopAndStop(ctx)
+				}()
+				defer func() { cancel(); <-done }()
+			}
+			defer graphicscommand.SetRenderThreadForTesting(renderThread)()
+			for _, vsync := range []bool{false, true} {
+				name := "Async"
+				if vsync {
+					name = "Sync"
+				}
+				b.Run(name, func(b *testing.B) {
+					graphicscommand.SetVsyncEnabled(vsync)
+					var manager graphicscommand.CommandQueueManagerForTesting
+					var driver asyncFlushDriver
+					// Warm the queue pool and apply the initial vsync state.
+					for range 3 {
+						if err := manager.FlushForTesting(&driver, graphicsdriver.FlushModePresent); err != nil {
+							b.Fatal(err)
+						}
+					}
+					thread.Call(renderThread, func() {})
+					b.ReportAllocs()
+					b.ResetTimer()
+					for i := 0; i < b.N; i++ {
+						if err := manager.FlushForTesting(&driver, graphicsdriver.FlushModePresent); err != nil {
+							b.Fatal(err)
+						}
+					}
+					b.StopTimer()
+					thread.Call(renderThread, func() {})
+				})
+			}
+		})
 	}
 }

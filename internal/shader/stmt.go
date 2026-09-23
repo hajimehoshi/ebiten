@@ -65,10 +65,18 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			if !ok {
 				return nil, false
 			}
+			if len(rhs) != 1 || len(rts) != 1 {
+				cs.addError(stmt.Pos(), fmt.Sprintf("the right-hand side of %s must be a single value", stmt.Tok))
+				return nil, false
+			}
 			stmts = append(stmts, ss...)
 
 			lhs, lts, ss, ok := cs.parseExpr(block, fname, stmt.Lhs[0], true)
 			if !ok {
+				return nil, false
+			}
+			if len(lhs) != 1 || len(lts) != 1 {
+				cs.addError(stmt.Pos(), fmt.Sprintf("the left-hand side of %s must be a single value", stmt.Tok))
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
@@ -310,6 +318,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		if !ok {
 			return nil, false
 		}
+		if len(exprs) != 1 || len(ts) != 1 {
+			cs.addError(stmt.Pos(), fmt.Sprintf("the operand of %s must be a single value", stmt.Tok))
+			return nil, false
+		}
+		if exprs[0].Type == shaderir.UniformVariable {
+			cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
+			return nil, false
+		}
 		stmts = append(stmts, ss...)
 		var op shaderir.Op
 		switch stmt.Tok {
@@ -448,6 +464,14 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Return,
 			})
+		} else if len(stmt.Results) == 0 {
+			if returnType.Main != shaderir.None {
+				cs.addError(stmt.Pos(), "cannot use a bare return in a function that returns a value")
+				return nil, false
+			}
+			stmts = append(stmts, shaderir.Stmt{
+				Type: shaderir.Return,
+			})
 		}
 
 	case *ast.BranchStmt:
@@ -479,7 +503,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 		for _, expr := range exprs {
 			// There can be a non-call expr like LocalVariable expressions.
-			// These are necessary to be used as arguments for an outside function callers.
+			// These are necessary to be used as arguments for callers of an outside function.
 			if expr.Type != shaderir.Call {
 				continue
 			}
@@ -510,7 +534,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 		var localVariablIndicesToAssignLater []int
 		var leftExprsToAssignLater []shaderir.Expr
 		for i, e := range lhs {
-			// Prase RHS first for the order of the statements.
+			// Parse RHS first for the order of the statements.
 			r, rts, ss, ok := cs.parseExpr(block, fname, rhs[i], true)
 			if !ok {
 				return nil, false
@@ -696,11 +720,11 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			stmts = append(stmts, ss...)
 
 			if len(l) != 1 {
-				cs.addError(pos, fmt.Sprintf("unexpected count of types in lhs: %d", len(l)))
+				cs.addError(pos, fmt.Sprintf("unexpected count of expressions in lhs: %d", len(l)))
 				return nil, false
 			}
 			if len(lts) != 1 {
-				cs.addError(pos, fmt.Sprintf("unexpected count of expressions in lhs: %d", len(l)))
+				cs.addError(pos, fmt.Sprintf("unexpected count of types in lhs: %d", len(lts)))
 				return nil, false
 			}
 
@@ -784,7 +808,7 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 
 	// Create a new pseudo block for the initial statement, so that the counter variable belongs to the
 	// new pseudo block for each for-loop. Without this, the same-named counter variables in different
-	// for-loops confuses the parser.
+	// for-loops confuse the parser.
 	pseudoBlock, ok := cs.parseBlock(block, fname, []ast.Stmt{stmt.Init}, inParams, outParams, returnType, false)
 	if !ok {
 		return nil, false
@@ -912,7 +936,7 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	}
 
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
-	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
+	// This must be done after parsing the for-loop is done, or the duplicated variables confuse the
 	// parsing.
 	// The scope of the counter variable ends with this for-loop. Clear its name so that the
 	// variable is neither found nor checked by its name anymore. The variable itself is still kept
@@ -1022,7 +1046,7 @@ func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.Rang
 
 	// Create a new pseudo block for the iteration variables, so that the variables belong to the new
 	// pseudo block for each for-loop. Without this, the same-named variables in different for-loops
-	// confuses the parser.
+	// confuse the parser.
 	pseudoBlock, ok := cs.parseBlock(block, fname, nil, inParams, outParams, returnType, false)
 	if !ok {
 		return nil, false
@@ -1075,7 +1099,7 @@ func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.Rang
 	}
 
 	// As the pseudo block is not actually used, copy the variable part to the actual block.
-	// This must be done after parsing the for-loop is done, or the duplicated variables confuses the
+	// This must be done after parsing the for-loop is done, or the duplicated variables confuse the
 	// parsing.
 	// The scopes of the iteration variables end with this for-loop. Clear their names so that the
 	// variables are neither found nor checked by their names anymore. The variables themselves are

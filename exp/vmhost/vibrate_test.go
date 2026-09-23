@@ -29,10 +29,10 @@ import (
 func TestGamepadVibrationForwarding(t *testing.T) {
 	// The handler runs on this goroutine, during AdvanceTicks and WaitTicks, so the collected vibrations
 	// need no lock.
-	var got []vmhost.GamepadVibration
+	var got []vmhost.GuestGamepadVibration
 
 	guest := startGuestWithOptions(t, "./testdata/vibrate", activateByEnv, "unix", &vmhost.NewGuestSessionOptions{
-		OnGamepadVibration: func(v vmhost.GamepadVibration) {
+		OnGamepadVibration: func(v vmhost.GuestGamepadVibration) {
 			got = append(got, v)
 		},
 	})
@@ -59,7 +59,7 @@ func TestGamepadVibrationForwarding(t *testing.T) {
 	if len(got) != 1 {
 		t.Fatalf("got %d vibrations; want 1: %+v", len(got), got)
 	}
-	want := vmhost.GamepadVibration{
+	want := vmhost.GuestGamepadVibration{
 		GamepadID:       0,
 		Duration:        500 * time.Millisecond,
 		StrongMagnitude: 0.25,

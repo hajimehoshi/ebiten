@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"errors"
 	"fmt"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -28,10 +29,17 @@ import (
 )
 
 type nativeGamepadsIOKit struct {
-	hidManager      _IOHIDManagerRef
+	hidManager _IOHIDManagerRef
+
+	// devicesToAdd and devicesToRemove hold one reference per entry, which update releases or hands
+	// over to the gamepad.
 	devicesToAdd    []_IOHIDDeviceRef
 	devicesToRemove []_IOHIDDeviceRef
-	devicesM        sync.Mutex
+	devicesMu       sync.Mutex
+
+	// deferredDevices maps devices claimed by GameController to their I/O Registry entry IDs
+	// (zero if unavailable), holding one reference per device until fallback registration or disconnection.
+	deferredDevices map[_IOHIDDeviceRef]uint64
 }
 
 // theIOKitGamepads is the running IOKit backend. The C device callbacks reference
@@ -72,9 +80,21 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 		}
 		defer _CFRelease(_CFTypeRef(usageRef))
 
+		usagePageKey := _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsagePageKey, kCFStringEncodingUTF8)
+		if usagePageKey == 0 {
+			return errors.New("gamepad: CFStringCreateWithCString returned nil")
+		}
+		defer _CFRelease(_CFTypeRef(usagePageKey))
+
+		usageKey := _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsageKey, kCFStringEncodingUTF8)
+		if usageKey == 0 {
+			return errors.New("gamepad: CFStringCreateWithCString returned nil")
+		}
+		defer _CFRelease(_CFTypeRef(usageKey))
+
 		keys := []_CFStringRef{
-			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsagePageKey, kCFStringEncodingUTF8),
-			_CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDDeviceUsageKey, kCFStringEncodingUTF8),
+			usagePageKey,
+			usageKey,
 		}
 		values := []_CFNumberRef{
 			pageRef,
@@ -97,12 +117,17 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 		(*unsafe.Pointer)(unsafe.Pointer(&dicts[0])),
 		_CFIndex(len(dicts)), *(**_CFArrayCallBacks)(unsafe.Pointer(&kCFTypeArrayCallBacks)))
 	if matching == 0 {
-		return errors.New("gamepad: CFArrayCreateMutable returned nil")
+		return errors.New("gamepad: CFArrayCreate returned nil")
 	}
 	defer _CFRelease(_CFTypeRef(matching))
 
 	g.hidManager = _IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone)
+	if g.hidManager == 0 {
+		return errors.New("gamepad: IOHIDManagerCreate returned nil")
+	}
 	if _IOHIDManagerOpen(g.hidManager, kIOHIDOptionsTypeNone) != kIOReturnSuccess {
+		_CFRelease(_CFTypeRef(g.hidManager))
+		g.hidManager = 0
 		return errors.New("gamepad: IOHIDManagerOpen failed")
 	}
 
@@ -118,79 +143,140 @@ func (g *nativeGamepadsIOKit) init(gamepads *gamepads) error {
 	return nil
 }
 
+// ebitenGamepadMatchingCallback queues device for update to register. device is only guaranteed to
+// stay valid during the callback, so the queued entry takes a reference.
 func ebitenGamepadMatchingCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
 	n := theIOKitGamepads
-	n.devicesM.Lock()
-	defer n.devicesM.Unlock()
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
+
+	_CFRetain(_CFTypeRef(device))
 	n.devicesToAdd = append(n.devicesToAdd, device)
 }
 
+// ebitenGamepadRemovalCallback queues device for update to unregister. The queued entry takes a
+// reference.
 func ebitenGamepadRemovalCallback(ctx unsafe.Pointer, res _IOReturn, sender unsafe.Pointer, device _IOHIDDeviceRef) {
 	n := theIOKitGamepads
-	n.devicesM.Lock()
-	defer n.devicesM.Unlock()
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
+
+	// update only compares the entry with the gamepads by identity, but the reference keeps the
+	// address from being reused by a device queued for registration before the removal is applied,
+	// which would make the comparison match the new device's gamepad.
+	_CFRetain(_CFTypeRef(device))
 	n.devicesToRemove = append(n.devicesToRemove, device)
 }
 
 func (g *nativeGamepadsIOKit) update(gamepads *gamepads) error {
-	g.devicesM.Lock()
-	defer g.devicesM.Unlock()
+	g.devicesMu.Lock()
+	defer g.devicesMu.Unlock()
 
 	for _, device := range g.devicesToAdd {
-		g.addDevice(device, gamepads)
+		if _, ok := g.deferredDevices[device]; ok {
+			_CFRelease(_CFTypeRef(device))
+			continue
+		}
+		if gcSupportsHIDDevice(device) {
+			if g.deferredDevices == nil {
+				g.deferredDevices = map[_IOHIDDeviceRef]uint64{}
+			}
+			g.deferredDevices[device] = hidDeviceRegistryID(device)
+			continue
+		}
+		if !g.addDevice(device, gamepads) {
+			// No gamepad took over the entry's reference.
+			_CFRelease(_CFTypeRef(device))
+		}
 	}
 	for _, device := range g.devicesToRemove {
-		gamepads.remove(func(gp *Gamepad) bool {
-			n, ok := gp.native.(*nativeGamepadHID)
-			return ok && n.device == device
-		})
+		if _, ok := g.deferredDevices[device]; ok {
+			delete(g.deferredDevices, device)
+			_CFRelease(_CFTypeRef(device))
+		}
+		for {
+			gp := gamepads.find(func(gp *Gamepad) bool {
+				n, ok := gp.native.(*nativeGamepadHID)
+				return ok && n.device == device
+			})
+			if gp == nil {
+				break
+			}
+			gp.close()
+			gamepads.remove(func(gamepad *Gamepad) bool {
+				return gamepad == gp
+			})
+		}
+		_CFRelease(_CFTypeRef(device))
+	}
+	// The GC backend updates first. Its rejection records persist until GC disconnection,
+	// so either callback can arrive first, with any number of updates between them.
+	for device, id := range g.deferredDevices {
+		// A false isKnownRejectedHIDDevice result means no rejected controller has been matched yet:
+		// GC may accept the device, its callback or lookup may be pending, or lookup may be unavailable.
+		// Keep the device deferred for another check next tick or until disconnection.
+		if id == 0 || !theGCGamepads.isKnownRejectedHIDDevice(id) {
+			continue
+		}
+		delete(g.deferredDevices, device)
+		if !g.addDevice(device, gamepads) {
+			_CFRelease(_CFTypeRef(device))
+		}
 	}
 	g.devicesToAdd = g.devicesToAdd[:0]
 	g.devicesToRemove = g.devicesToRemove[:0]
 	return nil
 }
 
-func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepads) {
-	// Let the GameController backend own the controllers it supports; IOKit handles
-	// only the devices GameController does not enumerate.
-	if gcSupportsHIDDevice(device) {
-		return
+// hidDeviceProperty returns the device's property for the given null-terminated key name.
+// The returned value is owned by the device and must not be released.
+func hidDeviceProperty(device _IOHIDDeviceRef, key []byte) _CFTypeRef {
+	keyRef := _CFStringCreateWithCString(kCFAllocatorDefault, key, kCFStringEncodingUTF8)
+	if keyRef == 0 {
+		return 0
 	}
+	defer _CFRelease(_CFTypeRef(keyRef))
+	return _IOHIDDeviceGetProperty(device, keyRef)
+}
 
+// addDevice registers a gamepad for device and reports whether it did. The registered gamepad takes
+// over the caller's reference to device.
+func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepads) bool {
 	if gamepads.find(func(gp *Gamepad) bool {
 		n, ok := gp.native.(*nativeGamepadHID)
 		return ok && n.device == device
 	}) != nil {
-		return
+		return false
 	}
 
 	elements := _IOHIDDeviceCopyMatchingElements(device, 0, kIOHIDOptionsTypeNone)
 	// It is reportedly possible for this to fail on macOS 13 Ventura
 	// if the application does not have input monitoring permissions
 	if elements == 0 {
-		return
+		return false
 	}
 	defer _CFRelease(_CFTypeRef(elements))
 
 	name := "Unknown"
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDProductKey); prop != 0 {
 		var cstr [256]byte
-		_CFStringGetCString(_CFStringRef(prop), cstr[:], kCFStringEncodingUTF8)
-		name = strings.TrimRight(string(cstr[:]), "\x00")
+		if _CFStringGetCString(_CFStringRef(prop), cstr[:], _CFIndex(len(cstr)), kCFStringEncodingUTF8) {
+			name = strings.TrimRight(string(cstr[:]), "\x00")
+		}
 	}
 
 	var vendor uint32
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVendorIDKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDVendorIDKey); prop != 0 {
 		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&vendor))
 	}
 
 	var product uint32
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDProductIDKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDProductIDKey); prop != 0 {
 		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&product))
 	}
 
 	var version uint32
-	if prop := _IOHIDDeviceGetProperty(device, _CFStringCreateWithCString(kCFAllocatorDefault, kIOHIDVersionNumberKey, kCFStringEncodingUTF8)); prop != 0 {
+	if prop := hidDeviceProperty(device, kIOHIDVersionNumberKey); prop != 0 {
 		_CFNumberGetValue(_CFNumberRef(prop), kCFNumberSInt32Type, unsafe.Pointer(&version))
 	}
 
@@ -214,6 +300,9 @@ func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepa
 	}
 	gp := gamepads.add(name, sdlID)
 	gp.native = n
+	n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadHID) {
+		n.close()
+	}, n)
 
 	for i := _CFIndex(0); i < _CFArrayGetCount(elements); i++ {
 		native := (_IOHIDElementRef)(_CFArrayGetValueAtIndex(elements, i))
@@ -287,6 +376,7 @@ func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepa
 	slices.SortStableFunc(n.axes, compareElements)
 	slices.SortStableFunc(n.buttons, compareElements)
 	slices.SortStableFunc(n.hats, compareElements)
+	return true
 }
 
 func compareElements(a, b element) int {
@@ -309,10 +399,21 @@ type nativeGamepadHID struct {
 	axes    []element
 	buttons []element
 	hats    []element
+	cleanup runtime.Cleanup
 
 	axisValues   []float64
 	buttonValues []bool
 	hatValues    []int
+}
+
+// close releases g's native resources. close can be called multiple times.
+func (g *nativeGamepadHID) close() {
+	g.cleanup.Stop()
+	if g.device == 0 {
+		return
+	}
+	_CFRelease(_CFTypeRef(g.device))
+	g.device = 0
 }
 
 func (g *nativeGamepadHID) elementValue(e *element) int {
@@ -339,14 +440,11 @@ func (g *nativeGamepadHID) update(gamepads *gamepads) error {
 	}
 	g.hatValues = g.hatValues[:len(g.hats)]
 
-	for i, a := range g.axes {
-		raw := g.elementValue(&a)
-		if raw < a.minimum {
-			a.minimum = raw
-		}
-		if raw > a.maximum {
-			a.maximum = raw
-		}
+	for i := range g.axes {
+		a := &g.axes[i]
+		raw := g.elementValue(a)
+		a.minimum = min(a.minimum, raw)
+		a.maximum = max(a.maximum, raw)
 		var value float64
 		if size := a.maximum - a.minimum; size != 0 {
 			value = 2*float64(raw-a.minimum)/float64(size) - 1

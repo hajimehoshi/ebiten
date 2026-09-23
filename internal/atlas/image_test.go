@@ -527,7 +527,7 @@ func TestLongImages(t *testing.T) {
 }
 
 func TestDeallocateImmediately(t *testing.T) {
-	// This tests ClearPixels is called but WritePixels is not called.
+	// This tests that the image is cleared but WritePixels is not called.
 
 	img0 := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img0.EnsureIsolatedFromSourceForTesting(nil)
@@ -572,7 +572,7 @@ func Disable_TestMinImageSize(t *testing.T) {
 	// ResetBackendsForTesting()
 
 	// This tests that extending a backend works correctly.
-	// Though the image size is minimum size of the backend, extending the backend happens due to the paddings.
+	// Though the image size is the minimum size of the backend, extending the backend happens due to the paddings.
 	s := minSourceImageSizeForTesting
 	img := atlas.NewImage(s, s, atlas.ImageTypeRegular)
 	defer img.Deallocate()
@@ -793,7 +793,7 @@ func TestPowerOf2(t *testing.T) {
 		got := atlas.FloorPowerOf2(tc.In)
 		want := tc.Out
 		if got != want {
-			t.Errorf("packing.FloorPowerOf2(%d): got: %d, want: %d", tc.In, got, want)
+			t.Errorf("atlas.FloorPowerOf2(%d): got: %d, want: %d", tc.In, got, want)
 		}
 	}
 }
@@ -863,7 +863,7 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 }
 
 func ensureGC() {
-	// Use a pointer to avoid tinyalloc. A tinyalloc-ed object's finalizer might not called immediately.
+	// Use a pointer to avoid tinyalloc. A tinyalloc-ed object's cleanup might not be called immediately.
 	// See runtime/mfinal_test.go.
 	x := new(unsafe.Pointer)
 	ch := make(chan struct{})

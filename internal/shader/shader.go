@@ -59,7 +59,12 @@ type compileState struct {
 
 	global block
 
-	errs []string
+	errs []compileError
+}
+
+type compileError struct {
+	position token.Position
+	message  string
 }
 
 func (cs *compileState) findFunction(name string) (int, bool) {
@@ -90,7 +95,6 @@ type block struct {
 	vars       []variable
 	unusedVars map[int]token.Pos
 	consts     []constant
-	pos        token.Pos
 	outer      *block
 
 	ir *shaderir.Block
@@ -175,11 +179,24 @@ func (b *block) findConstant(name string) (constant, bool) {
 }
 
 type ParseError struct {
-	errs []string
+	errs []compileError
 }
 
 func (p *ParseError) Error() string {
-	return strings.Join(p.errs, "\n")
+	msgs := make([]string, 0, len(p.errs))
+	for _, e := range p.errs {
+		msgs = append(msgs, fmt.Sprintf("%s: %s", e.position, e.message))
+	}
+	return strings.Join(msgs, "\n")
+}
+
+// Positions returns the source positions of the errors, in the same order as [ParseError.Error] reports them.
+func (p *ParseError) Positions() []token.Position {
+	ps := make([]token.Position, 0, len(p.errs))
+	for _, e := range p.errs {
+		ps = append(ps, e.position)
+	}
+	return ps
 }
 
 func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*shaderir.Program, error) {
@@ -195,6 +212,7 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 		fragmentEntry: fragmentEntry,
 	}
 	s.ir.SourceID = shaderir.CalcSourceID(src)
+	s.ir.TextureCount = textureCount
 	s.global.ir = &shaderir.Block{}
 	s.parse(f)
 
@@ -207,13 +225,14 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 
 	// TODO: Make a call graph and reorder the elements.
 
-	s.ir.TextureCount = textureCount
 	return &s.ir, nil
 }
 
 func (s *compileState) addError(pos token.Pos, str string) {
-	p := s.fs.Position(pos)
-	s.errs = append(s.errs, fmt.Sprintf("%s: %s", p, str))
+	s.errs = append(s.errs, compileError{
+		position: s.fs.Position(pos),
+		message:  str,
+	})
 }
 
 func (cs *compileState) parse(f *ast.File) {
@@ -237,7 +256,7 @@ func (cs *compileState) parse(f *ast.File) {
 			utypes = append(utypes, cs.ir.Uniforms[i])
 		}
 	}
-	// TODO: Check len(unames) == graphics.PreservedUniformVariablesCount. Unfortunately this is not true on tests.
+	// TODO: Check len(unames) == graphics.PreservedUniformVariablesCount. Unfortunately this is not true in tests.
 	for i, u := range cs.ir.UniformNames {
 		if !strings.HasPrefix(u, "__") {
 			unames = append(unames, u)
@@ -247,7 +266,7 @@ func (cs *compileState) parse(f *ast.File) {
 	cs.ir.UniformNames = unames
 	cs.ir.Uniforms = utypes
 
-	// Parse function names so that any other function call the others.
+	// Parse function names so that any function can call the other functions.
 	// The function data is provisional and will be updated soon.
 	var vertexInParams []variable
 	var vertexOutParams []variable
@@ -304,7 +323,7 @@ func (cs *compileState) parse(f *ast.File) {
 	}
 
 	// Check varying variables.
-	// In testings, there might not be vertex and fragment entry points.
+	// In tests, there might not be vertex and fragment entry points.
 	if len(vertexOutParams) > 0 && len(fragmentInParams) > 0 {
 		for i, p := range vertexOutParams {
 			if len(fragmentInParams) <= i {
@@ -333,7 +352,7 @@ func (cs *compileState) parse(f *ast.File) {
 		return
 	}
 
-	// Set attribute and varying veraibles.
+	// Set attribute and varying variables.
 	for _, p := range vertexInParams {
 		cs.ir.Attributes = append(cs.ir.Attributes, p.typ)
 	}
@@ -493,7 +512,7 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 	return stmts, true
 }
 
-// functionReturnTypes returns the original returning value types, if the given expression is call.
+// functionReturnTypes returns the original returning value types, if the given expression is a call.
 //
 // Note that parseExpr returns the returning types for IR, not the original function.
 func (cs *compileState) functionReturnTypes(block *block, expr ast.Expr) ([]shaderir.Type, bool) {
@@ -560,6 +579,14 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 			if !ok {
 				return nil, nil, nil, false
 			}
+			if len(es) == 0 || len(rts) == 0 {
+				s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+				return nil, nil, nil, false
+			}
+			if len(es) > 1 || len(rts) > 1 {
+				s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+				return nil, nil, nil, false
+			}
 
 			if t.Main == shaderir.None {
 				ts, ok := s.functionReturnTypes(block, init)
@@ -583,6 +610,14 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 				if !canAssign(&t, &rt, es[i].Const) {
 					s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
 				}
+				if es[i].Const != nil {
+					switch t.Main {
+					case shaderir.Int:
+						es[i].Const = gconstant.ToInt(es[i].Const)
+					case shaderir.Float:
+						es[i].Const = gconstant.ToFloat(es[i].Const)
+					}
+				}
 			}
 
 			inits = append(inits, es...)
@@ -590,7 +625,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 		default:
 			// Multiple-value context
-			// See testcase/var_multiple.go for an actual case.
+			// See testdata/var_multiple.go for an actual case.
 
 			if i == 0 {
 				init := vs.Values[0]
@@ -608,10 +643,11 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					if ok {
 						inittypes = ts
 					}
-					if len(ts) != len(vs.Names) {
-						s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
-						continue
-					}
+				}
+
+				if len(initexprs) != len(vs.Names) || len(inittypes) != len(vs.Names) {
+					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+					return nil, nil, nil, false
 				}
 			}
 
@@ -654,6 +690,15 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 }
 
 func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSpec) ([]constant, bool) {
+	if len(vs.Names) > len(vs.Values) {
+		s.addError(vs.Pos(), "missing init expr for const declaration")
+		return nil, false
+	}
+	if len(vs.Names) < len(vs.Values) {
+		s.addError(vs.Pos(), "extra init expr for const declaration")
+		return nil, false
+	}
+
 	var t shaderir.Type
 	if vs.Type != nil {
 		var ok bool
@@ -829,7 +874,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 		}
 
 		if !hasReturn(b.ir.Stmts) {
-			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but not", d.Name))
+			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but does not", d.Name))
 			return function{}, false
 		}
 	}

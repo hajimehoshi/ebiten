@@ -251,7 +251,7 @@ type imageImpl struct {
 	// usedAsDestinationCount represents how many times an image is used as a rendering destination at DrawTriangles.
 	// usedAsDestinationCount affects the calculation when to put the image onto a texture atlas again.
 	//
-	// usedAsDestinationCount is never reset.
+	// usedAsDestinationCount is not reset while the image is alive.
 	usedAsDestinationCount int
 }
 
@@ -362,7 +362,7 @@ func (i *Image) putOnSourceBackend() {
 	}
 
 	if !i.canBePutOnAtlas() {
-		panic("atlas: putOnSourceBackend cannot be called on a image that cannot be on an atlas")
+		panic("atlas: putOnSourceBackend cannot be called on an image that cannot be on an atlas")
 	}
 
 	if i.imageType != ImageTypeRegular {
@@ -384,13 +384,13 @@ func (i *Image) putOnSourceBackend() {
 	i.usedAsSourceCount = 0
 
 	if !i.isOnSourceBackend() {
-		panic("atlas: i must be on a source backend but not")
+		panic("atlas: image must be on a source backend")
 	}
 }
 
 func (i *imageImpl) regionWithPadding() image.Rectangle {
 	if i.backend == nil {
-		panic("atlas: backend must not be nil: not allocated yet?")
+		panic("atlas: backend must not be nil: not allocated yet")
 	}
 	if !i.isOnAtlas() {
 		return image.Rect(0, 0, i.width+i.paddingSize(), i.height+i.paddingSize())
@@ -410,7 +410,11 @@ func (i *imageImpl) regionWithPadding() image.Rectangle {
 //	4: Color R [0.0-1.0]
 //	5: Color G
 //	6: Color B
-//	7: Color Y
+//	7: Color A
+//	8: Custom0
+//	9: Custom1
+//	10: Custom2
+//	11: Custom3
 func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
 	backendsM.Lock()
 	defer backendsM.Unlock()
@@ -439,7 +443,7 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 			continue
 		}
 		if src.backend == nil {
-			// It is possible to spcify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
+			// It is possible to specify i.backend as a forbidden backend, but this might prevent a good allocation for a source image.
 			// If the backend becomes the same as i's, i's backend will be changed at ensureIsolatedFromSource.
 			src.allocate(nil, i.imageType == ImageTypeRegular)
 		}
@@ -525,7 +529,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 
 func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	if l := 4 * region.Dx() * region.Dy(); len(pix) != l {
-		panic(fmt.Sprintf("atlas: len(p) must be %d but %d", l, len(pix)))
+		panic(fmt.Sprintf("atlas: len(pix) must be %d but %d", l, len(pix)))
 	}
 
 	i.resetUsedAsSourceCount()
@@ -623,10 +627,11 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 // Deallocate deallocates the internal state.
 // Even after this call, the image is still available as a new cleared image.
 func (i *Image) Deallocate() {
-	i.cleanup.Stop()
-
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	// i.cleanup is rewritten under backendsM e.g. at moveTo.
+	i.cleanup.Stop()
 
 	if !inFrame {
 		appendDeferred(func() {
@@ -842,8 +847,6 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	}
 
 	if theGPUResourcesState.isSavingGPUResourcesRequested() {
-		defer theGPUResourcesState.finishSavingGPUResources()
-
 		flushDeferred()
 		for _, b := range theBackends {
 			if b.backendImage == nil {
@@ -870,6 +873,8 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 						err = b.backendImage.ReadPixels(graphicsDriver, args)
 					})
 					if err != nil {
+						// The saved pixels are incomplete, so the resources cannot be restored from them.
+						theGPUResourcesState.finishSavingGPUResources(false)
 						return err
 					}
 				}
@@ -881,17 +886,18 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 				region: region,
 			}
 		}
+		theGPUResourcesState.finishSavingGPUResources(true)
 	}
 
 	return nil
 }
 
-func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, present bool) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if inFrame {
-		panic("atlas: inFrame must be false in SwapBuffer")
+		panic("atlas: inFrame must be false in FlushCommands")
 	}
 
 	if debug.IsDebug {
@@ -906,7 +912,11 @@ func SwapBuffers(graphicsDriver graphicsdriver.Graphics) error {
 		graphicscommand.LogImagesInfo(imgs)
 	}
 
-	if err := graphicscommand.FlushCommands(graphicsDriver, true); err != nil {
+	mode := graphicsdriver.FlushModeEndFrame
+	if present {
+		mode = graphicsdriver.FlushModePresent
+	}
+	if err := graphicscommand.FlushCommands(graphicsDriver, mode); err != nil {
 		return err
 	}
 
@@ -937,7 +947,7 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 			return
 		}
 		if len(theBackends) != 0 {
-			panic("atlas: all the images must be not on an atlas before the game starts")
+			panic("atlas: no images must be on an atlas before the game starts")
 		}
 
 		// min*Size and maxSize can already be set for testings.

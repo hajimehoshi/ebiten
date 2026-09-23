@@ -32,7 +32,8 @@ jobs:
       - name: Go version
         id: go
         run: |
-          echo "version=$(curl --location https://go.dev/VERSION?m=text | head -n 1 | sed -e s/^go//)" >> $GITHUB_OUTPUT
+          version=$(curl --fail --location --retry 3 https://go.dev/VERSION?m=text | head -n 1 | sed -e s/^go//)
+          echo "version=$version" >> $GITHUB_OUTPUT
 
       - name: Setup Go
         uses: actions/setup-go@v6

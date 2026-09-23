@@ -17,6 +17,7 @@ package vorbis_test
 import (
 	"bytes"
 	_ "embed"
+	"errors"
 	"io"
 	"testing"
 
@@ -58,10 +59,10 @@ func TestMono(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Stream decoded by audio/vorbis.DecodeWithSampleRate() is always 16bit stereo.
-	// On the other hand, the original vorbis package is monoral.
+	// The stream decoded by audio/vorbis.DecodeWithSampleRate() is always 16bit stereo.
+	// On the other hand, the original vorbis package is monaural.
 	// As Length() represents the number of samples,
-	// this needs to be doubled by 2 (= bytes in 16bits).
+	// this needs to be multiplied by 2 (= bytes in 16bits).
 	if got, want := s.Length(), r.Length()*2*2; got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
 	}
@@ -84,10 +85,10 @@ func TestMonoF32(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Stream decoded by audio/vorbis.DecodeF32() is always 32bit float stereo.
-	// On the other hand, the original vorbis package is monoral.
+	// The stream decoded by audio/vorbis.DecodeF32() is always 32bit float stereo.
+	// On the other hand, the original vorbis package is monaural.
 	// As Length() represents the number of samples,
-	// this needs to be doubled by 4 (= bytes in 32bits).
+	// this needs to be multiplied by 4 (= bytes in 32bits).
 	if got, want := s.Length(), r.Length()*2*4; got != want {
 		t.Errorf("s.Length(): got: %d, want: %d", got, want)
 	}
@@ -293,6 +294,303 @@ func TestSeekInvalidWhence(t *testing.T) {
 				if _, err := s.Seek(0, whence); err == nil {
 					t.Errorf("Seek(0, %d): got no error, want an error", whence)
 				}
+			}
+		})
+	}
+}
+
+func TestSeekNegativePosition(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		t.Run(file.name, func(t *testing.T) {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*vorbis.Stream, error)
+			}{
+				{
+					name: "I16",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeWithoutResampling(r)
+					},
+				},
+				{
+					name: "F32",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeF32(r)
+					},
+				},
+				{
+					name: "Resampling",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						// The test files are 44100Hz, so this resamples the stream.
+						return vorbis.DecodeWithSampleRate(48000, r)
+					},
+				},
+			} {
+				t.Run(decode.name, func(t *testing.T) {
+					s, err := decode.f(bytes.NewReader(file.bs))
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if _, err := s.Seek(-100, io.SeekStart); err == nil {
+						t.Error("Seek(-100, io.SeekStart): expected an error but got none")
+					}
+					if _, err := s.Seek(0, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := s.Seek(-1000, io.SeekCurrent); err == nil {
+						t.Error("Seek(-1000, io.SeekCurrent): expected an error but got none")
+					}
+					// A negative result from io.SeekEnd must be rejected even from a non-zero position.
+					if _, err := s.Seek(4096, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := s.Seek(-s.Length()-1024, io.SeekEnd); err == nil {
+						t.Error("Seek(-Length()-1024, io.SeekEnd): expected an error but got none")
+					}
+
+					// The stream must not be broken by the failed seeks.
+					pos, err := s.Seek(0, io.SeekStart)
+					if err != nil {
+						t.Fatalf("Seek(0, io.SeekStart) after failed seeks: %v", err)
+					}
+					if got, want := pos, int64(0); got != want {
+						t.Errorf("Seek(0, io.SeekStart): got: %d, want: %d", got, want)
+					}
+					buf := make([]byte, 64)
+					n, err := s.Read(buf)
+					if err != nil {
+						t.Fatalf("Read after Seek(0): %v", err)
+					}
+					if got, want := n, len(buf); got != want {
+						t.Errorf("Read: got: %d, want: %d", got, want)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestStereoI16SeekUnalignedPosition(t *testing.T) {
+	bs := test_stereo_ogg
+
+	s, err := vorbis.DecodeWithoutResampling(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A seek result must be the actual frame-aligned position in the stream.
+	got, err := s.Seek(5, io.SeekStart)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := int64(4); got != want {
+		t.Errorf("Seek(5, io.SeekStart): got: %d, want: %d", got, want)
+	}
+
+	buf := make([]byte, 8)
+	n, err := s.Read(buf)
+	if err != nil {
+		t.Fatalf("Read after Seek(5, io.SeekStart): %v", err)
+	}
+	if got, want := n, len(buf); got != want {
+		t.Errorf("Read: got: %d, want: %d", got, want)
+	}
+}
+
+func TestStereoF32SeekUnalignedNegativeOffset(t *testing.T) {
+	bs := test_stereo_ogg
+
+	s, err := vorbis.DecodeF32(bytes.NewReader(bs))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// A negative offset from io.SeekEnd must be aligned toward the start,
+	// as well as the int16 stream does.
+	got, err := s.Seek(-5, io.SeekEnd)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const sampleSize = 2 * 4
+	if want := (s.Length() - 5) / sampleSize * sampleSize; got != want {
+		t.Errorf("Seek(-5, io.SeekEnd): got: %d, want: %d", got, want)
+	}
+}
+
+func TestDecodeF32ShortBuffer(t *testing.T) {
+	cases := []struct {
+		name string
+		data []byte
+	}{
+		{
+			name: "mono",
+			data: test_mono_ogg,
+		},
+		{
+			name: "stereo",
+			data: test_stereo_ogg,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s, err := vorbis.DecodeF32(bytes.NewReader(c.data))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if n, err := s.Read(nil); n != 0 || err != nil {
+				t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+			}
+			for _, l := range []int{1, 2, 3, 4, 5, 6, 7} {
+				if n, err := s.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+					t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+				}
+			}
+		})
+	}
+}
+
+func TestDecodeI16ShortBuffer(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		t.Run(file.name, func(t *testing.T) {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*vorbis.Stream, error)
+			}{
+				{
+					name: "I16",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeWithoutResampling(r)
+					},
+				},
+				{
+					name: "Resampling",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						// The test files are 44100Hz, so this resamples the stream.
+						return vorbis.DecodeWithSampleRate(48000, r)
+					},
+				},
+			} {
+				t.Run(decode.name, func(t *testing.T) {
+					s, err := decode.f(bytes.NewReader(file.bs))
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					if n, err := s.Read(nil); n != 0 || err != nil {
+						t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+					}
+					for _, l := range []int{1, 2, 3} {
+						if n, err := s.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+							t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+						}
+					}
+
+					// The rejected reads must not consume the stream.
+					n, err := io.Copy(io.Discard, s)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if want := s.Length(); n != want {
+						t.Errorf("the stream delivered %d bytes, want %d", n, want)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestSeekSmallNegativePosition(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		t.Run(file.name, func(t *testing.T) {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*vorbis.Stream, error)
+			}{
+				{
+					name: "I16",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeWithoutResampling(r)
+					},
+				},
+				{
+					name: "F32",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						return vorbis.DecodeF32(r)
+					},
+				},
+				{
+					name: "Resampling",
+					f: func(r io.Reader) (*vorbis.Stream, error) {
+						// The test files are 44100Hz, so this resamples the stream.
+						return vorbis.DecodeWithSampleRate(48000, r)
+					},
+				},
+			} {
+				t.Run(decode.name, func(t *testing.T) {
+					s, err := decode.f(bytes.NewReader(file.bs))
+					if err != nil {
+						t.Fatal(err)
+					}
+
+					// An offset in (-8, 0) is rounded toward the frame boundary before it
+					// reaches the decoder, so the requested position must be resolved and
+					// checked before the rounding, whichever whence it comes from.
+					for _, offset := range []int64{-1, -2, -3, -4, -5, -6, -7, -8} {
+						if _, err := s.Seek(offset, io.SeekStart); err == nil {
+							t.Errorf("Seek(%d, io.SeekStart): got no error, want an error", offset)
+						}
+						if _, err := s.Seek(offset, io.SeekCurrent); err == nil {
+							t.Errorf("Seek(%d, io.SeekCurrent) at 0: got no error, want an error", offset)
+						}
+						if _, err := s.Seek(-s.Length()+offset, io.SeekEnd); err == nil {
+							t.Errorf("Seek(-Length()%+d, io.SeekEnd): got no error, want an error", offset)
+						}
+					}
+
+					// The stream must not be broken by the rejected seeks.
+					buf := make([]byte, 64)
+					if _, err := io.ReadFull(s, buf); err != nil {
+						t.Fatal(err)
+					}
+				})
 			}
 		})
 	}

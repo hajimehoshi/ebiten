@@ -171,7 +171,7 @@ type graphicsInfraResources struct {
 	dcompVisual *_IDCompositionVisual
 }
 
-// newGraphicsInfra takes the ownership of the given factory.
+// newGraphicsInfra takes ownership of the given factory.
 func newGraphicsInfra(factory *_IDXGIFactory) (*graphicsInfra, error) {
 	g := &graphicsInfra{
 		graphicsInfraResources: &graphicsInfraResources{
@@ -229,7 +229,16 @@ func (g *graphicsInfraResources) releaseResources() {
 // Releasing them is the caller's responsibility.
 //
 // warpForDX12 is valid only for DirectX 12.
-func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) ([]*_IDXGIAdapter1, error) {
+func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) (_ []*_IDXGIAdapter1, ferr error) {
+	origLen := len(adapters)
+	defer func() {
+		if ferr != nil {
+			for _, a := range adapters[origLen:] {
+				a.Release()
+			}
+		}
+	}()
+
 	f, err := g.factory.QueryInterface(&_IID_IDXGIFactory4)
 	if err != nil {
 		return nil, err
@@ -439,7 +448,7 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 		}
 	}()
 
-	dcompTarget, err := dcompDevice.CreateTargetForHwnd(window, true)
+	dcompTarget, err := dcompDevice.CreateTargetForHwnd(window, false)
 	if err != nil {
 		return err
 	}

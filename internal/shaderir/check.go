@@ -82,6 +82,16 @@ func ResolveUntypedConstsForBinaryOp(op Op, lhs, rhs constant.Value, lhst, rhst 
 }
 
 func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value) (Type, bool) {
+	switch op {
+	case Add, Sub, ComponentWiseMul, MatrixMul, Div:
+		if lhst.Main == Bool || rhst.Main == Bool {
+			return Type{}, false
+		}
+		if (lhsConst != nil && lhsConst.Kind() == constant.Bool) || (rhsConst != nil && rhsConst.Kind() == constant.Bool) {
+			return Type{}, false
+		}
+	}
+
 	// If both are untyped consts, compare the constants and try to truncate them if necessary.
 	if lhst.Main == None && rhst.Main == None {
 		// Assume that the constant types are already adjusted.
@@ -149,7 +159,7 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	}
 
 	if op == VectorEqualOp || op == VectorNotEqualOp {
-		if (lhst.IsFloatVector() || lhst.IsIntVector()) && (rhst.IsFloatVector() || lhst.IsIntVector()) && lhst.Equal(&rhst) {
+		if (lhst.IsFloatVector() || lhst.IsIntVector()) && (rhst.IsFloatVector() || rhst.IsIntVector()) && lhst.Equal(&rhst) {
 			return Type{Main: Bool}, true
 		}
 		return Type{}, false
@@ -162,17 +172,14 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		return Type{}, false
 	}
 
-	// Comparing matrices are forbidden (#2187).
-	// As in Go, an array is comparable only when its element type is comparable. Then, an array of
-	// matrices is forbidden as well (#3535).
+	// Comparing matrices is forbidden (#2187).
+	// Comparing arrays is forbidden as well, as most of the shading languages don't have the
+	// operation (#3535).
 	if op == EqualOp || op == NotEqualOp {
 		if lhst.IsMatrix() || rhst.IsMatrix() {
 			return Type{}, false
 		}
-		if lhst.Main == Array && lhst.Sub[0].IsMatrix() {
-			return Type{}, false
-		}
-		if rhst.Main == Array && rhst.Sub[0].IsMatrix() {
+		if lhst.Main == Array || rhst.Main == Array {
 			return Type{}, false
 		}
 		if lhst.Equal(&rhst) {

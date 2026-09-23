@@ -16,12 +16,51 @@ package vmprotocol_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net"
+	"runtime/debug"
 	"testing"
+
+	"golang.org/x/mod/semver"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
+
+func TestVersionMatchesEbitengine(t *testing.T) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		t.Skip("build information is unavailable")
+	}
+
+	const modulePath = "github.com/hajimehoshi/ebiten/v2"
+	var version string
+	if info.Main.Path == modulePath {
+		version = info.Main.Version
+	} else {
+		for _, dep := range info.Deps {
+			if dep.Path != modulePath {
+				continue
+			}
+			if dep.Replace != nil {
+				dep = dep.Replace
+			}
+			version = dep.Version
+			break
+		}
+	}
+	if version == "" || version == "(devel)" {
+		t.Skip("Ebitengine module version is unavailable")
+	}
+	if !semver.IsValid(version) {
+		t.Fatalf("invalid Ebitengine module version: %q", version)
+	}
+
+	got := fmt.Sprintf("v%d.%d", vmprotocol.VersionMajor, vmprotocol.VersionMinor)
+	if want := semver.MajorMinor(version); got != want {
+		t.Errorf("protocol version = %s; want %s", got, want)
+	}
+}
 
 // newPipe returns the two ends of an in-memory connection, closing both via t.Cleanup.
 func newPipe(t *testing.T) (net.Conn, net.Conn) {
@@ -57,61 +96,99 @@ func TestPerformHandshakeMatch(t *testing.T) {
 }
 
 func TestPerformHandshakeVersionMismatchInitiator(t *testing.T) {
-	c1, c2 := newPipe(t)
+	for _, tt := range []struct {
+		name         string
+		major, minor uint16
+	}{
+		{
+			name:  "major",
+			major: vmprotocol.VersionMajor + 1,
+			minor: vmprotocol.VersionMinor,
+		},
+		{
+			name:  "minor",
+			major: vmprotocol.VersionMajor,
+			minor: vmprotocol.VersionMinor + 1,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			major, minor := tt.major, tt.minor
+			c1, c2 := newPipe(t)
 
-	// A peer that announces an incompatible protocol version. As the responder it receives the
-	// initiator's preamble first, then sends its (wrong) one.
-	peerErr := make(chan error, 1)
-	go func() {
-		var buf [8]byte
-		if _, err := io.ReadFull(c2, buf[:]); err != nil {
-			peerErr <- err
-			return
-		}
-		peerErr <- vmprotocol.WriteHandshakeForTesting(c2, vmprotocol.ProtocolVersion+1)
-	}()
+			// A peer that announces an incompatible protocol version. As the responder it receives the
+			// initiator's preamble first, then sends its (wrong) one.
+			peerErr := make(chan error, 1)
+			go func() {
+				var buf [8]byte
+				if _, err := io.ReadFull(c2, buf[:]); err != nil {
+					peerErr <- err
+					return
+				}
+				peerErr <- vmprotocol.WriteHandshakeForTesting(c2, major, minor)
+			}()
 
-	if err := vmprotocol.PerformHandshake(c1, true); err == nil {
-		t.Fatal("expected a protocol version mismatch error, got nil")
-	}
-	if err := <-peerErr; err != nil {
-		t.Errorf("the peer goroutine failed: %v", err)
+			if err := vmprotocol.PerformHandshake(c1, true); err == nil {
+				t.Error("expected a protocol version mismatch error, got nil")
+			}
+			if err := <-peerErr; err != nil {
+				t.Errorf("the peer goroutine failed: %v", err)
+			}
+		})
 	}
 }
 
 func TestPerformHandshakeVersionMismatchResponder(t *testing.T) {
-	c1, c2 := newPipe(t)
+	for _, tt := range []struct {
+		name         string
+		major, minor uint16
+	}{
+		{
+			name:  "major",
+			major: vmprotocol.VersionMajor + 1,
+			minor: vmprotocol.VersionMinor,
+		},
+		{
+			name:  "minor",
+			major: vmprotocol.VersionMajor,
+			minor: vmprotocol.VersionMinor + 1,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			major, minor := tt.major, tt.minor
+			c1, c2 := newPipe(t)
 
-	// A peer that announces an incompatible protocol version as the initiator. The responder must
-	// still answer with its own preamble before rejecting, so the initiator too can name the mismatch
-	// rather than seeing a bare connection close.
-	type peerResult struct {
-		reply [8]byte
-		err   error
-	}
-	resc := make(chan peerResult, 1)
-	go func() {
-		var r peerResult
-		r.err = vmprotocol.WriteHandshakeForTesting(c1, vmprotocol.ProtocolVersion+1)
-		if r.err == nil {
-			_, r.err = io.ReadFull(c1, r.reply[:])
-		}
-		resc <- r
-	}()
+			// A peer that announces an incompatible protocol version as the initiator. The responder must
+			// still answer with its own preamble before rejecting, so the initiator too can name the mismatch
+			// rather than seeing a bare connection close.
+			type peerResult struct {
+				reply [8]byte
+				err   error
+			}
+			resc := make(chan peerResult, 1)
+			go func() {
+				var r peerResult
+				r.err = vmprotocol.WriteHandshakeForTesting(c1, major, minor)
+				if r.err == nil {
+					_, r.err = io.ReadFull(c1, r.reply[:])
+				}
+				resc <- r
+			}()
 
-	if err := vmprotocol.PerformHandshake(c2, false); err == nil {
-		t.Fatal("expected a protocol version mismatch error, got nil")
-	}
-	r := <-resc
-	if r.err != nil {
-		t.Fatalf("the peer goroutine failed: %v", r.err)
-	}
-	var want bytes.Buffer
-	if err := vmprotocol.WriteHandshakeForTesting(&want, vmprotocol.ProtocolVersion); err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(r.reply[:], want.Bytes()) {
-		t.Errorf("the responder's preamble = %q; want %q", r.reply[:], want.Bytes())
+			if err := vmprotocol.PerformHandshake(c2, false); err == nil {
+				t.Error("expected a protocol version mismatch error, got nil")
+			}
+			r := <-resc
+			if r.err != nil {
+				t.Fatalf("the peer goroutine failed: %v", r.err)
+			}
+			var want bytes.Buffer
+			if err := vmprotocol.WriteHandshakeForTesting(&want, vmprotocol.VersionMajor, vmprotocol.VersionMinor); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(r.reply[:], want.Bytes()) {
+				t.Errorf("the responder's preamble = %q; want %q", r.reply[:], want.Bytes())
+			}
+		})
 	}
 }
 
@@ -131,7 +208,7 @@ func TestPerformHandshakeBadMagic(t *testing.T) {
 	}()
 
 	if err := vmprotocol.PerformHandshake(c1, true); err == nil {
-		t.Fatal("expected a bad-magic error, got nil")
+		t.Error("expected a bad-magic error, got nil")
 	}
 	if err := <-peerErr; err != nil {
 		t.Errorf("the peer goroutine failed: %v", err)

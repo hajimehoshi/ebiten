@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package wav provides WAV (RIFF) decoder.
+// Package wav provides a WAV (RIFF) decoder.
 package wav
 
 import (
@@ -40,21 +40,22 @@ type Stream struct {
 	sampleRate int
 }
 
-// Read is implementation of io.Reader's Read.
+// Read is an implementation of io.Reader's Read.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.inner.Read(p)
 }
 
-// Seek is implementation of io.Seeker's Seek.
+// Seek is an implementation of io.Seeker's Seek.
 //
-// Note that Seek can take long since decoding is a relatively heavy task.
-//
-// If the underlying source is not an io.Seeker, Seek panics.
+// If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.inner.Seek(offset, whence)
 }
 
 // Length returns the size of decoded stream in bytes.
+//
+// Length returns -1 when the size is unknown. The size is unknown when the 'data' chunk does not
+// declare its size and the source cannot seek to its end.
 func (s *Stream) Length() int64 {
 	return s.size
 }
@@ -67,11 +68,11 @@ func (s *Stream) SampleRate() int {
 // DecodeF32 decodes WAV (RIFF) data to playable stream in 32bit float, little endian, 2 channels (stereo) format.
 //
 // The src format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
-// The src format is converted into 2 channels and 16bit.
+// The src format is converted into 2 channels and 32bit float.
 //
 // DecodeF32 returns error when decoding fails or IO error happens.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
@@ -90,7 +91,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 //
 // DecodeWithoutResampling returns error when decoding fails or IO error happens.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
@@ -111,7 +112,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 //
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.
@@ -140,7 +141,7 @@ func decode(src io.Reader, bitDepthInBytes int) (*Stream, error) {
 	buf := make([]byte, 12)
 	n, err := io.ReadFull(src, buf)
 	if n != len(buf) {
-		return nil, fmt.Errorf("wav: invalid header")
+		return nil, fmt.Errorf("wav: invalid header: too short")
 	}
 	if err != nil {
 		return nil, err
@@ -163,7 +164,7 @@ chunks:
 		var buf [8]byte
 		n, err := io.ReadFull(src, buf[:])
 		if n != len(buf) {
-			return nil, fmt.Errorf("wav: invalid header")
+			return nil, fmt.Errorf("wav: invalid header: chunk header too short")
 		}
 		if err != nil {
 			return nil, err
@@ -181,7 +182,7 @@ chunks:
 			var fmtBuf [16]byte
 			n, err := io.ReadFull(src, fmtBuf[:])
 			if n != len(fmtBuf) {
-				return nil, fmt.Errorf("wav: invalid header")
+				return nil, fmt.Errorf("wav: invalid header: 'fmt ' chunk too short")
 			}
 			if err != nil {
 				return nil, err
@@ -205,8 +206,11 @@ chunks:
 				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
 			}
 			sampleRate = int(fmtBuf[4]) | int(fmtBuf[5])<<8 | int(fmtBuf[6])<<16 | int(fmtBuf[7])<<24
+			if sampleRate <= 0 {
+				return nil, fmt.Errorf("wav: sample rate must be positive but was %d", sampleRate)
+			}
 			if _, err := io.CopyN(io.Discard, src, paddedSize-16); err != nil {
-				return nil, fmt.Errorf("wav: invalid header")
+				return nil, fmt.Errorf("wav: invalid header: failed to skip 'fmt ' chunk: %w", err)
 			}
 			headerSize += paddedSize
 		case bytes.Equal(buf[0:4], []byte("data")):
@@ -214,14 +218,45 @@ chunks:
 			break chunks
 		default:
 			if _, err := io.CopyN(io.Discard, src, paddedSize); err != nil {
-				return nil, fmt.Errorf("wav: invalid header")
+				return nil, fmt.Errorf("wav: invalid header: failed to skip chunk: %w", err)
 			}
 			headerSize += paddedSize
 		}
 	}
 
-	var s io.ReadSeeker = newSectionReader(src, headerSize, dataSize)
+	if bitsPerSample == 0 {
+		return nil, fmt.Errorf("wav: invalid header: 'fmt ' not found before 'data'")
+	}
 
+	// A 'data' chunk size of 0 or 0xffffffff is a placeholder, and the data then extends to the end
+	// of src. A writer that streams the data or is terminated abnormally never patches the size and
+	// leaves the initial 0 (e.g. https://sourceforge.net/p/flac/bugs/190/) or a -1. RF64 also sets the
+	// 32-bit size fields to -1 (0xffffffff) to indicate that the actual sizes are in the 'ds64'
+	// chunk (https://en.wikipedia.org/wiki/RF64).
+	if dataSize == 0 || dataSize == 0xffffffff {
+		size, err := sizeToEnd(src)
+		if err != nil {
+			return nil, err
+		}
+		dataSize = size
+	}
+
+	bytesPerFrame := int64(bitsPerSample / 8)
+	if !mono {
+		bytesPerFrame *= 2
+	}
+
+	var s io.ReadSeeker
+	if dataSize < 0 {
+		s = newFrameAlignedReader(src, int(bytesPerFrame))
+	} else {
+		// A partial frame at the tail of the data chunk cannot be decoded. Discard it.
+		dataSize = dataSize / bytesPerFrame * bytesPerFrame
+		s = newSectionReader(src, headerSize, dataSize)
+	}
+
+	// sizeScale is the ratio of the decoded size to the 'data' chunk size.
+	sizeScale := int64(1)
 	if mono || bitsPerSample != 16 {
 		var format convert.Format
 		switch bitsPerSample {
@@ -235,23 +270,49 @@ chunks:
 		}
 		s = convert.NewStereoI16ReadSeeker(s, mono, format)
 		if mono {
-			dataSize *= 2
+			sizeScale *= 2
 		}
 		if bitsPerSample != 16 {
-			dataSize *= 2
+			sizeScale *= 2
 		}
 	}
 
 	if bitDepthInBytes == bitDepthInBytesFloat32 {
 		s = convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(s)
-		dataSize *= 2
+		sizeScale *= 2
 	}
 
+	// An unknown size stays -1 (see Stream.Length).
+	size := int64(-1)
+	if dataSize >= 0 {
+		size = dataSize * sizeScale
+	}
 	return &Stream{
 		inner:      s,
-		size:       dataSize,
+		size:       size,
 		sampleRate: sampleRate,
 	}, nil
+}
+
+// sizeToEnd returns the number of bytes from the current position of src to its end, or -1 when
+// src cannot tell, e.g. src is not an io.Seeker or is a pipe. On success, src stays at its position.
+func sizeToEnd(src io.Reader) (int64, error) {
+	seeker, ok := src.(io.Seeker)
+	if !ok {
+		return -1, nil
+	}
+	cur, err := seeker.Seek(0, io.SeekCurrent)
+	if err != nil {
+		return -1, nil
+	}
+	end, err := seeker.Seek(0, io.SeekEnd)
+	if err != nil {
+		return -1, nil
+	}
+	if _, err := seeker.Seek(cur, io.SeekStart); err != nil {
+		return 0, err
+	}
+	return end - cur, nil
 }
 
 // Decode decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
@@ -263,7 +324,7 @@ chunks:
 //
 // Decode automatically resamples the stream to fit with the audio context if necessary.
 //
-// The returned Stream's Seek is available only when src is an io.Seeker.
+// The returned Stream's Seek returns an error when src is not an io.Seeker.
 //
 // A Stream doesn't close src even if src implements io.Closer.
 // Closing the source is src owner's responsibility.

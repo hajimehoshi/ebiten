@@ -17,6 +17,7 @@ package vector_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"runtime"
 	"sync"
 	"testing"
@@ -296,6 +297,81 @@ func TestArcAndGeoM(t *testing.T) {
 	}
 }
 
+// Issue #3666
+func TestArcHugeAngle(t *testing.T) {
+	// For an angle this big, the float32 spacing is bigger than the angle by which an arc is split.
+	// Splitting such an arc must still terminate.
+	testCases := []struct {
+		name       string
+		startAngle float32
+		sweep      float32
+		dir        vector.Direction
+	}{
+		{
+			name:       "clockwise",
+			startAngle: 2e7,
+			sweep:      2,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, small sweep",
+			startAngle: 1 << 24,
+			sweep:      1.6,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, full circle",
+			startAngle: 1 << 24,
+			sweep:      2 * math.Pi,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, negative angle",
+			startAngle: -(1 << 25),
+			sweep:      4,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "clockwise, wider spacing",
+			startAngle: 1 << 26,
+			sweep:      8,
+			dir:        vector.Clockwise,
+		},
+		{
+			name:       "counterclockwise",
+			startAngle: 2e7,
+			sweep:      -2,
+			dir:        vector.CounterClockwise,
+		},
+		{
+			name:       "counterclockwise, negative angle",
+			startAngle: -(1 << 25),
+			sweep:      -4,
+			dir:        vector.CounterClockwise,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			const (
+				cx     = 100
+				cy     = 100
+				radius = 5
+			)
+			var p vector.Path
+			p.Arc(cx, cy, radius, tc.startAngle, tc.startAngle+tc.sweep, tc.dir)
+
+			// The angles are degenerate, so the shape is not specified, but it must be finite.
+			// The control points of the approximated Bézier curves can reach out this far.
+			const allow = 32 * radius
+			bounds := p.Bounds()
+			if want := image.Rect(cx-allow, cy-allow, cx+allow, cy+allow); !bounds.In(want) {
+				t.Errorf("bounds: got: %v, want: a rectangle in %v", bounds, want)
+			}
+		})
+	}
+}
+
 // Issue #3330
 func TestFillPathSubImage(t *testing.T) {
 	dst := ebiten.NewImage(16, 16)
@@ -433,6 +509,557 @@ func TestFillPathFillRule(t *testing.T) {
 
 			if got, want := dst.At(8, 8), tc.expected; got != want {
 				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
+
+func TestBounds(t *testing.T) {
+	nan := float32(math.NaN())
+	inf := float32(math.Inf(1))
+
+	testCases := []struct {
+		name string
+		path func(p *vector.Path)
+		want image.Rectangle
+	}{
+		{
+			name: "empty",
+			path: func(p *vector.Path) {},
+			want: image.Rectangle{},
+		},
+		{
+			name: "moveTo only",
+			path: func(p *vector.Path) {
+				p.MoveTo(100, 50)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "horizontal line",
+			path: func(p *vector.Path) {
+				p.MoveTo(100, 50)
+				p.LineTo(200, 50)
+			},
+			want: image.Rect(100, 50, 200, 50),
+		},
+		{
+			name: "vertical line",
+			path: func(p *vector.Path) {
+				p.MoveTo(50, 10)
+				p.LineTo(50, 100)
+			},
+			want: image.Rect(50, 10, 50, 100),
+		},
+		{
+			name: "diagonal line",
+			path: func(p *vector.Path) {
+				p.MoveTo(10.5, 20.5)
+				p.LineTo(30.5, 40.5)
+			},
+			want: image.Rect(10, 20, 31, 41),
+		},
+		{
+			name: "two horizontal lines",
+			path: func(p *vector.Path) {
+				p.MoveTo(100, 50)
+				p.LineTo(200, 50)
+				p.MoveTo(120, 80)
+				p.LineTo(220, 80)
+			},
+			want: image.Rect(100, 50, 220, 80),
+		},
+		{
+			name: "rectangle",
+			path: func(p *vector.Path) {
+				p.MoveTo(10, 20)
+				p.LineTo(30, 20)
+				p.LineTo(30, 40)
+				p.LineTo(10, 40)
+				p.Close()
+			},
+			want: image.Rect(10, 20, 30, 40),
+		},
+		{
+			name: "nearly collinear arc",
+			path: func(p *vector.Path) {
+				p.MoveTo(676.47327, 1502.2303)
+				p.ArcTo(257.7812, 1856.779, 1046.7478, 1188.3281, 100)
+			},
+			want: image.Rect(676, 1188, 1047, 1503),
+		},
+		{
+			name: "infinite line",
+			path: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(inf, inf)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "non-finite control point",
+			path: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.QuadTo(nan, nan, 10, 10)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "non-finite sub-path with a finite sub-path",
+			path: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(nan, nan)
+				p.MoveTo(100, 100)
+				p.LineTo(110, 110)
+			},
+			want: image.Rect(100, 100, 110, 110),
+		},
+		{
+			name: "moveTo replacing a non-finite position",
+			path: func(p *vector.Path) {
+				p.MoveTo(nan, nan)
+				p.MoveTo(0, 0)
+				p.LineTo(10, 10)
+			},
+			want: image.Rect(0, 0, 10, 10),
+		},
+		{
+			name: "addPath with a non-finite path",
+			path: func(p *vector.Path) {
+				var src vector.Path
+				src.MoveTo(0, 0)
+				src.LineTo(nan, nan)
+				p.AddPath(&src, nil)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "addPath with a non-finite geoM",
+			path: func(p *vector.Path) {
+				var src vector.Path
+				src.MoveTo(0, 0)
+				src.LineTo(10, 10)
+				op := &vector.AddPathOptions{}
+				op.GeoM.SetElement(0, 0, math.NaN())
+				p.AddPath(&src, op)
+			},
+			want: image.Rectangle{},
+		},
+		{
+			name: "addStroke with a non-finite geoM",
+			path: func(p *vector.Path) {
+				var src vector.Path
+				src.MoveTo(0, 0)
+				src.LineTo(10, 0)
+				op := &vector.AddStrokeOptions{}
+				op.StrokeOptions.Width = 2
+				op.GeoM.SetElement(0, 0, math.NaN())
+				p.AddStroke(&src, op)
+			},
+			want: image.Rectangle{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var p vector.Path
+			tc.path(&p)
+			if got, want := p.Bounds(), tc.want; got != want {
+				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
+
+func TestBoundsConcurrency(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(10, 20)
+	p.LineTo(30, 40)
+	p.QuadTo(50, 60, 70, 80)
+	p.Close()
+
+	// Bounds must not modify the path so that one path can be shared by multiple goroutines.
+	const goroutineCount = 8
+	got := make([]image.Rectangle, goroutineCount)
+	var wg sync.WaitGroup
+	for i := range goroutineCount {
+		wg.Go(func() {
+			got[i] = p.Bounds()
+		})
+	}
+	wg.Wait()
+
+	for i, b := range got {
+		if want := image.Rect(10, 20, 70, 80); b != want {
+			t.Errorf("%d: got: %v, want: %v", i, b, want)
+		}
+	}
+}
+
+func TestStrokeMiterJoinNearlyCollinear(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(676.47327, 1502.2303)
+	p.LineTo(257.7812, 1856.779)
+	p.LineTo(1046.7478, 1188.3281)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.LineJoin = vector.LineJoinMiter
+	op.StrokeOptions.MiterLimit = 4
+	op.StrokeOptions.Width = 1
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+
+	got := sp.Bounds()
+	if got, want := got, image.Rect(257, 1187, 1048, 1858); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestStrokeRoundJoin(t *testing.T) {
+	testCases := []struct {
+		name      string
+		end       image.Point
+		covered   image.Point
+		uncovered image.Point
+	}{
+		{
+			name:      "left turn",
+			end:       image.Pt(100, 20),
+			covered:   image.Pt(118, 144),
+			uncovered: image.Pt(139, 139),
+		},
+		{
+			name:      "right turn",
+			end:       image.Pt(100, 180),
+			covered:   image.Pt(118, 55),
+			uncovered: image.Pt(139, 60),
+		},
+		{
+			name:      "u-turn",
+			end:       image.Pt(20, 100),
+			covered:   image.Pt(147, 99),
+			uncovered: image.Pt(153, 99),
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var p vector.Path
+			p.MoveTo(20, 100)
+			p.LineTo(100, 100)
+			p.LineTo(float32(tc.end.X), float32(tc.end.Y))
+
+			dst := ebiten.NewImage(200, 200)
+			defer dst.Deallocate()
+			op := &vector.StrokeOptions{}
+			op.Width = 100
+			op.LineJoin = vector.LineJoinRound
+			vector.StrokePath(dst, &p, op, nil)
+
+			if got, want := dst.At(tc.covered.X, tc.covered.Y), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+				t.Errorf("%v: got: %v, want: %v", tc.covered, got, want)
+			}
+			if got, want := dst.At(tc.uncovered.X, tc.uncovered.Y), (color.RGBA{}); got != want {
+				t.Errorf("%v: got: %v, want: %v", tc.uncovered, got, want)
+			}
+		})
+	}
+}
+
+func TestStrokeRoundCap(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(100, 100)
+	p.LineTo(200, 100)
+
+	dst := ebiten.NewImage(300, 200)
+	defer dst.Deallocate()
+	op := &vector.StrokeOptions{}
+	op.Width = 100
+	op.LineCap = vector.LineCapRound
+	vector.StrokePath(dst, &p, op, nil)
+
+	covered := []image.Point{
+		image.Pt(52, 99),
+		image.Pt(66, 67),
+		image.Pt(66, 132),
+		image.Pt(247, 99),
+		image.Pt(233, 67),
+		image.Pt(233, 132),
+	}
+	for _, pt := range covered {
+		if got, want := dst.At(pt.X, pt.Y), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+			t.Errorf("%v: got: %v, want: %v", pt, got, want)
+		}
+	}
+	uncovered := []image.Point{
+		image.Pt(46, 99),
+		image.Pt(59, 60),
+		image.Pt(59, 139),
+		image.Pt(253, 99),
+		image.Pt(240, 60),
+		image.Pt(240, 139),
+	}
+	for _, pt := range uncovered {
+		if got, want := dst.At(pt.X, pt.Y), (color.RGBA{}); got != want {
+			t.Errorf("%v: got: %v, want: %v", pt, got, want)
+		}
+	}
+}
+
+func TestQuadCuspIsKept(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(0, 0)
+	p.QuadTo(10, 10, 0, 0)
+
+	// The cusp reaches (5, 5) at t=0.5.
+	if got, want := p.Bounds(), image.Rect(0, 0, 5, 5); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	var d vector.Path
+	d.MoveTo(5, 5)
+	d.QuadTo(5, 5, 5, 5)
+	if b := d.Bounds(); !b.Empty() {
+		t.Errorf("Bounds of a single point: got %v, want empty", b)
+	}
+}
+
+func TestStrokeQuadCusp(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(0, 0)
+	p.LineTo(100, 0)
+	p.QuadTo(100, 50, 100, 0)
+	p.LineTo(200, 0)
+
+	// The cusp reaches (100, 25) at its midpoint, so it is equivalent to this out-and-back path.
+	var l vector.Path
+	l.MoveTo(0, 0)
+	l.LineTo(100, 0)
+	l.LineTo(100, 25)
+	l.LineTo(100, 0)
+	l.LineTo(200, 0)
+
+	for _, lineJoin := range []vector.LineJoin{vector.LineJoinMiter, vector.LineJoinBevel, vector.LineJoinRound} {
+		op := &vector.AddStrokeOptions{}
+		op.StrokeOptions.Width = 10
+		op.StrokeOptions.LineJoin = lineJoin
+
+		var sp vector.Path
+		sp.AddStroke(&p, op)
+		var lp vector.Path
+		lp.AddStroke(&l, op)
+
+		// The stroked cusp must agree with the stroked out-and-back path exactly, including the joint at the tip.
+		if got, want := vector.PathOperationsString(&sp), vector.PathOperationsString(&lp); got != want {
+			t.Errorf("LineJoin %d: got:\n%v\nwant:\n%v", lineJoin, got, want)
+		}
+	}
+
+	// The bounds of the cusp must be kept.
+	if got, want := p.Bounds(), image.Rect(0, 0, 200, 25); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestStrokeTinyQuadCusp(t *testing.T) {
+	// The midpoint of this cusp is rounded back to the start point in float32, so there is nothing to stroke.
+	var p vector.Path
+	p.MoveTo(1e7, 0)
+	p.QuadTo(1e7+1, 0, 1e7, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+	if got, want := vector.SubPathCount(&sp), 0; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestStrokeHugeQuadCusp(t *testing.T) {
+	// The midpoint of this cusp must not overflow to infinity in float32.
+	var p vector.Path
+	p.MoveTo(3.0e38, 1)
+	p.QuadTo(3.4e38, 1, 3.0e38, 1)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var sp vector.Path
+	sp.AddStroke(&p, op)
+
+	// AddStroke must not modify the source path.
+	if got, want := vector.PathOperationsString(&p), "MoveTo(3e+38, 1)\nQuadTo(3.4e+38, 1, 3e+38, 1)\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+
+	// The cusp is equivalent to this out-and-back path, whose midpoint (3.2e38, 1) doesn't overflow to infinity.
+	var l vector.Path
+	l.MoveTo(3.0e38, 1)
+	l.LineTo(3.2e38, 1)
+	l.LineTo(3.0e38, 1)
+
+	var lp vector.Path
+	lp.AddStroke(&l, op)
+
+	// The stroked cusp must agree with the stroked out-and-back path exactly.
+	if got, want := vector.PathOperationsString(&sp), vector.PathOperationsString(&lp); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestAddStrokeAfterMoveTo(t *testing.T) {
+	testCases := []struct {
+		name string
+		dst  func(p *vector.Path)
+	}{
+		{
+			name: "moveTo",
+			dst: func(p *vector.Path) {
+				p.MoveTo(5, 5)
+			},
+		},
+		{
+			name: "moveTo and close",
+			dst: func(p *vector.Path) {
+				p.MoveTo(5, 5)
+				p.Close()
+			},
+		},
+	}
+
+	var src vector.Path
+	src.MoveTo(0, 0)
+	src.LineTo(100, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+	op.GeoM.Translate(100, 100)
+
+	var stroked vector.Path
+	stroked.AddStroke(&src, op)
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var dst vector.Path
+			tc.dst(&dst)
+			dst.AddStroke(&src, op)
+			if got, want := vector.PathOperationsString(&dst), vector.PathOperationsString(&stroked); got != want {
+				t.Errorf("got:\n%v\nwant:\n%v", got, want)
+			}
+		})
+	}
+}
+
+func TestAddStrokeNothingAfterMoveTo(t *testing.T) {
+	var src vector.Path
+	src.MoveTo(0, 0)
+	src.LineTo(0, 0)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var dst vector.Path
+	dst.MoveTo(5, 5)
+	dst.Close()
+	dst.AddStroke(&src, op)
+	if got, want := vector.PathOperationsString(&dst), "MoveTo(5, 5)\nClose()\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+
+	dst.LineTo(10, 10)
+	if got, want := vector.PathOperationsString(&dst), "MoveTo(5, 5)\nClose()\nMoveTo(5, 5)\nLineTo(10, 10)\n"; got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestAddStrokeSelfAfterMoveTo(t *testing.T) {
+	var line1 vector.Path
+	line1.MoveTo(0, 0)
+	line1.LineTo(100, 0)
+
+	var line2 vector.Path
+	line2.MoveTo(0, 50)
+	line2.LineTo(100, 50)
+
+	var empty vector.Path
+	empty.MoveTo(300, 300)
+
+	var src vector.Path
+	src.AddPath(&empty, nil)
+	src.AddPath(&line1, nil)
+	src.AddPath(&empty, nil)
+	src.AddPath(&line2, nil)
+
+	op := &vector.AddStrokeOptions{}
+	op.StrokeOptions.Width = 4
+
+	var stroked vector.Path
+	stroked.AddStroke(&src, op)
+
+	var p vector.Path
+	p.AddPath(&src, nil)
+	p.MoveTo(200, 200)
+	p.AddStroke(&p, op)
+	if got, want := vector.PathOperationsString(&p), vector.PathOperationsString(&src)+vector.PathOperationsString(&stroked); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestAddStrokeAllocs(t *testing.T) {
+	testCases := []struct {
+		name  string
+		build func(p *vector.Path)
+	}{
+		{
+			name: "no cusp",
+			build: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(100, 0)
+				p.QuadTo(100, 50, 50, 50)
+				p.LineTo(0, 0)
+				p.Close()
+			},
+		},
+		{
+			name: "one cusp",
+			build: func(p *vector.Path) {
+				p.MoveTo(0, 0)
+				p.LineTo(100, 0)
+				p.QuadTo(100, 50, 100, 0)
+				p.LineTo(200, 0)
+			},
+		},
+		{
+			name: "cusps in multiple sub-paths",
+			build: func(p *vector.Path) {
+				for i := range 3 {
+					x := float32(i) * 100
+					p.MoveTo(x, 0)
+					p.QuadTo(x+50, 50, x, 0)
+					p.LineTo(x+30, 30)
+					p.QuadTo(x+60, 60, x+30, 30)
+				}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			op := &vector.AddStrokeOptions{}
+			op.StrokeOptions.Width = 4
+
+			var src vector.Path
+			var dst vector.Path
+			// Stroking must not allocate for a path that is reset and rebuilt repeatedly.
+			if got := testing.AllocsPerRun(10, func() {
+				src.Reset()
+				tc.build(&src)
+				dst.Reset()
+				dst.AddStroke(&src, op)
+			}); got != 0 {
+				t.Errorf("allocations: got: %v, want: 0", got)
 			}
 		})
 	}

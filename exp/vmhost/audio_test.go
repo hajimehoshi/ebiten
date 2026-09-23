@@ -24,6 +24,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -173,4 +174,21 @@ func TestAudioForwarding(t *testing.T) {
 	if ramp.IsClosed() {
 		t.Error("the ramp stream reports closed, but it only reached EOF and was never closed")
 	}
+
+	// Both streams are at EOF. Reads overlapping session closure must still complete with EOF.
+	var readers sync.WaitGroup
+	for _, stream := range streams {
+		readers.Go(func() {
+			var buf [8]byte
+			for range 16 {
+				if n, err := stream.Read(buf[:]); n != 0 || !errors.Is(err, io.EOF) {
+					t.Errorf("Read during session closure = (%d, %v), want (0, EOF)", n, err)
+				}
+			}
+		})
+	}
+	if err := guest.Close(); err != nil {
+		t.Errorf("closing the guest session failed: %v", err)
+	}
+	readers.Wait()
 }

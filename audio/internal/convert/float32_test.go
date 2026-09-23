@@ -16,7 +16,11 @@ package convert_test
 
 import (
 	"bytes"
+	"encoding/binary"
+	"errors"
+	"fmt"
 	"io"
+	"math"
 	"math/rand/v2"
 	"testing"
 	"unsafe"
@@ -135,5 +139,309 @@ func TestFloat32SeekInvalidWhence(t *testing.T) {
 		if _, err := r.Seek(0, whence); err == nil {
 			t.Errorf("Seek(0, %d): got no error, want an error", whence)
 		}
+	}
+}
+
+// dribbleReader is an io.ReadSeeker that returns at most maxN bytes for each Read.
+type dribbleReader struct {
+	r    *bytes.Reader
+	maxN int
+}
+
+func (d *dribbleReader) Read(buf []byte) (int, error) {
+	if len(buf) > d.maxN {
+		buf = buf[:d.maxN]
+	}
+	return d.r.Read(buf)
+}
+
+func (d *dribbleReader) Seek(offset int64, whence int) (int64, error) {
+	return d.r.Seek(offset, whence)
+}
+
+// float32BytesFromInt16Bytes converts int16 bytes to float32 bytes, ignoring an incomplete sample.
+func float32BytesFromInt16Bytes(src []byte) []byte {
+	var dst []byte
+	for i := range len(src) / 2 {
+		v := float32(int16(uint16(src[2*i])|uint16(src[2*i+1])<<8)) / (1 << 15)
+		dst = binary.LittleEndian.AppendUint32(dst, math.Float32bits(v))
+	}
+	return dst
+}
+
+func TestFloat32ShortReads(t *testing.T) {
+	for _, srcLen := range []int{1, 2, 3, 7, 8, 9} {
+		for _, maxN := range []int{1, 2, 3} {
+			t.Run(fmt.Sprintf("srcLen=%d,maxN=%d", srcLen, maxN), func(t *testing.T) {
+				src := make([]byte, srcLen)
+				for i := range src {
+					src[i] = byte(i + 1)
+				}
+				r := convert.NewFloat32BytesReaderFromInt16BytesReader(&dribbleReader{r: bytes.NewReader(src), maxN: maxN})
+
+				var got []byte
+				for {
+					var buf [64]byte
+					n, err := r.Read(buf[:])
+					if n == 0 && err == nil {
+						t.Fatal("Read: got (0, <nil>), want a non-zero byte count or an error")
+					}
+					got = append(got, buf[:n]...)
+					if err == io.EOF {
+						break
+					}
+					if err != nil {
+						t.Fatal(err)
+					}
+				}
+
+				want := float32BytesFromInt16Bytes(src)
+				if !bytes.Equal(got, want) {
+					t.Errorf("got: %v, want: %v", got, want)
+				}
+			})
+		}
+	}
+}
+
+func TestFloat32ShortBuffer(t *testing.T) {
+	r := convert.NewFloat32BytesReaderFromInt16BytesReader(bytes.NewReader(make([]byte, 16)))
+
+	if n, err := r.Read(nil); n != 0 || err != nil {
+		t.Errorf("Read(nil): got (%d, %v), want (0, <nil>)", n, err)
+	}
+	for _, l := range []int{1, 2, 3} {
+		if n, err := r.Read(make([]byte, l)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+			t.Errorf("Read(a buffer of %d bytes): got (%d, %v), want (0, %v)", l, n, err, io.ErrShortBuffer)
+		}
+	}
+}
+
+func TestFloat32SeekEndUnalignedSource(t *testing.T) {
+	// The source length is not a multiple of the sample size, so the source ends in the middle of a
+	// sample. Every seek from the end must still land on a sample boundary.
+	for _, srcLen := range []int{1, 3, 5, 7, 65} {
+		t.Run(fmt.Sprintf("srcLen=%d", srcLen), func(t *testing.T) {
+			src := make([]byte, srcLen)
+			for i := range src {
+				src[i] = byte(i + 1)
+			}
+			// An incomplete sample at the end of the source is not readable, so the whole stream is
+			// the one converted from the source truncated to whole samples.
+			want := float32BytesFromInt16Bytes(src)
+
+			for offset := -int64(len(want)) - 4; offset <= 4; offset++ {
+				r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(bytes.NewReader(src))
+				pos, err := r.Seek(offset, io.SeekEnd)
+				// The requested position, not the one rounded toward the sample boundary,
+				// decides whether the seek resolves before the start.
+				if int64(len(want))+offset < 0 {
+					if err == nil {
+						t.Errorf("Seek(%d, io.SeekEnd): got no error, want an error", offset)
+					}
+					continue
+				}
+				wantPos := int64(len(want)) + offset/4*4
+				if err != nil {
+					t.Errorf("Seek(%d, io.SeekEnd): %v", offset, err)
+					continue
+				}
+				if pos != wantPos {
+					t.Errorf("Seek(%d, io.SeekEnd): got %d, want %d", offset, pos, wantPos)
+					continue
+				}
+				got, err := io.ReadAll(r)
+				if err != nil {
+					t.Errorf("reading after Seek(%d, io.SeekEnd): %v", offset, err)
+					continue
+				}
+				if w := want[min(wantPos, int64(len(want))):]; !bytes.Equal(got, w) {
+					t.Errorf("reading after Seek(%d, io.SeekEnd): got % x, want % x", offset, got, w)
+				}
+			}
+		})
+	}
+}
+
+func TestFloat32SeekCurrentAfterPartialSampleRead(t *testing.T) {
+	// The source returns 3 bytes at most, which is larger than the sample size but not a multiple of
+	// it, so a read leaves a one-byte remainder in the internal buffer and the source position is
+	// ahead of the logical position by 1.
+	src := []byte{1, 2, 3, 4, 5, 6, 7, 8}
+	want := float32BytesFromInt16Bytes(src)
+
+	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(&dribbleReader{r: bytes.NewReader(src), maxN: 3})
+
+	buf := make([]byte, 4)
+	n, err := r.Read(buf)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, w := buf[:n], want[:4]; !bytes.Equal(got, w) {
+		t.Fatalf("Read: got % x, want % x", got, w)
+	}
+
+	// Seek with io.SeekCurrent must be relative to the logical position, so this must be a no-op.
+	pos, err := r.Seek(0, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := int64(4); pos != w {
+		t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, w)
+	}
+
+	got, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want[4:]) {
+		t.Errorf("reading after Seek(0, io.SeekCurrent): got % x, want % x", got, want[4:])
+	}
+}
+
+// boundedSeeker is an io.ReadSeeker that rejects a seek resolving outside the source, like a real
+// audio source does, while a bytes.Reader allows seeking past the end.
+type boundedSeeker struct {
+	r    io.ReadSeeker
+	size int64
+}
+
+func (b *boundedSeeker) Read(buf []byte) (int, error) {
+	return b.r.Read(buf)
+}
+
+func (b *boundedSeeker) Seek(offset int64, whence int) (int64, error) {
+	var pos int64
+	switch whence {
+	case io.SeekStart:
+		pos = offset
+	case io.SeekCurrent:
+		cur, err := b.r.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		pos = cur + offset
+	case io.SeekEnd:
+		pos = b.size + offset
+	default:
+		return 0, fmt.Errorf("convert_test: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
+	}
+	if pos < 0 || pos > b.size {
+		return 0, fmt.Errorf("convert_test: position must be in [0, %d] but was %d", b.size, pos)
+	}
+	return b.r.Seek(pos, io.SeekStart)
+}
+
+func TestFloat32SeekOutOfRangeLeavesStreamIntact(t *testing.T) {
+	const srcLen = 200
+	// The stream is float32 (4 bytes per sample) converted from int16 (2 bytes per sample).
+	const streamLen = srcLen / 2 * 4
+	// pos is a sample boundary inside the stream.
+	const pos = 40
+
+	src := randBytes(srcLen)
+	whole := float32BytesFromInt16Bytes(src)
+
+	for _, tc := range []struct {
+		name   string
+		offset int64
+		whence int
+	}{
+		{
+			name:   "SeekStartNegative",
+			offset: -4,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekStartPastEnd",
+			offset: streamLen + 4,
+			whence: io.SeekStart,
+		},
+		{
+			name:   "SeekCurrentNegative",
+			offset: -streamLen,
+			whence: io.SeekCurrent,
+		},
+		{
+			name:   "SeekCurrentPastEnd",
+			offset: streamLen,
+			whence: io.SeekCurrent,
+		},
+		{
+			name:   "SeekEndBeforeStart",
+			offset: -streamLen - 4,
+			whence: io.SeekEnd,
+		},
+		{
+			name:   "SeekEndPastEnd",
+			offset: 4,
+			whence: io.SeekEnd,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// maxN is not a multiple of the sample size, so an incomplete sample remains
+			// buffered after a Read.
+			r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(&boundedSeeker{r: &dribbleReader{r: bytes.NewReader(src), maxN: 3}, size: srcLen})
+
+			if _, err := r.Seek(pos, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			n, err := r.Read(make([]byte, 64))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := int64(pos + n)
+
+			if _, err := r.Seek(tc.offset, tc.whence); err == nil {
+				t.Errorf("Seek(%d, %d): got no error, want an error", tc.offset, tc.whence)
+			}
+
+			cur, err := r.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if cur != want {
+				t.Errorf("Seek(0, io.SeekCurrent) after a rejected Seek(%d, %d): got %d, want %d", tc.offset, tc.whence, cur, want)
+			}
+
+			got := make([]byte, 16)
+			if _, err := io.ReadFull(r, got); err != nil {
+				t.Fatal(err)
+			}
+			if w := whole[want : want+int64(len(got))]; !bytes.Equal(got, w) {
+				t.Errorf("reading after a rejected Seek(%d, %d): got % x, want % x", tc.offset, tc.whence, got, w)
+			}
+		})
+	}
+}
+
+func TestFloat32SeekSmallNegativePosition(t *testing.T) {
+	const srcLen = 200
+
+	// The stream is float32 (4 bytes per sample) converted from int16 (2 bytes per sample).
+	const streamLen = srcLen / 2 * 4
+
+	src := randBytes(srcLen)
+	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(&boundedSeeker{r: bytes.NewReader(src), size: srcLen})
+
+	// An offset in (-4, 0) is rounded toward the sample boundary, so the requested position must
+	// be resolved and checked before the rounding, whichever whence it comes from.
+	for _, offset := range []int64{-1, -2, -3, -4} {
+		if _, err := r.Seek(offset, io.SeekStart); err == nil {
+			t.Errorf("Seek(%d, io.SeekStart): got no error, want an error", offset)
+		}
+		if _, err := r.Seek(offset, io.SeekCurrent); err == nil {
+			t.Errorf("Seek(%d, io.SeekCurrent) at 0: got no error, want an error", offset)
+		}
+		if _, err := r.Seek(-streamLen+offset, io.SeekEnd); err == nil {
+			t.Errorf("Seek(-%d%+d, io.SeekEnd): got no error, want an error", streamLen, offset)
+		}
+	}
+
+	// The stream must not be broken by the rejected seeks.
+	if pos, err := r.Seek(0, io.SeekCurrent); err != nil {
+		t.Fatal(err)
+	} else if pos != 0 {
+		t.Errorf("Seek(0, io.SeekCurrent): got: %d, want: 0", pos)
 	}
 }

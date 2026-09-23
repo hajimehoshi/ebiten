@@ -43,8 +43,12 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
+	// A buffer shorter than one frame cannot receive any converted data.
+	if len(buf) < 4*r.r.Channels() {
+		return 0, io.ErrShortBuffer
+	}
 
-	l := max(len(buf)/4/r.r.Channels()*r.r.Channels(), 1)
+	l := len(buf) / 4 / r.r.Channels() * r.r.Channels()
 	if cap(r.fbuf) < l {
 		r.fbuf = make([]float32, l)
 	}
@@ -69,11 +73,10 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 
 func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	if !r.seekable {
-		return 0, fmt.Errorf("vorbis: the source must be io.Seeker but not: %w", errors.ErrUnsupported)
+		return 0, fmt.Errorf("vorbis: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 
 	sampleSize := int64(r.r.Channels()) * 4
-	offset = offset / sampleSize * sampleSize
 
 	switch whence {
 	case io.SeekStart:
@@ -84,9 +87,13 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	r.pos = offset
-	if err := r.r.SetPosition(r.pos / sampleSize); err != nil {
+	if offset < 0 {
+		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", offset)
+	}
+	pos := offset / sampleSize * sampleSize
+	if err := r.r.SetPosition(pos / sampleSize); err != nil {
 		return 0, err
 	}
+	r.pos = pos
 	return r.pos, nil
 }

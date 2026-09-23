@@ -103,12 +103,14 @@ func (b *gbmBackend) run(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		var initErr error
-		b.mainThread.Call(func() {
-			initErr = b.initOnMainThread(options)
-		})
-		if initErr != nil {
-			return initErr
+		type args struct {
+			b       *gbmBackend
+			options *RunOptions
+		}
+		if err := thread.CallWithArgAndResult(b.mainThread, func(a args) error {
+			return a.b.initOnMainThread(a.options)
+		}, args{b: b, options: options}); err != nil {
+			return err
 		}
 
 		defer b.setRunningBackend(nil)
@@ -117,7 +119,7 @@ func (b *gbmBackend) run(game Game, options *RunOptions) error {
 	})
 
 	// Run the main thread.
-	_ = b.mainThread.Loop(ctx)
+	_ = b.mainThread.LoopAndStop(ctx)
 	return wg.Wait()
 }
 
@@ -147,14 +149,14 @@ func (b *gbmBackend) initOnMainThread(options *RunOptions) (err error) {
 
 	b.graphicsDriver = g
 	b.setGraphicsLibrary(lib)
-	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, g)
+	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 
 	b.setRunningBackend(b)
 
 	// Read keyboard keys from the Linux input layer; a key press also schedules a frame.
 	b.keyboard = startEvdevKeyboard(func(key Key, pressed bool) {
 		b.mu.Lock()
-		t := b.InputTime()
+		t := b.inputState.nextInputTime()
 		if pressed {
 			b.inputState.setKeyPressed(key, t)
 		} else {
@@ -179,10 +181,11 @@ func (b *gbmBackend) loopGame() (err error) {
 			b.keyboard = nil
 		}
 		graphicscommand.Terminate()
-		b.mainThread.Call(func() {
-			err = errors.Join(err, b.closeOnMainThread())
-			b.setTerminated()
-		})
+		closeErr := thread.CallWithArgAndResult(b.mainThread, func(b *gbmBackend) error {
+			defer b.setTerminated()
+			return b.closeOnMainThread()
+		}, b)
+		err = errors.Join(err, closeErr)
 	}()
 
 	for {
@@ -289,7 +292,7 @@ func (b *gbmBackend) applyCursorShape() {
 
 func (b *gbmBackend) applyFPSMode() {
 	b.RunOnMainThread(func() {
-		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, b.graphicsDriver)
+		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 	})
 }
 
@@ -315,5 +318,5 @@ func (b *gbmBackend) appendMonitors(monitors []*Monitor) []*Monitor {
 }
 
 func (b *gbmBackend) RunOnMainThread(f func()) {
-	b.mainThread.Call(f)
+	thread.Call(b.mainThread, f)
 }

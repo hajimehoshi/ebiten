@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 var (
@@ -42,9 +43,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	// TODO: Use the gamepad events instead of navigator.getGamepads.
 
 	defer func() {
-		for k := range g.indices {
-			delete(g.indices, k)
-		}
+		clear(g.indices)
 	}()
 
 	nav := js.Global().Get("navigator")
@@ -94,10 +93,12 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 				mapping: gp.Get("mapping").String(),
 			}
 		}
-		gamepad.native.(*nativeGamepadImpl).value = gp
+		withNative(gamepad, func(n *nativeGamepadImpl) {
+			n.value = gp
+		})
 	}
 
-	// Remove an unused gamepads.
+	// Remove unused gamepads.
 	gamepads.remove(func(gamepad *Gamepad) bool {
 		_, ok := g.indices[gamepad.native.(*nativeGamepadImpl).index]
 		return !ok
@@ -184,7 +185,20 @@ func (g *nativeGamepadImpl) hatState(hat int) int {
 	return hatCentered
 }
 
+// vibrationDurationInMilliseconds converts a duration to milliseconds for the Gamepad API.
+// A negative duration is treated as 0.
+func vibrationDurationInMilliseconds(duration time.Duration) float64 {
+	if duration < 0 {
+		return 0
+	}
+	return float64(duration / time.Millisecond)
+}
+
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+	durationInMilliseconds := vibrationDurationInMilliseconds(duration)
+
 	// vibrationActuator is available on Chrome.
 	if va := g.value.Get("vibrationActuator"); va.Truthy() {
 		if !va.Get("playEffect").Truthy() {
@@ -193,7 +207,7 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 
 		prop := object.New()
 		prop.Set("startDelay", 0)
-		prop.Set("duration", float64(duration/time.Millisecond))
+		prop.Set("duration", durationInMilliseconds)
 		prop.Set("strongMagnitude", strongMagnitude)
 		prop.Set("weakMagnitude", weakMagnitude)
 		va.Call("playEffect", "dual-rumble", prop)
@@ -204,10 +218,10 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 	if ha := g.value.Get("hapticActuators"); ha.Truthy() {
 		// TODO: Is this order correct?
 		if ha.Length() > 0 {
-			ha.Index(0).Call("pulse", strongMagnitude, float64(duration/time.Millisecond))
+			ha.Index(0).Call("pulse", strongMagnitude, durationInMilliseconds)
 		}
 		if ha.Length() > 1 {
-			ha.Index(1).Call("pulse", weakMagnitude, float64(duration/time.Millisecond))
+			ha.Index(1).Call("pulse", weakMagnitude, durationInMilliseconds)
 		}
 		return
 	}

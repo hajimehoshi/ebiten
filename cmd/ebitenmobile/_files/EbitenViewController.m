@@ -18,9 +18,9 @@
 #import <UIKit/UIKit.h>
 #import <GLKit/GLKit.h>
 
-#import "Ebitenmobileview.objc.h"
+#import "$Placeholder_Prefix$Ebitenmobileview.objc.h"
 
-@interface $Placeholder_PrefixUpper$EbitenViewController : UIViewController<EbitenmobileviewRenderer, EbitenmobileviewSetGameNotifier>
+@interface $Placeholder_PrefixUpper$EbitenViewController : UIViewController<$Placeholder_Prefix$EbitenmobileviewRenderer, $Placeholder_Prefix$EbitenmobileviewSetGameNotifier>
 @end
 
 @implementation $Placeholder_PrefixUpper$EbitenViewController {
@@ -41,7 +41,7 @@
   self = [super initWithNibName:nibNameOrNil
                          bundle:nibBundleOrNil];
   if (self) {
-    EbitenmobileviewSetSetGameNotifier(self);
+    $Placeholder_Prefix$EbitenmobileviewSetSetGameNotifier(self);
   }
   return self;
 }
@@ -51,7 +51,7 @@
   // https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/Archiving/Articles/codingobjects.html
   self = [super initWithCoder:coder];
   if (self) {
-    EbitenmobileviewSetSetGameNotifier(self);
+    $Placeholder_Prefix$EbitenmobileviewSetSetGameNotifier(self);
   }
   return self;
 }
@@ -83,8 +83,8 @@
 
 - (void)initView {
   // initView must be called only when viewDidLoad_, and gameSet_ are true i.e. mobile.SetGame is called.
-  // Or, EbitenmobileviewIsGL causes a dead lock (#2768).
-  // A game is required to determine a graphics driver, and EbitenmobileviewIsGL cannot return a value without a game.
+  // Or, $Placeholder_Prefix$EbitenmobileviewIsGL causes a dead lock (#2768).
+  // A game is required to determine a graphics driver, and $Placeholder_Prefix$EbitenmobileviewIsGL cannot return a value without a game.
   NSAssert(viewDidLoad_ && gameSet_, @"viewDidLoad must be called and a game must be set at initView");
 
   if (!started_) {
@@ -96,7 +96,7 @@
 
   NSError* err = nil;
   BOOL isGL = NO;
-  EbitenmobileviewIsGL(&isGL, &err);
+  $Placeholder_Prefix$EbitenmobileviewIsGL(&isGL, &err);
   if (err != nil) {
     [self onErrorOnGameUpdate:err];
     @synchronized(self) {
@@ -114,7 +114,7 @@
   }
   [self.view addSubview: gameView];
 
-  EbitenmobileviewSetUIView((uintptr_t)(gameView), &err);
+  $Placeholder_Prefix$EbitenmobileviewSetUIView((uintptr_t)(gameView), &err);
   if (err != nil) {
     [self onErrorOnGameUpdate:err];
     @synchronized(self) {
@@ -132,7 +132,7 @@
 - (void)initRenderer {
   NSError* err = nil;
   BOOL isGL = NO;
-  EbitenmobileviewIsGL(&isGL, &err);
+  $Placeholder_Prefix$EbitenmobileviewIsGL(&isGL, &err);
   if (err != nil) {
     [self performSelectorOnMainThread:@selector(onErrorOnGameUpdate:)
                            withObject:err
@@ -164,7 +164,7 @@
 
   displayLink_ = [CADisplayLink displayLinkWithTarget:self selector:@selector(drawFrame)];
   [displayLink_ addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSDefaultRunLoopMode];
-  EbitenmobileviewSetRenderer(self);
+  $Placeholder_Prefix$EbitenmobileviewSetRenderer(self);
 
   // Run the loop. This will never return.
   [[NSRunLoop currentRunLoop] run];
@@ -177,7 +177,7 @@
 
   NSError* err = nil;
   BOOL isGL = NO;
-  EbitenmobileviewIsGL(&isGL, &err);
+  $Placeholder_Prefix$EbitenmobileviewIsGL(&isGL, &err);
   if (err != nil) {
     [self onErrorOnGameUpdate:err];
     @synchronized(self) {
@@ -203,7 +203,7 @@
 
   CGRect viewRect = [[self view] frame];
 
-  EbitenmobileviewLayout(viewRect.size.width, viewRect.size.height);
+  $Placeholder_Prefix$EbitenmobileviewLayout(viewRect.size.width, viewRect.size.height);
 }
 
 - (void)didReceiveMemoryWarning {
@@ -221,7 +221,7 @@
 
   NSError* err = nil;
   BOOL isGL = NO;
-  EbitenmobileviewIsGL(&isGL, &err);
+  $Placeholder_Prefix$EbitenmobileviewIsGL(&isGL, &err);
   if (err != nil) {
     [self performSelectorOnMainThread:@selector(onErrorOnGameUpdate:)
                            withObject:err
@@ -259,7 +259,7 @@
   }
 
   NSError* err = nil;
-  EbitenmobileviewUpdate(&err);
+  $Placeholder_Prefix$EbitenmobileviewUpdate(&err);
   if (err != nil) {
     [self performSelectorOnMainThread:@selector(onErrorOnGameUpdate:)
                            withObject:err
@@ -281,7 +281,7 @@
 
   NSError* err = nil;
   BOOL isGL = NO;
-  EbitenmobileviewIsGL(&isGL, &err);
+  $Placeholder_Prefix$EbitenmobileviewIsGL(&isGL, &err);
   if (err != nil) {
     [self onErrorOnGameUpdate:err];
     @synchronized(self) {
@@ -301,7 +301,7 @@
       }
     }
     CGPoint location = [touch locationInView:touch.view];
-    EbitenmobileviewUpdateTouchesOnIOS(touch.phase, (uintptr_t)touch, location.x, location.y);
+    $Placeholder_Prefix$EbitenmobileviewUpdateTouchesOnIOS(touch.phase, (uintptr_t)touch, location.x, location.y);
   }
 }
 
@@ -334,7 +334,7 @@
       if (key == nil) {
         continue;
       }
-      EbitenmobileviewUpdatePressesOnIOS(press.phase, key.keyCode, key.characters, key.modifierFlags);
+      $Placeholder_Prefix$EbitenmobileviewUpdatePressesOnIOS(press.phase, key.keyCode, key.characters, key.modifierFlags);
     }
   }
 }
@@ -367,7 +367,7 @@
   }
 
   NSError* err = nil;
-  EbitenmobileviewSuspend(&err);
+  $Placeholder_Prefix$EbitenmobileviewSuspend(&err);
   if (err != nil) {
     [self onErrorOnGameUpdate:err];
   }
@@ -383,7 +383,7 @@
   }
 
   NSError* err = nil;
-  EbitenmobileviewResume(&err);
+  $Placeholder_Prefix$EbitenmobileviewResume(&err);
   if (err != nil) {
     [self onErrorOnGameUpdate:err];
   }

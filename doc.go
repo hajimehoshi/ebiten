@@ -49,26 +49,26 @@
 //	    }
 //	}
 //
-// In the API document, 'the main thread' means the goroutine in init(), main() and their callees without 'go'
+// In the API document, 'the main thread' means the goroutine in init(), main() and their callees without a 'go'
 // statement. It is assured that 'the main thread' runs on the OS main thread. There are some Ebitengine functions (e.g.,
 // DeviceScaleFactor) that must be called on the main thread under some conditions (typically, before ebiten.RunGame
 // is called).
 //
 // # Environment variables
 //
-// `EBITENGINE_SCREENSHOT_KEY` environment variable specifies the key
+// The `EBITENGINE_SCREENSHOT_KEY` environment variable specifies the key
 // to take a screenshot. For example, if you run your game with
 // `EBITENGINE_SCREENSHOT_KEY=q`, you can take a game screen's screenshot
 // by pressing Q key. This works only on desktops and browsers.
 //
-// `EBITENGINE_INTERNAL_IMAGES_KEY` environment variable specifies the key
+// The `EBITENGINE_INTERNAL_IMAGES_KEY` environment variable specifies the key
 // to dump all the internal images. This is valid only when the build tag
 // 'ebitenginedebug' is specified. This works only on desktops and browsers.
 //
-// `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
+// The `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
 // If the specified graphics library is not available, RunGame returns an error.
 // This environment variable works when RunGame is called or RunGameWithOptions is called with GraphicsLibraryAuto.
-// This can take one of the following value:
+// This can take one of the following values:
 //
 //	"auto":         Ebitengine chooses the graphics library automatically. This is the default value.
 //	"opengl":       OpenGL, OpenGL ES, or WebGL.
@@ -76,7 +76,7 @@
 //	"metal":        Metal. This works only on macOS or iOS.
 //	"playstation5": PlayStation 5. This works only on PlayStation 5.
 //
-// `EBITENGINE_DIRECTX` environment variable specifies various parameters for DirectX.
+// The `EBITENGINE_DIRECTX` environment variable specifies various parameters for DirectX.
 // You can specify multiple values separated by a comma. The default value is empty (i.e. no parameters).
 //
 //	"debug":                      Use a debug layer.
@@ -97,9 +97,9 @@
 // The option "dred" is valid only for DirectX 12 and is independent of "debug".
 // On a device removal, it reports the GPU's last command and the page-fault address via log/slog.
 //
-// `EBITENGINE_VM_ENDPOINT` environment variable specifies the endpoint URL of a virtualization host,
+// The `EBITENGINE_VM_ENDPOINT` environment variable specifies the endpoint URL of a virtualization host,
 // like unix:///path/to/socket or tcp://host:port. If this is set, the game runs as a virtualization
-// guest of that host instead of opening a window. This is valid only when the build tag 'ebitenginevm'
+// guest of that host instead of opening a window. This is valid only when the build tag 'ebitenginevmguest'
 // is specified. This works only on desktops. See also RunGameOptions.VMGuestEndpoint.
 //
 // The endpoint addresses one guest session. The variable is removed from the game's environment at
@@ -115,11 +115,11 @@
 //
 // `ebitenginesinglethread` disables Ebitengine's thread safety to unlock maximum performance. If you use this you will have
 // to manage threads yourself. Functions like `SetWindowSize` will no longer be concurrent-safe with this build tag.
-// They must be called from the main thread or the same goroutine as the given game's callback functions like Update
+// They must be called from the main thread or the same goroutine as the given game's callback functions like Update.
 // `ebitenginesinglethread` works only with desktops and consoles.
 // `ebitenginesinglethread` was deprecated as of v2.7. Use RunGameOptions.SingleThread instead.
 //
-// `ebitenginevm` allows the environment variable `EBITENGINE_VM_ENDPOINT` to run the game as a
+// `ebitenginevmguest` allows the environment variable `EBITENGINE_VM_ENDPOINT` to run the game as a
 // virtualization guest. This works only on desktops.
 //
 // `microsoftgdk` is for Microsoft GDK (e.g. Xbox).

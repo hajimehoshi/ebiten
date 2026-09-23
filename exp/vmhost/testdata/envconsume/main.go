@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest reports through its screen whether the endpoint it was activated with is still in its
 // environment: white when it is gone, red when it survives. A child process started with the default

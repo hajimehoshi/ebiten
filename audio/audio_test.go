@@ -16,9 +16,12 @@ package audio_test
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"math"
 	"runtime"
+	"strconv"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -66,7 +69,7 @@ func TestGC(t *testing.T) {
 		if err := audio.UpdateForTesting(); err != nil {
 			t.Error(err)
 		}
-		// 200[ms] should be enough all the bytes are consumed.
+		// 200[ms] should be enough for all the bytes to be consumed.
 		// TODO: This is a dirty hack. Would it be possible to use virtual time?
 		time.Sleep(200 * time.Millisecond)
 	}
@@ -142,7 +145,7 @@ func (emptySource) Read(buf []byte) (int, error) {
 
 func TestNonSeekableSource(t *testing.T) {
 	if runtime.GOOS == "js" {
-		t.Skip("infinite steams in tests cannot be treated well on browsers")
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
 	}
 
 	setup()
@@ -285,6 +288,32 @@ func TestRewindNonSeekableBeforeDeviceCreation(t *testing.T) {
 	}
 }
 
+func TestSameSourceForMultiplePlayers(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := bytes.NewReader(make([]byte, 4))
+
+	p1, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+
+	p2, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2.Play()
+
+	p1.Pause()
+	p2.Pause()
+
+	if err := audio.UpdateForTesting(); err == nil {
+		t.Error("UpdateForTesting() must return an error, but did not")
+	}
+}
+
 type uncomparableSource []int
 
 func (uncomparableSource) Read(buf []byte) (int, error) {
@@ -307,6 +336,26 @@ func TestUncomparableSource(t *testing.T) {
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Error(err)
 	}
+}
+
+func TestComparableSourceAfterUncomparable(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p1, err := context.NewPlayer(uncomparableSource{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+
+	p2, err := context.NewPlayer(bytes.NewReader(make([]byte, 4)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	p2.Play()
+
+	p1.Pause()
+	p2.Pause()
 }
 
 // countingSource is an infinite source counting the Read calls.
@@ -337,7 +386,7 @@ func waitForRead(t *testing.T, src *countingSource, reads int64) int64 {
 // Issue #3510
 func TestPauseAndStopReading(t *testing.T) {
 	if runtime.GOOS == "js" {
-		t.Skip("infinite steams in tests cannot be treated well on browsers")
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
 	}
 
 	setup()
@@ -382,7 +431,7 @@ func TestPauseAndStopReading(t *testing.T) {
 // Issue #3510
 func TestPauseAndStopReadingWhilePaused(t *testing.T) {
 	if runtime.GOOS == "js" {
-		t.Skip("infinite steams in tests cannot be treated well on browsers")
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
 	}
 
 	setup()
@@ -489,4 +538,381 @@ func TestSetVolumeInvalidValue(t *testing.T) {
 			t.Errorf("Volume() after SetVolume(%v) after the device creation: got: %v, want: %v", v.in, got, want)
 		}
 	}
+}
+
+// Issue #3655
+func TestSetBufferSize(t *testing.T) {
+	setup()
+	defer teardown()
+
+	p, err := context.NewPlayer(&infiniteReader{})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	var largeBufferSize int
+	if strconv.IntSize == 64 {
+		largeBufferSize64 := int64(19_051_200_000)
+		largeBufferSize = int(largeBufferSize64)
+	}
+	tests := []struct {
+		in   time.Duration
+		want int
+	}{
+		{in: -time.Second, want: 0},
+		{in: 0, want: 0},
+		{in: 50 * time.Millisecond, want: 17640},
+		{in: 15 * time.Hour, want: largeBufferSize},
+	}
+
+	for _, test := range tests {
+		p.SetBufferSize(test.in)
+		if got := audio.BufferSizeForTesting(p); got != test.want {
+			t.Errorf("buffer size for %v: got: %d, want: %d", test.in, got, test.want)
+		}
+	}
+}
+
+func TestPositionNotGrowingAfterFinished(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// 44100 [Hz] * 8 [bytes/sample] is one second of 32bit float stereo audio.
+	src := bytes.NewReader(make([]byte, 44100*8*4))
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p.Play()
+	// Wait until the player finishes its source. The deadline is generous because time.Sleep has
+	// a several-millisecond floor on browsers, which slows draining the source down.
+	var finished bool
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		if err := audio.UpdateForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		if !p.IsPlaying() {
+			finished = true
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !finished {
+		t.Fatal("time out: the player did not finish")
+	}
+
+	end := p.Position()
+	if got, want := end, 4*time.Second; got < want {
+		t.Errorf("Position() after the player finished: got: %v, want: at least %v", got, want)
+	}
+
+	// Play on a finished player does nothing, so the position must not grow anymore.
+	for range 20 {
+		p.Play()
+		if err := audio.UpdateForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got := p.Position(); got != end {
+		t.Errorf("position grew after the player finished: %v -> %v", end, got)
+	}
+}
+
+func TestNewPlayerWithSourceOfClosedPlayer(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := bytes.NewReader(make([]byte, 256))
+
+	p0, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p0.Play()
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p0.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	// A closed player no longer owns its source, so a new player can take the source over
+	// immediately.
+	p1, err := context.NewPlayer(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p1.Play()
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Errorf("UpdateForTesting after a new player took the source of a closed player over: %v", err)
+	}
+}
+
+func TestRestartWhilePlayersAreSwept(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("goroutines cannot run in parallel on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	// The first update creates the audio device, so that the players below play for real.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	// Many players widen the window between the sweep's playing check and its removal, as the
+	// removal used to happen only after the whole list was checked.
+	const playerCount = 64
+
+	players := make([]*audio.Player, 0, playerCount)
+	for range playerCount {
+		// A short source finishes quickly, so that the restart pattern below runs many times.
+		p, err := context.NewPlayerF32(bytes.NewReader(make([]byte, 4096)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Play()
+		players = append(players, p)
+	}
+
+	var untracked atomic.Bool
+	var wg sync.WaitGroup
+	deadline := time.Now().Add(2 * time.Second)
+	for _, p := range players {
+		wg.Go(func() {
+			for time.Now().Before(deadline) && !untracked.Load() {
+				// The typical pattern to replay a finished sound effect every tick.
+				if !p.IsPlaying() {
+					if err := p.Rewind(); err != nil {
+						return
+					}
+					p.Play()
+				}
+				if audio.PlayingButUntrackedForTesting(p) {
+					untracked.Store(true)
+					return
+				}
+			}
+		})
+	}
+	wg.Wait()
+
+	if untracked.Load() {
+		t.Error("a playing player was removed from the context")
+	}
+
+	// The check above is meaningful only if the players finished and restarted normally, without
+	// any error being reported.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// errSourceFailed is the error a failingSource returns once it has run out of data.
+var errSourceFailed = errors.New("audio_test: source failed")
+
+// failingSource is a source which returns data for a while and then fails with an error other
+// than io.EOF, like a corrupted asset or a broken network stream.
+type failingSource struct {
+	remaining int
+}
+
+func (s *failingSource) Read(buf []byte) (int, error) {
+	if s.remaining <= 0 {
+		return 0, errSourceFailed
+	}
+	n := min(len(buf), s.remaining)
+	s.remaining -= n
+	return n, nil
+}
+
+// Issue #3647
+func TestPlayerErrorDoesNotStopOtherPlayers(t *testing.T) {
+	if runtime.GOOS == "js" {
+		t.Skip("infinite streams in tests cannot be treated well on browsers")
+	}
+
+	setup()
+	defer teardown()
+
+	// The first update creates the audio device, so that the players below play for real.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	failing, err := context.NewPlayerF32(&failingSource{remaining: 4096 * 4})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 44100 [Hz] * 8 [bytes/sample] is one second of 32bit float stereo audio.
+	healthy, err := context.NewPlayerF32(audio.NewInfiniteLoopF32(bytes.NewReader(make([]byte, 44100*8)), 44100*8))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	failing.Play()
+	healthy.Play()
+
+	// Wait until the failing player's source fails and the failure is reported as the context
+	// error.
+	var failed bool
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if err := audio.UpdateForTesting(); err != nil {
+			if !errors.Is(err, errSourceFailed) {
+				t.Fatal(err)
+			}
+			failed = true
+			break
+		}
+		time.Sleep(5 * time.Millisecond)
+	}
+	if !failed {
+		t.Fatal("time out: the failing player's error was not reported")
+	}
+
+	// The failed player is no longer tracked as playing, so that its error is reported once and
+	// the healthy player is the only playing player left.
+	deadline = time.Now().Add(time.Second)
+	for audio.PlayersCountForTesting() != 1 && time.Now().Before(deadline) {
+		time.Sleep(5 * time.Millisecond)
+	}
+	if got, want := audio.PlayersCountForTesting(), 1; got != want {
+		t.Errorf("PlayersCountForTesting() after a player failed: got: %d, want: %d", got, want)
+	}
+
+	// The healthy player must keep playing and its position must keep advancing: one player's
+	// failure must not stop the context from updating the other players.
+	if !healthy.IsPlaying() {
+		t.Error("IsPlaying() of the healthy player after another player failed: got: false, want: true")
+	}
+	pos0 := healthy.Position()
+	time.Sleep(100 * time.Millisecond)
+	if pos1 := healthy.Position(); pos1 <= pos0 {
+		t.Errorf("Position() of the healthy player did not advance after another player failed: %v -> %v", pos0, pos1)
+	}
+
+	// The context error is sticky.
+	if err := audio.UpdateForTesting(); !errors.Is(err, errSourceFailed) {
+		t.Errorf("UpdateForTesting() after a player failed: got: %v, want: %v", err, errSourceFailed)
+	}
+}
+
+func TestPlayOnIdleContext(t *testing.T) {
+	setup()
+	defer teardown()
+
+	// The first update creates the audio device, so that the players below play for real.
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	// waitUntil polls cond until it holds or the deadline passes, and reports whether it held.
+	// The deadline is generous because time.Sleep has a several-millisecond floor on browsers.
+	waitUntil := func(cond func() bool) bool {
+		deadline := time.Now().Add(10 * time.Second)
+		for time.Now().Before(deadline) {
+			if cond() {
+				return true
+			}
+			time.Sleep(5 * time.Millisecond)
+		}
+		return false
+	}
+
+	// A player's position is advanced only by the context, so a growing position shows that the
+	// context updates the player. The second round starts a player after the context has dropped
+	// the finished player of the first round, that is, after it went idle by itself.
+	for i := range 2 {
+		// Let the context settle into idling with no player to update.
+		time.Sleep(50 * time.Millisecond)
+
+		// 44100 [Hz] * 4 [bytes/sample] is one second of 16bit stereo audio.
+		p, err := context.NewPlayer(bytes.NewReader(make([]byte, 44100*4)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Play()
+
+		if !waitUntil(func() bool { return p.Position() > 0 }) {
+			t.Errorf("round %d: Position() did not advance after Play on an idle context", i)
+			return
+		}
+
+		// The next round needs the context to be idle again, which is only possible once the
+		// context has dropped the finished player.
+		if !waitUntil(func() bool { return audio.PlayersCountForTesting() == 0 }) {
+			t.Fatalf("round %d: time out: the player did not finish", i)
+		}
+	}
+}
+
+func callWithTimeout(t *testing.T, name string, f func() error) error {
+	t.Helper()
+	done := make(chan error, 1)
+	go func() {
+		done <- f()
+	}()
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(5 * time.Second):
+		t.Fatalf("%s did not return", name)
+	}
+	return nil
+}
+
+func runWithTimeout(t *testing.T, name string, f func() error) {
+	t.Helper()
+	if err := callWithTimeout(t, name, f); err != nil {
+		t.Errorf("%s: %v", name, err)
+	}
+}
+
+var errDeviceFailed = errors.New("audio_test: device failed")
+
+func TestSuspendRetriesAfterError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+
+	audio.SetSuspendErrorForTesting(errDeviceFailed)
+	defer audio.SetSuspendErrorForTesting(nil)
+	if err := callWithTimeout(t, "suspend", audio.SuspendForTesting); !errors.Is(err, errDeviceFailed) {
+		t.Errorf("suspend: got: %v, want: %v", err, errDeviceFailed)
+	}
+
+	audio.SetSuspendErrorForTesting(nil)
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
+}
+
+func TestResumeRetriesAfterError(t *testing.T) {
+	setup()
+	defer teardown()
+
+	if err := audio.UpdateForTesting(); err != nil {
+		t.Fatal(err)
+	}
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+
+	audio.SetResumeErrorForTesting(errDeviceFailed)
+	defer audio.SetResumeErrorForTesting(nil)
+	if err := callWithTimeout(t, "resume", audio.ResumeForTesting); !errors.Is(err, errDeviceFailed) {
+		t.Errorf("resume: got: %v, want: %v", err, errDeviceFailed)
+	}
+
+	audio.SetResumeErrorForTesting(nil)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
+	runWithTimeout(t, "suspend", audio.SuspendForTesting)
+	runWithTimeout(t, "resume", audio.ResumeForTesting)
 }

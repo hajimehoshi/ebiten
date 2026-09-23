@@ -15,12 +15,16 @@
 package gamepad
 
 import (
+	"runtime"
+	"slices"
+	"sync"
 	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 func standardButtonToGamepadInputGamepadButton(b gamepaddb.StandardButton) (_GameInputGamepadButtons, bool) {
@@ -63,10 +67,20 @@ func standardButtonToGamepadInputGamepadButton(b gamepaddb.StandardButton) (_Gam
 	return 0, false
 }
 
+// xboxDeviceEvent is a device connection or disconnection reported by GameInput. It holds one
+// reference to device, which update releases or hands over to the gamepad.
+type xboxDeviceEvent struct {
+	device    *_IGameInputDevice
+	connected bool
+}
+
 type nativeGamepadsXbox struct {
 	gameInput         *_IGameInput
 	deviceCallbackPtr uintptr
 	token             _GameInputCallbackToken
+
+	deviceEvents []xboxDeviceEvent
+	devicesMu    sync.Mutex
 }
 
 func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
@@ -76,7 +90,7 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 	}
 
 	n.gameInput = g
-	n.deviceCallbackPtr = windows.NewCallbackCDecl(n.deviceCallback)
+	n.deviceCallbackPtr = windows.NewCallback(n.deviceCallback)
 
 	if err := n.gameInput.RegisterDeviceCallback(
 		nil,
@@ -93,39 +107,85 @@ func (n *nativeGamepadsXbox) init(gamepads *gamepads) error {
 }
 
 func (n *nativeGamepadsXbox) update(gamepads *gamepads) error {
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
+
+	// GameInput reports the same device pointer for the same physical device. Apply the events in
+	// their arrival order, so that a disconnection and a reconnection between two updates leave the
+	// device connected.
+	for _, e := range n.deviceEvents {
+		if e.connected {
+			// TODO: Give a good name and an SDL ID.
+			gp := gamepads.add("", "00000000000000000000000000000000")
+			// The gamepad takes over the event's reference.
+			native := &nativeGamepadXbox{
+				gameInputDevice: e.device,
+			}
+			gp.native = native
+			native.cleanup = runtime.AddCleanup(gp, func(native *nativeGamepadXbox) {
+				native.close()
+			}, native)
+			continue
+		}
+		for {
+			gp := gamepads.find(func(gamepad *Gamepad) bool {
+				return gamepad.native.(*nativeGamepadXbox).gameInputDevice == e.device
+			})
+			if gp == nil {
+				break
+			}
+			gp.close()
+			gamepads.remove(func(gamepad *Gamepad) bool {
+				return gamepad == gp
+			})
+		}
+		e.device.Release()
+	}
+	n.deviceEvents = slices.Delete(n.deviceEvents, 0, len(n.deviceEvents))
 	return nil
 }
 
+// deviceCallback queues the device event for update to pick up. The initial enumeration calls this
+// synchronously from init with the gamepads' lock held, while later connections and disconnections
+// arrive on a GameInput worker thread without it, so the gamepad list must not be touched here.
+// device is only guaranteed to stay valid during the callback, so the queued event takes a reference.
 func (n *nativeGamepadsXbox) deviceCallback(callbackToken _GameInputCallbackToken, context unsafe.Pointer, device *_IGameInputDevice, timestamp uint64, currentStatus _GameInputDeviceStatus, previousStatus _GameInputDeviceStatus) uintptr {
-	gps := (*gamepads)(context)
+	n.devicesMu.Lock()
+	defer n.devicesMu.Unlock()
 
-	// Connected.
-	if currentStatus&_GameInputDeviceConnected != 0 {
-		// TODO: Give a good name and a SDL ID.
-		gp := gps.add("", "00000000000000000000000000000000")
-		gp.native = &nativeGamepadXbox{
-			gameInputDevice: device,
-		}
-		return 0
-	}
-
-	// Disconnected.
-	gps.remove(func(gamepad *Gamepad) bool {
-		return gamepad.native.(*nativeGamepadXbox).gameInputDevice == device
+	device.AddRef()
+	n.deviceEvents = append(n.deviceEvents, xboxDeviceEvent{
+		device:    device,
+		connected: currentStatus&_GameInputDeviceConnected != 0,
 	})
-
 	return 0
 }
 
 type nativeGamepadXbox struct {
 	gameInputDevice *_IGameInputDevice
 	state           _GameInputGamepadState
+	cleanup         runtime.Cleanup
 
 	vib    bool
 	vibEnd time.Time
 }
 
+// close releases n's native resources. close can be called multiple times.
+func (n *nativeGamepadXbox) close() {
+	n.cleanup.Stop()
+	if n.gameInputDevice == nil {
+		return
+	}
+	n.gameInputDevice.Release()
+	n.gameInputDevice = nil
+}
+
 func (n *nativeGamepadXbox) update(gamepads *gamepads) error {
+	// The device is released on disconnection.
+	if n.gameInputDevice == nil {
+		return nil
+	}
+
 	gameInput := gamepads.native.(*nativeGamepadsXbox).gameInput
 	r, err := gameInput.GetCurrentReading(_GameInputKindGamepad, n.gameInputDevice)
 	if err != nil {
@@ -248,6 +308,14 @@ func (n *nativeGamepadXbox) hatState(hat int) int {
 }
 
 func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
+	// The device is released on disconnection, and a caller may still hold the gamepad.
+	if n.gameInputDevice == nil {
+		return
+	}
+
+	strongMagnitude = mathutil.Clamp01(strongMagnitude)
+	weakMagnitude = mathutil.Clamp01(weakMagnitude)
+
 	if strongMagnitude <= 0 && weakMagnitude <= 0 {
 		n.vib = false
 		n.gameInputDevice.SetRumbleState(&_GameInputRumbleParams{

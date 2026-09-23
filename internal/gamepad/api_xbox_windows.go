@@ -225,6 +225,16 @@ type _IGameInputDevice_Vtbl struct {
 	ReleaseExclusiveRawDeviceAccess uintptr
 }
 
+func (i *_IGameInputDevice) AddRef() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.AddRef, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
+func (i *_IGameInputDevice) Release() uint32 {
+	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return uint32(r)
+}
+
 func (i *_IGameInputDevice) SetRumbleState(params *_GameInputRumbleParams, timestamp uint64) {
 	_, _, _ = syscall.Syscall(i.vtbl.SetRumbleState, 3, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(params)), uintptr(timestamp))
 	runtime.KeepAlive(params)

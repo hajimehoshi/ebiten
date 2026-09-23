@@ -35,7 +35,7 @@ func (u *UserInterface) initializePlatform() error {
 }
 
 func (u *glfwBackend) setApplePressAndHoldEnabled(enabled bool) {
-	// Do nothings.
+	// Do nothing.
 }
 
 type graphicsDriverCreatorImpl struct {
@@ -250,7 +250,7 @@ func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error 
 func (u *glfwBackend) initializeWindowAfterCreation(w *glfw.Window) error {
 	// A window that must stay invisible is never shown (#3495).
 	// Its position stays unreliable, which doesn't matter as the window is not on the screen.
-	if !u.desktopWindow.isInitWindowVisible() {
+	if !u.desktopWindow.isWindowVisible() {
 		return nil
 	}
 

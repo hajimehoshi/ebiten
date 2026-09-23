@@ -56,11 +56,11 @@ type Game struct {
 func NewGame() (*Game, error) {
 	source, err := loadImage(blend.Source_png)
 	if err != nil {
-		return nil, fmt.Errorf("fail to load source: %w", err)
+		return nil, fmt.Errorf("failed to load source: %w", err)
 	}
 	dest, err := loadImage(blend.Dest_png)
 	if err != nil {
-		return nil, fmt.Errorf("fail to load dest: %w", err)
+		return nil, fmt.Errorf("failed to load dest: %w", err)
 	}
 
 	// Set up a grid for drawing.
@@ -162,7 +162,6 @@ func loadImage(data []byte) (*ebiten.Image, error) {
 	return ebiten.NewImageFromImage(m), nil
 }
 
-// max returns the largest of x or y.
 // maxSide returns the largest side of a or b images.
 func maxSide(a, b *ebiten.Image) int {
 	return max(a.Bounds().Dx(), b.Bounds().Dx(), a.Bounds().Dy(), b.Bounds().Dy())

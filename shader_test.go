@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sync"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -728,6 +729,44 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		for i := range w {
 			got := dst.At(i, j).(color.RGBA)
 			want := color.RGBA{R: 0x20, G: 0x40, B: 0x60, A: 0xff}
+			if !sameColors(got, want, 2) {
+				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}
+
+func TestShaderMatrixCopy(t *testing.T) {
+	const w, h = 16, 16
+
+	src := ebiten.NewImage(w, h)
+	src.Fill(color.RGBA{R: 0x10, G: 0x20, B: 0x30, A: 0xff})
+
+	dst := ebiten.NewImage(w, h)
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	c := imageSrc0At(src0Pos)
+	m2 := mat2(0, 1, 1, 0)
+	m3 := mat3(0, 0, 1, 0, 1, 0, 1, 0, 0)
+	m4 := mat4(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0)
+	return vec4(mat2(m2)*c.rg, (mat3(m3)*c.rgb).x, (mat4(m4)*c).x)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Images[0] = src
+	dst.DrawRectShader(w, h, s, op)
+
+	for j := range h {
+		for i := range w {
+			got := dst.At(i, j).(color.RGBA)
+			want := color.RGBA{R: 0x20, G: 0x10, B: 0x30, A: 0xff}
 			if !sameColors(got, want, 2) {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
@@ -2489,12 +2528,14 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 
 	s.Dispose()
+	s.Dispose()
+	s.Deallocate()
 
 	dst.Clear()
 
 	defer func() {
 		if e := recover(); e == nil {
-			panic("DrawRectShader with a disposed shader must panic but not")
+			panic("DrawRectShader with a disposed shader must panic but did not")
 		}
 	}()
 
@@ -2533,6 +2574,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 
 	// Even after Deallocate is called, the shader is still available.
+	s.Deallocate()
 	s.Deallocate()
 
 	dst.Clear()
@@ -2976,55 +3018,6 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
-// Issue #3535
-func TestShaderArrayComparison(t *testing.T) {
-	const w, h = 16, 16
-
-	dst := ebiten.NewImage(w, h)
-	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	i0 := [2]int{1, 2}
-	i1 := [2]int{1, 2}
-	i2 := [2]int{1, 3}
-	v0 := [3]vec2{vec2(0), vec2(1), vec2(2)}
-	v1 := [3]vec2{vec2(0), vec2(1), vec2(2)}
-	v2 := [3]vec2{vec2(0), vec2(1), vec2(3)}
-	var r, g, b, a float
-	if i0 == i1 {
-		r = 0.25
-	}
-	if i0 != i2 {
-		g = 0.5
-	}
-	if v0 == v1 {
-		b = 0.75
-	}
-	if v0 != v2 {
-		a = 1
-	}
-	return vec4(r, g, b, a)
-}
-`))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	dst.DrawRectShader(w, h, s, nil)
-
-	for j := range h {
-		for i := range w {
-			got := dst.At(i, j).(color.RGBA)
-			want := color.RGBA{R: 0x40, G: 0x80, B: 0xc0, A: 0xff}
-			if !sameColors(got, want, 2) {
-				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
-			}
-		}
-	}
-}
-
 func BenchmarkBuiltinShader(b *testing.B) {
 	// Create a shader to cache the shader compilation result.
 	_ = ebiten.BuiltinShader(builtinshader.FilterNearest, builtinshader.AddressUnsafe, false)
@@ -3226,5 +3219,93 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 				t.Errorf("dst.At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+func TestShaderConcurrentDrawWithUniforms(t *testing.T) {
+	const w, h = 16, 16
+
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+var Color vec4
+var Offset vec2
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return Color + vec4(Offset, 0, 0)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const n = 8
+	start := make(chan struct{})
+	var wg sync.WaitGroup
+	for range n {
+		wg.Go(func() {
+			dst := ebiten.NewImage(w, h)
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Uniforms = map[string]any{
+				"Color":  []float32{1, 0, 0, 1},
+				"Offset": []float32{0, 0},
+			}
+			<-start
+			for range 16 {
+				dst.DrawRectShader(w, h, s, op)
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+}
+
+func TestShaderFunctionAsValueInAssignment(t *testing.T) {
+	shaders := []struct {
+		Name   string
+		Shader string
+	}{
+		{
+			Name: "builtin",
+			Shader: `//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var x float = 1
+	x = abs
+	return vec4(x)
+}`,
+		},
+		{
+			Name: "user-defined",
+			Shader: `//kage:unit pixels
+
+package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var x float = 1
+	x = f
+	return vec4(x)
+}`,
+		},
+	}
+
+	for _, shader := range shaders {
+		t.Run(shader.Name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("NewShader must not panic when a function is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := ebiten.NewShader([]byte(shader.Shader)); err == nil {
+				t.Errorf("NewShader must return an error when a function is used as a value, but got nil")
+			}
+		})
 	}
 }

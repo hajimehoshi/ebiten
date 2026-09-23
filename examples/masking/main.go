@@ -127,8 +127,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	// is determined by the destination image (maskedFgImage).
 	//
 	// The result image is the source image with the destination alpha. In maskedFgImage, alpha
-	// values in the hole is 0 and alpha values in other places are 0xff. As a result, the
-	// maskedFgImage draws the source image with a hole that shape is spotLightImage. Note that
+	// values in the hole are 0 and alpha values in other places are 0xff. As a result, the
+	// maskedFgImage draws the source image with a hole whose shape is spotLightImage. Note that
 	// RGB values in the destination image are ignored.
 	//
 	// See also https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcin.

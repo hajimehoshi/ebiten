@@ -30,7 +30,7 @@ import (
 type guestActivation int
 
 const (
-	// activateByEnv builds the guest with the ebitenginevm build tag and passes the endpoint in
+	// activateByEnv builds the guest with the ebitenginevmguest build tag and passes the endpoint in
 	// EBITENGINE_VM_ENDPOINT.
 	activateByEnv guestActivation = iota
 	// activateByOptions builds the guest without the build tag and passes the endpoint as a
@@ -92,7 +92,7 @@ func startGuestWithOptions(t *testing.T, pkgPath string, activation guestActivat
 }
 
 // buildGuest compiles the guest program at pkgPath into a temporary binary and returns its path.
-// activateByEnv builds it with the ebitenginevm build tag.
+// activateByEnv builds it with the ebitenginevmguest build tag.
 func buildGuest(t *testing.T, pkgPath string, activation guestActivation) string {
 	t.Helper()
 
@@ -104,7 +104,7 @@ func buildGuest(t *testing.T, pkgPath string, activation guestActivation) string
 	// different owner (the Steam CI job).
 	buildArgs := []string{"build", "-buildvcs=false"}
 	if activation == activateByEnv {
-		buildArgs = append(buildArgs, "-tags", "ebitenginevm")
+		buildArgs = append(buildArgs, "-tags", "ebitenginevmguest")
 	}
 	buildArgs = append(buildArgs, "-o", guestBin, pkgPath)
 	if out, err := exec.Command("go", buildArgs...).CombinedOutput(); err != nil {

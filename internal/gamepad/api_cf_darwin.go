@@ -88,6 +88,7 @@ func initializeCF() error {
 	purego.RegisterLibFunc(&_CFArrayGetCount, corefoundation, "CFArrayGetCount")
 	purego.RegisterLibFunc(&_CFDictionaryCreate, corefoundation, "CFDictionaryCreate")
 	purego.RegisterLibFunc(&_CFRelease, corefoundation, "CFRelease")
+	purego.RegisterLibFunc(&_CFRetain, corefoundation, "CFRetain")
 	purego.RegisterLibFunc(&_CFRunLoopGetMain, corefoundation, "CFRunLoopGetMain")
 	purego.RegisterLibFunc(&_CFRunLoopRunInMode, corefoundation, "CFRunLoopRunInMode")
 	purego.RegisterLibFunc(&_CFGetTypeID, corefoundation, "CFGetTypeID")
@@ -105,9 +106,10 @@ var (
 	_CFArrayGetCount           func(array _CFArrayRef) _CFIndex
 	_CFDictionaryCreate        func(allocator _CFAllocatorRef, keys *unsafe.Pointer, values *unsafe.Pointer, numValues _CFIndex, keyCallBacks *_CFDictionaryKeyCallBacks, valueCallBacks *_CFDictionaryValueCallBacks) _CFDictionaryRef
 	_CFRelease                 func(cf _CFTypeRef)
+	_CFRetain                  func(cf _CFTypeRef) _CFTypeRef
 	_CFRunLoopGetMain          func() _CFRunLoopRef
 	_CFRunLoopRunInMode        func(mode _CFRunLoopMode, seconds _CFTimeInterval, returnAfterSourceHandled bool) _CFRunLoopRunResult
 	_CFGetTypeID               func(cf _CFTypeRef) _CFTypeID
-	_CFStringGetCString        func(theString _CFStringRef, buffer []byte, encoding _CFStringEncoding) bool
+	_CFStringGetCString        func(theString _CFStringRef, buffer []byte, bufferSize _CFIndex, encoding _CFStringEncoding) bool
 	_CFStringCreateWithCString func(alloc _CFAllocatorRef, cstr []byte, encoding _CFStringEncoding) _CFStringRef
 )

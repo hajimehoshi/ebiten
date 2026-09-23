@@ -23,12 +23,23 @@ type MouseButton int
 
 const (
 	MouseButton0   MouseButton = iota // The 'left' button
-	MouseButton1                      // The 'right' button
-	MouseButton2                      // The 'middle' button
+	MouseButton1                      // The 'middle' button
+	MouseButton2                      // The 'right' button
 	MouseButton3                      // The additional button (usually browser-back)
 	MouseButton4                      // The additional button (usually browser-forward)
 	MouseButtonMax = MouseButton4
 )
+
+// pixelsPerScrollNotch is the estimated scroll amount in device-independent pixels for one notch of a
+// typical mouse wheel. It is the amount Chromium scrolls per notch with the Windows default settings.
+const pixelsPerScrollNotch = 100
+
+// scrollLinesPerNotch is the number of text lines one notch of a typical mouse wheel scrolls. It is the
+// Windows default of SPI_GETWHEELSCROLLLINES.
+const scrollLinesPerNotch = 3
+
+// pixelsPerScrollLine is the estimated scroll amount in device-independent pixels for one line of text.
+const pixelsPerScrollLine = float64(pixelsPerScrollNotch) / scrollLinesPerNotch
 
 type TouchID int
 
@@ -36,6 +47,70 @@ type Touch struct {
 	ID TouchID
 	X  float64
 	Y  float64
+}
+
+// touchIDAllocator maps the IDs a platform assigns to its touches to IDs that are never reused. A
+// platform reuses an ID as soon as its touch ends, so consecutive touches can arrive under one
+// platform ID; a platform ID that appears in a touch set without having been in the previous one is
+// a new touch and gets a fresh ID.
+type touchIDAllocator struct {
+	// current and previous hold the platform IDs of the current and the previous touch set with the
+	// IDs issued for them.
+	current  []touchIDMapping
+	previous []touchIDMapping
+
+	next TouchID
+}
+
+type touchIDMapping struct {
+	platformID int
+	id         TouchID
+}
+
+// nextTouches starts the next set of touches that are down. Each of them must then be passed to id;
+// a platform ID that is not passed before the next nextTouches has ended.
+func (a *touchIDAllocator) nextTouches() {
+	a.current, a.previous = a.previous[:0], a.current
+}
+
+// id returns the ID issued for platformID in the current touch set.
+func (a *touchIDAllocator) id(platformID int) TouchID {
+	if id, ok := lookupTouchIDMapping(a.current, platformID); ok {
+		return id
+	}
+	id, ok := lookupTouchIDMapping(a.previous, platformID)
+	if !ok {
+		id = a.next
+		a.next++
+	}
+	a.current = append(a.current, touchIDMapping{platformID: platformID, id: id})
+	return id
+}
+
+// setTouchesFromPlatformIDs replaces the set of touches that are down with the touches of the given
+// platform IDs.
+func (a *touchIDAllocator) setTouchesFromPlatformIDs(platformIDs []int) {
+	a.nextTouches()
+	for _, platformID := range platformIDs {
+		a.id(platformID)
+	}
+}
+
+func lookupTouchIDMapping(mappings []touchIDMapping, platformID int) (TouchID, bool) {
+	for _, m := range mappings {
+		if m.platformID == platformID {
+			return m.id, true
+		}
+	}
+	return 0, false
+}
+
+// touchInClient is a touch whose position is in the platform's client coordinates, pending conversion
+// to logical coordinates.
+type touchInClient struct {
+	id TouchID
+	x  float64
+	y  float64
 }
 
 // LockKeyState is the state of a lock key. The zero value means the platform does not report the state.
@@ -56,6 +131,10 @@ func NewLockKeyStateFromBool(on bool) LockKeyState {
 }
 
 type InputState struct {
+	// inputTime belongs to the accumulated state and advances once per consumed snapshot.
+	// Recording an event and consuming a snapshot must use the same synchronization.
+	inputTime InputTime
+
 	KeyPressedTimes  [KeyMax + 1]InputTime
 	KeyReleasedTimes [KeyMax + 1]InputTime
 
@@ -66,6 +145,8 @@ type InputState struct {
 	CursorY           float64
 	WheelX            float64
 	WheelY            float64
+	ScrollDeltaX      float64
+	ScrollDeltaY      float64
 	Touches           []Touch
 	Runes             []rune
 	WindowBeingClosed bool
@@ -285,6 +366,14 @@ func inputStateModifierDuration(pressed, released InputTime, tick int64) int64 {
 	return tick - pressed.Tick() + 1
 }
 
+func (i *InputState) nextInputTime() InputTime {
+	i.inputTime++
+	if i.inputTime.Subtick() == 0 {
+		panic("ui: too many input events in a tick")
+	}
+	return i.inputTime
+}
+
 func (i *InputState) copyAndReset(dst *InputState) {
 	dst.KeyPressedTimes = i.KeyPressedTimes
 	dst.KeyReleasedTimes = i.KeyReleasedTimes
@@ -294,6 +383,8 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	dst.CursorY = i.CursorY
 	dst.WheelX = i.WheelX
 	dst.WheelY = i.WheelY
+	dst.ScrollDeltaX = i.ScrollDeltaX
+	dst.ScrollDeltaY = i.ScrollDeltaY
 	dst.Touches = append(dst.Touches[:0], i.Touches...)
 	dst.Runes = append(dst.Runes[:0], i.Runes...)
 	dst.WindowBeingClosed = i.WindowBeingClosed
@@ -304,11 +395,16 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	// Reset the members that are updated by deltas, rather than absolute values.
 	i.WheelX = 0
 	i.WheelY = 0
+	i.ScrollDeltaX = 0
+	i.ScrollDeltaY = 0
 	i.Runes = i.Runes[:0]
 
 	// Reset the members that are never reset until they are explicitly done.
 	i.WindowBeingClosed = false
 	i.DroppedFiles = nil
+
+	// The next event belongs to the first tick that can consume it.
+	i.inputTime = NewInputTimeFromTick(i.inputTime.Tick() + 1)
 }
 
 func (i *InputState) appendRune(r rune) {

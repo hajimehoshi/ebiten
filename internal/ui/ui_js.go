@@ -15,11 +15,15 @@
 package ui
 
 import (
+	stdcontext "context"
 	"errors"
 	"math"
 	"sync"
+	"sync/atomic"
 	"syscall/js"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
@@ -89,16 +93,16 @@ func driverCursorShapeToCSSCursor(cursor CursorShape) string {
 type userInterfaceImpl struct {
 	graphicsDriver graphicsdriver.Graphics
 
-	runnableOnUnfocused bool
-	fpsMode             FPSModeType
-	renderingScheduled  bool
+	runnableOnUnfocused atomic.Bool
+	fpsMode             atomic.Int32
+	renderingScheduled  atomic.Bool
 	cursorMode          CursorMode
 	cursorPrevMode      CursorMode
 	captureCursorLater  bool
 	cursorShape         CursorShape
 	onceUpdateCalled    bool
 	lastCaptureExitTime time.Time
-	hiDPIEnabled        bool
+	hiDPIEnabled        atomic.Bool
 
 	context             *context
 	inputState          InputState
@@ -107,6 +111,7 @@ type userInterfaceImpl struct {
 	origCursorXInClient float64
 	origCursorYInClient float64
 	touchesInClient     []touchInClient
+	touchIDs            touchIDAllocator
 
 	savedCursorX              float64
 	savedCursorY              float64
@@ -156,6 +161,9 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 		if !f.Truthy() {
 			f = canvas.Get("webkitRequestFullscreen")
 		}
+		if !f.Truthy() {
+			return
+		}
 		f.Call("bind", canvas).Invoke()
 		return
 	}
@@ -163,6 +171,9 @@ func (u *UserInterface) SetFullscreen(fullscreen bool) {
 	f := document.Get("exitFullscreen")
 	if !f.Truthy() {
 		f = document.Get("webkitExitFullscreen")
+	}
+	if !f.Truthy() {
+		return
 	}
 	f.Call("bind", document).Invoke()
 }
@@ -182,23 +193,23 @@ func (u *UserInterface) IsFocused() bool {
 }
 
 func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
-	u.runnableOnUnfocused = runnableOnUnfocused
+	u.runnableOnUnfocused.Store(runnableOnUnfocused)
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {
-	return u.runnableOnUnfocused
+	return u.runnableOnUnfocused.Load()
 }
 
 func (u *UserInterface) FPSMode() FPSModeType {
-	return u.fpsMode
+	return FPSModeType(u.fpsMode.Load())
 }
 
 func (u *UserInterface) SetFPSMode(mode FPSModeType) {
-	u.fpsMode = mode
+	u.fpsMode.Store(int32(mode))
 }
 
 func (u *UserInterface) ScheduleFrame() {
-	u.renderingScheduled = true
+	u.renderingScheduled.Store(true)
 }
 
 func (u *UserInterface) CursorMode() CursorMode {
@@ -283,7 +294,7 @@ func (u *UserInterface) outsideSize() (float64, float64) {
 }
 
 func (u *UserInterface) suspended() bool {
-	if u.runnableOnUnfocused {
+	if u.runnableOnUnfocused.Load() {
 		return false
 	}
 	return !u.isFocused()
@@ -360,13 +371,14 @@ func (u *UserInterface) updateImpl(force bool) error {
 }
 
 func (u *UserInterface) needsUpdate() bool {
-	if u.fpsMode != FPSModeVsyncOffMinimum {
+	scheduled := u.renderingScheduled.Swap(false)
+	if u.FPSMode() != FPSModeVsyncOffMinimum {
 		return true
 	}
 	if !u.onceUpdateCalled {
 		return true
 	}
-	if u.renderingScheduled {
+	if scheduled {
 		return true
 	}
 	// TODO: Watch the gamepad state?
@@ -379,30 +391,26 @@ func (u *UserInterface) loopGame() error {
 	// suspended() returns true and the update routine cannot start.
 	u.updateScreenSize()
 
-	errCh := make(chan error, 1)
-	reqStopAudioCh := make(chan struct{})
-	resStopAudioCh := make(chan struct{})
+	// The loop ends with the first error from a frame or from the audio watcher.
+	g, ctx := errgroup.WithContext(stdcontext.Background())
 
 	var cf js.Func
-	f := func() {
+	f := func() error {
+		if ctx.Err() != nil {
+			return nil
+		}
 		if err := u.error(); err != nil {
-			errCh <- err
-			return
+			return err
 		}
 		if u.needsUpdate() {
 			defer func() {
 				u.onceUpdateCalled = true
 			}()
-			u.renderingScheduled = false
 			if err := u.update(); err != nil {
-				close(reqStopAudioCh)
-				<-resStopAudioCh
-
-				errCh <- err
-				return
+				return err
 			}
 		}
-		switch u.fpsMode {
+		switch u.FPSMode() {
 		case FPSModeVsyncOn:
 			requestAnimationFrame.Invoke(cf)
 		case FPSModeVsyncOffMaximum:
@@ -410,24 +418,23 @@ func (u *UserInterface) loopGame() error {
 		case FPSModeVsyncOffMinimum:
 			requestAnimationFrame.Invoke(cf)
 		}
+		return nil
 	}
 
 	// TODO: Should cf be released after the game ends?
 	cf = js.FuncOf(func(this js.Value, args []js.Value) any {
 		// f can be blocked but callbacks must not be blocked. Create a goroutine (#1161).
-		go f()
+		g.Go(f)
 		return nil
 	})
 
-	// Call f asyncly since ch is used in f.
-	go f()
+	// Run the first frame asynchronously so that the audio watcher below starts right away.
+	g.Go(f)
 
 	// Run another loop to watch suspended() as the above update function is never called when the tab is hidden.
 	// To check the document's visibility, visibilitychange event should usually be used. However, this event is
 	// not reliable and sometimes it is not fired (#961). Then, watch the state regularly instead.
-	go func() {
-		defer close(resStopAudioCh)
-
+	g.Go(func() error {
 		const interval = 100 * time.Millisecond
 		t := time.NewTicker(interval)
 		defer func() {
@@ -447,31 +454,31 @@ func (u *UserInterface) loopGame() error {
 			case <-t.C:
 				if u.suspended() {
 					if err := hook.SuspendAudio(); err != nil {
-						errCh <- err
-						return
+						return err
 					}
 				} else {
 					if err := hook.ResumeAudio(); err != nil {
-						errCh <- err
-						return
+						return err
 					}
 				}
-			case <-reqStopAudioCh:
-				return
+			case <-ctx.Done():
+				return nil
 			}
 		}
-	}()
+	})
 
-	return <-errCh
+	// Wait returns the first error once the audio watcher and a frame in flight have finished.
+	return g.Wait()
 }
 
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
-		runnableOnUnfocused: true,
-		savedCursorX:        math.NaN(),
-		savedCursorY:        math.NaN(),
-		hiDPIEnabled:        true,
+		savedCursorX: math.NaN(),
+		savedCursorY: math.NaN(),
 	}
+
+	u.runnableOnUnfocused.Store(true)
+	u.hiDPIEnabled.Store(true)
 
 	// document is undefined on node.js
 	if !document.Truthy() {
@@ -612,7 +619,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Keyboard
 	v.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
-		// Focus the canvas explicitly to activate tha game (#961).
+		// Focus the canvas explicitly to activate the game (#961).
 		v.Call("focus")
 
 		e := args[0]
@@ -635,7 +642,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Mouse
 	v.Call("addEventListener", "mousedown", js.FuncOf(func(this js.Value, args []js.Value) any {
-		// Focus the canvas explicitly to activate tha game (#961).
+		// Focus the canvas explicitly to activate the game (#961).
 		// Taking the focus from the text input element would dismiss a virtual keyboard.
 		if !u.isTextInputFocused() {
 			v.Call("focus")
@@ -679,7 +686,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Touch
 	v.Call("addEventListener", "touchstart", js.FuncOf(func(this js.Value, args []js.Value) any {
-		// Focus the canvas explicitly to activate tha game (#961).
+		// Focus the canvas explicitly to activate the game (#961).
 		// Taking the focus from the text input element would dismiss a virtual keyboard.
 		if !u.isTextInputFocused() {
 			v.Call("focus")
@@ -694,6 +701,15 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		return nil
 	}))
 	v.Call("addEventListener", "touchend", js.FuncOf(func(this js.Value, args []js.Value) any {
+		e := args[0]
+		e.Call("preventDefault")
+		if err := u.updateInputFromEvent(e); err != nil {
+			u.setError(err)
+			return nil
+		}
+		return nil
+	}))
+	v.Call("addEventListener", "touchcancel", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
 		e.Call("preventDefault")
 		if err := u.updateInputFromEvent(e); err != nil {
@@ -747,7 +763,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Blur
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
-		u.inputState.releaseAllButtons(u.InputTime())
+		u.inputState.releaseAllButtons(u.inputState.nextInputTime())
 		return nil
 	}))
 }
@@ -762,7 +778,20 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 		kind := items.Index(i).Get("kind").String()
 		switch kind {
 		case "file":
-			entries = append(entries, items.Index(i).Call("webkitGetAsEntry").Get("filesystem").Get("root"))
+			// webkitGetAsEntry can return null even for a "file" item, depending on the drag source.
+			entry := items.Index(i).Call("webkitGetAsEntry")
+			if !entry.Truthy() {
+				continue
+			}
+			filesystem := entry.Get("filesystem")
+			if !filesystem.Truthy() {
+				continue
+			}
+			root := filesystem.Get("root")
+			if !root.Truthy() {
+				continue
+			}
+			entries = append(entries, root)
 		}
 	}
 	if len(entries) > 0 {
@@ -776,7 +805,7 @@ func (u *UserInterface) appendDroppedFiles(data js.Value) {
 }
 
 func (u *UserInterface) forceUpdateOnMinimumFPSMode() {
-	if u.fpsMode != FPSModeVsyncOffMinimum {
+	if u.FPSMode() != FPSModeVsyncOffMinimum {
 		return
 	}
 
@@ -811,7 +840,7 @@ func (u *UserInterface) shouldFocusFirst(options *RunOptions) bool {
 func (u *UserInterface) initOnMainThread(options *RunOptions) error {
 	u.setRunning(true)
 
-	u.hiDPIEnabled = !options.DisableHiDPI
+	u.hiDPIEnabled.Store(!options.DisableHiDPI)
 
 	if u.shouldFocusFirst(options) {
 		canvas.Call("focus")
@@ -872,7 +901,9 @@ func (u *UserInterface) Window() Window {
 }
 
 type Monitor struct {
-	deviceScaleFactor float64
+	deviceScaleFactor     float64
+	deviceScaleFactorTime time.Time
+	mu                    sync.Mutex
 }
 
 var theMonitor = &Monitor{}
@@ -882,11 +913,16 @@ func (m *Monitor) Name() string {
 }
 
 func (m *Monitor) DeviceScaleFactor() float64 {
-	if !theUI.hiDPIEnabled {
+	if !theUI.hiDPIEnabled.Load() {
 		return 1
 	}
 
-	if m.deviceScaleFactor != 0 {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	// devicePixelRatio can change, but reading it is too expensive to repeat on every call.
+	now := time.Now()
+	if !m.deviceScaleFactorTime.IsZero() && now.Sub(m.deviceScaleFactorTime) < time.Second {
 		return m.deviceScaleFactor
 	}
 
@@ -895,7 +931,8 @@ func (m *Monitor) DeviceScaleFactor() float64 {
 		ratio = 1
 	}
 	m.deviceScaleFactor = ratio
-	return m.deviceScaleFactor
+	m.deviceScaleFactorTime = now
+	return ratio
 }
 
 func (m *Monitor) Size() (int, int) {

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // VirtualGamepadState is the externally supplied state of one virtual gamepad. The raw axes and
@@ -67,9 +68,10 @@ func (g *gamepads) appendVirtualVibrations(dst []VirtualGamepadVibration) []Virt
 		if gp == nil || !gp.virtual {
 			continue
 		}
-		gp.m.Lock()
-		n := gp.native.(*nativeGamepadVirtual)
-		if n.vibrationPending {
+		withNative(gp, func(n *nativeGamepadVirtual) {
+			if !n.vibrationPending {
+				return
+			}
 			dst = append(dst, VirtualGamepadVibration{
 				ID:              ID(id),
 				Duration:        n.vibration.duration,
@@ -77,8 +79,7 @@ func (g *gamepads) appendVirtualVibrations(dst []VirtualGamepadVibration) []Virt
 				WeakMagnitude:   n.vibration.weakMagnitude,
 			})
 			n.vibrationPending = false
-		}
-		gp.m.Unlock()
+		})
 	}
 	return dst
 }
@@ -88,18 +89,28 @@ func (g *gamepads) appendVirtualVibrations(dst []VirtualGamepadVibration) []Virt
 func (g *gamepads) setVirtualGamepads(states []VirtualGamepadState) {
 	maxID := -1
 	for i := range states {
+		if states[i].ID < 0 {
+			continue
+		}
 		maxID = max(maxID, int(states[i].ID))
 	}
 	for len(g.gamepads) <= maxID {
 		g.gamepads = append(g.gamepads, nil)
 	}
 
-	// Connect or update every gamepad in the snapshot at its own ID.
+	// Connect or update every gamepad in the snapshot at its own ID. A changed name or SDL ID is a
+	// different device, so replace the gamepad instead of rewriting the fields: a gamepad's name and
+	// SDL ID are fixed at creation, which is what lets them be read without a lock.
 	for i := range states {
 		s := &states[i]
+		if s.ID < 0 {
+			continue
+		}
 		gp := g.gamepads[s.ID]
-		if gp == nil || !gp.virtual {
+		if gp == nil || !gp.virtual || gp.name != s.Name || gp.sdlID != s.SDLID {
 			gp = &Gamepad{
+				name:    s.Name,
+				sdlID:   s.SDLID,
 				virtual: true,
 				native:  &nativeGamepadVirtual{},
 			}
@@ -126,18 +137,14 @@ func containsVirtualGamepadID(states []VirtualGamepadState, id ID) bool {
 }
 
 func (g *Gamepad) setVirtualState(s *VirtualGamepadState) {
-	g.m.Lock()
-	defer g.m.Unlock()
-
-	g.name = s.Name
-	g.sdlID = s.SDLID
-	n := g.native.(*nativeGamepadVirtual)
-	// Copy into the gamepad's own (reused) storage so its state does not alias the caller's buffers,
-	// which Update is free to reuse or mutate after it returns.
-	n.axes = append(n.axes[:0], s.Axes...)
-	n.buttons = append(n.buttons[:0], s.Buttons...)
-	n.standardAxes = copyMap(n.standardAxes, s.StandardAxes)
-	n.standardButtons = copyMap(n.standardButtons, s.StandardButtons)
+	withNative(g, func(n *nativeGamepadVirtual) {
+		// Copy into the gamepad's own (reused) storage so its state does not alias the caller's buffers,
+		// which Update is free to reuse or mutate after it returns.
+		n.axes = append(n.axes[:0], s.Axes...)
+		n.buttons = append(n.buttons[:0], s.Buttons...)
+		n.standardAxes = copyMap(n.standardAxes, s.StandardAxes)
+		n.standardButtons = copyMap(n.standardButtons, s.StandardButtons)
+	})
 }
 
 // copyMap returns a copy of src that reuses dst's storage; the result is nil when src is nil.
@@ -257,8 +264,8 @@ func (g *nativeGamepadVirtual) vibrate(duration time.Duration, strongMagnitude f
 	// lock is held by Gamepad.Vibrate, the same lock AppendVirtualGamepadVibrations takes to drain.
 	g.vibration = virtualVibration{
 		duration:        duration,
-		strongMagnitude: strongMagnitude,
-		weakMagnitude:   weakMagnitude,
+		strongMagnitude: mathutil.Clamp01(strongMagnitude),
+		weakMagnitude:   mathutil.Clamp01(weakMagnitude),
 	}
 	g.vibrationPending = true
 }
@@ -270,7 +277,7 @@ type virtualStandardAxisMapping struct {
 }
 
 func (m virtualStandardAxisMapping) Pressed() bool {
-	return m.value > gamepaddb.ButtonPressedThreshold
+	return m.Value() > gamepaddb.ButtonPressedThreshold
 }
 
 func (m virtualStandardAxisMapping) Value() float64 {

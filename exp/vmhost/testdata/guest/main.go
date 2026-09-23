@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This is a guest fixture for vmhost's tests. It is an ordinary Ebitengine program: it just calls
-// RunGame. Built with -tags ebitenginevm and run with EBITENGINE_VM_ENDPOINT set, RunGame dials that
+// RunGame. Built with -tags ebitenginevmguest and run with EBITENGINE_VM_ENDPOINT set, RunGame dials that
 // host and serves it, instead of opening a window. It draws a sprite at the cursor so the host's render test
 // can assert exact pixels; see vmhost/render_test.go.
 package main

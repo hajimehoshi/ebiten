@@ -31,6 +31,7 @@ import (
 	"github.com/go-text/typesetting/bidi"
 	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 
@@ -330,7 +331,7 @@ func TestConvertToFixed26_6(t *testing.T) {
 		got = text.Float64ToFixed26_6(tc.In)
 		want = tc.Out
 		if got != want {
-			t.Errorf("Float32ToFixed26_6(%v): got: %v, want: %v", tc.In, got, want)
+			t.Errorf("Float64ToFixed26_6(%v): got: %v, want: %v", tc.In, got, want)
 		}
 	}
 }
@@ -795,7 +796,7 @@ func TestGlyphAdvance(t *testing.T) {
 			last := glyphs[len(glyphs)-1]
 			advance := text.AdvanceAt(tc.text, len(tc.text), tc.face)
 			if tc.vertical {
-				// For vertical layouts, GoTextFace.advance returns a negative value
+				// For vertical layouts, GoTextFace.advanceAt returns a negative value
 				// matching the AdvanceY sign convention.
 				gotEnd := last.OriginY + last.AdvanceY - glyphs[0].OriginY
 				if math.Abs(gotEnd-advance) > eps {
@@ -1077,16 +1078,17 @@ func TestAdvanceAtRTLLineUnderChunker(t *testing.T) {
 	//   א=0 ב=2 .=4 ' '=5 ג=6 ד=8 .=10
 	const s = "אב. גד."
 
-	// Sample two RTL bytes inside the single L1 chunk (AdvanceAt(0)
-	// is hardcoded to 0, so it can't witness the right-edge
-	// convention of an RTL byte).
+	leadAlef := text.AdvanceAt(s, 0, face)  // leading edge of א
 	leadBet := text.AdvanceAt(s, 2, face)   // leading edge of ב
 	leadDaled := text.AdvanceAt(s, 8, face) // leading edge of ד
 
-	// ב is logically before ד within the RTL run, so visually ב
-	// sits to the right of ד. Under the leading-edge convention for
-	// RTL, the leading edge of ב must therefore lie strictly to the
-	// right of the leading edge of ד.
+	// א is logically before ב, which is before ד, within the RTL run,
+	// so each sits visually to the right of the next. Under the
+	// leading-edge convention for RTL, the leading edges must therefore
+	// decrease strictly in logical order, including at index 0.
+	if !(leadAlef > leadBet+eps) {
+		t.Errorf("RTL layout: leading(א)=%v should be > leading(ב)=%v", leadAlef, leadBet)
+	}
 	if !(leadBet > leadDaled+eps) {
 		t.Errorf("RTL layout: leading(ב)=%v should be > leading(ד)=%v", leadBet, leadDaled)
 	}
@@ -1433,6 +1435,109 @@ func TestGoTextFaceSourceConcurrentDrawWithDifferentSizes(t *testing.T) {
 			<-start
 			var op text.DrawOptions
 			text.Draw(dst, "Hello, World!", face, &op)
+		})
+	}
+	close(start)
+	wg.Wait()
+}
+
+func TestGoXFaceConcurrentDrawAndMeasure(t *testing.T) {
+	sfntFont, err := opentype.Parse(goregular.TTF)
+	if err != nil {
+		t.Fatal(err)
+	}
+	opentypeFace, err := opentype.NewFace(sfntFont, &opentype.FaceOptions{
+		Size: 24,
+		DPI:  72,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f := text.NewGoXFace(opentypeFace)
+
+	const (
+		goroutineCount = 8
+		loopCount      = 10
+	)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range goroutineCount {
+		wg.Go(func() {
+			dst := ebiten.NewImage(256, 64)
+			str := string(rune('A'+i)) + "xyz"
+			<-start
+			for range loopCount {
+				if i%2 == 0 {
+					var op text.DrawOptions
+					text.Draw(dst, str, f, &op)
+				} else {
+					_, _ = text.Measure(str, f, 0)
+				}
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+}
+
+// zeroMetricsGoXFace is a font.Face whose metrics are all zero. GoXFace
+// caches the metrics of a face only once they are non-zero, and NewGoXFace
+// reads them once itself, so a face with non-zero metrics never takes the
+// uncached path after construction. A zero-metrics face takes it on every
+// Metrics call.
+type zeroMetricsGoXFace struct {
+	testGoXFace
+}
+
+func (f *zeroMetricsGoXFace) Metrics() font.Metrics {
+	return font.Metrics{}
+}
+
+func TestGoXFaceConcurrentMetrics(t *testing.T) {
+	f := text.NewGoXFace(&zeroMetricsGoXFace{})
+
+	const (
+		goroutineCount = 8
+		loopCount      = 100
+	)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for range goroutineCount {
+		wg.Go(func() {
+			<-start
+			for range loopCount {
+				_ = f.Metrics()
+			}
+		})
+	}
+	close(start)
+	wg.Wait()
+}
+
+func TestGoXFaceConcurrentMetricsAndDraw(t *testing.T) {
+	f := text.NewGoXFace(&zeroMetricsGoXFace{})
+
+	const (
+		goroutineCount = 8
+		loopCount      = 10
+	)
+
+	var wg sync.WaitGroup
+	start := make(chan struct{})
+	for i := range goroutineCount {
+		wg.Go(func() {
+			dst := ebiten.NewImage(testGoXFaceSize*4, testGoXFaceSize)
+			<-start
+			for range loopCount {
+				if i%2 == 0 {
+					var op text.DrawOptions
+					text.Draw(dst, "abab", f, &op)
+				} else {
+					_ = f.Metrics()
+				}
+			}
 		})
 	}
 	close(start)

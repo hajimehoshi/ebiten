@@ -27,9 +27,9 @@ func init() {
 
 // GammaRamp describes the gamma ramp for a monitor.
 type GammaRamp struct {
-	Red   []uint16 // A slice of value describing the response of the red channel.
-	Green []uint16 // A slice of value describing the response of the green channel.
-	Blue  []uint16 // A slice of value describing the response of the blue channel.
+	Red   []uint16 // A slice of values describing the response of the red channel.
+	Green []uint16 // A slice of values describing the response of the green channel.
+	Blue  []uint16 // A slice of values describing the response of the blue channel.
 }
 
 // macOS-specific helper functions
@@ -54,8 +54,13 @@ func modeIsGood(mode uintptr) bool {
 func getFallbackRefreshRate(displayID uint32) float64 {
 	refreshRate := 60.0
 
+	matching := ioServiceMatching(unsafe.StringData("IOFramebuffer\x00"))
+	if matching == 0 {
+		return refreshRate
+	}
+
 	var it uint32
-	if ioServiceGetMatchingServices(0, ioServiceMatching(unsafe.StringData("IOFramebuffer\x00")), &it) != 0 {
+	if ioServiceGetMatchingServices(0, matching, &it) != 0 {
 		return refreshRate
 	}
 	defer ioObjectRelease(it)
@@ -67,6 +72,10 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 		}
 
 		indexKey := cfStringCreateWithCString(0, "IOFramebufferOpenGLIndex", kCFStringEncodingUTF8)
+		if indexKey == 0 {
+			ioObjectRelease(service)
+			continue
+		}
 		indexRef := ioRegistryEntryCreateCFProperty(service, indexKey, 0, 0)
 		cfRelease(indexKey)
 		if indexRef == 0 {
@@ -83,12 +92,15 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 			continue
 		}
 
-		clockKey := cfStringCreateWithCString(0, "IOFBCurrentPixelClock", kCFStringEncodingUTF8)
-		clockRef := ioRegistryEntryCreateCFProperty(service, clockKey, 0, 0)
-		cfRelease(clockKey)
-		countKey := cfStringCreateWithCString(0, "IOFBCurrentPixelCount", kCFStringEncodingUTF8)
-		countRef := ioRegistryEntryCreateCFProperty(service, countKey, 0, 0)
-		cfRelease(countKey)
+		var clockRef, countRef uintptr
+		if clockKey := cfStringCreateWithCString(0, "IOFBCurrentPixelClock", kCFStringEncodingUTF8); clockKey != 0 {
+			clockRef = ioRegistryEntryCreateCFProperty(service, clockKey, 0, 0)
+			cfRelease(clockKey)
+		}
+		if countKey := cfStringCreateWithCString(0, "IOFBCurrentPixelCount", kCFStringEncodingUTF8); countKey != 0 {
+			countRef = ioRegistryEntryCreateCFProperty(service, countKey, 0, 0)
+			cfRelease(countKey)
+		}
 
 		var clock, count uint32
 		if clockRef != 0 {
@@ -203,7 +215,16 @@ func getMonitorNameNS(displayID uint32) string {
 		}
 
 		vendorIDKey := cfString("DisplayVendorID")
+		if vendorIDKey == 0 {
+			cfRelease(info)
+			return "Display"
+		}
 		productIDKey := cfString("DisplayProductID")
+		if productIDKey == 0 {
+			cfRelease(vendorIDKey)
+			cfRelease(info)
+			return "Display"
+		}
 		vendorIDRef := cfDictionaryGetValue(info, vendorIDKey)
 		productIDRef := cfDictionaryGetValue(info, productIDKey)
 		cfRelease(vendorIDKey)
@@ -232,6 +253,9 @@ func getMonitorNameNS(displayID uint32) string {
 	defer cfRelease(matchedInfo)
 
 	productNameKey := cfString("DisplayProductName")
+	if productNameKey == 0 {
+		return "Display"
+	}
 	defer cfRelease(productNameKey)
 	names := cfDictionaryGetValue(matchedInfo, productNameKey)
 	if names == 0 {
@@ -239,6 +263,9 @@ func getMonitorNameNS(displayID uint32) string {
 	}
 
 	enUSKey := cfString("en_US")
+	if enUSKey == 0 {
+		return "Display"
+	}
 	defer cfRelease(enUSKey)
 	nameRef := cfDictionaryGetValue(names, enUSKey)
 	if nameRef == 0 {
@@ -246,9 +273,17 @@ func getMonitorNameNS(displayID uint32) string {
 	}
 
 	size := cfStringGetMaximumSizeForEncoding(cfStringGetLength(nameRef), kCFStringEncodingUTF8)
+	if size < 0 {
+		return "Display"
+	}
 	buf := make([]byte, size+1)
-	cfStringGetCString(nameRef, &buf[0], size, kCFStringEncodingUTF8)
-	return cStringToGoString(buf)
+	if !cfStringGetCString(nameRef, &buf[0], len(buf), kCFStringEncodingUTF8) {
+		return "Display"
+	}
+	if name := cStringToGoString(buf); name != "" {
+		return name
+	}
+	return "Display"
 }
 
 // cStringToGoString converts a null-terminated C string in a byte slice to a Go string.
@@ -341,11 +376,14 @@ func pollMonitorsNS() error {
 		monitor.platform.unitNumber = unitNumber
 		monitor.platform.screen = nsScreenForDisplayID(display)
 
-		mode := cgDisplayCopyDisplayMode(display)
-		if cgDisplayModeGetRefreshRate(mode) == 0.0 {
-			monitor.platform.fallbackRefreshRate = getFallbackRefreshRate(display)
+		// The display can be disconnected between the enumeration above and this
+		// call, in which case there is no mode to query.
+		if mode := cgDisplayCopyDisplayMode(display); mode != 0 {
+			if cgDisplayModeGetRefreshRate(mode) == 0.0 {
+				monitor.platform.fallbackRefreshRate = getFallbackRefreshRate(display)
+			}
+			cfRelease(mode)
 		}
-		cfRelease(mode)
 
 		typ := _GLFW_INSERT_LAST
 
@@ -371,7 +409,13 @@ func (m *Monitor) setVideoModeNS(desired *VidMode) error {
 	if err != nil {
 		return err
 	}
-	current := m.platformGetVideoMode()
+	if best == nil {
+		return nil
+	}
+	current, err := m.platformGetVideoMode()
+	if err != nil {
+		return err
+	}
 	if best.equals(current) {
 		return nil
 	}
@@ -515,15 +559,15 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 	return monitors, nil
 }
 
-func (m *Monitor) platformGetVideoMode() *VidMode {
+func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 	mode := cgDisplayCopyDisplayMode(m.platform.displayID)
 	if mode == 0 {
-		return &VidMode{}
+		return nil, fmt.Errorf("glfw: failed to query display mode: %w", PlatformError)
 	}
 	defer cfRelease(mode)
 
 	vm := vidmodeFromCGDisplayMode(mode, m.platform.fallbackRefreshRate)
-	return &vm
+	return &vm, nil
 }
 
 func (m *Monitor) platformGetGammaRamp() (GammaRamp, error) {

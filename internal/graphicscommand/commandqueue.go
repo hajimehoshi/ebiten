@@ -44,24 +44,58 @@ const (
 	maxVertexFloatCount = MaxVertexCount * graphics.VertexFloatCount
 )
 
-var vsyncEnabled atomic.Bool
+// The vsync state and whether the graphics driver has been updated for it.
+// The zero value means that vsync is enabled and the graphics driver has not been updated yet.
+const (
+	vsyncEnabledPending = iota
+	vsyncEnabledApplied
+	vsyncDisabledPending
+	vsyncDisabledApplied
+)
 
-func init() {
-	vsyncEnabled.Store(true)
+var vsyncState atomic.Int32
+
+// SetVsyncEnabled sets whether vsync is enabled.
+// The graphics driver is updated at the next flush.
+//
+// SetVsyncEnabled can be called from any goroutine.
+func SetVsyncEnabled(enabled bool) {
+	if enabled {
+		vsyncState.Store(vsyncEnabledPending)
+		return
+	}
+	vsyncState.Store(vsyncDisabledPending)
 }
 
-func SetVsyncEnabled(enabled bool, graphicsDriver graphicsdriver.Graphics) {
-	vsyncEnabled.Store(enabled)
-
-	runOnRenderThread(func() {
-		graphicsDriver.SetVsyncEnabled(enabled)
-	}, true)
+func isVsyncEnabled() bool {
+	s := vsyncState.Load()
+	return s == vsyncEnabledPending || s == vsyncEnabledApplied
 }
 
-// FlushCommands flushes the command queue and present the screen if needed.
-// If endFrame is true, the current screen might be used to present.
-func FlushCommands(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	if err := theCommandQueueManager.flush(graphicsDriver, endFrame); err != nil {
+// applyVsyncEnabledIfNeeded updates the graphics driver's vsync state when the driver has not been
+// updated for the current state yet.
+//
+// The main thread can call SetVsyncEnabled, and the main thread must never wait for the render
+// thread, which can be waiting for the main thread in the middle of a frame. The state is therefore
+// applied on the render thread at a flush.
+//
+// applyVsyncEnabledIfNeeded must be called on the render thread.
+func applyVsyncEnabledIfNeeded(graphicsDriver graphicsdriver.Graphics) {
+	// A state change during the call below makes the compare-and-swap fail, and then the state
+	// stays pending and the next flush applies it.
+	switch s := vsyncState.Load(); s {
+	case vsyncEnabledPending:
+		graphicsDriver.SetVsyncEnabled(true)
+		vsyncState.CompareAndSwap(s, vsyncEnabledApplied)
+	case vsyncDisabledPending:
+		graphicsDriver.SetVsyncEnabled(false)
+		vsyncState.CompareAndSwap(s, vsyncDisabledApplied)
+	}
+}
+
+// FlushCommands executes queued commands with the given flush mode.
+func FlushCommands(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
+	if err := theCommandQueueManager.flush(graphicsDriver, mode); err != nil {
 		return err
 	}
 	return nil
@@ -72,18 +106,14 @@ type commandQueue struct {
 	// commands is a queue of drawing commands.
 	commands []command
 
-	// vertices represents a vertices data in OpenGL's array buffer.
+	// vertices represents the vertex data in OpenGL's array buffer.
 	vertices []float32
 	indices  []uint32
 
 	tmpNumVertexFloats int
 
-	drawTrianglesCommandPool drawTrianglesCommandPool
-
 	uint32sBuffer uint32sBuffer
 	finalizers    []func()
-
-	err atomic.Value
 }
 
 // addFinalizer adds a finalizer function to this queue.
@@ -124,7 +154,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	q.tmpNumVertexFloats += len(vertices)
 
 	// prependPreservedUniforms not only prepends values to the given slice but also creates a new slice.
-	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe so far.
+	// Allocating a new slice is necessary to make EnqueueDrawTrianglesCommand safe.
 	// TODO: This might cause a performance issue (#2601).
 	uniforms = q.prependPreservedUniforms(uniforms, shader, dst, srcs, dstRegion, srcRegions)
 
@@ -149,7 +179,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		}
 	}
 
-	c := q.drawTrianglesCommandPool.get()
+	c := theDrawTrianglesCommandPool.Get().(*drawTrianglesCommand)
 	c.dst = dst
 	c.srcs = srcs
 	c.vertices = q.lastVertices(len(vertices))
@@ -186,14 +216,12 @@ func (q *commandQueue) Enqueue(command command) {
 }
 
 // Flush flushes the command queue.
-func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	if err := q.err.Load(); err != nil {
-		return err.(error)
-	}
-
+//
+// An error at an asynchronous flush is reported to manager instead of being returned.
+func (q *commandQueue) Flush(manager *commandQueueManager, graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
 	var sync bool
 	// Disable asynchronous rendering when vsync is on, as this causes a rendering delay (#2822).
-	if endFrame && vsyncEnabled.Load() {
+	if mode == graphicsdriver.FlushModePresent && isVsyncEnabled() {
 		sync = true
 	}
 	if !sync {
@@ -205,35 +233,54 @@ func (q *commandQueue) Flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		}
 	}
 
-	logger := debug.SwitchFrameLogger()
-
-	var flushErr error
-	runOnRenderThread(func() {
-		defer logger.Flush()
-
-		if err := q.flush(graphicsDriver, endFrame, logger); err != nil {
-			if sync {
-				flushErr = err
-				return
-			}
-			q.err.Store(err)
-			return
-		}
-
-		theCommandQueueManager.putCommandQueue(q)
-	}, sync)
-
-	if sync && flushErr != nil {
-		return flushErr
+	args := commandQueueFlushArgs{
+		queue:          q,
+		manager:        manager,
+		graphicsDriver: graphicsDriver,
+		mode:           mode,
+		logger:         debug.SwitchFrameLogger(),
+		sync:           sync,
 	}
-
+	if sync {
+		return runOnRenderThread(commandQueueFlushArgs.flush, args)
+	}
+	runOnRenderThreadAsync(commandQueueFlushArgs.flushAsync, args)
 	return nil
 }
 
-// flush must be called the render thread.
-func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool, logger debug.FrameLogger) (err error) {
-	// If endFrame is true, Begin/End should be called to ensure the framebuffer is swapped.
-	if len(q.commands) == 0 && !endFrame {
+type commandQueueFlushArgs struct {
+	queue          *commandQueue
+	manager        *commandQueueManager
+	graphicsDriver graphicsdriver.Graphics
+	mode           graphicsdriver.FlushMode
+	logger         debug.FrameLogger
+	sync           bool
+}
+
+func (a commandQueueFlushArgs) flush() error {
+	defer a.logger.Flush()
+	applyVsyncEnabledIfNeeded(a.graphicsDriver)
+	if err := a.queue.flush(a.graphicsDriver, a.mode, a.logger); err != nil {
+		if a.sync {
+			return err
+		}
+		// The queue is not returned to the pool, as an error stops any further flush.
+		a.manager.setError(err)
+		return nil
+	}
+	a.manager.putCommandQueue(a.queue)
+	return nil
+}
+
+func (a commandQueueFlushArgs) flushAsync() {
+	// Asynchronous flush errors are reported to the manager.
+	_ = a.flush()
+}
+
+// flush must be called on the render thread.
+func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode, logger debug.FrameLogger) (err error) {
+	// Complete the frame even when no commands remain after an intermediate flush.
+	if len(q.commands) == 0 && mode == graphicsdriver.FlushModeIntermediate {
 		return nil
 	}
 
@@ -246,8 +293,8 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 	}
 
 	defer func() {
-		// Call End even if an error causes, or the graphics driver's state might be stale (#2388).
-		if graphicsErr := graphicsDriver.End(endFrame); graphicsErr != nil {
+		// Call End even if an error occurs, or the graphics driver's state might be stale (#2388).
+		if graphicsErr := graphicsDriver.End(mode); graphicsErr != nil {
 			err = errors.Join(err, graphicsErr)
 		}
 
@@ -256,7 +303,12 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		// Then, resetting the length by [:0] doesn't release the references.
 		for i, c := range q.commands {
 			if c, ok := c.(*drawTrianglesCommand); ok {
-				q.drawTrianglesCommandPool.put(c)
+				// Only dstRegions owns its backing array and retains its capacity for reuse.
+				// The vertices and uniforms slices reference buffers owned by the command queue.
+				*c = drawTrianglesCommand{
+					dstRegions: c.dstRegions[:0],
+				}
+				theDrawTrianglesCommandPool.Put(c)
 			}
 			q.commands[i] = nil
 		}
@@ -265,7 +317,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, endFrame bo
 		q.indices = q.indices[:0]
 		q.tmpNumVertexFloats = 0
 
-		if endFrame {
+		if mode != graphicsdriver.FlushModeIntermediate {
 			q.uint32sBuffer.reset()
 			for i, f := range q.finalizers {
 				f()
@@ -455,24 +507,18 @@ type commandQueuePool struct {
 	m     sync.Mutex
 }
 
-func (c *commandQueuePool) get() (*commandQueue, error) {
+func (c *commandQueuePool) get() *commandQueue {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	if len(c.cache) == 0 {
-		return &commandQueue{}, nil
-	}
-
-	for _, q := range c.cache {
-		if err := q.err.Load(); err != nil {
-			return nil, err.(error)
-		}
+		return &commandQueue{}
 	}
 
 	q := c.cache[len(c.cache)-1]
 	c.cache[len(c.cache)-1] = nil
 	c.cache = c.cache[:len(c.cache)-1]
-	return q, nil
+	return q
 }
 
 func (c *commandQueuePool) put(queue *commandQueue) {
@@ -485,42 +531,75 @@ func (c *commandQueuePool) put(queue *commandQueue) {
 type commandQueueManager struct {
 	pool    commandQueuePool
 	current *commandQueue
+
+	err atomic.Pointer[error]
 }
 
 var theCommandQueueManager commandQueueManager
 
+// error returns the error at an asynchronous flush if it exists.
+func (c *commandQueueManager) error() error {
+	if err := c.err.Load(); err != nil {
+		return *err
+	}
+	return nil
+}
+
+// setError records the error at an asynchronous flush.
+//
+// setError can be called from any goroutine.
+func (c *commandQueueManager) setError(err error) {
+	for {
+		oldErr := c.err.Load()
+		newErr := err
+		if oldErr != nil {
+			newErr = errors.Join(*oldErr, err)
+		}
+		if c.err.CompareAndSwap(oldErr, &newErr) {
+			return
+		}
+	}
+}
+
 func (c *commandQueueManager) enqueueCommand(command command) {
 	if c.current == nil {
-		c.current, _ = c.pool.get()
+		c.current = c.pool.get()
 	}
 	c.current.Enqueue(command)
 }
 
-// put can be called from any goroutines.
+// put can be called from any goroutine.
 func (c *commandQueueManager) putCommandQueue(commandQueue *commandQueue) {
 	c.pool.put(commandQueue)
 }
 
 func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
 	if c.current == nil {
-		c.current, _ = c.pool.get()
+		c.current = c.pool.get()
 	}
 	c.current.EnqueueDrawTrianglesCommand(dst, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms)
 }
 
-func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, endFrame bool) error {
-	// Switch the command queue.
-	prev := c.current
-	q, err := c.pool.get()
-	if err != nil {
+func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
+	// An error at an earlier flush stops any further work.
+	if err := c.error(); err != nil {
 		return err
 	}
-	c.current = q
+
+	// Switch the command queue.
+	prev := c.current
+	c.current = c.pool.get()
 
 	if prev == nil {
 		return nil
 	}
-	if err := prev.Flush(graphicsDriver, endFrame); err != nil {
+	if err := prev.Flush(c, graphicsDriver, mode); err != nil {
+		return err
+	}
+
+	// A flush is queued on the render thread after the previous asynchronous flush has finished,
+	// and thus the error of the previous flush is available here.
+	if err := c.error(); err != nil {
 		return err
 	}
 	return nil

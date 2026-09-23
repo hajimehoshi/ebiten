@@ -95,7 +95,7 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 	if antialias {
 		w *= 2
 	}
-	// Use 2^n - 1, as a region in internal/atlas has 1px padding.
+	// Keep the size below 2^12 (4096), as a region in internal/atlas has 1px padding.
 	maxImageSize := max(4093, w, h)
 
 	// Pack the regions into an atlas with a very simple algorithm:
@@ -158,7 +158,11 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 			}
 		}
 		if a.atlasImages[i] != nil {
-			a.atlasImages[i].Clear()
+			// Every region packed into this image lies in (0, 0)-(s.X, s.Y),
+			// so pixels outside it are never read in this pass.
+			sub := a.atlasImages[i].RecyclableSubImage(image.Rect(0, 0, s.X, s.Y))
+			sub.Clear()
+			sub.Recycle()
 		} else {
 			// Extend the bounds a little bit by roundUpAtlasSize to avoid creating an image too often.
 			w := min(maxImageSize, max(roundUpAtlasSize(s.X), origWidth))

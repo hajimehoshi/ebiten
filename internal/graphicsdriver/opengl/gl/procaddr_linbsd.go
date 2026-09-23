@@ -68,7 +68,7 @@ func (c *defaultContext) init() error {
 		}
 	}
 
-	errs = append([]error{fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so: ")}, errs...)
+	errs = append([]error{fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")}, errs...)
 	return errors.Join(errs...)
 }
 

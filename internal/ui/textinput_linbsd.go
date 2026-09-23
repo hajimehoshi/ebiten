@@ -25,7 +25,11 @@ import (
 // window's X input context (XIC), which is 0 when no input method is
 // available.
 func (u *UserInterface) X11InputContextOnMainThread() uintptr {
-	ic, err := u.runningBackend().(*glfwBackend).window.GetX11InputContext()
+	b, ok := u.runningBackend().(*glfwBackend)
+	if !ok {
+		return 0
+	}
+	ic, err := b.window.GetX11InputContext()
 	if err != nil {
 		return 0
 	}
@@ -37,19 +41,29 @@ func (u *UserInterface) X11InputContextOnMainThread() uintptr {
 //
 // ResetX11InputContextOnMainThread must be called from the main thread.
 func (u *UserInterface) ResetX11InputContextOnMainThread() {
-	_ = u.runningBackend().(*glfwBackend).window.ResetInputContext()
+	b, ok := u.runningBackend().(*glfwBackend)
+	if !ok {
+		return
+	}
+	_ = b.window.ResetInputContext()
 }
 
 // SetX11TextInputHandlersOnMainThread registers the handlers the textinput
 // package receives input method events with. onPreedit reports a composition
 // update, where selStartInBytes and selEndInBytes delimit the highlighted part
-// of text, and onCommit reports committed text. Either may be nil.
+// of text, and onCommit reports committed text. isActive is asked whether text
+// inputting is in progress, which decides whether a key press waits for the
+// input method to decline it. Any of them may be nil.
 //
 // The handlers are called from the main thread while events are processed.
 //
 // SetX11TextInputHandlersOnMainThread must be called from the main thread.
-func (u *UserInterface) SetX11TextInputHandlersOnMainThread(onPreedit func(text string, selStartInBytes, selEndInBytes int), onCommit func(text string)) {
-	w := u.runningBackend().(*glfwBackend).window
+func (u *UserInterface) SetX11TextInputHandlersOnMainThread(onPreedit func(text string, selStartInBytes, selEndInBytes int), onCommit func(text string), isActive func() bool) {
+	b, ok := u.runningBackend().(*glfwBackend)
+	if !ok {
+		return
+	}
+	w := b.window
 	if onPreedit != nil {
 		_, _ = w.SetPreeditCallback(func(_ *glfw.Window, text string, selStartInBytes, selEndInBytes int) {
 			onPreedit(text, selStartInBytes, selEndInBytes)
@@ -58,6 +72,11 @@ func (u *UserInterface) SetX11TextInputHandlersOnMainThread(onPreedit func(text 
 	if onCommit != nil {
 		_, _ = w.SetTextInputCallback(func(_ *glfw.Window, text string) {
 			onCommit(text)
+		})
+	}
+	if isActive != nil {
+		_, _ = w.SetTextInputActiveCallback(func(_ *glfw.Window) bool {
+			return isActive()
 		})
 	}
 }

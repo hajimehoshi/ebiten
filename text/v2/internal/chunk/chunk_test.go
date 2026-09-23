@@ -271,6 +271,65 @@ func TestChunks_Levels(t *testing.T) {
 			wantTexts:      []string{"Hello. World", "."},
 			wantLevels:     []bidi.Level{2, 1},
 		},
+		{
+			// Arabic Presentation Form B (U+FEAD, class AL) is strong
+			// RTL but its UTF-8 lead byte 0xEF was not in the fast-path
+			// set, so the text wrongly took the pure-LTR path and every
+			// chunk got level 0. It must match the equivalent Arabic
+			// text (rtl_text_under_ltr_base): one level-1 run plus a
+			// trailing level-0 period.
+			name:       "arabic_presentation_forms",
+			text:       "ﺭ. ﺭ.",
+			wantTexts:  []string{"ﺭ. ﺭ", "."},
+			wantLevels: []bidi.Level{1, 0},
+		},
+		{
+			// Hebrew Presentation Forms (U+FB21, class R) share the
+			// 0xEF lead byte with the Arabic ones and are fixed the
+			// same way.
+			name:       "hebrew_presentation_forms",
+			text:       "\ufb21. \ufb21.",
+			wantTexts:  []string{"\ufb21. \ufb21", "."},
+			wantLevels: []bidi.Level{1, 0},
+		},
+		{
+			// RLM (U+200F, class R) is strong RTL with lead byte 0xE2,
+			// which the fast path only inspected for line separators.
+			// It must force the bidi pass so the RLM itself carries
+			// level 1 between the level-0 runs.
+			name:       "rlm_forces_bidi",
+			text:       "ab\u200f. cd.",
+			wantTexts:  []string{"ab", "\u200f", ". cd."},
+			wantLevels: []bidi.Level{0, 1, 0},
+		},
+		{
+			// RLE (U+202B) is not strong RTL by class, but it opens an
+			// embedding that raises the level of the text after it, so
+			// the fast path must not swallow it. The bidi pass puts the
+			// following neutrals at level 1 and "cd" at level 2.
+			name:       "rle_forces_bidi",
+			text:       "ab\u202b. cd.",
+			wantTexts:  []string{"ab\u202b", ". ", "cd", "."},
+			wantLevels: []bidi.Level{0, 1, 2, 1},
+		},
+		{
+			// RLO (U+202E) overrides the direction of everything that
+			// follows it, so the rest of the line resolves to level 1
+			// and is emitted whole as a run disagreeing with the base.
+			name:       "rlo_forces_bidi",
+			text:       "ab\u202e. cd.",
+			wantTexts:  []string{"ab\u202e", ". cd."},
+			wantLevels: []bidi.Level{0, 1},
+		},
+		{
+			// RLI (U+2067) opens an RTL isolate. Its UTF-8 prefix is
+			// 0xE2 0x81 rather than the 0xE2 0x80 shared by RLM, RLE
+			// and RLO, so it needs a detection branch of its own.
+			name:       "rli_forces_bidi",
+			text:       "ab\u2067. cd.",
+			wantTexts:  []string{"ab\u2067", ". ", "cd", "."},
+			wantLevels: []bidi.Level{0, 1, 2, 1},
+		},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

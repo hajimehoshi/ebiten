@@ -230,8 +230,22 @@ const (
 
 // XI2.h
 const (
+	_XIAllDevices       = 0
 	_XIAllMasterDevices = 1
-	_XI_RawMotion       = 17
+
+	_XI_DeviceChanged = 1
+	_XI_ButtonPress   = 4
+	_XI_ButtonRelease = 5
+	_XI_Motion        = 6
+	_XI_RawMotion     = 17
+
+	_XIValuatorClass = 2
+	_XIScrollClass   = 3
+
+	_XIScrollTypeVertical   = 1
+	_XIScrollTypeHorizontal = 2
+
+	_XIPointerEmulated = 1 << 16
 )
 
 // cursorfont.h

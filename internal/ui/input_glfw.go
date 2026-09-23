@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 var glfwMouseButtonToMouseButton = map[glfw.MouseButton]MouseButton{
@@ -53,13 +54,25 @@ type glfwInput struct {
 	lastWheelOffsetY float64
 	lastWheelTime    time.Time
 
+	// scrollPagesX and scrollPagesY are scroll amounts in pages awaiting conversion to pixels, which
+	// needs the window's content size.
+	scrollPagesX float64
+	scrollPagesY float64
+
+	// contentWidth and contentHeight are the window's content size in device-independent pixels, as
+	// last given to the game's Layout. They are 0 until a frame runs.
+	contentWidth  float64
+	contentHeight float64
+
 	mu sync.Mutex
 }
 
 // handleKey records a key action reported by GLFW.
-func (i *glfwInput) handleKey(key Key, action glfw.Action, mods glfw.ModifierKey, t InputTime) {
+func (i *glfwInput) handleKey(key Key, action glfw.Action, mods glfw.ModifierKey) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	t := i.state.nextInputTime()
 
 	if action != glfw.Press {
 		i.state.setKeyReleased(key, t)
@@ -77,9 +90,11 @@ func (i *glfwInput) handleKey(key Key, action glfw.Action, mods glfw.ModifierKey
 }
 
 // handleMouseButton records a mouse button action reported by GLFW.
-func (i *glfwInput) handleMouseButton(button MouseButton, action glfw.Action, t InputTime) {
+func (i *glfwInput) handleMouseButton(button MouseButton, action glfw.Action) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	t := i.state.nextInputTime()
 
 	if action == glfw.Press {
 		i.state.setMouseButtonPressed(button, t)
@@ -96,10 +111,24 @@ func (i *glfwInput) appendRune(r rune) {
 	i.state.appendRune(r)
 }
 
-// handleScroll records a wheel offset reported by GLFW, dropping an anomalous value.
-func (i *glfwInput) handleScroll(xoff, yoff float64) {
+// handleScroll records a wheel offset and a scroll amount reported by GLFW, dropping an anomalous
+// value.
+func (i *glfwInput) handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY float64, unit glfw.ScrollUnit) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	var pagesX, pagesY float64
+	switch unit {
+	case glfw.ScrollUnitNotch:
+		scrollDeltaX *= pixelsPerScrollNotch
+		scrollDeltaY *= pixelsPerScrollNotch
+	case glfw.ScrollUnitLine:
+		scrollDeltaX *= pixelsPerScrollLine
+		scrollDeltaY *= pixelsPerScrollLine
+	case glfw.ScrollUnitPage:
+		pagesX, pagesY = scrollDeltaX, scrollDeltaY
+		scrollDeltaX, scrollDeltaY = 0, 0
+	}
 
 	now := time.Now()
 
@@ -111,40 +140,67 @@ func (i *glfwInput) handleScroll(xoff, yoff float64) {
 			rapidReversalThreshold = 0.75
 			spikeThreshold         = 50
 		)
-		if math.Abs(xoff) >= 1 && i.lastWheelOffsetX != 0 {
-			rate := math.Abs(xoff) / math.Abs(i.lastWheelOffsetX)
-			sb := i.lastWheelOffsetX*xoff > 0
-			if rate >= spikeThreshold && sb {
-				xoff = 0
-			}
-			if rate >= rapidReversalThreshold && !sb {
-				xoff = 0
+		if math.Abs(wheelX) >= 1 && i.lastWheelOffsetX != 0 {
+			rate := math.Abs(wheelX) / math.Abs(i.lastWheelOffsetX)
+			sb := i.lastWheelOffsetX*wheelX > 0
+			if (rate >= spikeThreshold && sb) || (rate >= rapidReversalThreshold && !sb) {
+				wheelX = 0
+				scrollDeltaX = 0
+				pagesX = 0
 			}
 		}
-		if math.Abs(yoff) >= 1 && i.lastWheelOffsetY != 0 {
-			rate := math.Abs(yoff) / math.Abs(i.lastWheelOffsetY)
-			sb := i.lastWheelOffsetY*yoff > 0
-			if rate >= spikeThreshold && sb {
-				yoff = 0
-			}
-			if rate >= rapidReversalThreshold && !sb {
-				yoff = 0
+		if math.Abs(wheelY) >= 1 && i.lastWheelOffsetY != 0 {
+			rate := math.Abs(wheelY) / math.Abs(i.lastWheelOffsetY)
+			sb := i.lastWheelOffsetY*wheelY > 0
+			if (rate >= spikeThreshold && sb) || (rate >= rapidReversalThreshold && !sb) {
+				wheelY = 0
+				scrollDeltaY = 0
+				pagesY = 0
 			}
 		}
 	}
 
-	i.lastWheelOffsetX = xoff
-	i.lastWheelOffsetY = yoff
+	i.lastWheelOffsetX = wheelX
+	i.lastWheelOffsetY = wheelY
 	i.lastWheelTime = now
 
-	i.state.WheelX += xoff
-	i.state.WheelY += yoff
+	i.state.WheelX += wheelX
+	i.state.WheelY += wheelY
+	i.state.ScrollDeltaX += scrollDeltaX
+	i.state.ScrollDeltaY += scrollDeltaY
+	i.scrollPagesX += pagesX
+	i.scrollPagesY += pagesY
+}
+
+// setContentSize records the window's content size in device-independent pixels.
+func (i *glfwInput) setContentSize(width, height float64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	i.contentWidth = width
+	i.contentHeight = height
+}
+
+// convertScrollPages converts the pending scroll amounts in pages with the content size. The amounts
+// stay pending while the size is unknown.
+//
+// convertScrollPages must be called with mu held.
+func (i *glfwInput) convertScrollPages() {
+	if i.contentWidth <= 0 || i.contentHeight <= 0 {
+		return
+	}
+	i.state.ScrollDeltaX += i.scrollPagesX * i.contentWidth
+	i.state.ScrollDeltaY += i.scrollPagesY * i.contentHeight
+	i.scrollPagesX = 0
+	i.scrollPagesY = 0
 }
 
 // syncModKeys reconciles the modifier key state against mods.
-func (i *glfwInput) syncModKeys(mods glfw.ModifierKey, t InputTime) {
+func (i *glfwInput) syncModKeys(mods glfw.ModifierKey) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
+
+	t := i.state.nextInputTime()
 
 	i.state.syncModKeysByMods(mods, t)
 }
@@ -179,6 +235,9 @@ func (i *glfwInput) read(dst *InputState) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
+	// A tick can run outside the regular frame, during event polling; converting here makes every
+	// tick see the pages scrolled before it.
+	i.convertScrollPages()
 	i.state.copyAndReset(dst)
 }
 
@@ -247,7 +306,7 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
-		u.input.handleKey(uk, action, mods, u.InputTime())
+		u.input.handleKey(uk, action, mods)
 	}); err != nil {
 		return err
 	}
@@ -262,7 +321,7 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		if !ok {
 			return
 		}
-		u.input.handleMouseButton(ub, action, u.InputTime())
+		u.input.handleMouseButton(ub, action)
 	}); err != nil {
 		return err
 	}
@@ -275,8 +334,8 @@ func (u *glfwBackend) registerInputCallbacks() error {
 		return err
 	}
 
-	if _, err := u.window.SetScrollCallback(func(w *glfw.Window, xoff float64, yoff float64) {
-		u.input.handleScroll(xoff, yoff)
+	if _, err := u.window.SetScrollCallback(func(w *glfw.Window, wheelX float64, wheelY float64, scrollDeltaX float64, scrollDeltaY float64, unit glfw.ScrollUnit) {
+		u.input.handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY, unit)
 	}); err != nil {
 		return err
 	}
@@ -286,7 +345,7 @@ func (u *glfwBackend) registerInputCallbacks() error {
 
 // updateInputStateForFrame updates the input state using pre-fetched cursor position
 // and device scale factor. GetCursorPos and gamepad.Update are already called in
-// the mainThread.Call block of updateGame, so this avoids an extra round-trip.
+// the thread.CallWithArgAndResult block of updateGame, so this avoids an extra round-trip.
 func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
 	s := deviceScaleFactor
 
@@ -297,11 +356,13 @@ func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error 
 		cx2, cy2 := u.context.logicalPositionToClientPosition(cx, cy, s)
 		cx2 = dipToGLFWPixel(cx2, s)
 		cy2 = dipToGLFWPixel(cy2, s)
-		var err error
-		u.mainThread.Call(func() {
-			err = u.window.SetCursorPos(cx2, cy2)
-		})
-		if err != nil {
+		type args struct {
+			u    *glfwBackend
+			x, y float64
+		}
+		if err := thread.CallWithArgAndResult(u.mainThread, func(a args) error {
+			return a.u.window.SetCursorPos(a.x, a.y)
+		}, args{u: u, x: cx2, y: cy2}); err != nil {
 			return err
 		}
 	} else {
@@ -317,7 +378,7 @@ func (u *glfwBackend) updateInputStateForFrame(deviceScaleFactor float64) error 
 		u.input.setCursorPos(cx, cy)
 	}
 
-	// gamepad.Update is already called in updateGame's mainThread.Call block.
+	// gamepad.Update is already called in updateGame's thread.CallWithArgAndResult block.
 	return nil
 }
 
@@ -327,19 +388,30 @@ func (u *glfwBackend) KeyName(key Key) string {
 		return ""
 	}
 
-	var name string
-	u.mainThread.Call(func() {
+	type args struct {
+		u   *glfwBackend
+		key glfw.Key
+	}
+	return thread.CallWithArgAndResult(u.mainThread, func(a args) string {
+		u, gk := a.u, a.key
 		if u.isTerminated() {
-			return
+			return ""
+		}
+		scancode, err := glfw.GetKeyScancode(gk)
+		if err != nil {
+			u.setError(err)
+			return ""
+		}
+		if scancode == -1 {
+			return ""
 		}
 		n, err := glfw.GetKeyName(gk, 0)
 		if err != nil {
 			u.setError(err)
-			return
+			return ""
 		}
-		name = n
-	})
-	return name
+		return n
+	}, args{u: u, key: gk})
 }
 
 // syncModKeysByMods reconciles per-key modifier state with a mods bitmask.

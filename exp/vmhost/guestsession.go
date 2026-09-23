@@ -58,10 +58,20 @@ import (
 // host's screen and [GuestSession.Close] releases the images it composites; these two must be called
 // from within the host's frame (its Update or Draw), and not concurrently with one another. The other
 // methods may be called from any goroutine.
+//
+// A guest reading one of its own images back needs the host's frame, so the read is performed by
+// whichever of CompositeFrame, [GuestSession.WaitTicks], and [GuestSession.WaitFrame] the host calls
+// next: the guest's tick does not complete until one of them does.
 type GuestSession struct {
 	// conn is safe for concurrent use: the session goroutine reads and writes through the codecs while
 	// Close pokes its deadline and closes it.
 	conn net.Conn
+	// idleConn is the idle-timeout wrapper the codecs read and write through, or nil when no timeout is
+	// set. Close marks it closing so that its per-call deadline refreshes cannot outlive the close poke.
+	// It is set at construction and never modified, so it is read without a lock.
+	idleConn *idleTimeoutConn
+
+	audioReadResultChannelPool sync.Pool
 
 	// The following fields are owned by the session goroutine; no lock guards them.
 	enc *vmprotocol.Encoder
@@ -96,6 +106,9 @@ type GuestSession struct {
 	// ops is the ordered request queue (ticks coalesced into a count, plus input and size messages),
 	// drained by the session goroutine in submission order.
 	ops []op
+	// pendingReadPixels is the guest read-back the session goroutine is parked on, waiting for a host
+	// call within the host's frame to perform it; nil when none is in flight.
+	pendingReadPixels *readPixelsRequest
 	// submittedTicks and consumedTicks count ticks requested and processed; their difference is the
 	// backlog. They only increase. submittedTicks is touched only by the host goroutine, but it lives
 	// here because WaitTicks compares it against consumedTicks, which the session writes.
@@ -153,11 +166,11 @@ type GuestSession struct {
 
 	// onGamepadVibration, if non-nil, is called for each vibration the guest requests. It is set at
 	// construction and never modified, so it is read without a lock.
-	onGamepadVibration func(GamepadVibration)
+	onGamepadVibration func(GuestGamepadVibration)
 
 	// onVibration, if non-nil, is called for each device vibration the guest requests. Like
 	// onGamepadVibration, it is set at construction and never modified.
-	onVibration func(Vibration)
+	onVibration func(GuestVibration)
 
 	// onAudioStream, if non-nil, is called for each new audio stream the guest starts. Like
 	// onGamepadVibration it is set at construction and never modified, so it is read without a lock.
@@ -194,6 +207,17 @@ type op struct {
 	audioResp          chan audioReadResult
 }
 
+// readPixelsRequest is one guest read-back the session goroutine has prepared and handed to the host,
+// which performs it into pixels from within the host's frame.
+type readPixelsRequest struct {
+	img     *ui.Image
+	pixels  [][]byte
+	regions []image.Rectangle
+
+	// done reports that the host has filled pixels. It is guarded by GuestSession.mu.
+	done bool
+}
+
 // guestEventKind discriminates a guest event queued for handler delivery.
 type guestEventKind int
 
@@ -208,8 +232,8 @@ const (
 // payload.
 type guestEvent struct {
 	kind             guestEventKind
-	gamepadVibration GamepadVibration
-	vibration        Vibration
+	gamepadVibration GuestGamepadVibration
+	vibration        GuestVibration
 	audioStream      *GuestAudioStream
 	textInput        *GuestTextInput
 }
@@ -242,12 +266,12 @@ type NewGuestSessionOptions struct {
 	// OnGamepadVibration, if non-nil, is called for each gamepad vibration the guest's game requests. It
 	// runs during [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the calling goroutine; a
 	// host typically just calls [ebiten.VibrateGamepad]. A nil handler discards the guest's vibrations.
-	OnGamepadVibration func(GamepadVibration)
+	OnGamepadVibration func(GuestGamepadVibration)
 
 	// OnVibration, if non-nil, is called for each device vibration the guest's game requests. It runs
 	// during [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the calling goroutine; a host
 	// typically just calls [ebiten.Vibrate]. A nil handler discards the guest's vibrations.
-	OnVibration func(Vibration)
+	OnVibration func(GuestVibration)
 
 	// OnAudioStream, if non-nil, is called once for each new audio stream the guest starts, handed the
 	// persistent [GuestAudioStream] to read and inspect. It runs during [GuestSession.AdvanceTicks] and
@@ -266,12 +290,14 @@ type NewGuestSessionOptions struct {
 // protocol handshake and returns an error if the guest's protocol version does not match the host's.
 // options can be nil, which means the default options.
 func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSession, error) {
+	var idleConn *idleTimeoutConn
 	var rw io.ReadWriter = conn
 	if options != nil && options.IdleTimeout > 0 {
-		rw = &idleTimeoutConn{
+		idleConn = &idleTimeoutConn{
 			conn:        conn,
 			idleTimeout: options.IdleTimeout,
 		}
+		rw = idleConn
 	}
 	// The handshake runs before the connection is wrapped in gob codecs (the host is the initiator).
 	if err := vmprotocol.PerformHandshake(rw, true); err != nil {
@@ -279,6 +305,7 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 	}
 	g := &GuestSession{
 		conn:         conn,
+		idleConn:     idleConn,
 		enc:          vmprotocol.NewEncoder(rw),
 		dec:          vmprotocol.NewDecoder(rw),
 		renderer:     newFrameRenderer(),
@@ -287,6 +314,9 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		// The guest reports its requested TPS only when it changes; until then it runs at the standard
 		// default, so report that rather than a meaningless zero.
 		requestedTPS: clock.DefaultTPS,
+		audioReadResultChannelPool: sync.Pool{
+			New: func() any { return make(chan audioReadResult, 1) },
+		},
 	}
 	if options != nil {
 		// Set before the session goroutine starts, so they are read without a lock.
@@ -305,20 +335,59 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 type idleTimeoutConn struct {
 	conn        net.Conn
 	idleTimeout time.Duration
+
+	// mu guards closing and serializes the refreshes against markClosing, so a refresh either completes
+	// before the close poke or observes that the connection is closing.
+	mu      sync.Mutex
+	closing bool
 }
 
 func (c *idleTimeoutConn) Read(p []byte) (int, error) {
-	if err := c.conn.SetReadDeadline(time.Now().Add(c.idleTimeout)); err != nil {
+	if err := c.refreshReadDeadline(); err != nil {
 		return 0, err
 	}
 	return c.conn.Read(p)
 }
 
 func (c *idleTimeoutConn) Write(p []byte) (int, error) {
-	if err := c.conn.SetWriteDeadline(time.Now().Add(c.idleTimeout)); err != nil {
+	if err := c.refreshWriteDeadline(); err != nil {
 		return 0, err
 	}
 	return c.conn.Write(p)
+}
+
+// refreshReadDeadline sets the deadline for the read about to run.
+func (c *idleTimeoutConn) refreshReadDeadline() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.SetReadDeadline(c.nextDeadlineLocked())
+}
+
+// refreshWriteDeadline sets the deadline for the write about to run.
+func (c *idleTimeoutConn) refreshWriteDeadline() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.conn.SetWriteDeadline(c.nextDeadlineLocked())
+}
+
+// nextDeadlineLocked returns the deadline the operation about to run gets: its idle timeout, or an
+// expired one once the connection is closing, so that the operation fails at once. c.mu must be held,
+// and the deadline must be set under that same lock, so that a refresh and the close poke cannot
+// interleave.
+func (c *idleTimeoutConn) nextDeadlineLocked() time.Time {
+	if c.closing {
+		return time.Now()
+	}
+	return time.Now().Add(c.idleTimeout)
+}
+
+// markClosing expires the connection's deadlines for good: an in-flight Read or Write fails at once,
+// and no later one waits.
+func (c *idleTimeoutConn) markClosing() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.closing = true
+	return c.conn.SetDeadline(time.Now())
 }
 
 // sessionLoop owns the connection: it repeatedly takes the next task, runs it without the lock, and
@@ -454,6 +523,16 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 		if err := g.dec.DecodeGuestMessage(&gm); err != nil {
 			return err
 		}
+		// Serving these needs the host's graphics driver, which exists only while the host's game runs.
+		switch gm.Kind {
+		case vmprotocol.GuestMessageKindGraphicsCommands,
+			vmprotocol.GuestMessageKindQueryReadPixels,
+			vmprotocol.GuestMessageKindQueryMaxImageSize,
+			vmprotocol.GuestMessageKindQueryColorSpace:
+			if !ui.Get().IsRunning() {
+				return errors.New("vmhost: the host's game must be running before the guest can render or query it")
+			}
+		}
 		switch gm.Kind {
 		case vmprotocol.GuestMessageKindGraphicsCommands:
 			if err := g.renderer.render(gm.GraphicsCommands); err != nil {
@@ -508,15 +587,17 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 		case vmprotocol.GuestMessageKindTextInputEnd:
 			g.handleTextInputEnd(&gm)
 			continue
+		case vmprotocol.GuestMessageKindDone:
+			if gm.Terminated {
+				return ebiten.Termination
+			}
+			if gm.Err != "" {
+				return errors.New(gm.Err)
+			}
+			return nil
+		default:
+			return fmt.Errorf("vmhost: unknown guest message kind %d", gm.Kind)
 		}
-		// GuestMessageKindDone.
-		if gm.Terminated {
-			return ebiten.Termination
-		}
-		if gm.Err != "" {
-			return errors.New(gm.Err)
-		}
-		return nil
 	}
 }
 
@@ -526,13 +607,40 @@ func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
 	answer := vmprotocol.HostMessage{
 		Kind: vmprotocol.HostMessageKindAnswerReadPixels,
 	}
+	if err := g.readQueriedPixels(query); err != nil {
+		answer.Err = err.Error()
+	} else {
+		answer.Pixels = g.pixelsListBuf
+	}
+	return g.enc.EncodeHostMessage(&answer)
+}
+
+// readQueriedPixels reads the query's regions back into the session's reused buffers, leaving one
+// subslice per region in g.pixelsListBuf. A region the host cannot read back fails with an error
+// before a buffer is sized from it.
+func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
+	mirror, ok := g.renderer.images[query.ReadImageID]
+	if !ok {
+		return fmt.Errorf("vmhost: ReadPixels references unknown image %d", query.ReadImageID)
+	}
+	bounds := image.Rect(0, 0, mirror.width, mirror.height)
 	// One flat reused buffer backs all the regions; the total is computed first so that growing the
 	// buffer cannot move the per-region subslices.
-	var total int
+	var total int64
 	for _, r := range query.ReadRegions {
-		total += 4 * r.Dx() * r.Dy()
+		if r.Empty() || !r.In(bounds) {
+			return fmt.Errorf("vmhost: ReadPixels region %v is not within image %d's bounds %v", r, query.ReadImageID, bounds)
+		}
+		total += 4 * int64(r.Dx()) * int64(r.Dy())
 	}
-	g.pixelsBuf = slices.Grow(g.pixelsBuf[:0], total)[:total]
+	// A read-back cannot need more than the image holds, which bounds the buffer a guest can make the
+	// host allocate.
+	if maxTotal := 4 * int64(bounds.Dx()) * int64(bounds.Dy()); total > maxTotal {
+		return fmt.Errorf("vmhost: ReadPixels asks for %d bytes from image %d, which holds %d",
+			total, query.ReadImageID, maxTotal)
+	}
+	n := int(total)
+	g.pixelsBuf = slices.Grow(g.pixelsBuf[:0], n)[:n]
 	g.pixelsListBuf = g.pixelsListBuf[:0]
 	var off int
 	for _, r := range query.ReadRegions {
@@ -540,12 +648,70 @@ func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
 		g.pixelsListBuf = append(g.pixelsListBuf, g.pixelsBuf[off:off+n])
 		off += n
 	}
-	if err := g.renderer.readPixels(g.pixelsListBuf, query.ReadImageID, query.ReadRegions); err != nil {
-		answer.Err = err.Error()
-	} else {
-		answer.Pixels = g.pixelsListBuf
+	return g.readPixelsInHostFrame(mirror.img, g.pixelsListBuf, query.ReadRegions)
+}
+
+// errReadPixelsAbandoned ends a guest read-back no host will ever perform because the session is over.
+var errReadPixelsAbandoned = errors.New("vmhost: the session ended before the guest's read-back")
+
+// readPixelsInHostFrame hands the read-back to the host and blocks until a host call performs it. The
+// session goroutine must not read back itself: called in between two host frames the read defers to
+// the host's next frame, which a host blocked on this very tick never reaches.
+func (g *GuestSession) readPixelsInHostFrame(img *ui.Image, pixels [][]byte, regions []image.Rectangle) error {
+	req := readPixelsRequest{
+		img:     img,
+		pixels:  pixels,
+		regions: regions,
 	}
-	return g.enc.EncodeHostMessage(&answer)
+
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return errReadPixelsAbandoned
+	}
+	g.pendingReadPixels = &req
+	g.cond.Broadcast()
+	for !req.done {
+		// A request no host has taken yet is dropped once the session ends, so a close never waits on a
+		// read-back. A taken one is being filled right now and is waited out.
+		if (g.closed || g.err != nil) && g.pendingReadPixels == &req {
+			g.pendingReadPixels = nil
+			return errReadPixelsAbandoned
+		}
+		g.cond.Wait()
+	}
+	return nil
+}
+
+// servePendingReadPixels performs the read-back the session goroutine is parked on, if any, and wakes
+// it. It must be called from within the host's frame.
+func (g *GuestSession) servePendingReadPixels() {
+	req := g.takePendingReadPixels()
+	if req == nil {
+		return
+	}
+	for i, r := range req.regions {
+		req.img.ReadPixels(req.pixels[i], r)
+	}
+	g.finishReadPixels(req)
+}
+
+// takePendingReadPixels claims the pending read-back for the caller to perform, or returns nil when
+// there is none. The session goroutine stays parked on a claimed request until it is finished.
+func (g *GuestSession) takePendingReadPixels() *readPixelsRequest {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	req := g.pendingReadPixels
+	g.pendingReadPixels = nil
+	return req
+}
+
+// finishReadPixels reports that req's buffers are filled and wakes the session goroutine waiting on it.
+func (g *GuestSession) finishReadPixels(req *readPixelsRequest) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	req.done = true
+	g.cond.Broadcast()
 }
 
 // answerMaxImageSize answers with the host graphics driver's maximum image size.
@@ -703,32 +869,58 @@ func (g *GuestSession) AdvanceFrame() {
 // when no frame was requested (no preceding AdvanceFrame) or the session has ended (see
 // [GuestSession.Err]). It must not be called concurrently with [GuestSession.CompositeFrame].
 func (g *GuestSession) WaitFrame() bool {
-	g.mu.Lock()
-	defer g.mu.Unlock()
-	if g.closed || g.err != nil {
-		return false
-	}
-	// Wait for the latest request as of now; requests arriving later do not move this target.
-	want := g.requestedFrameSeq
-	// Nothing is on the way: the wanted frame has already been rendered and composited, and no newer one
-	// is owed.
-	if want <= g.renderedFrameSeq && g.framePhase == framePhaseRenderable {
+	want, wait := g.frameWaitTarget()
+	if !wait {
 		return false
 	}
 	for {
+		done, ok := g.waitFrameStep(want)
+		if done {
+			return ok
+		}
+		g.servePendingReadPixels()
+	}
+}
+
+// frameWaitTarget returns the frame request a wait resolves against, and whether waiting is needed at
+// all. Requests arriving afterward do not move the target.
+func (g *GuestSession) frameWaitTarget() (want int64, wait bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return 0, false
+	}
+	want = g.requestedFrameSeq
+	// Nothing is on the way: the wanted frame has already been rendered and composited, and no newer one
+	// is owed.
+	if want <= g.renderedFrameSeq && g.framePhase == framePhaseRenderable {
+		return 0, false
+	}
+	return want, true
+}
+
+// waitFrameStep blocks until the frame labeled want has been rendered, the session ends, or the guest
+// asks for a read-back. done is false only in the last case, which the caller resolves by performing it.
+func (g *GuestSession) waitFrameStep(want int64) (done, ok bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for {
 		if g.closed || g.err != nil {
-			return false
+			return true, false
 		}
 		if g.framePhase == framePhaseCompositable {
 			// The completed frame satisfies the request once it is at least as new as the wanted one.
 			if g.renderedFrameSeq >= want {
-				return true
+				return true, true
 			}
 			// The completed frame predates the request and occupies the single mirror, blocking the session
 			// from rendering the request. Drop it (it was never composited) so the request can render. The
 			// next render carries a seq >= want, so the wait then resolves without chasing later requests.
 			g.framePhase = framePhaseRenderable
 			g.cond.Broadcast()
+		}
+		if g.pendingReadPixels != nil {
+			return false, false
 		}
 		g.cond.Wait()
 	}
@@ -743,6 +935,10 @@ func (g *GuestSession) WaitFrame() bool {
 // The frame replaces the outside screen's content rather than blending over it, so the outside screen
 // carries the guest screen's alpha.
 func (g *GuestSession) CompositeFrame() bool {
+	// A host that never waits for a tick or a frame still calls this every frame, so a guest read-back is
+	// picked up here at the latest.
+	g.servePendingReadPixels()
+
 	frame := g.takeFrame()
 	if frame.img == nil {
 		return false
@@ -807,18 +1003,42 @@ func (g *GuestSession) WaitTicks() bool {
 }
 
 // waitTicks blocks until the guest has processed every tick requested so far, or the session ends
-// first.
+// first. It performs the guest's read-backs while it waits, as they need the host's frame this call
+// occupies.
 func (g *GuestSession) waitTicks() bool {
+	target := g.submittedTickTarget()
+	for {
+		done, ok := g.waitTicksStep(target)
+		if done {
+			return ok
+		}
+		g.servePendingReadPixels()
+	}
+}
+
+// submittedTickTarget returns the number of ticks requested so far: the target a wait resolves against,
+// which ticks requested afterward do not move.
+func (g *GuestSession) submittedTickTarget() int64 {
 	g.mu.Lock()
 	defer g.mu.Unlock()
-	st := g.submittedTicks
-	for g.consumedTicks < st {
+	return g.submittedTicks
+}
+
+// waitTicksStep blocks until the guest has processed target ticks, the session ends, or the guest asks
+// for a read-back. done is false only in the last case, which the caller resolves by performing it.
+func (g *GuestSession) waitTicksStep(target int64) (done, ok bool) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	for g.consumedTicks < target {
 		if g.closed || g.err != nil {
-			return false
+			return true, false
+		}
+		if g.pendingReadPixels != nil {
+			return false, false
 		}
 		g.cond.Wait()
 	}
-	return true
+	return true, true
 }
 
 // PendingTicks returns the number of ticks requested but not yet processed by the guest.
@@ -890,6 +1110,17 @@ func (g *GuestSession) ReleaseMouseButton(button ebiten.MouseButton) {
 func (g *GuestSession) ScrollWheel(x, y float64) {
 	msg := g.takeMessage()
 	msg.Kind = vmprotocol.HostMessageKindScrollWheel
+	msg.X = x
+	msg.Y = y
+	g.postMessage(msg)
+}
+
+// ScrollBy injects a scroll movement by x and y device-independent pixels.
+// ScrollBy feeds the guest's [ebiten.ScrollDelta] values, while [GuestSession.ScrollWheel] feeds the
+// guest's [ebiten.Wheel] values.
+func (g *GuestSession) ScrollBy(x, y float64) {
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindScroll
 	msg.X = x
 	msg.Y = y
 	g.postMessage(msg)
@@ -1012,11 +1243,16 @@ func copyStandardButtonsToProtocol(dst map[ebiten.StandardGamepadButton]vmprotoc
 	return dst
 }
 
-// GamepadVibration is a vibration the guest's game requested for one gamepad, passed to the
+// GamepadVibration is an alias for GuestGamepadVibration.
+//
+// Deprecated: as of v2.11. Use GuestGamepadVibration instead.
+type GamepadVibration = GuestGamepadVibration
+
+// GuestGamepadVibration is a vibration the guest's game requested for one gamepad, passed to the
 // [NewGuestSessionOptions] OnGamepadVibration handler. GamepadID matches the
 // [GuestSession.UpdateGamepads] ID, so a host applies it to the corresponding gamepad with
 // [ebiten.VibrateGamepad].
-type GamepadVibration struct {
+type GuestGamepadVibration struct {
 	// StartTick is the guest's [ebiten.Tick] during the Update that requested the vibration.
 	StartTick int
 
@@ -1041,7 +1277,7 @@ func (g *GuestSession) queueGamepadVibrations(msg *vmprotocol.GuestMessage) {
 		v := &msg.GamepadVibrations[i]
 		g.pendingEvents = append(g.pendingEvents, guestEvent{
 			kind: guestEventGamepadVibration,
-			gamepadVibration: GamepadVibration{
+			gamepadVibration: GuestGamepadVibration{
 				StartTick:       msg.StartTick,
 				GamepadID:       ebiten.GamepadID(v.ID),
 				Duration:        v.Duration,
@@ -1052,9 +1288,14 @@ func (g *GuestSession) queueGamepadVibrations(msg *vmprotocol.GuestMessage) {
 	}
 }
 
-// Vibration is a device vibration the guest's game requested, passed to the [NewGuestSessionOptions]
+// Vibration is an alias for GuestVibration.
+//
+// Deprecated: as of v2.11. Use GuestVibration instead.
+type Vibration = GuestVibration
+
+// GuestVibration is a device vibration the guest's game requested, passed to the [NewGuestSessionOptions]
 // OnVibration handler. A host acts on it by vibrating its own device with [ebiten.Vibrate].
-type Vibration struct {
+type GuestVibration struct {
 	// StartTick is the guest's [ebiten.Tick] during the Update that requested the vibration.
 	StartTick int
 
@@ -1074,7 +1315,7 @@ func (g *GuestSession) queueVibration(msg *vmprotocol.GuestMessage) {
 	defer g.mu.Unlock()
 	g.pendingEvents = append(g.pendingEvents, guestEvent{
 		kind: guestEventVibration,
-		vibration: Vibration{
+		vibration: GuestVibration{
 			StartTick: msg.StartTick,
 			Duration:  msg.Vibration.Duration,
 			Magnitude: msg.Vibration.Magnitude,
@@ -1168,6 +1409,9 @@ func (g *GuestSession) handleTextInputEnd(msg *vmprotocol.GuestMessage) {
 }
 
 // PressTouch injects a touch-press event at (x, y), in outside-screen device-independent pixels.
+//
+// id identifies the touch to MoveTouch and ReleaseTouch. The guest assigns the touch its own
+// [ebiten.TouchID].
 func (g *GuestSession) PressTouch(id ebiten.TouchID, x, y float64) {
 	msg := g.takeMessage()
 	msg.Kind = vmprotocol.HostMessageKindPressTouch
@@ -1256,13 +1500,23 @@ func (g *GuestSession) Close() error {
 		g.requestClose()
 		// Unblock the session goroutine if it is mid-read on a wedged guest. When it is idle this is a
 		// harmless no-op: it wakes from the broadcast and exits without touching the connection again.
-		_ = g.conn.SetDeadline(time.Now())
+		_ = g.markConnClosing()
 		<-g.done
 
 		g.renderer.dispose()
 		g.closeErr = g.conn.Close()
 	})
 	return g.closeErr
+}
+
+// markConnClosing stops the connection for good: a Read or Write already in flight on a wedged guest
+// fails at once, and so does every later one.
+func (g *GuestSession) markConnClosing() error {
+	if g.idleConn != nil {
+		return g.idleConn.markClosing()
+	}
+	// With no wrapper nothing refreshes the deadline, so expiring it once is enough.
+	return g.conn.SetDeadline(time.Now())
 }
 
 // requestClose marks the session closed and wakes the session goroutine.
@@ -1280,11 +1534,10 @@ type audioReadResult struct {
 }
 
 // runReadAudio reads one audio player's samples from the guest and delivers them to the waiting
-// GuestAudioStream.Read. It must be called without g.mu held. It always closes o.audioResp before
-// returning: the result is sent first on success, while a connection error closes it without sending,
-// so the reader reports end-of-stream.
+// GuestAudioStream.Read. It must be called without g.mu held.
 func (g *GuestSession) runReadAudio(o op) error {
-	defer close(o.audioResp)
+	result := audioReadResult{eof: true}
+	defer func() { o.audioResp <- result }()
 	g.audioReadPCM = nil
 	g.audioReadEOF = false
 	if err := g.sendAndReceive(&vmprotocol.HostMessage{
@@ -1294,23 +1547,22 @@ func (g *GuestSession) runReadAudio(o op) error {
 	}); err != nil {
 		return err
 	}
-	o.audioResp <- audioReadResult{
+	result = audioReadResult{
 		pcm: g.audioReadPCM,
 		eof: g.audioReadEOF,
 	}
 	return nil
 }
 
-// drainQueuedReads closes the response channel of every audio read still queued when the session ends,
-// so its waiting GuestAudioStream.Read reports end-of-stream. It runs once the session loop has stopped,
-// so g.closed or g.err is set and no further read can be queued; a read already in flight is closed by
-// runReadAudio instead, so the two never close the same channel.
+// drainQueuedReads reports end-of-stream to every audio read still queued when the session ends.
 func (g *GuestSession) drainQueuedReads() {
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	// The session loop has stopped and no further read can be queued. An in-flight read
+	// has already received its result from runReadAudio and is no longer in g.ops.
 	for _, o := range g.ops {
 		if o.kind == opReadAudio {
-			close(o.audioResp)
+			o.audioResp <- audioReadResult{eof: true}
 		}
 	}
 	g.ops = nil
@@ -1434,12 +1686,10 @@ func (g *GuestSession) readGuestAudio(id int64, b []byte) (n int, eof bool) {
 		return 0, true
 	}
 
-	// The session goroutine sends the result, or closes resp without sending when the session ends before
-	// the read completes; a closed resp reports end-of-stream.
-	res, ok := <-resp
-	if !ok {
-		return 0, true
-	}
+	// Each accepted read receives one result, including end-of-stream on shutdown.
+	// Only the reader returns the channel, after consuming that result.
+	defer g.audioReadResultChannelPool.Put(resp)
+	res := <-resp
 	return copy(b, res.pcm), res.eof
 }
 
@@ -1452,7 +1702,7 @@ func (g *GuestSession) queueReadAudio(id int64, maxLenInBytes int) (resp chan au
 	if g.closed || g.err != nil {
 		return nil, false
 	}
-	resp = make(chan audioReadResult, 1)
+	resp = g.audioReadResultChannelPool.Get().(chan audioReadResult)
 	g.queueOpLocked(op{
 		kind:               opReadAudio,
 		audioID:            id,

@@ -16,6 +16,7 @@ package text
 
 import (
 	"image"
+	"image/draw"
 	"sync"
 
 	"golang.org/x/image/font"
@@ -49,12 +50,12 @@ type faceWithCache struct {
 }
 
 func (f *faceWithCache) Close() error {
+	f.m.Lock()
+	defer f.m.Unlock()
+
 	if err := f.f.Close(); err != nil {
 		return err
 	}
-
-	f.m.Lock()
-	defer f.m.Unlock()
 
 	f.glyphBoundsCache = nil
 	f.glyphAdvanceCache = nil
@@ -63,6 +64,9 @@ func (f *faceWithCache) Close() error {
 }
 
 func (f *faceWithCache) Glyph(dot fixed.Point26_6, r rune) (dr image.Rectangle, mask image.Image, maskp image.Point, advance fixed.Int26_6, ok bool) {
+	f.m.Lock()
+	defer f.m.Unlock()
+
 	return f.f.Glyph(dot, r)
 }
 
@@ -123,5 +127,24 @@ func (f *faceWithCache) Kern(r0, r1 rune) fixed.Int26_6 {
 }
 
 func (f *faceWithCache) Metrics() font.Metrics {
+	f.m.Lock()
+	defer f.m.Unlock()
+
 	return f.f.Metrics()
+}
+
+// drawString draws str at dot onto dst with the wrapped font.Face.
+func (f *faceWithCache) drawString(dst draw.Image, src image.Image, dot fixed.Point26_6, str string) {
+	f.m.Lock()
+	defer f.m.Unlock()
+
+	// The drawer uses the wrapped face directly: a font.Drawer calls Glyph and Kern
+	// during DrawString, and going through f would deadlock on f.m.
+	d := font.Drawer{
+		Dst:  dst,
+		Src:  src,
+		Face: f.f,
+		Dot:  dot,
+	}
+	d.DrawString(str)
 }

@@ -12,21 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package shaderprecomp offers APIs to register precompiled shaders.
-//
-// Registering a precompiled shader lets Ebitengine skip compiling the shader at runtime,
-// which shortens the loading time.
-//
-// A precompiled shader is keyed by a [ShaderSourceID]. The shadercollector tool reports the
-// shader sources used by the given packages, each with a "SourceID" and, with the -target option,
-// their converted sources for the targets (a comma-separated list of glsl, hlsl, msl, and pssl):
-//
-//	go run github.com/hajimehoshi/ebiten/v2/internal/shadercollector -target hlsl,msl ./...
-//
-// Pass a reported "SourceID" to [ParseShaderSourceID] or [MustParseShaderSourceID] to get a
-// [ShaderSourceID], then register the precompiled shaders for that ID with the Register functions.
-//
-// This package is experimental and the API might change in the future.
 package shaderprecomp
 
 import (

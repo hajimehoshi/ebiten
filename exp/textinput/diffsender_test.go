@@ -326,18 +326,73 @@ func TestDiffSenderCompositionRemovingCommittedText(t *testing.T) {
 	}
 }
 
+// A virtual keyboard deleting a word commits DEL (U+007F). Queued behind an
+// earlier commit, the DEL reaches the next session, which must close while
+// discarding it: a session reports at most one commit, so states queued
+// behind the DEL could otherwise never reach a session (#3212).
+func TestDiffSenderQueuedDeletionEndsSession(t *testing.T) {
+	d := textinput.NewDiffSender("", "")
+
+	// The IME commits "a"; the virtual keyboard then deletes the word and
+	// types "b", all before the application opens the next session.
+	d.TrySend("a", 1, 1, false, textinput.CommitRegular)
+	d.TrySend("a\x7f", 2, 2, false, textinput.CommitRegular)
+	d.TrySend("a\x7fb", 3, 3, false, textinput.CommitRegular)
+
+	// The application consumes the first commit.
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if c := d.Commit(); c == nil || c.Text() != "a" {
+		t.Fatalf("the first session did not commit \"a\"")
+	}
+
+	// The DEL reaches the next session, queued behind the first commit.
+	d.StartNextSession("a", "")
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	if c := d.Commit(); c != nil {
+		t.Errorf("the DEL session committed %q, want no commit", c.Text())
+	}
+	if !d.SessionClosed() {
+		t.Fatal("the DEL session is still open")
+	}
+
+	// The DEL session closed, so "b" reaches the session after it.
+	d.StartNextSession("a", "")
+	if err := d.Update(); err != nil {
+		t.Fatalf("Update: %v", err)
+	}
+	c := d.Commit()
+	if c == nil {
+		t.Fatal("the session after the DEL got no commit")
+	}
+	if got, want := c.Text(), "b"; got != want {
+		t.Errorf("Text = %q, want %q", got, want)
+	}
+	text, caret := applyCommit(c)
+	if got, want := text, "ab"; got != want {
+		t.Errorf("text = %q, want %q", got, want)
+	}
+	if got, want := caret, len("ab"); got != want {
+		t.Errorf("caret = %d, want %d", got, want)
+	}
+}
+
 // TestHandlePlatformStateBeforeSessionRegistration simulates the platform
 // reporting a state after the platform text input started but before the
 // session is registered (startSession installs the session only after starting
-// the platform text input). The state must not be taken for the deprecated
-// Field's input.
+// the platform text input). The state must be dropped without ending the
+// events.
 func TestHandlePlatformStateBeforeSessionRegistration(t *testing.T) {
 	h := textinput.NewPlatformStateHandler("abc")
 
 	// The platform echoes the seeded value while no session is registered.
-	if got, want := h.Handle("abc", 3, 3, textinput.CommitRegular, false), false; got != want {
-		t.Errorf("Handle = %t, want %t", got, want)
-	}
+	h.Handle("abc", 3, 3, textinput.CommitRegular)
 	if states := h.Drain(); len(states) != 0 {
 		t.Errorf("states delivered before session registration: %+v", states)
 	}
@@ -347,7 +402,7 @@ func TestHandlePlatformStateBeforeSessionRegistration(t *testing.T) {
 
 	// Once the session is registered, states are diffed against it.
 	h.RegisterSession("abc", "")
-	h.Handle("abcd", 4, 4, textinput.CommitRegular, false)
+	h.Handle("abcd", 4, 4, textinput.CommitRegular)
 	states := h.Drain()
 	if got, want := len(states), 1; got != want {
 		t.Fatalf("len(states) = %d, want %d", got, want)
@@ -357,28 +412,5 @@ func TestHandlePlatformStateBeforeSessionRegistration(t *testing.T) {
 	}
 	if got, want := states[0].CommitKind, textinput.CommitRegular; got != want {
 		t.Errorf("CommitKind = %d, want %d", got, want)
-	}
-}
-
-// TestHandlePlatformStateLegacyField verifies that the legacy whole-value path
-// still serves a focused Field.
-func TestHandlePlatformStateLegacyField(t *testing.T) {
-	h := textinput.NewPlatformStateHandler("")
-
-	if got, want := h.Handle("abc", 3, 3, textinput.CommitRegular, true), true; got != want {
-		t.Errorf("Handle = %t, want %t", got, want)
-	}
-	states := h.Drain()
-	if got, want := len(states), 1; got != want {
-		t.Fatalf("len(states) = %d, want %d", got, want)
-	}
-	if got, want := states[0].Text, "abc"; got != want {
-		t.Errorf("Text = %q, want %q", got, want)
-	}
-	if h.IsOpen() {
-		t.Errorf("events still open after a legacy commit")
-	}
-	if !h.LegacyCleared() {
-		t.Errorf("LegacyCleared() = false, want true")
 	}
 }

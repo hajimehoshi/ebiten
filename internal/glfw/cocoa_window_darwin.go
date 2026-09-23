@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"runtime"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/objcutil"
 )
 
 // NSPasteboardType strings.
@@ -499,7 +501,7 @@ func registerGLFWClasses() error {
 				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) bool {
 					window := getGoWindow(self)
 					if window == nil {
-						return objc.SendSuper[bool](self, sel_performKeyEquivalent, event)
+						return objcutil.SendSuper[bool](self, class_GLFWContentView, sel_performKeyEquivalent, event)
 					}
 					keyCode := uint16(event.Send(sel_keyCode))
 					key := translateKey(keyCode)
@@ -519,7 +521,7 @@ func registerGLFWClasses() error {
 						return true
 					}
 
-					return objc.SendSuper[bool](self, sel_performKeyEquivalent, event)
+					return objcutil.SendSuper[bool](self, class_GLFWContentView, sel_performKeyEquivalent, event)
 				},
 			},
 			{
@@ -575,13 +577,19 @@ func registerGLFWClasses() error {
 					deltaX := objc.Send[float64](event, sel_scrollingDeltaX)
 					deltaY := objc.Send[float64](event, sel_scrollingDeltaY)
 
+					// AppKit's contract for scrollingDeltaX/Y: with precise deltas the values are in
+					// points, which are device-independent pixels; otherwise they are to be multiplied
+					// by a line height.
+					scrollDeltaX, scrollDeltaY := deltaX, deltaY
+					unit := ScrollUnitLine
 					if objc.Send[bool](event, sel_hasPreciseScrollingDeltas) {
+						unit = ScrollUnitPixel
 						deltaX *= 0.1
 						deltaY *= 0.1
 					}
 
 					if deltaX != 0 || deltaY != 0 {
-						window.inputScroll(deltaX, deltaY)
+						window.inputScroll(deltaX, deltaY, scrollDeltaX, scrollDeltaY, unit)
 					}
 				},
 			},
@@ -646,7 +654,7 @@ func registerGLFWClasses() error {
 					trackingArea.Send(sel_release)
 
 					// Call super.
-					self.SendSuper(objc.RegisterName("updateTrackingAreas"))
+					objcutil.SendSuper[struct{}](self, class_GLFWContentView, objc.RegisterName("updateTrackingAreas"))
 				},
 			},
 			{
@@ -658,7 +666,7 @@ func registerGLFWClasses() error {
 						window.platform.markedText = 0
 					}
 					delete(theGoWindows, self)
-					self.SendSuper(objc.RegisterName("dealloc"))
+					objcutil.SendSuper[struct{}](self, class_GLFWContentView, objc.RegisterName("dealloc"))
 				},
 			},
 			{
@@ -928,14 +936,23 @@ func registerGLFWClasses() error {
 }
 
 // theGoWindows associates ObjC delegate and content-view instances with their Go Windows.
+//
+// theGoWindows must be accessed only from the main thread, like the rest of this package:
+// the entries are written and removed while a window is created or destroyed, and read
+// from the ObjC callbacks, which AppKit invokes on the thread that triggers them.
+// Thus no synchronization is needed here.
 var theGoWindows = map[objc.ID]*Window{}
 
 // getGoWindow returns the Go Window associated with an ObjC instance, or nil if there is none.
+//
+// getGoWindow must be called from the main thread.
 func getGoWindow(id objc.ID) *Window {
 	return theGoWindows[id]
 }
 
 // setGoWindow associates an ObjC instance with a Go Window.
+//
+// setGoWindow must be called from the main thread.
 func setGoWindow(id objc.ID, window *Window) {
 	theGoWindows[id] = window
 }
@@ -1012,7 +1029,10 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	// Determine the content rect.
 	var contentRect cocoa.NSRect
 	if window.monitor != nil {
-		mode := window.monitor.platformGetVideoMode()
+		mode, err := window.monitor.platformGetVideoMode()
+		if err != nil {
+			return err
+		}
 		xpos, ypos, _ := window.monitor.platformGetMonitorPos()
 		contentRect = cocoa.NSRect{
 			Origin: cocoa.NSPoint{X: float64(xpos), Y: float64(ypos)},
@@ -1404,6 +1424,18 @@ func (w *Window) platformMaximizeWindow() error {
 	return nil
 }
 
+func (w *Window) platformMaximizeSupported() bool {
+	return true
+}
+
+func (w *Window) platformIconifySupported() bool {
+	return true
+}
+
+func (w *Window) platformRestoreSupported() bool {
+	return true
+}
+
 func (w *Window) platformShowWindow() {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
@@ -1748,6 +1780,12 @@ func platformWaitEventsTimeout(timeout float64) error {
 }
 
 func platformPostEmptyEvent() error {
+	// Unlike most of the platform functions, this can be called from any goroutine.
+	// An autorelease pool belongs to the OS thread that created it, so the goroutine must not
+	// migrate to another thread between creating and releasing the pool.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
@@ -1935,7 +1973,10 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 				hotyKey := cocoa.NSString_alloc().InitWithUTF8String("hoty")
 				hoty := objc.Send[float64](info.Send(sel_valueForKey, hotyKey.ID), sel_doubleValue)
 				hotyKey.ID.Send(sel_release)
+				// alloc/init returns an owned object. Autorelease it so that the retain
+				// below leaves exactly one owned reference.
 				cursor = objc.ID(class_NSCursor).Send(sel_alloc).Send(sel_initWithImage_hotSpot, image, cocoa.NSPoint{X: hotx, Y: hoty})
+				cursor.Send(sel_autorelease)
 			}
 			if image != 0 {
 				image.Send(sel_release)
@@ -2067,8 +2108,13 @@ func platformGetScancodeName(scancode int) (string, error) {
 
 	length := cfStringGetLength(str)
 	size := cfStringGetMaximumSizeForEncoding(length, kCFStringEncodingUTF8)
+	if size < 0 {
+		return "", nil
+	}
 	buf := make([]byte, size+1)
-	cfStringGetCString(str, &buf[0], size+1, kCFStringEncodingUTF8)
+	if !cfStringGetCString(str, &buf[0], len(buf), kCFStringEncodingUTF8) {
+		return "", nil
+	}
 
 	// Find the null terminator.
 	name := cStringToGoString(buf)

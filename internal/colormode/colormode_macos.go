@@ -17,10 +17,13 @@
 package colormode
 
 import (
+	"runtime"
 	"strings"
 
 	"github.com/ebitengine/purego/cstrings"
 	"github.com/ebitengine/purego/objc"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
 )
 
 var (
@@ -32,6 +35,13 @@ var (
 )
 
 func systemColorMode() ColorMode {
+	// effectiveAppearance returns an autoreleased object. An autorelease pool is thread-local, so pin the
+	// goroutine to its OS thread for the pool's lifetime; this function can be called from any goroutine.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	// "effectiveAppearance" works from macOS 10.14. As Go 1.23 supports macOS 11, it's OK to use it.
 	//
 	// See also:

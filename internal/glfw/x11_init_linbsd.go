@@ -444,7 +444,7 @@ func translateKeySyms(keysyms []_KeySym) Key {
 }
 
 // createKeyTables creates the key code translation tables.
-func createKeyTables() {
+func createKeyTables() error {
 	for i := range _glfw.platformWindow.keycodes {
 		_glfw.platformWindow.keycodes[i] = KeyUnknown
 	}
@@ -458,13 +458,24 @@ func createKeyTables() {
 		// current keyboard layout
 
 		descPtr := xkbGetMap(_glfw.platformWindow.display, 0, _XkbUseCoreKbd)
-		xkbGetNames(_glfw.platformWindow.display, _XkbKeyNamesMask|_XkbKeyAliasesMask, descPtr)
+		if descPtr == 0 {
+			return fmt.Errorf("glfw: x11: failed to allocate an XKB keyboard description: %w", OutOfMemory)
+		}
+		defer xkbFreeKeyboard(descPtr, 0, true)
+		defer xkbFreeNames(descPtr, _XkbKeyNamesMask, true)
+
+		if status := xkbGetNames(_glfw.platformWindow.display, _XkbKeyNamesMask|_XkbKeyAliasesMask, descPtr); status != _Success {
+			return fmt.Errorf("glfw: x11: XkbGetNames failed: status: %d", status)
+		}
 
 		desc := (*_XkbDescRec)(unsafe.Pointer(descPtr))
 		scancodeMin = int32(desc.MinKeyCode)
 		scancodeMax = int32(desc.MaxKeyCode)
 
 		names := (*_XkbNamesRec)(unsafe.Pointer(desc.Names))
+		if names.Keys == 0 {
+			return fmt.Errorf("glfw: x11: failed to allocate XKB key names: %w", OutOfMemory)
+		}
 		keyNames := unsafe.Slice((*_XkbKeyNameRec)(unsafe.Pointer(names.Keys)), int(scancodeMax)+1)
 		keyAliases := unsafe.Slice((*_XkbKeyAliasRec)(unsafe.Pointer(names.KeyAliases)), int(names.NumKeyAliases))
 
@@ -496,9 +507,6 @@ func createKeyTables() {
 
 			_glfw.platformWindow.keycodes[scancode] = key
 		}
-
-		xkbFreeNames(descPtr, _XkbKeyNamesMask, true)
-		xkbFreeKeyboard(descPtr, 0, true)
 	} else {
 		xDisplayKeycodes(_glfw.platformWindow.display, &scancodeMin, &scancodeMax)
 	}
@@ -509,6 +517,11 @@ func createKeyTables() {
 		scancodeMax-scancodeMin+1,
 		&width)
 	defer xFree(keysymsPtr)
+
+	// The mapping is unusable without at least one KeySym per key code.
+	if keysymsPtr == 0 || width <= 0 {
+		return fmt.Errorf("glfw: x11: XGetKeyboardMapping failed")
+	}
 
 	keysyms := unsafe.Slice((*_KeySym)(unsafe.Pointer(keysymsPtr)), int(scancodeMax-scancodeMin+1)*int(width))
 
@@ -525,6 +538,7 @@ func createKeyTables() {
 			_glfw.platformWindow.scancodes[key] = int(scancode)
 		}
 	}
+	return nil
 }
 
 // usableInputMethodStyle returns the input style to create input contexts
@@ -674,12 +688,22 @@ func initExtensions() error {
 		xi.handle = handle
 		purego.RegisterLibFunc(&xi.QueryVersion, handle, "XIQueryVersion")
 		purego.RegisterLibFunc(&xi.SelectEvents, handle, "XISelectEvents")
+		purego.RegisterLibFunc(&xi.QueryDevice, handle, "XIQueryDevice")
+		purego.RegisterLibFunc(&xi.FreeDeviceInfo, handle, "XIFreeDeviceInfo")
 
 		if xQueryExtension(display, "XInputExtension", &xi.majorOpcode, &xi.eventBase, &xi.errorBase) {
+			// The server clamps the version down to what it supports, so requesting 2.1 keeps
+			// working on servers that only offer the 2.0 features (raw motion).
 			xi.major = 2
-			xi.minor = 0
+			xi.minor = 1
 			if xi.QueryVersion(display, &xi.major, &xi.minor) == _Success {
 				xi.available = true
+				if xi.major > 2 || xi.minor >= 1 {
+					xi.scrollAvailable = true
+					xi.scrollAxes = map[int32][]xiScrollAxis{}
+					xi.pendingScroll = map[int32]xiPendingScroll{}
+					refreshXIScrollAxes()
+				}
 			}
 		}
 	}
@@ -714,13 +738,16 @@ func initExtensions() error {
 		randr := &_glfw.platformWindow.randr
 		sr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 
-		if (*_XRRScreenResources)(unsafe.Pointer(sr)).Ncrtc == 0 {
-			// A system without CRTCs is likely a system with broken RandR
+		if sr == 0 || (*_XRRScreenResources)(unsafe.Pointer(sr)).Ncrtc == 0 {
+			// A system without screen resources or CRTCs is likely a system
+			// with broken RandR
 			// Disable the RandR monitor path and fall back to core functions
 			randr.monitorBroken = true
 		}
 
-		randr.FreeScreenResources(sr)
+		if sr != 0 {
+			randr.FreeScreenResources(sr)
+		}
 	}
 
 	if _glfw.platformWindow.randr.available && !_glfw.platformWindow.randr.monitorBroken {
@@ -824,7 +851,9 @@ func initExtensions() error {
 	}
 
 	// Update the key code LUT
-	createKeyTables()
+	if err := createKeyTables(); err != nil {
+		return err
+	}
 
 	// String format atoms
 	_glfw.platformWindow.NULL_ = xInternAtom(display, "NULL", false)
@@ -1072,6 +1101,7 @@ func platformInit() error {
 			style, ok := usableInputMethodStyle()
 			if ok {
 				_glfw.platformWindow.imStyle = style
+				setInputMethodDestroyCallback()
 			} else {
 				xCloseIM(_glfw.platformWindow.im)
 				_glfw.platformWindow.im = 0
@@ -1138,14 +1168,19 @@ func platformTerminate() error {
 		_glfw.platformWindow.xi.handle = 0
 	}
 
+	if _glfw.platformWindow.xshape.handle != 0 {
+		_ = purego.Dlclose(_glfw.platformWindow.xshape.handle)
+		_glfw.platformWindow.xshape.handle = 0
+	}
+
 	// NOTE: These need to be unloaded after XCloseDisplay, as they register
 	//       cleanup callbacks that get called by that function
 	terminateEGL()
 	terminateGLX()
 
-	if _glfw.platformWindow.emptyEventPipe[0] != 0 || _glfw.platformWindow.emptyEventPipe[1] != 0 {
-		_ = unix.Close(_glfw.platformWindow.emptyEventPipe[0])
-		_ = unix.Close(_glfw.platformWindow.emptyEventPipe[1])
-	}
+	// Keep the empty event pipe open. PostEmptyEvent is concurrent safe and can write to the
+	// pipe even after the termination, and a closed file descriptor might be reused by then.
+	// The pipe is non-blocking, so a write with no reader is harmless, and the process exit
+	// reclaims the file descriptors.
 	return nil
 }

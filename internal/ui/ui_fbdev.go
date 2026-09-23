@@ -97,12 +97,14 @@ func (b *fbdevBackend) run(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
-		var initErr error
-		b.mainThread.Call(func() {
-			initErr = b.initOnMainThread(options)
-		})
-		if initErr != nil {
-			return initErr
+		type args struct {
+			b       *fbdevBackend
+			options *RunOptions
+		}
+		if err := thread.CallWithArgAndResult(b.mainThread, func(a args) error {
+			return a.b.initOnMainThread(a.options)
+		}, args{b: b, options: options}); err != nil {
+			return err
 		}
 
 		defer b.setRunningBackend(nil)
@@ -110,8 +112,9 @@ func (b *fbdevBackend) run(game Game, options *RunOptions) error {
 		return b.loopGame()
 	})
 
-	// Run the main thread.
-	_ = b.mainThread.Loop(ctx)
+	// Run the main thread. The loop is the thread's whole life, so a call arriving after
+	// it ends is a no-op rather than a block forever.
+	_ = b.mainThread.LoopAndStop(ctx)
 	return wg.Wait()
 }
 
@@ -136,7 +139,7 @@ func (b *fbdevBackend) initOnMainThread(options *RunOptions) error {
 
 	b.graphicsDriver = g
 	b.setGraphicsLibrary(lib)
-	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, g)
+	graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 
 	b.setRunningBackend(b)
 
@@ -151,13 +154,23 @@ func (b *fbdevBackend) initOnMainThread(options *RunOptions) error {
 func (b *fbdevBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
-		b.mainThread.Call(func() {
+		type result struct {
+			closed bool
+			err    error
+		}
+		r := thread.CallWithArgAndResult(b.mainThread, func(b *fbdevBackend) result {
+			var r result
 			if b.eglContext != nil {
-				err = errors.Join(err, b.eglContext.Close())
+				r.closed = true
+				r.err = b.eglContext.Close()
 				b.eglContext = nil
 			}
 			b.setTerminated()
-		})
+			return r
+		}, b)
+		if r.closed {
+			err = errors.Join(err, r.err)
+		}
 	}()
 
 	for {
@@ -254,7 +267,7 @@ func (b *fbdevBackend) applyCursorShape() {
 
 func (b *fbdevBackend) applyFPSMode() {
 	b.RunOnMainThread(func() {
-		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn, b.graphicsDriver)
+		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 	})
 }
 
@@ -280,5 +293,5 @@ func (b *fbdevBackend) appendMonitors(monitors []*Monitor) []*Monitor {
 }
 
 func (b *fbdevBackend) RunOnMainThread(f func()) {
-	b.mainThread.Call(f)
+	thread.Call(b.mainThread, f)
 }

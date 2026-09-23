@@ -81,7 +81,6 @@ type UserInterface struct {
 	running                   atomic.Bool
 	terminated                atomic.Bool
 	tick                      atomic.Int64
-	inputTime                 atomic.Int64
 
 	// preferredColorMode is the color mode the application prefers.
 	//
@@ -282,6 +281,11 @@ func (u *UserInterface) RefreshRate() int {
 	return int(u.refreshRate.Load())
 }
 
+// IsRunning reports whether the game is running, which is when the graphics driver exists.
+func (u *UserInterface) IsRunning() bool {
+	return u.isRunning()
+}
+
 func (u *UserInterface) isRunning() bool {
 	// TODO: Replace the running state with the existence of a published backend
 	// for all the platforms, like the desktop build (see setRunningBackend in
@@ -307,15 +311,6 @@ func (u *UserInterface) Tick() int64 {
 
 func (u *UserInterface) incrementTick() {
 	u.tick.Add(1)
-	u.inputTime.Store(int64(NewInputTimeFromTick(u.tick.Load())))
-}
-
-func (u *UserInterface) InputTime() InputTime {
-	t := InputTime(u.inputTime.Add(1))
-	if t.Subtick() == 0 {
-		panic("ui: too many input events in a tick")
-	}
-	return t
 }
 
 // inputTimeSubtickBits is the number of bits for a counter in a tick.

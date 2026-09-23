@@ -88,7 +88,7 @@ func (m *Monitor) sizeInDIP() (float64, float64) {
 
 type monitors struct {
 	// monitors is the monitor list cache for desktop glfw compile targets.
-	// populated by 'updateMonitors' which is called on init and every
+	// It is populated by 'update' which is called on init and every
 	// monitor config change event.
 	monitors []*Monitor
 
@@ -168,7 +168,7 @@ func (m *monitors) update() error {
 		// TODO: Detect the update of the content scale by SetContentScaleCallback (#2343).
 		contentScale := 1.0
 
-		// Keep calling GetContentScale until the returned scale is 0 (#2051).
+		// Keep calling GetContentScale until the returned scale is not 0 (#2051).
 		// Retry this at most 5 times to avoid an infinite loop.
 		for range 5 {
 			// An error can happen e.g. when entering a screensaver on Windows (#2488).

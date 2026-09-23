@@ -18,6 +18,6 @@ import "io"
 
 type Float32Reader = float32Reader
 
-func NewInt16BytesReaderFromFloat32Reader(r float32Reader) io.Reader {
-	return newInt16BytesReaderFromFloat32Reader(r)
+func NewInt16BytesReaderFromFloat32Reader(r float32Reader, channels int) io.Reader {
+	return newInt16BytesReaderFromFloat32Reader(r, channels)
 }

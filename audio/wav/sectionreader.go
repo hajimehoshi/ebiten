@@ -15,6 +15,7 @@
 package wav
 
 import (
+	"errors"
 	"fmt"
 	"io"
 )
@@ -37,7 +38,7 @@ func newSectionReader(src io.Reader, offset int64, size int64) *sectionReader {
 	}
 }
 
-// Read is implementation of io.Reader's Read.
+// Read is an implementation of io.Reader's Read.
 func (s *sectionReader) Read(p []byte) (int, error) {
 	if s.pos >= s.size {
 		return 0, io.EOF
@@ -50,32 +51,33 @@ func (s *sectionReader) Read(p []byte) (int, error) {
 	return n, err
 }
 
-// Seek is implementation of io.Seeker's Seek.
+// Seek is an implementation of io.Seeker's Seek.
 //
-// If the underlying source is not an io.Seeker, Seek panics.
+// If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 	seeker, ok := s.src.(io.Seeker)
 	if !ok {
-		panic("wav: s.src must be io.Seeker but not")
+		return 0, fmt.Errorf("wav: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
+	var pos int64
 	switch whence {
 	case io.SeekStart:
-		offset += s.offset
+		pos = offset
 	case io.SeekCurrent:
+		pos = s.pos + offset
 	case io.SeekEnd:
-		offset += s.offset + s.size
-		whence = io.SeekStart
+		pos = s.size + offset
 	default:
 		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	n, err := seeker.Seek(offset, whence)
-	if err != nil {
+	if pos < 0 || pos > s.size {
+		return 0, fmt.Errorf("wav: position must be in [0, %d] but was %d", s.size, pos)
+	}
+
+	if _, err := seeker.Seek(pos+s.offset, io.SeekStart); err != nil {
 		return 0, err
 	}
-	s.pos = n - s.offset
-	if s.pos < 0 || s.pos > s.size {
-		return 0, fmt.Errorf("wav: position is out of range")
-	}
+	s.pos = pos
 	return s.pos, nil
 }

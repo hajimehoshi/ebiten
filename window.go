@@ -34,7 +34,7 @@ const (
 	WindowResizingModeDisabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeDisabled)
 
 	// WindowResizingModeOnlyFullscreenEnabled indicates the mode to disallow resizing the window,
-	// but allow to make the window fullscreen by a user.
+	// but allow making the window fullscreen by a user.
 	// This works only on macOS so far.
 	// On the other platforms, this is the same as WindowResizingModeDisabled.
 	WindowResizingModeOnlyFullscreenEnabled WindowResizingModeType = WindowResizingModeType(ui.WindowResizingModeOnlyFullscreenEnabled)
@@ -44,6 +44,8 @@ const (
 )
 
 // IsWindowDecorated reports whether the window is decorated.
+//
+// IsWindowDecorated always returns false if the platform is not a desktop.
 //
 // IsWindowDecorated is concurrent-safe.
 func IsWindowDecorated() bool {
@@ -111,7 +113,7 @@ func IsWindowResizable() bool {
 // SetWindowResizable sets whether the window is resizable by the user's dragging on desktops.
 // On the other environments, SetWindowResizable does nothing.
 //
-// Deprecated: as of v2.3, Use SetWindowResizingMode instead.
+// Deprecated: as of v2.3. Use SetWindowResizingMode instead.
 func SetWindowResizable(resizable bool) {
 	mode := ui.WindowResizingModeDisabled
 	if resizable {
@@ -146,6 +148,11 @@ func SetWindowTitle(title string) {
 //
 // As macOS windows don't have icons, SetWindowIcon doesn't work on macOS.
 //
+// Some desktop environments ignore the window icon.
+// For example, GNOME Shell takes the icon from a desktop entry file whose StartupWMClass matches
+// [RunGameOptions.X11InstanceName] or [RunGameOptions.X11ClassName], and falls back to a generic
+// icon when there is no such file.
+//
 // SetWindowIcon doesn't work if the platform is not a desktop.
 //
 // SetWindowIcon is concurrent-safe.
@@ -157,7 +164,8 @@ func SetWindowIcon(iconImages []image.Image) {
 // The origin position is the upper-left corner of the current monitor.
 // The unit is device-independent pixels.
 //
-// WindowPosition panics if the main loop does not start yet.
+// If the main loop has not started yet, WindowPosition returns the initial window position set by
+// [SetWindowPosition], or (0, 0) if no initial position is set.
 //
 // WindowPosition returns the original window position in fullscreen mode.
 //
@@ -202,7 +210,7 @@ func WindowSize() (int, int) {
 // SetWindowSize sets the window size on desktops.
 // The size is the content area size and doesn't include window decorations like a title bar.
 // The unit is device-independent pixels: the size in physical pixels is this size scaled by
-// [MonitorType.DeviceScaleFactor] and rounded down to whole pixels.
+// [MonitorType.DeviceScaleFactor] and rounded to the nearest whole pixel.
 // SetWindowSize does nothing on other environments.
 //
 // Even if the application is in fullscreen mode, SetWindowSize sets the original window size.
@@ -253,7 +261,7 @@ func SetWindowFloating(float bool) {
 
 // MaximizeWindow maximizes the window.
 //
-// MaximizeWindow does nothing when the window is not resizable (WindowResizingModeEnabled).
+// MaximizeWindow does nothing when the window is not resizable ([WindowResizingModeDisabled]).
 //
 // MaximizeWindow does nothing if the platform is not a desktop.
 //
@@ -264,7 +272,7 @@ func MaximizeWindow() {
 
 // IsWindowMaximized reports whether the window is maximized or not.
 //
-// IsWindowMaximized returns false when the window is not resizable (WindowResizingModeEnabled).
+// IsWindowMaximized returns false when the window is not resizable ([WindowResizingModeDisabled]).
 //
 // IsWindowMaximized always returns false if the platform is not a desktop.
 //
@@ -275,7 +283,7 @@ func IsWindowMaximized() bool {
 
 // MinimizeWindow minimizes the window.
 //
-// If the main loop does not start yet, MinimizeWindow does nothing.
+// If the main loop has not started yet, MinimizeWindow does nothing.
 //
 // MinimizeWindow does nothing if the platform is not a desktop.
 //
@@ -295,19 +303,18 @@ func IsWindowMinimized() bool {
 
 // RestoreWindow restores the window from its maximized or minimized state.
 //
-// RestoreWindow panics when the window is not maximized nor minimized.
+// RestoreWindow panics when the window is neither maximized nor minimized on desktops.
+//
+// RestoreWindow does nothing if the platform is not a desktop.
 //
 // RestoreWindow is concurrent-safe.
 func RestoreWindow() {
-	if !IsWindowMaximized() && !IsWindowMinimized() {
-		panic("ebiten: RestoreWindow must be called on a maximized or a minimized window")
-	}
 	ui.Get().Window().Restore()
 }
 
 // IsWindowBeingClosed returns true when the user is trying to close the window on desktops.
 // As the window is closed immediately by default,
-// you might want to call SetWindowClosingHandled(true) to prevent the window is automatically closed.
+// you might want to call SetWindowClosingHandled(true) to prevent the window from being automatically closed.
 //
 // IsWindowBeingClosed always returns false if the platform is not a desktop.
 //
@@ -340,10 +347,10 @@ func IsWindowClosingHandled() bool {
 	return ui.Get().Window().IsClosingHandled()
 }
 
-// SetWindowMousePassthrough sets whether a mouse cursor passthroughs the window or not on desktops. The default state is false.
+// SetWindowMousePassthrough sets whether a mouse cursor passes through the window or not on desktops. The default state is false.
 //
 // Even if this is set true, some platforms might require a window to be undecorated
-// in order to make the mouse cursor passthrough the window.
+// in order to make the mouse cursor pass through the window.
 //
 // SetWindowMousePassthrough works only on desktops.
 // SetWindowMousePassthrough does nothing if the platform is not a desktop.
@@ -353,7 +360,7 @@ func SetWindowMousePassthrough(enabled bool) {
 	ui.Get().Window().SetMousePassthrough(enabled)
 }
 
-// IsWindowMousePassthrough reports whether a mouse cursor passthroughs the window or not on desktops.
+// IsWindowMousePassthrough reports whether a mouse cursor passes through the window or not on desktops.
 //
 // IsWindowMousePassthrough always returns false if the platform is not a desktop.
 //

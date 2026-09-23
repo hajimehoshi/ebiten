@@ -44,8 +44,7 @@ type textInputImpl struct {
 	// See discardIMEState.
 	dummyTextareaElement js.Value
 
-	// sender diffs the textarea against the session's surrounding text in the
-	// session path.
+	// sender diffs the textarea against the session's surrounding text.
 	sender diffSender
 
 	// composing reports whether the IME holds a composition for the textarea. iOS
@@ -268,9 +267,9 @@ func (t *textInputImpl) Start(bounds image.Rectangle, textBeforeCaret, textAfter
 	// installed in init focused the textarea and reset its value.
 	if js.Global().Get("_ebitengine_textinput_ready").Truthy() {
 		t.events.end()
-		// An IME carries a composition over to the refocused textarea and finishes it
-		// there. Those events describe the abandoned target, and start replays them.
-		t.events.clearQueue()
+		// A queued composition describes text the user-interaction handler has
+		// reset, whereas a queued commit is text the IME delivered.
+		t.events.dropQueuedCompositions()
 		ch, end := t.events.start()
 		js.Global().Get("window").Set("_ebitengine_textinput_ready", js.Undefined())
 		// Focusing the textarea has restarted the IME.
@@ -319,7 +318,7 @@ func (t *textInputImpl) Start(bounds image.Rectangle, textBeforeCaret, textAfter
 func (t *textInputImpl) deferStart(bounds image.Rectangle) {
 	t.events.end()
 	js.Global().Get("window").Set("_ebitengine_textinput_x", bounds.Min.X)
-	js.Global().Get("window").Set("_ebitengine_textinput_y", bounds.Max.Y)
+	js.Global().Get("window").Set("_ebitengine_textinput_y", bounds.Min.Y)
 }
 
 // discardIMEState makes the IME let go of the composition it holds for the
@@ -359,8 +358,8 @@ func (t *textInputImpl) dismissVirtualKeyboardIfNeeded() {
 	}
 
 	// An active session outlives the event channel, which a commit closes from a DOM
-	// event. The deprecated Field keeps the channel open, registering no session.
-	if t.events.isOpen() || t.events.getActiveSession() != nil {
+	// event.
+	if t.events.getActiveSession() != nil {
 		t.closedTicks = 0
 		return
 	}
@@ -376,8 +375,9 @@ func (t *textInputImpl) dismissVirtualKeyboardIfNeeded() {
 	// The game's key listeners are on the canvas element, so it must take the focus.
 	ui.Get().FocusCanvas()
 
-	// Blurring the textarea fires events carrying the text it still holds. With no
-	// session to receive them, they are queued for the next one.
+	// Blurring the textarea fires events carrying the text it still holds, which
+	// trySend drops as no session is active. The states queued for the session
+	// that ended are for a caller that has stopped inputting text.
 	t.events.clearQueue()
 }
 
@@ -410,13 +410,11 @@ func (t *textInputImpl) trySend(kind commitKind) {
 		return
 	}
 
+	// A state with no active session is dropped: it is the teardown noise of a
+	// dismissal, or input into the textarea a deferred start focused (#2898)
+	// before its session starts.
 	s := t.events.getActiveSession()
 	if s == nil {
-		// No session means the deprecated Field is inputting; it uses the legacy
-		// whole-value path.
-		// TODO: Remove trySendLegacy and this branch once Field is gone; a
-		// Composer session is always active otherwise.
-		t.trySendLegacy(kind)
 		return
 	}
 
@@ -427,30 +425,6 @@ func (t *textInputImpl) trySend(kind commitKind) {
 	selStart := t.textareaElement.Get("selectionStart").Int()
 	selEnd := t.textareaElement.Get("selectionEnd").Int()
 	t.sender.trySend(s, value, selStart, selEnd, isVirtualKeyboard(), kind)
-}
-
-func (t *textInputImpl) trySendLegacy(kind commitKind) {
-	textareaValue := t.textareaElement.Get("value").String()
-	// textareaValue can be an empty value, but this should be sent especially for a compositing text (#3324).
-
-	start := t.textareaElement.Get("selectionStart").Int()
-	end := t.textareaElement.Get("selectionEnd").Int()
-	startInBytes := convertUTF16CountToByteCount(textareaValue, start)
-	endInBytes := convertUTF16CountToByteCount(textareaValue, end)
-
-	t.events.send(textInputState{
-		Text:                             textareaValue,
-		CompositionSelectionStartInBytes: startInBytes,
-		CompositionSelectionEndInBytes:   endInBytes,
-		ReplacementStartInBytes:          noReplacement,
-		ReplacementEndInBytes:            noReplacement,
-		CommitKind:                       kind,
-	})
-
-	if kind.committed() {
-		t.events.end()
-		t.textareaElement.Set("value", "")
-	}
 }
 
 func isVirtualKeyboard() bool {

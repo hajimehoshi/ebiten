@@ -32,11 +32,24 @@ const (
 	InvalidShaderID = 0
 )
 
+// FlushMode specifies whether a command batch completes or presents a frame.
+type FlushMode int
+
+const (
+	// FlushModeIntermediate submits commands without completing the frame.
+	FlushModeIntermediate FlushMode = iota
+	// FlushModeEndFrame completes the frame without presenting it.
+	FlushModeEndFrame
+	// FlushModePresent completes and presents the frame.
+	FlushModePresent
+)
+
 type Graphics interface {
 	Initialize() error
 	ColorSpace() color.ColorSpace
 	Begin() error
-	End(present bool) error
+	// End ends a command batch with the given flush mode.
+	End(mode FlushMode) error
 	SetTransparent(transparent bool)
 	SetVertices(vertices []float32, indices []uint32) error
 	NewImage(width, height int) (Image, error)

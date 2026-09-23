@@ -27,14 +27,11 @@ import "C"
 
 import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
 func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
-	var err error
-	u.mainThread.Call(func() {
-		err = u.updateInputStateForFrameImpl()
-	})
-	return err
+	return thread.CallWithArgAndResult(u.mainThread, (*UserInterface).updateInputStateForFrameImpl, u)
 }
 
 // updateInputStateForFrameImpl must be called from the main thread.
@@ -59,10 +56,11 @@ func (u *UserInterface) updateInputStateForFrameImpl() error {
 	defer u.mu.Unlock()
 
 	u.inputState.Touches = u.inputState.Touches[:0]
+	u.touchIDs.nextTouches()
 	for _, t := range u.nativeTouches {
 		x, y := u.context.clientPositionToLogicalPosition(float64(t.x), float64(t.y), theMonitor.DeviceScaleFactor())
 		u.inputState.Touches = append(u.inputState.Touches, Touch{
-			ID: TouchID(t.id),
+			ID: u.touchIDs.id(int(t.id)),
 			X:  x,
 			Y:  y,
 		})

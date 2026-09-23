@@ -78,9 +78,9 @@ func (g *Graphics) Begin() error {
 	return nil
 }
 
-func (g *Graphics) End(present bool) error {
+func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	var cPresent C.int
-	if present {
+	if mode == graphicsdriver.FlushModePresent {
 		cPresent = 1
 	}
 	C.ebitengine_End(cPresent)
@@ -127,7 +127,7 @@ func (g *Graphics) NeedsClearingScreen() bool {
 }
 
 func (g *Graphics) MaxImageSize() int {
-	return 4096 // TODO: Get the value from the SDK.
+	return int(C.ebitengine_MaxImageSize())
 }
 
 func (g *Graphics) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
@@ -206,6 +206,7 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
+	defer runtime.KeepAlive(args)
 	for _, a := range args {
 		region := C.ebitengine_Region{
 			min_x: C.int(a.Region.Min.X),
@@ -222,6 +223,7 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 }
 
 func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
+	defer runtime.KeepAlive(args)
 	for _, a := range args {
 		region := C.ebitengine_Region{
 			min_x: C.int(a.Region.Min.X),

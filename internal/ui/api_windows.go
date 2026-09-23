@@ -115,7 +115,7 @@ func _CoCreateInstance(rclsid *windows.GUID, pUnkOuter unsafe.Pointer, dwClsCont
 func _GetSystemMetrics(nIndex int) (int32, error) {
 	r, _, _ := procGetSystemMetrics.Call(uintptr(nIndex))
 	if int32(r) == 0 {
-		// GetLastError doesn't provide an extended information.
+		// GetLastError doesn't provide extended information.
 		// See https://docs.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getsystemmetrics
 		return 0, fmt.Errorf("ui: GetSystemMetrics returned 0")
 	}
@@ -185,6 +185,14 @@ type _ITaskbarList_Vtbl struct {
 	DeleteTab    uintptr
 	ActivateTab  uintptr
 	SetActiveAlt uintptr
+}
+
+func (i *_ITaskbarList) HrInit() error {
+	r, _, _ := syscall.Syscall(i.vtbl.HrInit, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("ui: ITaskbarList::HrInit failed: HRESULT(%d)", uint32(r))
+	}
+	return nil
 }
 
 func (i *_ITaskbarList) DeleteTab(hwnd windows.HWND) error {

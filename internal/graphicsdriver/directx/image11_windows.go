@@ -15,6 +15,7 @@
 package directx
 
 import (
+	"errors"
 	"image"
 	"unsafe"
 
@@ -66,6 +67,10 @@ func (i *image11) disposeBuffers() {
 }
 
 func (i *image11) ReadPixels(args []graphicsdriver.PixelsArgs) error {
+	if i.screen {
+		return errors.New("directx: ReadPixels cannot be called on the screen")
+	}
+
 	var unionRegion image.Rectangle
 	for _, a := range args {
 		unionRegion = unionRegion.Union(a.Region)
@@ -147,7 +152,7 @@ func (i *image11) setAsRenderTarget() error {
 		i.renderTargetView = rtv
 	}
 
-	i.graphics.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{i.renderTargetView}, nil)
+	i.graphics.deviceContext.OMSetRenderTargets([]*_ID3D11RenderTargetView{i.renderTargetView})
 	return nil
 }
 

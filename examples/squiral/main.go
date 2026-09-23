@@ -36,7 +36,6 @@ const (
 )
 
 type palette struct {
-	name   string
 	colors []color.Color
 }
 
@@ -45,7 +44,6 @@ var (
 
 	palettes = []palette{
 		{
-			name: "sand dunes",
 			colors: []color.Color{
 				color.RGBA{0xF2, 0x74, 0x05, 0xFF}, // #F27405
 				color.RGBA{0xD9, 0x52, 0x04, 0xFF}, // #D95204
@@ -55,7 +53,6 @@ var (
 			},
 		},
 		{
-			name: "mono desert sand",
 			colors: []color.Color{
 				color.RGBA{0x7F, 0x6C, 0x52, 0xFF}, // #7F6C52
 				color.RGBA{0xFF, 0xBA, 0x58, 0xFF}, // #FFBA58
@@ -65,7 +62,6 @@ var (
 			},
 		},
 		{
-			name: "land sea gradient",
 			colors: []color.Color{
 				color.RGBA{0x00, 0xA2, 0xE8, 0xFF}, // #00A2E8
 				color.RGBA{0x67, 0xA3, 0xF5, 0xFF}, // #67A3F5
@@ -101,8 +97,8 @@ var (
 
 	// neighbors defines neighboring cells depending on the moving
 	// direction of the squiral:
-	// index of 0 -> squiral moves vertically,
-	// index of 1 -> squiral moves horizontally.
+	// index of 0 -> squiral moves horizontally,
+	// index of 1 -> squiral moves vertically.
 	// These neighbors are tested for "collisions" during simulation.
 	neighbors = [2][2]vec2{
 		{{0, 1}, {0, -1}}, // east, west

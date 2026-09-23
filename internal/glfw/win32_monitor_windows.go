@@ -6,6 +6,7 @@ package glfw
 
 import (
 	"errors"
+	"fmt"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -23,7 +24,7 @@ func monitorCallback(handle _HMONITOR, dc _HDC, rect *_RECT, monitor *Monitor /*
 	return 1
 }
 
-var monitorCallbackPtr = windows.NewCallbackCDecl(monitorCallback)
+var monitorCallbackPtr = windows.NewCallback(monitorCallback)
 
 func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monitor, error) {
 	var name string
@@ -132,7 +133,7 @@ adapterLoop:
 		//       (as sometimes happens), add it directly as a monitor
 		if !found {
 			for i, monitor := range disconnected {
-				if monitor != nil && monitor.platform.displayName == windows.UTF16ToString(adapter.DeviceName[:]) {
+				if monitor != nil && monitor.platform.adapterName == windows.UTF16ToString(adapter.DeviceName[:]) {
 					disconnected[i] = nil
 					continue adapterLoop
 				}
@@ -168,7 +169,13 @@ func (m *Monitor) setVideoModeWin32(desired *VidMode) error {
 	if err != nil {
 		return err
 	}
-	current := m.platformGetVideoMode()
+	if best == nil {
+		return nil
+	}
+	current, err := m.platformGetVideoMode()
+	if err != nil {
+		return err
+	}
 	if best.equals(current) {
 		return nil
 	}
@@ -319,18 +326,25 @@ loop:
 
 	if len(monitors) == origLen {
 		// HACK: Report the current mode if no valid modes were found
-		monitors = append(monitors, m.platformGetVideoMode())
+		mode, err := m.platformGetVideoMode()
+		if err != nil {
+			return nil, err
+		}
+		monitors = append(monitors, mode)
 	}
 
 	return monitors, nil
 }
 
-func (m *Monitor) platformGetVideoMode() *VidMode {
+func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 	if microsoftgdk.IsXbox() {
-		return m.modes[0]
+		return m.modes[0], nil
 	}
 
-	dm, _ := _EnumDisplaySettingsW(m.platform.adapterName, _ENUM_CURRENT_SETTINGS)
+	dm, ok := _EnumDisplaySettingsW(m.platform.adapterName, _ENUM_CURRENT_SETTINGS)
+	if !ok {
+		return nil, fmt.Errorf("glfw: failed to query display settings: %w", PlatformError)
+	}
 	r, g, b := splitBPP(int(dm.dmBitsPerPel))
 	return &VidMode{
 		Width:       int(dm.dmPelsWidth),
@@ -339,7 +353,7 @@ func (m *Monitor) platformGetVideoMode() *VidMode {
 		RedBits:     r,
 		GreenBits:   g,
 		BlueBits:    b,
-	}
+	}, nil
 }
 
 func (m *Monitor) in32Adapter() (string, error) {

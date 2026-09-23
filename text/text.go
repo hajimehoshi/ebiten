@@ -14,7 +14,7 @@
 
 // Package text offers functions to draw texts on an Ebitengine's image.
 //
-// For the example using a TTF font, see font package in the examples.
+// For the example using a TTF font, see the font package in the examples.
 //
 // Deprecated: as of v2.7. Use text/v2 instead.
 package text
@@ -160,7 +160,7 @@ var textM sync.Mutex
 // As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at Draw are cached.
 // The cache is shared with CacheGlyphs.
 //
-// It is OK to call Draw with a same text and a same face at every frame in terms of performance.
+// It is OK to call Draw with the same text and the same face at every frame in terms of performance.
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
@@ -196,7 +196,7 @@ func Draw(dst *ebiten.Image, text string, face font.Face, x, y int, clr color.Co
 // As the cache capacity has limit, it is not guaranteed that all the glyphs for runes given at DrawWithOptions are cached.
 // The cache is shared with CacheGlyphs.
 //
-// It is OK to call DrawWithOptions with a same text and a same face at every frame in terms of performance.
+// It is OK to call DrawWithOptions with the same text and the same face at every frame in terms of performance.
 //
 // Draw/DrawWithOptions and CacheGlyphs are implemented like this:
 //
@@ -248,7 +248,7 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 	}
 
 	// cacheSoftLimit indicates the soft limit of the number of glyphs in the cache.
-	// If the number of glyphs exceeds this soft limits, old glyphs are removed.
+	// If the number of glyphs exceeds this soft limit, old glyphs are removed.
 	// Even after cleaning up the cache, the number of glyphs might still exceed the soft limit, but
 	// this is fine.
 	const cacheSoftLimit = 512
@@ -442,7 +442,7 @@ type Glyph struct {
 }
 
 // AppendGlyphs appends the glyph information to glyphs.
-// You can render each glyphs as you like. See examples/text for an example of AppendGlyphs.
+// You can render each glyph as you like. See examples/text for an example of AppendGlyphs.
 func AppendGlyphs(glyphs []Glyph, face font.Face, text string) []Glyph {
 	textM.Lock()
 	defer textM.Unlock()

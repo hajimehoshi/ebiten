@@ -17,6 +17,7 @@ package vector_test
 import (
 	"image"
 	"image/color"
+	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -98,6 +99,56 @@ func TestFillCircleSubImage(t *testing.T) {
 	}
 }
 
+func TestCircleVertexCount(t *testing.T) {
+	tests := []struct {
+		name   string
+		radius float32
+		want   int
+	}{
+		{
+			name:   "negative",
+			radius: -1,
+		},
+		{
+			name: "zero",
+		},
+		{
+			name:   "small",
+			radius: 0.5,
+			want:   2,
+		},
+		{
+			name:   "ordinary",
+			radius: 100,
+			want:   315,
+		},
+		{
+			name:   "huge",
+			radius: 1e9,
+			want:   8192,
+		},
+		{
+			name:   "positive infinity",
+			radius: float32(math.Inf(1)),
+		},
+		{
+			name:   "negative infinity",
+			radius: float32(math.Inf(-1)),
+		},
+		{
+			name:   "NaN",
+			radius: float32(math.NaN()),
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := vector.CircleVertexCount(test.radius); got != test.want {
+				t.Errorf("CircleVertexCount(%v): got %d, want %d", test.radius, got, test.want)
+			}
+		})
+	}
+}
+
 // Issue #3357
 func TestFillRects(t *testing.T) {
 	dsts := []*ebiten.Image{
@@ -159,6 +210,48 @@ func TestStrokePathNilOptions(t *testing.T) {
 
 	// A zero-width stroke renders nothing.
 	if got, want := dst.At(8, 8), (color.RGBA{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func TestStrokePathKeepsSourcePath(t *testing.T) {
+	dst := ebiten.NewImage(16, 16)
+	defer dst.Deallocate()
+
+	var path vector.Path
+	path.MoveTo(1, 1)
+	// A redundant line.
+	path.LineTo(1, 1)
+	path.LineTo(15, 1)
+	// A cusp.
+	path.QuadTo(15, 8, 15, 1)
+	// A collinear curve.
+	path.QuadTo(8, 1, 1, 1)
+	path.Close()
+	path.MoveTo(2, 2)
+	// A single point.
+	path.QuadTo(2, 2, 2, 2)
+
+	// StrokePath must not modify the given path.
+	want := vector.PathOperationsString(&path)
+	vector.StrokePath(dst, &path, &vector.StrokeOptions{Width: 2}, nil)
+	if got := vector.PathOperationsString(&path); got != want {
+		t.Errorf("got:\n%v\nwant:\n%v", got, want)
+	}
+}
+
+func TestStrokeCircleThickStrokeNonAntiAlias(t *testing.T) {
+	dst := ebiten.NewImage(64, 64)
+	defer dst.Deallocate()
+	vector.StrokeCircle(dst, 32, 32, 10, 10, color.White, false)
+	if got, want := dst.At(32, 32), (color.RGBA{}); got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+
+	dst2 := ebiten.NewImage(64, 64)
+	defer dst2.Deallocate()
+	vector.StrokeCircle(dst2, 32, 32, 10, 20, color.White, false)
+	if got, want := dst2.At(32, 32), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

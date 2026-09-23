@@ -15,6 +15,7 @@
 package shader_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -272,11 +273,108 @@ func Fragment(position vec4, texCoord vec3, color vec4) vec4 {
 	if err == nil {
 		t.Fatalf("Compile must return an error for a mismatched fragment argument, but got nil")
 	}
-	if strings.HasPrefix(err.Error(), "1:1:") {
-		t.Errorf("the error position must point at the fragment entry point, but got %q", err.Error())
+	var perr *shader.ParseError
+	if !errors.As(err, &perr) {
+		t.Fatalf("Compile must return a *shader.ParseError, but got %v", err)
 	}
-	if !strings.Contains(err.Error(), "7:") {
-		t.Errorf("the error position must be around the fragment entry point (line 7), but got %q", err.Error())
+	positions := perr.Positions()
+	if len(positions) == 0 {
+		t.Fatalf("Compile must report at least one error position, but got none")
+	}
+	// The errors must point at the fragment entry point, not at the beginning of the source.
+	for _, p := range positions {
+		if got, want := p.Line, 7; got != want {
+			t.Errorf("the error line: got: %d, want: %d (%v)", got, want, err)
+		}
+	}
+}
+
+func TestCompileBlankAsValue(t *testing.T) {
+	values := []string{
+		"min(_, 1)",
+		"1 + _",
+		"min(-_, 1)",
+		"max(+_, 1)",
+		"clamp(-_, 0, 1)",
+		"1 + (-_)",
+	}
+	for _, v := range values {
+		src := []byte(fmt.Sprintf(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	const x = %s
+	return vec4(x)
+}`, v))
+		t.Run(v, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("Compile must not panic when _ is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile(src, "Vertex", "Fragment", 0); err == nil {
+				t.Fatalf("Compile must return an error when _ is used as a value, but got nil")
+			}
+		})
+	}
+}
+func TestCompileFunctionAsValue(t *testing.T) {
+	cases := []struct {
+		Name string
+		Body string
+	}{
+		{
+			Name: "assignment",
+			Body: "var x float; x = f; return vec4(x)",
+		},
+		{
+			Name: "assignment builtin",
+			Body: "var x float; x = abs; return vec4(x)",
+		},
+		{
+			Name: "composite literal",
+			Body: "a := [2]float{f, 1}; return vec4(a[0])",
+		},
+		{
+			Name: "index",
+			Body: "var a [2]float; return vec4(a[f])",
+		},
+		{
+			Name: "argument",
+			Body: "return vec4(abs(f))",
+		},
+		{
+			Name: "binary operand",
+			Body: "return vec4(f + 1)",
+		},
+		{
+			Name: "return",
+			Body: "return f",
+		},
+		{
+			Name: "condition",
+			Body: "if f { return vec4(0) }; return vec4(1)",
+		},
+	}
+	for _, c := range cases {
+		src := []byte(fmt.Sprintf(`package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	%s
+}`, c.Body))
+		t.Run(c.Name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic when a function is used as a value, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile(src, "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error when a function is used as a value, but got nil")
+			}
+		})
 	}
 }
 
@@ -290,5 +388,166 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
 	if err == nil {
 		t.Errorf("Compile must return an error for a huge constant shift, but got nil")
+	}
+}
+
+func TestCompileVarCountMismatch(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func f() (int, int) {
+	return 1, 2
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b, c = f()
+	return vec4(a + b + c)
+}`,
+		`package main
+
+func f() (int, int) {
+	return 1, 2
+}
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b, c int = f()
+	return vec4(a + b + c)
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b = 1
+	return vec4(a + b)
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	var a, b int = 1
+	return vec4(a + b)
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic for a var count mismatch, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for a var count mismatch, but got nil")
+			}
+		}()
+	}
+}
+
+func TestCompileBoolArithmetic(t *testing.T) {
+	srcs := []string{
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true + true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true - true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true * true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(float(true / true))
+}`,
+		`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	a := true
+	b := true
+	c := a + b
+	if c {
+		return vec4(1)
+	}
+	return vec4(0)
+}`,
+	}
+	for _, src := range srcs {
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Compile must not panic for bool arithmetic, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for bool arithmetic, but got nil")
+			}
+		}()
+	}
+}
+
+func TestCompileBareReturnInVoidFunc(t *testing.T) {
+	src := []byte(`package main
+
+func empty() {
+}
+
+func f(x float) {
+	if x > 0.0 {
+		return
+	}
+	empty()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f(src0Pos.x)
+	return vec4(1)
+}`)
+	prog, err := shader.Compile(src, "Vertex", "Fragment", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, fs := glsl.Compile(prog, glsl.GLSLVersionDefault)
+	if !strings.Contains(fs, "return;") {
+		t.Errorf("GLSL fragment shader should contain a bare return, but got:\n%s", fs)
+	}
+}
+
+func TestCompileBareReturnInNonVoidFunc(t *testing.T) {
+	src := []byte(`package main
+
+func f(x float) float {
+	if x > 0.0 {
+		return
+	}
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(src0Pos.x))
+}`)
+	if _, err := shader.Compile(src, "Vertex", "Fragment", 0); err == nil {
+		t.Errorf("Compile must return an error for a bare return in a non-void function, but got nil")
+	}
+}
+
+func TestCompileLargeFloatConstant(t *testing.T) {
+	src := []byte(`package main
+
+func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
+	return vec4(1e19)
+}`)
+	s, err := shader.Compile(src, "Vertex", "Fragment", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, fs := glsl.Compile(s, glsl.GLSLVersionDefault)
+	if strings.Contains(fs, "-9223372036854775808") {
+		t.Errorf("GLSL must not contain the overflowed int64 literal, but got:\n%s", fs)
+	}
+	if !strings.Contains(fs, "1.0000000000e+19") {
+		t.Errorf("GLSL should contain the scientific-notation literal 1.0000000000e+19, but got:\n%s", fs)
 	}
 }

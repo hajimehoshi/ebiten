@@ -22,6 +22,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // player is almost the same as the interface oto.Player.
@@ -88,14 +90,14 @@ type playerImpl struct {
 
 	// adjustedPosition is the player's more accurate position as time.Duration.
 	// The underlying buffer might not be changed even if the player is playing.
-	// adjustedPosition is adjusted by the time duration during the player position doesn't change while its playing.
+	// adjustedPosition is adjusted by the time duration during which the player position doesn't change while it's playing.
 	adjustedPosition int64
 
 	// lastSamples is the last value of the number of samples.
 	// When lastSamples is a negative number, this value is not initialized yet.
 	lastSamples int64
 
-	// stopwatch is a stopwatch to measure the time duration during the player position doesn't change while its playing.
+	// stopwatch is a stopwatch to measure the time duration during which the player position doesn't change while it's playing.
 	stopwatch stopwatch
 
 	closed bool
@@ -239,6 +241,10 @@ func (p *playerImpl) startIfPending() error {
 		return nil
 	}
 	if err := p.ensurePlayer(); err != nil {
+		// The pending play is abandoned as a failed Play is, so that it is not retried and the
+		// error is not reported again on every sweep.
+		p.pendingPlay = false
+		p.context.removePlayingPlayer(p)
 		return err
 	}
 	if p.player == nil {
@@ -247,11 +253,22 @@ func (p *playerImpl) startIfPending() error {
 		return nil
 	}
 	if !p.player.IsPlaying() {
-		p.player.Play()
-		p.stopwatch.start()
+		p.playAndStartStopwatch()
 	}
 	p.pendingPlay = false
 	return nil
+}
+
+// playAndStartStopwatch plays the underlying player and starts the stopwatch only when the player
+// actually started playing. The player can refuse to play, for example when it has already
+// finished its source, and starting the stopwatch then would make the position grow even though
+// nothing is played.
+// playAndStartStopwatch must be called with p.m locked.
+func (p *playerImpl) playAndStartStopwatch() {
+	p.player.Play()
+	if p.player.IsPlaying() {
+		p.stopwatch.start()
+	}
 }
 
 func (p *playerImpl) Play() {
@@ -259,7 +276,7 @@ func (p *playerImpl) Play() {
 	defer p.m.Unlock()
 
 	if p.closed {
-		p.context.setError(fmt.Errorf("audio: Play for a closed player"))
+		p.context.setError(fmt.Errorf("audio: Play called on a closed player"))
 		return
 	}
 
@@ -273,8 +290,7 @@ func (p *playerImpl) Play() {
 		if p.player.IsPlaying() {
 			return
 		}
-		p.player.Play()
-		p.stopwatch.start()
+		p.playAndStartStopwatch()
 	} else {
 		// The audio device is not created yet. Remember the request and start playing
 		// once the device is created (from the before-update hook).
@@ -295,7 +311,7 @@ func (p *playerImpl) Pause() {
 	defer p.m.Unlock()
 
 	if p.closed {
-		p.context.setError(fmt.Errorf("audio: Pause for a closed player"))
+		p.context.setError(fmt.Errorf("audio: Pause called on a closed player"))
 		return
 	}
 
@@ -359,6 +375,20 @@ func (p *playerImpl) isPlaying() bool {
 	return p.player.IsPlaying()
 }
 
+// removeFromContextIfNotPlaying removes the player from the context's playing players unless the
+// player is still playing. The check and the removal are atomic with respect to Play, so that a
+// player restarted concurrently stays tracked by the context.
+// removeFromContextIfNotPlaying must not be called with p.m locked.
+func (p *playerImpl) removeFromContextIfNotPlaying() {
+	p.m.Lock()
+	defer p.m.Unlock()
+
+	if !p.closed && p.isPlaying() {
+		return
+	}
+	p.context.removePlayingPlayer(p)
+}
+
 func (p *playerImpl) Volume() float64 {
 	p.m.Lock()
 	defer p.m.Unlock()
@@ -394,6 +424,8 @@ func (p *playerImpl) Close() error {
 	}
 	p.closed = true
 	p.pendingPlay = false
+
+	p.context.removePlayingPlayer(p)
 
 	if p.player != nil {
 		defer func() {
@@ -493,17 +525,29 @@ func (p *playerImpl) SetBufferSize(bufferSize time.Duration) {
 	defer p.m.Unlock()
 
 	if p.closed {
-		p.context.setError(fmt.Errorf("audio: SetBufferSize for a closed player"))
+		p.context.setError(fmt.Errorf("audio: SetBufferSize called on a closed player"))
 		return
 	}
 
-	bufferSizeInBytes := int(bufferSize * time.Duration(p.bytesPerSample) * time.Duration(p.factory.sampleRate) / time.Second)
-	bufferSizeInBytes = bufferSizeInBytes / p.bytesPerSample * p.bytesPerSample
+	sizeInBytes := bufferSizeInBytes(bufferSize, p.bytesPerSample, p.factory.sampleRate)
 	if p.player == nil {
-		p.initBufferSize = bufferSizeInBytes
+		p.initBufferSize = sizeInBytes
 		return
 	}
-	p.player.SetBufferSize(bufferSizeInBytes)
+	p.player.SetBufferSize(sizeInBytes)
+}
+
+func bufferSizeInBytes(bufferSize time.Duration, bytesPerSample, sampleRate int) int {
+	if bufferSize <= 0 {
+		return 0
+	}
+
+	size, ok := mathutil.MulDiv(int64(bufferSize), int64(bytesPerSample)*int64(sampleRate), int64(time.Second))
+	if !ok || size > int64(math.MaxInt) {
+		return 0
+	}
+	size = size / int64(bytesPerSample) * int64(bytesPerSample)
+	return int(size)
 }
 
 func (p *playerImpl) sourceIdent() any {
@@ -555,6 +599,13 @@ func (p *playerImpl) updatePosition() {
 		// A virtualization guest's device consumes the sources only as the host pulls them, not
 		// in real time, so the consumed samples are already the exact position there.
 		if !p.factory.isVMGuest() {
+			// If the player is not actually playing (for example, it has finished its source or
+			// it has been paused), stop the stopwatch so that the last adjustment is retained
+			// without growing further. Otherwise the position would keep growing while the
+			// samples stay constant.
+			if !p.isPlaying() {
+				p.stopwatch.stop()
+			}
 			adjustingTime = p.stopwatch.current()
 		}
 	} else {
@@ -566,13 +617,11 @@ func (p *playerImpl) updatePosition() {
 	}
 
 	// Update the adjusted position every tick. This is necessary to keep the position accurate.
-	p.adjustedPosition = mulDiv(samples, int64(time.Second), int64(p.factory.sampleRate)) + int64(adjustingTime)
-}
-
-// mulDiv returns x * mul / div, avoiding the overflow of the intermediate x * mul.
-// mul * div must fit in int64.
-func mulDiv(x, mul, div int64) int64 {
-	return x/div*mul + x%div*mul/div
+	position, ok := mathutil.MulDiv(samples, int64(time.Second), int64(p.factory.sampleRate))
+	if !ok {
+		panic("audio: position is out of range")
+	}
+	p.adjustedPosition = position + int64(adjustingTime)
 }
 
 type timeStream struct {
@@ -583,7 +632,7 @@ type timeStream struct {
 	bytesPerSample int
 
 	// m is a mutex for this stream.
-	// All the exported functions are protected by this mutex as Read can be read from a different goroutine than Seek.
+	// All the exported functions are protected by this mutex as Read can be called from a different goroutine than Seek.
 	m sync.Mutex
 }
 
@@ -601,8 +650,8 @@ func newTimeStream(r io.Reader, seekable bool, sampleRate int, bitDepthInBytes i
 			if !errors.Is(err, errors.ErrUnsupported) {
 				return nil, err
 			}
-			// Ignore the error, as the undelrying source might not support Seek (#3192).
-			// This happens when vorbis.Decode* is used, as vorbis.Stream is io.Seeker whichever the underlying source is.
+			// Ignore the error, as the underlying source might not support Seek (#3192).
+			// This happens when vorbis.Decode* is used, as vorbis.Stream is io.Seeker whatever the underlying source is.
 			pos = 0
 		}
 		s.pos.Store(pos)
@@ -625,7 +674,7 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 
 	if !s.seekable {
 		// TODO: Should this return an error?
-		panic("audio: the source must be io.Seeker when seeking but not")
+		panic("audio: the source must be io.Seeker to seek")
 	}
 	pos, err := s.r.(io.Seeker).Seek(offset, whence)
 	if err != nil {
@@ -638,7 +687,10 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 
 func (s *timeStream) timeDurationToPos(offset time.Duration) int64 {
 	bytesPerSecond := int64(s.bytesPerSample) * int64(s.sampleRate)
-	o := mulDiv(int64(offset), bytesPerSecond, int64(time.Second))
+	o, ok := mathutil.MulDiv(int64(offset), bytesPerSecond, int64(time.Second))
+	if !ok {
+		panic("audio: position is out of range")
+	}
 
 	// Align the byte position with the samples.
 	o -= o % int64(s.bytesPerSample)
@@ -653,5 +705,9 @@ func (s *timeStream) position() int64 {
 
 func (s *timeStream) positionInTimeDuration() time.Duration {
 	bytesPerSecond := int64(s.sampleRate) * int64(s.bytesPerSample)
-	return time.Duration(mulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond))
+	position, ok := mathutil.MulDiv(s.pos.Load(), int64(time.Second), bytesPerSecond)
+	if !ok {
+		panic("audio: position is out of range")
+	}
+	return time.Duration(position)
 }

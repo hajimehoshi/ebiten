@@ -34,7 +34,7 @@ func init() {
 	for i := range pix {
 		pix[i] = 0xff
 	}
-	// This is hacky, but WritePixels is better than Fill in term of automatic texture packing.
+	// This is hacky, but WritePixels is better than Fill in terms of automatic texture packing.
 	whiteImage.WritePixels(pix)
 }
 
@@ -48,6 +48,21 @@ func useCachedVerticesAndIndicesForUtil(fn func([]ebiten.Vertex, []uint32) (vs [
 	theCacheForUtilM.Lock()
 	defer theCacheForUtilM.Unlock()
 	theCachedVerticesForUtil, theCachedIndicesForUtil = fn(theCachedVerticesForUtil[:0], theCachedIndicesForUtil[:0])
+}
+
+func circleVertexCount(r float32) int {
+	const maxCircleVertexCount = 8192
+
+	if !(r > 0) || math.IsInf(float64(r), 0) {
+		return 0
+	}
+
+	// At this count, the error from approximating a circle is comparable to
+	// float32 precision, so additional vertices cannot meaningfully improve it.
+	if float64(r) >= maxCircleVertexCount/math.Pi {
+		return maxCircleVertexCount
+	}
+	return int(math.Ceil(math.Pi * float64(r)))
 }
 
 var (
@@ -87,7 +102,7 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 	dst.DrawImage(whiteSubImage, op)
 }
 
-// FillRect fills a rectangle with the specified width and color.
+// FillRect fills a rectangle with the specified position (x, y), size (width, height) and color.
 func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
@@ -114,14 +129,14 @@ func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, a
 	dst.DrawImage(whiteSubImage, op)
 }
 
-// DrawFilledRect fills a rectangle with the specified width and color.
+// DrawFilledRect fills a rectangle with the specified position (x, y), size (width, height) and color.
 //
 // Deprecated: as of v2.9. Use [FillRect] instead.
 func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	FillRect(dst, x, y, width, height, clr, antialias)
 }
 
-// StrokeRect strokes a rectangle with the specified width and color.
+// StrokeRect strokes a rectangle with the specified position (x, y), size (width, height), stroke width and color.
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
@@ -204,6 +219,11 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 		return
 	}
 
+	count := circleVertexCount(r)
+	if count == 0 {
+		return
+	}
+
 	// Use a regular DrawTriangles32 for batching.
 	cr, cg, cb, ca := clr.RGBA()
 	crf := float32(cr) / 0xffff
@@ -211,7 +231,6 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 	cbf := float32(cb) / 0xffff
 	caf := float32(ca) / 0xffff
 	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
-		count := int(math.Ceil(math.Pi * float64(r)))
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
 			sin, cos := math.Sincos(angle)
@@ -270,8 +289,13 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 		return
 	}
 
-	if strokeWidth >= r {
+	if strokeWidth >= 2*r {
 		FillCircle(dst, cx, cy, r+strokeWidth/2, clr, false)
+		return
+	}
+
+	count := circleVertexCount(r + strokeWidth/2)
+	if count == 0 {
 		return
 	}
 
@@ -282,7 +306,6 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 	cbf := float32(cb) / 0xffff
 	caf := float32(ca) / 0xffff
 	useCachedVerticesAndIndicesForUtil(func(vs []ebiten.Vertex, is []uint32) ([]ebiten.Vertex, []uint32) {
-		count := int(math.Ceil(math.Pi * float64(r+strokeWidth/2)))
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
 			sin, cos := math.Sincos(angle)

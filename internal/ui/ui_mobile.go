@@ -43,10 +43,10 @@ var (
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
 		graphicsLibraryInitCh: make(chan struct{}),
-		errCh:                 make(chan error),
+		errCh:                 make(chan error, 1),
 	}
-	// Give a default outside size so that the game can start without initializing them.
-	u.userInterfaceImpl.outsideSize.Store(pointF{x: 640, y: 480})
+	// Give a default outside size so that the game can start without initializing it.
+	u.userInterfaceImpl.outsideSize.Store(&pointF{x: 640, y: 480})
 	u.foreground.Store(true)
 	return nil
 }
@@ -72,7 +72,13 @@ func (u *UserInterface) Update() error {
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
 
-	renderCh <- struct{}{}
+	// The game loop goroutine exits after reporting an error, so waiting only on renderCh would
+	// block forever if the error arrived after the check above.
+	select {
+	case renderCh <- struct{}{}:
+	case err := <-u.errCh:
+		return err
+	}
 	go func() {
 		<-renderEndCh
 		cancel()
@@ -96,11 +102,11 @@ type userInterfaceImpl struct {
 	graphicsDriver        graphicsdriver.Graphics
 	graphicsLibraryInitCh chan struct{}
 
-	outsideSize atomic.Value
+	outsideSize atomic.Pointer[pointF]
 
 	// surfaceSize is the size of the rendering surface, in pixels, as the platform reports it. It is
 	// unset when the platform reports no size, and the size is then derived from the outside size.
-	surfaceSize atomic.Value
+	surfaceSize atomic.Pointer[pointI]
 
 	foreground atomic.Bool
 	errCh      chan error
@@ -108,10 +114,11 @@ type userInterfaceImpl struct {
 	context *context
 
 	inputState InputState
-	touches    []TouchForInput
+	touches    []touchInClient
+	touchIDs   touchIDAllocator
 
 	fpsMode  atomic.Int32
-	renderer Renderer
+	renderer atomic.Pointer[rendererHolder]
 
 	// uiView is used only on iOS.
 	uiView atomic.Uintptr
@@ -130,7 +137,7 @@ func (u *UserInterface) SetForeground(foreground bool) error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
-	return fmt.Errorf("internal/ui: Run is not implemented for GOOS=%s", runtime.GOOS)
+	return fmt.Errorf("ui: Run is not implemented for GOOS=%s", runtime.GOOS)
 }
 
 func (u *UserInterface) RunWithoutMainLoop(game Game, options *RunOptions) {
@@ -179,7 +186,7 @@ func (u *UserInterface) runMobile(game Game, options *RunOptions) (err error) {
 
 // outsideSize must be called on the same goroutine as update().
 func (u *UserInterface) outsideSize() (float64, float64) {
-	s := u.userInterfaceImpl.outsideSize.Load().(pointF)
+	s := u.userInterfaceImpl.outsideSize.Load()
 	return s.x, s.y
 }
 
@@ -202,7 +209,7 @@ func (u *UserInterface) update() error {
 //
 // screenSize must be called on the same goroutine as update().
 func (u *UserInterface) screenSize(outsideWidth, outsideHeight float64, deviceScaleFactor float64) (int, int) {
-	if s, ok := u.userInterfaceImpl.surfaceSize.Load().(pointI); ok {
+	if s := u.userInterfaceImpl.surfaceSize.Load(); s != nil {
 		return s.x, s.y
 	}
 	// The platform reports no surface size, so derive it from the view's size in device-independent
@@ -215,14 +222,14 @@ func (u *UserInterface) screenSize(outsideWidth, outsideHeight float64, deviceSc
 //
 // SetSurfaceSize is concurrent safe.
 func (u *UserInterface) SetSurfaceSize(width, height int) {
-	u.userInterfaceImpl.surfaceSize.Store(pointI{x: width, y: height})
+	u.userInterfaceImpl.surfaceSize.Store(&pointI{x: width, y: height})
 }
 
 // SetOutsideSize is called from mobile/ebitenmobileview.
 //
 // SetOutsideSize is concurrent safe.
 func (u *UserInterface) SetOutsideSize(outsideWidth, outsideHeight float64) {
-	u.userInterfaceImpl.outsideSize.Store(pointF{x: outsideWidth, y: outsideHeight})
+	u.userInterfaceImpl.outsideSize.Store(&pointF{x: outsideWidth, y: outsideHeight})
 	u.refreshDisplayInfo()
 }
 
@@ -272,10 +279,11 @@ func (u *UserInterface) SetFPSMode(mode FPSModeType) {
 }
 
 func (u *UserInterface) updateExplicitRenderingModeIfNeeded(fpsMode FPSModeType) {
-	if u.renderer == nil {
+	r := u.currentRenderer()
+	if r == nil {
 		return
 	}
-	u.renderer.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
+	r.SetExplicitRenderingMode(fpsMode == FPSModeVsyncOffMinimum)
 }
 
 func (u *UserInterface) readInputState(inputState *InputState) {
@@ -296,13 +304,13 @@ type displayInfoValues struct {
 	scale  float64
 }
 
-var theDisplayInfo atomic.Value
+var theDisplayInfo atomic.Pointer[displayInfoValues]
 
 func (u *UserInterface) displayInfo() (int, int, float64, bool) {
 	// Reading the display info here would require waiting for the main thread
 	// on iOS, which can deadlock.
-	v, ok := theDisplayInfo.Load().(displayInfoValues)
-	if !ok {
+	v := theDisplayInfo.Load()
+	if v == nil {
 		return 0, 0, 1, false
 	}
 	width := int(math.Round(dipFromNativePixels(v.width, v.scale)))
@@ -377,10 +385,14 @@ func (u *UserInterface) Monitor() *Monitor {
 	return theMonitor
 }
 
-func (u *UserInterface) UpdateInput(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
-	u.updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes, runes, touches, capsLock, numLock)
+func (u *UserInterface) UpdateInput(keys []KeyEvent, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
+	u.updateInputStateFromOutside(keys, runes, touches, capsLock, numLock)
 	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
-		u.renderer.RequestRenderIfNeeded()
+		// The renderer might not be set yet. In this case, the rendering request can be dropped
+		// as the first rendering happens when the renderer is set.
+		if r := u.currentRenderer(); r != nil {
+			r.RequestRenderIfNeeded()
+		}
 	}
 }
 
@@ -389,14 +401,31 @@ type Renderer interface {
 	RequestRenderIfNeeded()
 }
 
+// rendererHolder holds a Renderer so that the renderer can be stored in an atomic pointer
+// regardless of its concrete type.
+type rendererHolder struct {
+	renderer Renderer
+}
+
 func (u *UserInterface) SetRenderer(renderer Renderer) {
-	u.renderer = renderer
+	u.renderer.Store(&rendererHolder{renderer: renderer})
 	u.updateExplicitRenderingModeIfNeeded(FPSModeType(u.fpsMode.Load()))
 }
 
+func (u *UserInterface) currentRenderer() Renderer {
+	h := u.renderer.Load()
+	if h == nil {
+		return nil
+	}
+	return h.renderer
+}
+
 func (u *UserInterface) ScheduleFrame() {
-	if u.renderer != nil && FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
-		u.renderer.RequestRenderIfNeeded()
+	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum {
+		return
+	}
+	if r := u.currentRenderer(); r != nil {
+		r.RequestRenderIfNeeded()
 	}
 }
 

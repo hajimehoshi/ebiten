@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build ebitenginevm
+//go:build ebitenginevmguest
 
 // This guest exercises requested-TPS forwarding: it keeps the default rate, drops to 30 at tick 3, and
 // switches to SyncWithFPS at tick 5. The host asserts GuestSession.RequestedTPS tracks each change; see

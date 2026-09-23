@@ -23,6 +23,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
+	"github.com/hajimehoshi/ebiten/v2/internal/objcutil"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
@@ -154,10 +155,6 @@ type textInputImpl struct {
 	closedTicks       int
 	dismissGeneration int
 
-	// legacyCleared drops the delegate events fired by the legacy path
-	// clearing the text view.
-	legacyCleared bool
-
 	// vkVisible and vkVisibleRegion are the virtual keyboard state reported by
 	// UIKit, written on the main thread. vkKnown reports whether a keyboard
 	// notification has been observed.
@@ -255,7 +252,7 @@ func (t *textInputImpl) ensureUIKit() {
 						if insertTextOnMain(self, text) {
 							return
 						}
-						self.SendSuper(sel_insertText, text)
+						objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, sel_insertText, text)
 					},
 				},
 				{
@@ -264,7 +261,7 @@ func (t *textInputImpl) ensureUIKit() {
 						if deleteBackwardOnMain(self) {
 							return
 						}
-						self.SendSuper(sel_deleteBackward)
+						objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, sel_deleteBackward)
 					},
 				},
 				{
@@ -396,7 +393,7 @@ func (t *textInputImpl) applyStartOnMain() {
 	}
 	tv := t.ensureTextViewOnMain(parent)
 
-	// The text view is kept outside the window, where the browser and Android
+	// The text view is kept outside the window, whereas the browser and Android
 	// backends keep theirs at the caret. UIKit scrolls the enclosing scroll view
 	// of an embedding application to lift the first responder above the
 	// keyboard; a text view outside the window is never covered by the keyboard,
@@ -471,7 +468,7 @@ func (t *textInputImpl) shouldDismiss() bool {
 		t.closedTicks = 0
 		return false
 	}
-	if t.events.isOpen() || t.events.getActiveSession() != nil {
+	if t.events.getActiveSession() != nil {
 		t.closedTicks = 0
 		return false
 	}
@@ -501,9 +498,7 @@ func (t *textInputImpl) dismissVirtualKeyboardIfNeeded() {
 	t.events.clearQueue()
 }
 
-// textViewChangedOnMain reads the text view and reports the edit. The text
-// view is mutated only after handleTextViewChange returns, as UIKit can call
-// the delegate back synchronously.
+// textViewChangedOnMain reads the text view and reports the edit.
 func (t *textInputImpl) textViewChangedOnMain() {
 	tv := t.textView
 	if tv == 0 {
@@ -517,37 +512,29 @@ func (t *textInputImpl) textViewChangedOnMain() {
 		kind = commitNone
 	}
 
-	if t.handleTextViewChange(value, int(sel.location), int(sel.location+sel.length), kind) {
-		ns := newNSString("")
-		tv.Send(sel_setText, ns)
-		ns.Send(sel_release)
-	}
+	t.handleTextViewChange(value, int(sel.location), int(sel.location+sel.length), kind)
 }
 
-// handleTextViewChange reports the edit and returns whether the caller must
-// clear the text view.
-func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int, kind commitKind) (clearTextView bool) {
-	// Evaluated outside t.mu: the focus lock is taken with no other lock held.
-	fieldFocused := withFocusedField(func(*Field) {})
-
+// handleTextViewChange reports the edit.
+func (t *textInputImpl) handleTextViewChange(value string, selStart, selEnd int, kind commitKind) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	if t.appliedGeneration != t.generation {
 		// The event predates the seeding requested by the latest Start and
 		// describes the previous target.
-		return false
+		return
 	}
 
 	if t.cancelled {
 		// The session the text view was seeded for was cancelled, so the event
 		// describes an abandoned target.
-		return false
+		return
 	}
 
 	// The selection does not track the preedit on iOS; see
 	// compositionSelectionInBytes.
-	return handlePlatformState(t.events, &t.sender, &t.legacyCleared, value, selStart, selEnd, true, kind, fieldFocused)
+	handlePlatformState(t.events, &t.sender, value, selStart, selEnd, true, kind)
 }
 
 // insertTextOnMain reports whether text is the Return key, which the game
@@ -646,11 +633,11 @@ func (t *textInputImpl) pressesOnMain(self, presses, event objc.ID, cmd objc.SEL
 		if kept != 0 {
 			kept.Send(sel_release)
 		}
-		self.SendSuper(cmd, presses, event)
+		objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, cmd, presses, event)
 		return
 	}
 	if kept != 0 {
-		self.SendSuper(cmd, kept, event)
+		objcutil.SendSuper[struct{}](self, class_EbitengineTextInputTextView, cmd, kept, event)
 		kept.Send(sel_release)
 	}
 }

@@ -82,7 +82,7 @@ type Func struct {
 	Block     *Block
 }
 
-// VertexFunc takes pseudo params, and the number if len(attributes) + len(varyings) + 1.
+// VertexFunc takes pseudo params, and the number is len(attributes) + len(varyings) + 1.
 // If 0 <= index < len(attributes), the params are in-params and represent attribute variables.
 // If index == len(attributes), the param is an out-param and represents the position in vec4 (gl_Position in GLSL)
 // If len(attributes) + 1 <= index < len(attributes) + len(varyings) + 1, the params are out-params and represent
@@ -91,7 +91,7 @@ type VertexFunc struct {
 	Block *Block
 }
 
-// FragmentFunc takes pseudo params, and the number is len(varyings) + 2.
+// FragmentFunc takes pseudo params, and the number is len(varyings) + 1.
 // If index == 0, the param represents the coordinate of the fragment (gl_FragCoord in GLSL).
 // If 0 < index <= len(varyings), the param represents (index-1)th varying variable.
 type FragmentFunc struct {

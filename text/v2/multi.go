@@ -16,6 +16,8 @@ package text
 
 import (
 	"errors"
+	"iter"
+	"slices"
 	"unicode/utf8"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
@@ -28,12 +30,21 @@ var _ Face = (*MultiFace)(nil)
 // The face in the first index is used in the highest priority, and the last the lowest priority.
 //
 // There is a known issue: if the writing directions of the faces don't agree, the rendering result might be messed up.
+// [NewMultiFace] rejects such faces, but a face's direction can be changed after the creation (e.g. [GoTextFace.Direction]).
+//
+// There is another known issue: a change to a face's glyph availability after a MultiFace's creation
+// (e.g. by [LimitedFace.AddUnicodeRange] or by an assignment to [GoTextFace.Source]) is not reflected.
+// Configure all the faces before creating a MultiFace.
 type MultiFace struct {
 	faces []Face
 
 	// splitTextCache memoizes per-text chunk decomposition. The decomposition
-	// depends only on the faces' hasGlyph results, which are stable for the
-	// lifetime of a face, so cached entries never need invalidation.
+	// depends on the faces' hasGlyph results. The results can change even after
+	// the faces' creation (e.g. by [LimitedFace.AddUnicodeRange] or by an
+	// assignment to [GoTextFace.Source]), so a cached entry can be stale.
+	// The access time of an entry is updated on every hit, so an entry used
+	// every tick never ages out of the cache and stays stale.
+	// See the MultiFace doc for the workaround.
 	splitTextCache *cache[string, []textChunk]
 }
 
@@ -81,25 +92,28 @@ func (m *MultiFace) Metrics() Metrics {
 func (m *MultiFace) advanceAt(text string, indexInBytes int) float64 {
 	firstLineLen := textutil.FirstLineLen(text)
 	indexInBytes = min(indexInBytes, firstLineLen)
-	if indexInBytes <= 0 {
+	if indexInBytes < 0 {
 		return 0
 	}
 	firstLine := text[:firstLineLen]
+	chunks := m.splitText(firstLine)
+
+	// The caret belongs to the chunk containing the byte at indexInBytes.
+	// No chunk contains it when indexInBytes is the end of the line.
+	target := slices.IndexFunc(chunks, func(c textChunk) bool {
+		return indexInBytes < c.textEndIndex
+	})
+
+	// Sum the widths of the chunks laid out before the target, then add the caret
+	// position within the target as its own face reports it.
 	var a float64
-	for _, c := range m.splitText(firstLine) {
-		if c.faceIndex == -1 {
-			continue
-		}
+	for i, c := range m.chunksInVisualOrder(chunks) {
 		f := m.faces[c.faceIndex]
 		chunk := firstLine[c.textStartIndex:c.textEndIndex]
-		if c.textEndIndex <= indexInBytes {
-			a += f.advanceAt(chunk, len(chunk))
-			continue
+		if i == target {
+			return a + f.advanceAt(chunk, indexInBytes-c.textStartIndex)
 		}
-		if c.textStartIndex < indexInBytes {
-			a += f.advanceAt(chunk, indexInBytes-c.textStartIndex)
-		}
-		break
+		a += f.advanceAt(chunk, len(chunk))
 	}
 	return a
 }
@@ -116,29 +130,22 @@ func (m *MultiFace) hasGlyph(r rune) bool {
 
 // appendLazyGlyphsForLine implements Face.
 func (m *MultiFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, indexOffset int, originX, originY float64, keepGlyph func(originX, originY float64) bool) []LazyGlyph {
-	for _, c := range m.splitText(line) {
-		if c.faceIndex == -1 {
-			continue
-		}
+	for _, c := range m.chunksInVisualOrder(m.splitText(line)) {
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
-		glyphs = f.appendLazyGlyphsForLine(glyphs, t, indexOffset, originX, originY, keepGlyph)
+		glyphs = f.appendLazyGlyphsForLine(glyphs, t, indexOffset+c.textStartIndex, originX, originY, keepGlyph)
 		if a := f.advanceAt(t, len(t)); f.direction().isHorizontal() {
 			originX += a
 		} else {
 			originY += a
 		}
-		indexOffset += len(t)
 	}
 	return glyphs
 }
 
 // appendVectorPathForLine implements Face.
 func (m *MultiFace) appendVectorPathForLine(path *vector.Path, line string, originX, originY float64) {
-	for _, c := range m.splitText(line) {
-		if c.faceIndex == -1 {
-			continue
-		}
+	for _, c := range m.chunksInVisualOrder(m.splitText(line)) {
 		f := m.faces[c.faceIndex]
 		t := line[c.textStartIndex:c.textEndIndex]
 		f.appendVectorPathForLine(path, t, originX, originY)
@@ -166,6 +173,16 @@ type textChunk struct {
 	textStartIndex int
 	textEndIndex   int
 	faceIndex      int
+}
+
+// chunksInVisualOrder yields the chunks with their logical indices in layout order.
+// A face lays out a line from the origin toward the positive direction, so a horizontal
+// right-to-left face places the logically first chunk last.
+func (m *MultiFace) chunksInVisualOrder(chunks []textChunk) iter.Seq2[int, textChunk] {
+	if m.direction() == DirectionRightToLeft {
+		return slices.Backward(chunks)
+	}
+	return slices.All(chunks)
 }
 
 func (m *MultiFace) splitText(text string) []textChunk {

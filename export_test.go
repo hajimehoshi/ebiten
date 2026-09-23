@@ -23,3 +23,21 @@ var (
 func BuiltinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
 	return builtinShader(filter, address, useColorM)
 }
+
+func ResetStencilBufferImagesForTesting() {
+	stencilBufferM.Lock()
+	defer stencilBufferM.Unlock()
+
+	if stencilBufferImage != nil {
+		stencilBufferImage.Deallocate()
+		stencilBufferImage = nil
+	}
+	if offscreenImage1 != nil {
+		offscreenImage1.Deallocate()
+		offscreenImage1 = nil
+	}
+	if offscreenImage2 != nil {
+		offscreenImage2.Deallocate()
+		offscreenImage2 = nil
+	}
+}

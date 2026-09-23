@@ -36,7 +36,11 @@ const maximumDrawableCount = 3
 
 type view struct {
 	window uintptr
-	uiview uintptr
+
+	// uiview is the UIView the game is rendered into.
+	// This is written on the UI thread and read on the rendering thread.
+	// This is always 0 on macOS.
+	uiview atomic.Uintptr
 
 	windowChanged bool
 
@@ -93,12 +97,14 @@ type view struct {
 	runOnMainThread func(f func())
 
 	// The following members are used only with CAMetalDisplayLink.
-	drawableCh               chan ca.MetalDrawable
-	drawableDoneCh           chan struct{}
-	drawableTimer            *time.Timer
-	drawableFromDisplayLink  bool
-	metalDisplayLinkRunLoop  cocoa.NSRunLoop
-	metalDisplayLinkDelegate objc.ID
+	drawableCh                  chan ca.MetalDrawable
+	drawableDoneCh              chan struct{}
+	drawableTimer               *time.Timer
+	drawableFromDisplayLink     bool
+	metalDisplayLinkRunLoop     cocoa.NSRunLoop
+	metalDisplayLinkDelegate    objc.ID
+	completionChannelPool       sync.Pool
+	metalDisplayLinkChannelPool sync.Pool
 
 	// The following members are used only with CADisplayLink.
 	handleToSelf viewHandle
@@ -175,6 +181,12 @@ func newViewHandle(v *view) viewHandle {
 	h := viewHandleCounter
 	viewHandleMap[h] = v
 	return h
+}
+
+func deleteViewHandle(h viewHandle) {
+	viewHandleMu.Lock()
+	defer viewHandleMu.Unlock()
+	delete(viewHandleMap, h)
 }
 
 func (h viewHandle) Value() *view {

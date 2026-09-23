@@ -16,8 +16,14 @@
 
 package ui
 
+type KeyEvent struct {
+	Key     Key
+	Pressed bool
+}
+
 type TouchForInput struct {
-	ID TouchID
+	// ID is the ID the platform assigns to the touch.
+	ID int
 
 	// X is in device-independent pixels.
 	X float64
@@ -26,18 +32,29 @@ type TouchForInput struct {
 	Y float64
 }
 
-func (u *UserInterface) updateInputStateFromOutside(keyPressedTimes, keyReleasedTimes [KeyMax + 1]InputTime, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
+func (u *UserInterface) updateInputStateFromOutside(keys []KeyEvent, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
-	u.inputState.KeyPressedTimes = keyPressedTimes
-	u.inputState.KeyReleasedTimes = keyReleasedTimes
+	for _, key := range keys {
+		t := u.inputState.nextInputTime()
+		if key.Pressed {
+			u.inputState.setKeyPressed(key.Key, t)
+		} else {
+			u.inputState.setKeyReleased(key.Key, t)
+		}
+	}
 	u.inputState.Runes = append(u.inputState.Runes, runes...)
 	u.inputState.CapsLock = capsLock
 	u.inputState.NumLock = numLock
 	u.touches = u.touches[:0]
+	u.touchIDs.nextTouches()
 	for _, t := range touches {
-		u.touches = append(u.touches, t)
+		u.touches = append(u.touches, touchInClient{
+			id: u.touchIDs.id(t.ID),
+			x:  t.X,
+			y:  t.Y,
+		})
 	}
 }
 
@@ -49,9 +66,9 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 
 	u.inputState.Touches = u.inputState.Touches[:0]
 	for _, t := range u.touches {
-		x, y := u.context.clientPositionToLogicalPosition(t.X, t.Y, s)
+		x, y := u.context.clientPositionToLogicalPosition(t.x, t.y, s)
 		u.inputState.Touches = append(u.inputState.Touches, Touch{
-			ID: t.ID,
+			ID: t.id,
 			X:  x,
 			Y:  y,
 		})

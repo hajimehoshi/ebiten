@@ -137,6 +137,7 @@ const (
 	_QS_TIMER                                                  = 0x0010
 	_RID_INPUT                                                 = 0x10000003
 	_RIDEV_REMOVE                                              = 0x00000001
+	_RIM_TYPEMOUSE                                             = 0
 	_SC_KEYMENU                                                = 0xf100
 	_SC_MONITORPOWER                                           = 0xf170
 	_SC_SCREENSAVE                                             = 0xf140
@@ -157,6 +158,8 @@ const (
 	_SM_REMOTESESSION                                          = 0x1000
 	_SPI_GETFOREGROUNDLOCKTIMEOUT                              = 0x2000
 	_SPI_GETMOUSETRAILS                                        = 94
+	_SPI_GETWHEELSCROLLCHARS                                   = 0x006C
+	_SPI_GETWHEELSCROLLLINES                                   = 0x0068
 	_SPI_SETFOREGROUNDLOCKTIMEOUT                              = 0x2001
 	_SPI_SETMOUSETRAILS                                        = 93
 	_SPIF_SENDCHANGE                                           = _SPIF_SENDWININICHANGE
@@ -207,6 +210,7 @@ const (
 	_VK_SUBTRACT                                               = 0x6D
 	_WAIT_FAILED                                               = 0xffffffff
 	_WHEEL_DELTA                                               = 120
+	_WHEEL_PAGESCROLL                                          = 0xFFFFFFFF
 	_WGL_ACCUM_BITS_ARB                                        = 0x201D
 	_WGL_ACCELERATION_ARB                                      = 0x2003
 	_WGL_ACCUM_ALPHA_BITS_ARB                                  = 0x2021
@@ -639,6 +643,10 @@ type _POINT struct {
 	y int32
 }
 
+func (p _POINT) pack64() uint64 {
+	return uint64(uint32(p.x)) | uint64(uint32(p.y))<<32
+}
+
 type _POINTL struct {
 	_ structs.HostLayout
 	x int32
@@ -802,6 +810,7 @@ var (
 	procFlashWindow                   = user32.NewProc("FlashWindow")
 	procGetActiveWindow               = user32.NewProc("GetActiveWindow")
 	procGetClassLongPtrW              = user32.NewProc("GetClassLongPtrW")
+	procGetClassLongW                 = user32.NewProc("GetClassLongW")
 	procGetClientRect                 = user32.NewProc("GetClientRect")
 	procGetCursorPos                  = user32.NewProc("GetCursorPos")
 	procGetDC                         = user32.NewProc("GetDC")
@@ -1246,10 +1255,18 @@ func _GetActiveWindow() windows.HWND {
 
 func _GetClassLongPtrW(hWnd windows.HWND, nIndex int32) (uintptr, error) {
 	r, _, e := procGetClassLongPtrW.Call(uintptr(hWnd), uintptr(nIndex))
-	if r == 0 {
+	if r == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return 0, fmt.Errorf("glfw: GetClassLongPtrW failed: %w", e)
 	}
 	return r, nil
+}
+
+func _GetClassLongW(hWnd windows.HWND, nIndex int32) (uint32, error) {
+	r, _, e := procGetClassLongW.Call(uintptr(hWnd), uintptr(nIndex))
+	if uint32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
+		return 0, fmt.Errorf("glfw: GetClassLongW failed: %w", e)
+	}
+	return uint32(r), nil
 }
 
 func _GetClientRect(hWnd windows.HWND) (_RECT, error) {
@@ -1499,7 +1516,7 @@ func _PostMessageW(hWnd windows.HWND, msg uint32, wParam _WPARAM, lParam _LPARAM
 func _PtInRect(lprc *_RECT, pt _POINT) bool {
 	var r uintptr
 	if unsafe.Sizeof(uintptr(0)) == unsafe.Sizeof(uint64(0)) {
-		r, _, _ = procPtInRect.Call(uintptr(unsafe.Pointer(lprc)), uintptr(pt.x)|uintptr(pt.y)<<32)
+		r, _, _ = procPtInRect.Call(uintptr(unsafe.Pointer(lprc)), uintptr(pt.pack64()))
 	} else {
 		switch runtime.GOARCH {
 		case "386":
@@ -1865,7 +1882,7 @@ func wglSwapIntervalEXT(interval int32) error {
 func _WindowFromPoint(point _POINT) windows.HWND {
 	var r uintptr
 	if unsafe.Sizeof(uintptr(0)) == unsafe.Sizeof(uint64(0)) {
-		r, _, _ = procWindowFromPoint.Call(uintptr(point.x) | uintptr(point.y)<<32)
+		r, _, _ = procWindowFromPoint.Call(uintptr(point.pack64()))
 	} else {
 		r, _, _ = procWindowFromPoint.Call(uintptr(point.x), uintptr(point.y))
 	}

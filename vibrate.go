@@ -27,7 +27,7 @@ type VibrateOptions struct {
 	Duration time.Duration
 
 	// Magnitude is the strength of the device vibration.
-	// The value is in between 0 and 1.
+	// The value is between 0 and 1.
 	Magnitude float64
 }
 
@@ -51,6 +51,9 @@ type VibrateOptions struct {
 //
 // Vibrate is concurrent-safe.
 func Vibrate(options *VibrateOptions) {
+	if options == nil {
+		options = &VibrateOptions{}
+	}
 	vibrate.Vibrate(options.Duration, options.Magnitude)
 }
 
@@ -60,11 +63,11 @@ type VibrateGamepadOptions struct {
 	Duration time.Duration
 
 	// StrongMagnitude is the rumble intensity of a low-frequency rumble motor.
-	// The value is in between 0 and 1.
+	// The value is between 0 and 1.
 	StrongMagnitude float64
 
 	// WeakMagnitude is the rumble intensity of a high-frequency rumble motor.
-	// The value is in between 0 and 1.
+	// The value is between 0 and 1.
 	WeakMagnitude float64
 }
 
@@ -72,8 +75,9 @@ type VibrateGamepadOptions struct {
 //
 // VibrateGamepad does nothing on Android so far.
 //
-// On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers).
-// VibrateGamepad does nothing for DirectInput gamepads.
+// On Windows, VibrateGamepad works only for XInput gamepads (e.g. Xbox controllers) and
+// for PlayStation controllers (DualShock 4 and DualSense).
+// VibrateGamepad does nothing for other DirectInput gamepads.
 //
 // On Linux, VibrateGamepad works only for gamepads that support the force feedback rumble effect,
 // and requires write access to the gamepad's device file.
@@ -86,6 +90,9 @@ type VibrateGamepadOptions struct {
 //
 // VibrateGamepad is concurrent-safe.
 func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
+	if options == nil {
+		options = &VibrateGamepadOptions{}
+	}
 	g := gamepad.Get(gamepadID)
 	if g == nil {
 		return

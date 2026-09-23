@@ -35,6 +35,10 @@ type PreeditCallback func(w *Window, text string, selStartInBytes, selEndInBytes
 // which is either committed by the input method or typed directly.
 type TextInputCallback func(w *Window, text string)
 
+// TextInputActiveCallback reports whether the application is taking text
+// input.
+type TextInputActiveCallback func(w *Window) bool
+
 // SetPreeditCallback sets the callback reporting composition updates, and
 // returns the previously set one.
 //
@@ -59,6 +63,29 @@ func (w *Window) SetTextInputCallback(cbfun TextInputCallback) (TextInputCallbac
 	old := w.platform.textInputCallback
 	w.platform.textInputCallback = cbfun
 	return old, nil
+}
+
+// SetTextInputActiveCallback sets the callback reporting whether the
+// application is taking text input, and returns the previously set one.
+//
+// While the application is taking text input, a key press is reported only
+// once the input method has declined it. Key presses are reported as they
+// arrive when no callback is set.
+func (w *Window) SetTextInputActiveCallback(cbfun TextInputActiveCallback) (TextInputActiveCallback, error) {
+	if !_glfw.initialized {
+		return nil, NotInitialized
+	}
+	old := w.platform.textInputActiveCallback
+	w.platform.textInputActiveCallback = cbfun
+	return old, nil
+}
+
+// textInputActive reports whether the application is taking text input.
+func (w *Window) textInputActive() bool {
+	if w.platform.textInputActiveCallback == nil {
+		return false
+	}
+	return w.platform.textInputActiveCallback(w)
 }
 
 // inputText reports text produced by the keyboard input path. plain reports
@@ -105,6 +132,31 @@ var (
 	preeditDrawCallbackValue  _XIMCallback
 	preeditCaretCallbackValue _XIMCallback
 )
+
+// setInputMethodDestroyCallback asks the input method to report its
+// destruction.
+//
+// setInputMethodDestroyCallback must be called from the main thread.
+func setInputMethodDestroyCallback() {
+	// Xlib copies the callback, so it does not have to outlive the call.
+	callback := _XIMCallback{Callback: inputMethodDestroyCallbackPtr()}
+	xSetIMValues(_glfw.platformWindow.im, "destroyCallback", &callback, 0)
+}
+
+var inputMethodDestroyCallbackPtr = sync.OnceValue(func() uintptr {
+	return purego.NewCallback(inputMethodDestroyCallback)
+})
+
+// inputMethodDestroyCallback drops the input method and the input contexts it
+// created, which Xlib frees as soon as the callback returns. An input method is
+// destroyed when the input method server it talks to exits (#3618).
+func inputMethodDestroyCallback(im uintptr, clientData uintptr, callData uintptr) uintptr {
+	_glfw.platformWindow.im = 0
+	for _, w := range _glfw.windows {
+		w.platform.ic = 0
+	}
+	return 0
+}
 
 // createInputContext creates the window's X input context. The context is 0
 // when no input method is available.

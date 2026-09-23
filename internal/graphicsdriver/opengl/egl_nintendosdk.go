@@ -33,7 +33,7 @@ type egl struct {
 	context C.EGLContext
 }
 
-func newEGL(nativeWindowHandle uintptr) (*egl, error) {
+func newEGL(nativeWindowHandle uintptr) (_ *egl, err error) {
 	e := &egl{}
 
 	e.display = C.eglGetDisplay(C.NativeDisplayType(C.EGL_DEFAULT_DISPLAY))
@@ -44,6 +44,11 @@ func newEGL(nativeWindowHandle uintptr) (*egl, error) {
 	if r := C.eglInitialize(e.display, nil, nil); r == 0 {
 		return nil, fmt.Errorf("opengl: eglInitialize failed")
 	}
+	defer func() {
+		if err != nil {
+			C.eglTerminate(e.display)
+		}
+	}()
 
 	configAttribs := []C.EGLint{
 		C.EGL_RENDERABLE_TYPE, C.EGL_OPENGL_BIT,
@@ -66,13 +71,18 @@ func newEGL(nativeWindowHandle uintptr) (*egl, error) {
 	if e.surface == C.EGLSurface(C.EGL_NO_SURFACE) {
 		return nil, fmt.Errorf("opengl: eglCreateWindowSurface failed")
 	}
+	defer func() {
+		if err != nil {
+			C.eglDestroySurface(e.display, e.surface)
+		}
+	}()
 
 	// Set the current rendering API.
 	if r := C.eglBindAPI(C.EGL_OPENGL_API); r == 0 {
 		return nil, fmt.Errorf("opengl: eglBindAPI failed")
 	}
 
-	// Create new context and set it as current.
+	// Create a new context.
 	contextAttribs := []C.EGLint{
 		// Set target graphics api version.
 		C.EGL_CONTEXT_MAJOR_VERSION, 3,
@@ -82,7 +92,7 @@ func newEGL(nativeWindowHandle uintptr) (*egl, error) {
 		C.EGL_NONE}
 	e.context = C.eglCreateContext(e.display, config, C.EGLContext(C.EGL_NO_CONTEXT), &contextAttribs[0])
 	if e.context == C.EGLContext(C.EGL_NO_CONTEXT) {
-		return nil, fmt.Errorf("opengl: eglCreateContext failed: error: %d", C.eglGetError())
+		return nil, fmt.Errorf("opengl: eglCreateContext failed: %d", C.eglGetError())
 	}
 
 	return e, nil

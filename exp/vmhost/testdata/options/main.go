@@ -13,7 +13,7 @@
 // limitations under the License.
 
 // This is a guest fixture activated through RunGameOptions.VMGuestEndpoint. It deliberately has no
-// ebitenginevm build tag: setting the option in code must run the game as a guest in any build. The
+// ebitenginevmguest build tag: setting the option in code must run the game as a guest in any build. The
 // endpoint arrives as a command-line argument so that EBITENGINE_VM_ENDPOINT plays no part. It fills
 // the screen with a fixed color for the test to assert.
 package main

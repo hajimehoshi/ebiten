@@ -17,6 +17,7 @@ package text
 import (
 	"image"
 	"slices"
+	"sync"
 	"unicode/utf8"
 
 	"golang.org/x/image/font"
@@ -47,7 +48,9 @@ type GoXFace struct {
 
 	glyphImageCache *cache[goXFaceGlyphImageCacheKey, *ebiten.Image]
 
-	cachedMetrics Metrics
+	// cachedMetrics is guarded by cachedMetricsMu.
+	cachedMetrics   Metrics
+	cachedMetricsMu sync.Mutex
 
 	originXCache *cache[string, []fixed.Int26_6]
 
@@ -77,6 +80,9 @@ func (g *GoXFace) copyCheck() {
 // Metrics implements Face.
 func (g *GoXFace) Metrics() Metrics {
 	g.copyCheck()
+
+	g.cachedMetricsMu.Lock()
+	defer g.cachedMetricsMu.Unlock()
 
 	if g.cachedMetrics != (Metrics{}) {
 		return g.cachedMetrics
@@ -346,16 +352,10 @@ func (g *GoXFace) glyphImageImpl(r rune, subpixelOffset fixed.Point26_6, glyphBo
 	rgba := newPooledRGBA(w, h)
 	defer releasePooledRGBA(rgba)
 
-	d := font.Drawer{
-		Dst:  rgba,
-		Src:  image.White,
-		Face: g.f,
-		Dot: fixed.Point26_6{
-			X: -glyphBounds.Min.X + subpixelOffset.X,
-			Y: -glyphBounds.Min.Y + subpixelOffset.Y,
-		},
-	}
-	d.DrawString(string(r))
+	g.f.drawString(rgba, image.White, fixed.Point26_6{
+		X: -glyphBounds.Min.X + subpixelOffset.X,
+		Y: -glyphBounds.Min.Y + subpixelOffset.Y,
+	}, string(r))
 
 	return ebiten.NewImageFromImage(rgba)
 }

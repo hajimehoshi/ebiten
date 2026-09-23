@@ -37,7 +37,7 @@ var (
 
 // ColorM represents a matrix to transform coloring when rendering an image.
 //
-// ColorM is applied to the source alpha color
+// ColorM is applied to the source straight alpha color
 // while an Image's pixels' format is alpha premultiplied.
 // Before applying a matrix, a color is un-multiplied, and after applying the matrix,
 // the color is multiplied again.
@@ -61,7 +61,7 @@ type ColorM interface {
 	Equals(other ColorM) bool
 
 	// Concat multiplies a color matrix with the other color matrix.
-	// This is same as multiplying the matrix other and the matrix c in this order.
+	// This is the same as multiplying the matrix other and the matrix c in this order.
 	Concat(other ColorM) ColorM
 
 	// Scale scales the matrix by (r, g, b, a).
@@ -759,7 +759,7 @@ var (
 // saturationScale is a value to scale saturation.
 // valueScale is a value to scale value (a.k.a. brightness).
 //
-// This conversion uses RGB to/from YCrCb conversion.
+// This conversion uses RGB to/from YCbCr conversion.
 func ChangeHSV(c ColorM, hueTheta float64, saturationScale float32, valueScale float32) ColorM {
 	if hueTheta == 0 && saturationScale == 1 {
 		v := valueScale
