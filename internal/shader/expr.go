@@ -1006,7 +1006,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					exprs[0],
 					{
 						Type:      shaderir.SwizzlingExpr,
-						Swizzling: e.Sel.Name,
+						Swizzling: normalizeSwizzling(e.Sel.Name),
 					},
 				},
 			},
@@ -1346,6 +1346,23 @@ func (cs *compileState) parseCallee(block *block, e ast.Expr) (shaderir.Expr, bo
 	}
 	cs.addError(e.Pos(), fmt.Sprintf("function callee must be a function name but %s", e))
 	return shaderir.Expr{}, false
+}
+
+func normalizeSwizzling(s string) string {
+	return strings.Map(func(r rune) rune {
+		switch r {
+		case 'r', 's':
+			return 'x'
+		case 'g', 't':
+			return 'y'
+		case 'b', 'p':
+			return 'z'
+		case 'a', 'q':
+			return 'w'
+		default:
+			return r
+		}
+	}, s)
 }
 
 func isValidSwizzling(swizzling string, t shaderir.Type) bool {

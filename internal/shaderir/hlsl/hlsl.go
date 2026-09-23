@@ -369,27 +369,6 @@ func constantToNumberLiteral(v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
-// normalizeSwizzlingForHLSL converts a swizzling to one HLSL accepts.
-// HLSL supports only the xyzw and rgba component naming sets, so stpq is
-// rewritten to the equivalent xyzw swizzling.
-// https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/dx-graphics-hlsl-per-component-math#the-vector-type
-func normalizeSwizzlingForHLSL(s string) string {
-	const (
-		stpq = "stpq"
-		xyzw = "xyzw"
-	)
-	if strings.IndexByte(stpq, s[0]) < 0 {
-		return s
-	}
-	return strings.Map(func(r rune) rune {
-		i := strings.IndexRune(stpq, r)
-		if i < 0 {
-			return r
-		}
-		return rune(xyzw[i])
-	}, s)
-}
-
 func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
 	switch topBlock {
 	case p.VertexFunc.Block:
@@ -476,7 +455,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			if !shaderir.IsValidSwizzling(e.Swizzling) {
 				return fmt.Sprintf("?(unexpected swizzling: %s)", e.Swizzling)
 			}
-			return normalizeSwizzlingForHLSL(e.Swizzling)
+			return e.Swizzling
 		case shaderir.FunctionExpr:
 			return fmt.Sprintf("F%d", e.Index)
 		case shaderir.Unary:
