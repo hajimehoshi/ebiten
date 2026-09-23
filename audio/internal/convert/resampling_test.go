@@ -853,6 +853,81 @@ func TestResamplingZeroReadInMiddle(t *testing.T) {
 	}
 }
 
+var errSourceRead = errors.New("source read failed")
+
+// failingReadSeeker fails the Read call with the given 1-based number once.
+type failingReadSeeker struct {
+	src    io.ReadSeeker
+	failAt int
+	reads  int
+}
+
+func (f *failingReadSeeker) Read(buf []byte) (int, error) {
+	f.reads++
+	if f.reads == f.failAt {
+		return 0, errSourceRead
+	}
+	return f.src.Read(buf)
+}
+
+func (f *failingReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return f.src.Seek(offset, whence)
+}
+
+func TestResamplingPartialReadThenSourceErrorThenRetry(t *testing.T) {
+	const (
+		from        = 44100
+		to          = 44100
+		blockFrames = 4096
+	)
+
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			bytesPerSample := bitDepthInBytes * 2
+			inB := newSoundBytesForFrames(from, 3*blockFrames, bitDepthInBytes)
+
+			wantB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, bitDepthInBytes))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// The first read delivers the first block, and the second read fails,
+			// so that a partial frame count is returned along with the error.
+			src := &failingReadSeeker{src: bytes.NewReader(inB), failAt: 2}
+			r := convert.NewResampling(src, int64(len(inB)), from, to, bitDepthInBytes)
+
+			buf := make([]byte, 2*blockFrames*bytesPerSample)
+			n, err := r.Read(buf)
+			if !errors.Is(err, errSourceRead) {
+				t.Fatalf("Read: got error %v, want %v", err, errSourceRead)
+			}
+			if n <= 0 || n >= len(buf) || n%bytesPerSample != 0 {
+				t.Fatalf("Read: got %d bytes written, want a partial positive multiple of %d bytes less than %d", n, bytesPerSample, len(buf))
+			}
+
+			// The position must reflect the already-written bytes.
+			pos, err := r.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(n); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+			}
+
+			// A retry must continue right after the delivered bytes.
+			gotB := append([]byte(nil), buf[:n]...)
+			rest, err := io.ReadAll(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			gotB = append(gotB, rest...)
+			if !bytes.Equal(gotB, wantB) {
+				t.Errorf("a retry after a source read error returned %d bytes, want the same %d bytes as a fresh stream", len(gotB), len(wantB))
+			}
+		})
+	}
+}
+
 func readAllInChunksLimited(t *testing.T, r io.Reader, chunkSizeInBytes int, limitInBytes int) []byte {
 	t.Helper()
 
