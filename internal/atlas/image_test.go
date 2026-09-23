@@ -20,7 +20,6 @@ import (
 	"runtime"
 	"testing"
 	"time"
-	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -862,36 +861,33 @@ func TestIteratingImagesToPutOnSourceBackend(t *testing.T) {
 	}
 }
 
-func ensureGC() {
-	// Use a pointer to avoid tinyalloc. A tinyalloc-ed object's cleanup might not be called immediately.
-	// See runtime/mfinal_test.go.
-	x := new(unsafe.Pointer)
-	ch := make(chan struct{})
-	runtime.AddCleanup(x, func(_ struct{}) { close(ch) }, struct{}{})
-	runtime.KeepAlive(x)
-	runtime.GC()
-	<-ch
-
-	// Add a little sleep to wait for other finalizers.
-	// TODO: Is there a better way?
-	time.Sleep(time.Millisecond)
+func waitForGC(done func() bool) bool {
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		runtime.GC()
+		atlas.FlushDeferredForTesting()
+		if done() {
+			return true
+		}
+		if time.Now().After(deadline) {
+			return false
+		}
+		time.Sleep(time.Millisecond)
+	}
 }
 
 func TestGC(t *testing.T) {
 	img := atlas.NewImage(16, 16, atlas.ImageTypeRegular)
 	img.WritePixels(make([]byte, 4*16*16), image.Rect(0, 0, 16, 16))
 
-	// Ensure other objects are GCed, as GC appends deferred functions for collected objects.
-	ensureGC()
-
-	// Get the difference of the number of deferred functions before and after img is GCed.
-	c := atlas.DeferredFuncCountForTesting()
+	isDeallocated := img.IsDeallocatedFuncForTesting()
+	if isDeallocated() {
+		t.Fatal("image was not allocated")
+	}
 	runtime.KeepAlive(img)
-	ensureGC()
 
-	diff := atlas.DeferredFuncCountForTesting() - c
-	if got, want := diff, 1; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+	if !waitForGC(isDeallocated) {
+		t.Error("image was not deallocated after GC")
 	}
 }
 
