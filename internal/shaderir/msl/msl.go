@@ -448,8 +448,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				args = append(args, expr(&exp))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc == shaderir.TexelAt {
-				// The sampler returns a transparent texel for a position outside the texture.
-				return fmt.Sprintf("%s.sample(__texelSampler, %s)", args[0], strings.Join(args[1:], ", "))
+				// Floor the position so that a negative position is out of the texture.
+				// Without this, the nearest filter rounds the position to the nearest texel.
+				return fmt.Sprintf("%s.sample(__texelSampler, floor(%s))", args[0], strings.Join(args[1:], ", "))
 			}
 			if callee.Type == shaderir.BuiltinFuncExpr && (callee.BuiltinFunc == shaderir.Min || callee.BuiltinFunc == shaderir.Max) {
 				result := args[0]
