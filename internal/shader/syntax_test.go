@@ -1117,7 +1117,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	a := 1 << 62
+	a := 1 << 30
 	_ = a
 	return vec4(0)
 }`)); err != nil {
@@ -3685,6 +3685,69 @@ func TestSyntaxSwizzling(t *testing.T) {
 		{stmt: "var a ivec4; var b ivec3 = a.xyy; _ = b", err: false},
 		{stmt: "var a ivec4; var b ivec3 = a.zzz; _ = b", err: false},
 		{stmt: "var a ivec4; var b ivec4 = a.xyzw; _ = b", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
+func TestSyntaxIntConstantRange(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := 2147483647; _ = a", err: false},
+		{stmt: "a := 2147483648; _ = a", err: true},
+		{stmt: "a := -2147483648; _ = a", err: false},
+		{stmt: "a := -2147483649; _ = a", err: true},
+		{stmt: "a := 1 << 30; _ = a", err: false},
+		{stmt: "a := 1 << 31; _ = a", err: true},
+		{stmt: "a := 1 << 40; _ = a", err: true},
+		{stmt: "a := 0x7fffffff; _ = a", err: false},
+		{stmt: "a := 0xffffffff; _ = a", err: true},
+		{stmt: "var a int = 2147483647; _ = a", err: false},
+		{stmt: "var a int = 2147483648; _ = a", err: true},
+		{stmt: "var a int = 1 << 40; _ = a", err: true},
+		{stmt: "var a int; a = 2147483648; _ = a", err: true},
+		{stmt: "var a int; b := a + 2147483648; _ = b", err: true},
+		{stmt: "var a int; b := a == 2147483648; _ = b", err: true},
+		{stmt: "a := int(2147483647); _ = a", err: false},
+		{stmt: "a := int(2147483648); _ = a", err: true},
+		{stmt: "a := int(1 << 40); _ = a", err: true},
+		{stmt: "a := ivec2(1 << 40); _ = a", err: true},
+		{stmt: "a := ivec2(1 << 40, 0); _ = a", err: true},
+		{stmt: "a := min(int(1), 1 << 40); _ = a", err: true},
+		{stmt: "const a = 1 << 40; b := float(a); _ = b", err: false},
+		{stmt: "const a = 1 << 40; b := a; _ = b", err: true},
+		{stmt: "const a int = 2147483647; _ = a", err: false},
+		{stmt: "const a int = 2147483648", err: true},
+		{stmt: "const a int = 1 << 40", err: true},
+		{stmt: "for i := 0; i < 2147483647; i++ {}", err: false},
+		{stmt: "for i := 0; i < 2147483648; i++ {}", err: true},
+		{stmt: "for i := 2147483648; i < 0; i++ {}", err: true},
+		{stmt: "for i := 0; i < 1; i += 2147483648 {}", err: true},
+		{stmt: "for range 2147483647 {}", err: false},
+		{stmt: "for range 2147483648 {}", err: true},
+		{stmt: "a := 2147483648.0; _ = a", err: false},
+		{stmt: "a := float(2147483648); _ = a", err: false},
+		{stmt: "a := float(1 << 40); _ = a", err: false},
+		{stmt: "a := vec2(1 << 40); _ = a", err: false},
+		{stmt: "a := 1.0 * 1099511627776; _ = a", err: false},
+		{stmt: "var a float; b := a + 2147483648; _ = b", err: false},
+		{stmt: "var a [2147483647]int; _ = a", err: false},
 	}
 
 	for _, c := range cases {

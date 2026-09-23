@@ -20,6 +20,7 @@ import (
 	gconstant "go/constant"
 	"go/parser"
 	"go/token"
+	"math"
 	"slices"
 	"strings"
 
@@ -751,6 +752,9 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 		case shaderir.Bool:
 		case shaderir.Int:
 			c = gconstant.ToInt(c)
+			if !s.checkIntConstRange(vs.Pos(), c) {
+				return nil, false
+			}
 		case shaderir.Float:
 			c = gconstant.ToFloat(c)
 		}
@@ -898,6 +902,48 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}, true
 }
 
+// checkIntConstRange reports an error at pos when v is an integer constant that does not fit in a 32-bit integer.
+func (cs *compileState) checkIntConstRange(pos token.Pos, v gconstant.Value) bool {
+	if v == nil || v.Kind() != gconstant.Int {
+		return true
+	}
+	if x, exact := gconstant.Int64Val(v); exact && math.MinInt32 <= x && x <= math.MaxInt32 {
+		return true
+	}
+	cs.addError(pos, fmt.Sprintf("constant %s overflows int", v.String()))
+	return false
+}
+
+// checkIntConstRangeInStmts reports an error at pos for every integer constant in stmts that does not fit in a 32-bit integer.
+// Nested blocks are not checked, as parseBlock checks each block it parses.
+func (cs *compileState) checkIntConstRangeInStmts(pos token.Pos, stmts []shaderir.Stmt) bool {
+	ok := true
+	var checkExpr func(e *shaderir.Expr)
+	checkExpr = func(e *shaderir.Expr) {
+		if e.Type == shaderir.NumberExpr && !cs.checkIntConstRange(pos, e.Const) {
+			ok = false
+		}
+		for i := range e.Exprs {
+			checkExpr(&e.Exprs[i])
+		}
+	}
+	for i := range stmts {
+		s := &stmts[i]
+		for j := range s.Exprs {
+			checkExpr(&s.Exprs[j])
+		}
+		if s.Type != shaderir.For {
+			continue
+		}
+		for _, v := range []gconstant.Value{s.ForInit, s.ForEnd, s.ForDelta} {
+			if !cs.checkIntConstRange(pos, v) {
+				ok = false
+			}
+		}
+	}
+	return ok
+}
+
 func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable, returnType shaderir.Type, checkLocalVariableUsage bool) (*block, bool) {
 	var vars []variable
 	if outer == &cs.global {
@@ -948,6 +994,9 @@ func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt,
 	for _, stmt := range stmts {
 		ss, ok := cs.parseStmt(block, fname, stmt, inParams, outParams, returnType)
 		if !ok {
+			return nil, false
+		}
+		if !cs.checkIntConstRangeInStmts(stmt.Pos(), ss) {
 			return nil, false
 		}
 		block.ir.Stmts = append(block.ir.Stmts, ss...)
