@@ -90,6 +90,9 @@ func Compile(p *shaderir.Program) (shader string) {
 		assignedAttributes: p.AssignedAttributes(),
 	}
 
+	hasVertex := p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0
+	hasFragment := p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0
+
 	var lines []string
 	lines = append(lines, strings.Split(Prelude(), "\n")...)
 	lines = append(lines, "", "{{.Structs}}")
@@ -103,7 +106,8 @@ func Compile(p *shaderir.Program) (shader string) {
 		lines = append(lines, "};")
 	}
 
-	if len(p.Attributes) > 0 {
+	// The entry functions refer to Attributes and Varyings even when these have no members.
+	if len(p.Attributes) > 0 || hasVertex {
 		lines = append(lines, "")
 		lines = append(lines, "struct Attributes {")
 		for i, a := range p.Attributes {
@@ -112,7 +116,7 @@ func Compile(p *shaderir.Program) (shader string) {
 		lines = append(lines, "};")
 	}
 
-	if len(p.Varyings) > 0 {
+	if len(p.Varyings) > 0 || hasVertex || hasFragment {
 		lines = append(lines, "")
 		lines = append(lines, "struct Varyings {")
 		lines = append(lines, "\tfloat4 Position [[position]];")
@@ -135,7 +139,7 @@ func Compile(p *shaderir.Program) (shader string) {
 		}
 	}
 
-	if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
+	if hasVertex {
 		lines = append(lines, "")
 		lines = append(lines,
 			fmt.Sprintf("vertex Varyings %s(", VertexName),
@@ -164,7 +168,7 @@ func Compile(p *shaderir.Program) (shader string) {
 		lines = append(lines, "}")
 	}
 
-	if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
+	if hasFragment {
 		lines = append(lines, "")
 		lines = append(lines,
 			fmt.Sprintf("fragment float4 %s(", FragmentName),
