@@ -18,7 +18,9 @@ import (
 	"bytes"
 	_ "embed"
 	"errors"
+	"fmt"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/jfreymuth/oggvorbis"
@@ -743,5 +745,61 @@ func TestShortBufferEOFAndRecovery(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestSeekOverflow(t *testing.T) {
+	for idx, src := range [][]byte{test_mono_ogg, test_stereo_ogg} {
+		for _, decode := range []struct {
+			name string
+			f    func(io.Reader) (*vorbis.Stream, error)
+		}{
+			{
+				name: "Int16",
+				f:    vorbis.DecodeWithoutResampling,
+			},
+			{
+				name: "Float32",
+				f:    vorbis.DecodeF32,
+			},
+			{
+				name: "Resampled",
+				f:    func(src io.Reader) (*vorbis.Stream, error) { return vorbis.DecodeWithSampleRate(32000, src) },
+			},
+		} {
+			t.Run(fmt.Sprintf("%s/source=%d", decode.name, idx), func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				checkSeekOverflow(t, s)
+			})
+		}
+	}
+}
+
+func checkSeekOverflow(t *testing.T, r io.ReadSeeker) {
+	t.Helper()
+	want := make([]byte, 128)
+	if _, err := io.ReadFull(r, want); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Seek(64, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekCurrent, io.SeekEnd} {
+		if _, err := r.Seek(math.MaxInt64, whence); err == nil {
+			t.Errorf("Seek(MaxInt64, %d) succeeded", whence)
+		}
+		if pos, err := r.Seek(0, io.SeekCurrent); err != nil || pos != 64 {
+			t.Errorf("position after rejected seek = (%d, %v), want 64", pos, err)
+		}
+	}
+	got := make([]byte, 64)
+	if _, err := io.ReadFull(r, got); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want[64:]) {
+		t.Error("audio changed after rejected seeks")
 	}
 }

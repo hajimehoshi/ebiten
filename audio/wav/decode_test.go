@@ -18,7 +18,9 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"io"
+	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
@@ -857,5 +859,69 @@ func TestDecodePlaceholderDataChunkSizeSourceErrorWithData(t *testing.T) {
 	}
 	if got, want := append(buf[:n:n], rest...), data[:len(data)/4*4]; !bytes.Equal(got, want) {
 		t.Errorf("decoded %d bytes, want %d bytes", len(got), len(want))
+	}
+}
+
+func TestSeekOverflow(t *testing.T) {
+	for _, channels := range []int{1, 2} {
+		for _, bits := range []int{8, 16} {
+			for _, decode := range []struct {
+				name string
+				f    func(io.Reader) (*wav.Stream, error)
+			}{
+				{
+					name: "Int16",
+					f:    wav.DecodeWithoutResampling,
+				},
+				{
+					name: "Float32",
+					f:    wav.DecodeF32,
+				},
+				{
+					name: "Resampled",
+					f: func(src io.Reader) (*wav.Stream, error) {
+						return wav.DecodeWithSampleRate(testSampleRate*2, src)
+					},
+				},
+			} {
+				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
+					data := make([]byte, 8000)
+					for i := range data {
+						data[i] = byte(i)
+					}
+					s, err := decode.f(bytes.NewReader(pcmWavFile(channels, bits, data)))
+					if err != nil {
+						t.Fatal(err)
+					}
+					checkSeekOverflow(t, s)
+				})
+			}
+		}
+	}
+}
+
+func checkSeekOverflow(t *testing.T, r io.ReadSeeker) {
+	t.Helper()
+	want := make([]byte, 128)
+	if _, err := io.ReadFull(r, want); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Seek(64, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekCurrent, io.SeekEnd} {
+		if _, err := r.Seek(math.MaxInt64, whence); err == nil {
+			t.Errorf("Seek(MaxInt64, %d) succeeded", whence)
+		}
+		if pos, err := r.Seek(0, io.SeekCurrent); err != nil || pos != 64 {
+			t.Errorf("position after rejected seek = (%d, %v), want 64", pos, err)
+		}
+	}
+	got := make([]byte, 64)
+	if _, err := io.ReadFull(r, got); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want[64:]) {
+		t.Error("audio changed after rejected seeks")
 	}
 }

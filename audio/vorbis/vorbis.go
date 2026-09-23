@@ -24,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 const (
@@ -133,13 +134,20 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	var next int64
+	var ok bool
 	switch whence {
 	case io.SeekStart:
 		next = offset
 	case io.SeekCurrent:
-		next = int64(s.posInBytes) + offset
+		next, ok = mathutil.AddForSeek(s.posInBytes, offset)
+		if !ok {
+			return 0, fmt.Errorf("vorbis: position overflows int64")
+		}
 	case io.SeekEnd:
-		next = int64(s.totalBytes()) + offset
+		next, ok = mathutil.AddForSeek(s.totalBytes(), offset)
+		if !ok {
+			return 0, fmt.Errorf("vorbis: position overflows int64")
+		}
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}

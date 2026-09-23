@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"io"
 	"math"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 func NewFloat32BytesReaderFromInt16BytesReader(r io.Reader) io.Reader {
@@ -120,15 +122,18 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekStart:
 		pos = offset
 	case io.SeekCurrent:
-		// The position this reader presents is never negative, so only a negative offset can
-		// resolve before the start.
-		if offset < 0 {
-			cur, err := s.Seek(0, io.SeekCurrent)
-			if err != nil {
-				return 0, err
-			}
-			// The source is ahead of the position this reader presents by the buffered bytes.
-			pos = (cur-int64(len(r.i16Buf)))/2*4 + offset
+		cur, err := s.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		samples := (cur - int64(len(r.i16Buf))) / 2
+		base, ok := mathutil.Mul(samples, 4)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
+		pos, ok = mathutil.AddForSeek(base, offset)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
 		}
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the sample size. Resolve the offset
@@ -146,7 +151,14 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 			return 0, err
 		}
 		alignedEnd = end / 2 * 2
-		pos = alignedEnd/2*4 + offset
+		base, ok := mathutil.Mul(alignedEnd/2, 4)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
+		pos, ok = mathutil.AddForSeek(base, offset)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}

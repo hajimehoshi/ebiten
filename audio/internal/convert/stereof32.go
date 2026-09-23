@@ -17,6 +17,8 @@ package convert
 import (
 	"fmt"
 	"io"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 type StereoF32 struct {
@@ -118,11 +120,14 @@ func (s *StereoF32) sourceFrameSize() int64 {
 	return 8
 }
 
-// presentedPosition converts a position in the source's byte space to the stereo-f32 byte space
-// this wrapper presents.
+// presentedPosition returns the output byte position, or -1 if it overflows int64.
 func (s *StereoF32) presentedPosition(pos int64) int64 {
 	if s.mono {
-		pos *= 2
+		var ok bool
+		pos, ok = mathutil.Mul(pos, 2)
+		if !ok {
+			return -1
+		}
 	}
 	return pos
 }
@@ -132,6 +137,7 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 	// below, as the rounding truncates toward zero and would turn a small negative position
 	// into 0. An unknown whence is left to the source.
 	var pos int64
+	var ok bool
 	// alignedEnd is the source position just past the last whole frame. It is resolved only
 	// for io.SeekEnd.
 	var alignedEnd int64
@@ -139,16 +145,14 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekStart:
 		pos = offset
 	case io.SeekCurrent:
-		// The position this wrapper presents is never negative, so only a negative offset can
-		// resolve before the start.
-		if offset < 0 {
-			cur, err := s.source.Seek(0, io.SeekCurrent)
-			if err != nil {
-				return 0, err
-			}
-			// The buffered bytes were read from the source but are not converted yet, so the
-			// source is ahead of the position this wrapper presents.
-			pos = s.presentedPosition(cur-int64(len(s.buf))) + offset
+		cur, err := s.source.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		base := s.presentedPosition(cur - int64(len(s.buf)))
+		pos, ok = mathutil.AddForSeek(base, offset)
+		if base < 0 || !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
 		}
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the frame size.
@@ -168,7 +172,11 @@ func (s *StereoF32) Seek(offset int64, whence int) (int64, error) {
 		}
 		frameSize := s.sourceFrameSize()
 		alignedEnd = end / frameSize * frameSize
-		pos = s.presentedPosition(alignedEnd) + offset
+		base := s.presentedPosition(alignedEnd)
+		pos, ok = mathutil.AddForSeek(base, offset)
+		if base < 0 || !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
 	}
 	if pos < 0 {
 		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)

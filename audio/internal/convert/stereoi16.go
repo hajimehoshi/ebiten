@@ -17,6 +17,8 @@ package convert
 import (
 	"fmt"
 	"io"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 type Format int
@@ -170,19 +172,11 @@ func (s *StereoI16ReadSeeker) sourceFrameSize() int64 {
 	return size
 }
 
-// presentedPosition converts a position in the source format's byte space to the stereo-i16
-// byte space this wrapper presents.
+// presentedPosition returns the output byte position, or -1 if it overflows int64.
 func (s *StereoI16ReadSeeker) presentedPosition(pos int64) int64 {
-	if s.mono {
-		pos *= 2
-	}
-	switch s.format {
-	case FormatU8:
-		pos *= 2
-	case FormatS16:
-	case FormatS24:
-		pos *= 2
-		pos /= 3
+	pos, ok := mathutil.MulDiv(pos, 4, s.sourceFrameSize())
+	if !ok {
+		return -1
 	}
 	return pos
 }
@@ -192,23 +186,24 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	// below, as the rounding truncates toward zero and would turn a small negative position
 	// into 0. An unknown whence is left to the source.
 	var pos int64
+	var ok bool
 	// alignedEnd is the source position just past the last whole frame. It is resolved only
 	// for io.SeekEnd.
 	var alignedEnd int64
+	var current int64
 	switch whence {
 	case io.SeekStart:
 		pos = offset
 	case io.SeekCurrent:
-		// The position this wrapper presents is never negative, so only a negative offset can
-		// resolve before the start.
-		if offset < 0 {
-			cur, err := s.source.Seek(0, io.SeekCurrent)
-			if err != nil {
-				return 0, err
-			}
-			// The buffered bytes were read from the source but are not converted yet, so the
-			// source is ahead of the position this wrapper presents.
-			pos = s.presentedPosition(cur-int64(len(s.buf))) + offset
+		cur, err := s.source.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		current = cur - int64(len(s.buf))
+		base := s.presentedPosition(current)
+		pos, ok = mathutil.AddForSeek(base, offset)
+		if base < 0 || !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
 		}
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the frame size.
@@ -228,31 +223,34 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		}
 		frameSize := s.sourceFrameSize()
 		alignedEnd = end / frameSize * frameSize
-		pos = s.presentedPosition(alignedEnd) + offset
+		base := s.presentedPosition(alignedEnd)
+		pos, ok = mathutil.AddForSeek(base, offset)
+		if base < 0 || !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
 	}
 	if pos < 0 {
 		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
 	}
 
-	offset = offset / 4 * 4
-	if s.mono {
-		offset /= 2
+	sourceOffset, ok := mathutil.Mul(offset/4, s.sourceFrameSize())
+	if !ok {
+		return 0, fmt.Errorf("convert: source position overflows int64")
 	}
-	switch s.format {
-	case FormatU8:
-		offset /= 2
-	case FormatS16:
-	case FormatS24:
-		offset *= 3
-		offset /= 2
-	}
+	offset = sourceOffset
 
 	if whence == io.SeekCurrent {
+		if _, ok := mathutil.AddForSeek(current, offset); !ok {
+			return 0, fmt.Errorf("convert: source position overflows int64")
+		}
 		offset -= int64(len(s.buf))
 	}
 
 	if whence == io.SeekEnd {
-		offset += alignedEnd
+		offset, ok = mathutil.AddForSeek(alignedEnd, offset)
+		if !ok {
+			return 0, fmt.Errorf("convert: source position overflows int64")
+		}
 		whence = io.SeekStart
 	}
 

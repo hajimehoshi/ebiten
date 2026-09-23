@@ -18,6 +18,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // sectionReader is similar to io.SectionReader but takes an io.Reader instead of io.ReaderAt.
@@ -43,7 +45,7 @@ func (s *sectionReader) Read(p []byte) (int, error) {
 	if s.pos >= s.size {
 		return 0, io.EOF
 	}
-	if s.pos+int64(len(p)) > s.size {
+	if int64(len(p)) > s.size-s.pos {
 		p = p[:s.size-s.pos]
 	}
 	n, err := s.src.Read(p)
@@ -65,17 +67,27 @@ func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekStart:
 		pos = offset
 	case io.SeekCurrent:
-		pos = s.pos + offset
+		pos, ok = mathutil.AddForSeek(s.pos, offset)
+		if !ok {
+			return 0, fmt.Errorf("wav: position overflows int64")
+		}
 	case io.SeekEnd:
-		pos = s.size + offset
+		pos, ok = mathutil.AddForSeek(s.size, offset)
+		if !ok {
+			return 0, fmt.Errorf("wav: position overflows int64")
+		}
 	default:
 		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
 	if pos < 0 || pos > s.size {
 		return 0, fmt.Errorf("wav: position must be in [0, %d] but was %d", s.size, pos)
 	}
+	sourcePos, ok := mathutil.AddForSeek(pos, s.offset)
+	if !ok {
+		return 0, fmt.Errorf("wav: source position overflows int64")
+	}
 
-	if _, err := seeker.Seek(pos+s.offset, io.SeekStart); err != nil {
+	if _, err := seeker.Seek(sourcePos, io.SeekStart); err != nil {
 		return 0, err
 	}
 	s.pos = pos

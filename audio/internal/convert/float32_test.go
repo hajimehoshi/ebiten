@@ -577,3 +577,54 @@ func TestShortBufferEOFAndPosition(t *testing.T) {
 		})
 	}
 }
+
+func TestSeekOverflow(t *testing.T) {
+	src := make([]byte, 1024)
+	for i := range src {
+		src[i] = byte(i % 32)
+	}
+	t.Run("Float32", func(t *testing.T) {
+		checkSeekOverflow(t, convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(bytes.NewReader(src)))
+	})
+	for _, depth := range []int{2, 4} {
+		t.Run(fmt.Sprintf("Resampling/depth=%d", depth), func(t *testing.T) {
+			checkSeekOverflow(t, convert.NewResampling(bytes.NewReader(src), int64(len(src)), 44100, 48000, depth))
+		})
+	}
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("StereoF32/mono=%t", mono), func(t *testing.T) {
+			checkSeekOverflow(t, convert.NewStereoF32(bytes.NewReader(src), mono))
+		})
+		for _, format := range []convert.Format{convert.FormatU8, convert.FormatS16, convert.FormatS24} {
+			t.Run(fmt.Sprintf("StereoI16/mono=%t/format=%d", mono, format), func(t *testing.T) {
+				checkSeekOverflow(t, convert.NewStereoI16ReadSeeker(bytes.NewReader(src), mono, format))
+			})
+		}
+	}
+}
+
+func checkSeekOverflow(t *testing.T, r io.ReadSeeker) {
+	t.Helper()
+	want := make([]byte, 128)
+	if _, err := io.ReadFull(r, want); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := r.Seek(64, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekCurrent, io.SeekEnd} {
+		if _, err := r.Seek(math.MaxInt64, whence); err == nil {
+			t.Errorf("Seek(MaxInt64, %d) succeeded", whence)
+		}
+		if pos, err := r.Seek(0, io.SeekCurrent); err != nil || pos != 64 {
+			t.Errorf("position after rejected seek = (%d, %v), want 64", pos, err)
+		}
+	}
+	got := make([]byte, 64)
+	if _, err := io.ReadFull(r, got); err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want[64:]) {
+		t.Error("audio changed after rejected seeks")
+	}
+}

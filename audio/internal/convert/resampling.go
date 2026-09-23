@@ -428,16 +428,23 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	}
 
 	pos := r.pos
+	var ok bool
 	switch whence {
 	case io.SeekStart:
 		pos = offset
 	case io.SeekCurrent:
-		pos += offset
+		pos, ok = mathutil.AddForSeek(pos, offset)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
 	case io.SeekEnd:
 		if r.srcLength() < 0 {
 			return 0, fmt.Errorf("convert: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
 		}
-		pos = r.Length() + offset
+		pos, ok = mathutil.AddForSeek(r.Length(), offset)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}

@@ -15,7 +15,10 @@
 // Package mathutil provides arithmetic helpers.
 package mathutil
 
-import "math/bits"
+import (
+	"math"
+	"math/bits"
+)
 
 // Clamp01 returns x clamped to the range 0 to 1. NaN is treated as 0.
 func Clamp01(x float64) float64 {
@@ -27,6 +30,39 @@ func Clamp01(x float64) float64 {
 		return 1
 	}
 	return x
+}
+
+// AddForSeek returns position + offset, or (0, false) if the result does not fit in int64.
+func AddForSeek(position, offset int64) (int64, bool) {
+	if (offset > 0 && position > math.MaxInt64-offset) || (offset < 0 && position < math.MinInt64-offset) {
+		return 0, false
+	}
+	return position + offset, true
+}
+
+// Mul returns x * y, or (0, false) if the result does not fit in int64.
+func Mul(x, y int64) (int64, bool) {
+	// Unsigned magnitudes can represent the absolute value of MinInt64.
+	ux, uy := uint64(x), uint64(y)
+	if x < 0 {
+		ux = -ux
+	}
+	if y < 0 {
+		uy = -uy
+	}
+	hi, lo := bits.Mul64(ux, uy)
+	negative := (x < 0) != (y < 0)
+	limit := uint64(math.MaxInt64)
+	if negative {
+		limit++
+	}
+	if hi != 0 || lo > limit {
+		return 0, false
+	}
+	if negative {
+		return -int64(lo), true
+	}
+	return int64(lo), true
 }
 
 // MulDiv returns x * mul / div truncated toward zero.

@@ -21,6 +21,8 @@ import (
 	"math"
 
 	"github.com/jfreymuth/oggvorbis"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 var _ io.ReadSeeker = (*float32BytesReadSeeker)(nil)
@@ -105,12 +107,20 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 
 	sampleSize := int64(r.r.Channels()) * 4
 
+	var ok bool
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
-		offset += r.pos
+		offset, ok = mathutil.AddForSeek(r.pos, offset)
+		if !ok {
+			return 0, fmt.Errorf("vorbis: position overflows int64")
+		}
 	case io.SeekEnd:
-		offset += r.r.Length() * sampleSize
+		end := r.r.Length() * sampleSize
+		offset, ok = mathutil.AddForSeek(end, offset)
+		if !ok {
+			return 0, fmt.Errorf("vorbis: position overflows int64")
+		}
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
