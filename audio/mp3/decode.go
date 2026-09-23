@@ -50,6 +50,9 @@ func (s *Stream) Read(buf []byte) (int, error) {
 // Seek is an implementation of io.Seeker's Seek.
 //
 // Seek returns an error wrapping [errors.ErrUnsupported] when the source is not an io.Seeker.
+//
+// Seeking to the end can return a position less than Length: the length counts a
+// truncated last frame even if the decoder cannot decode it.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	if !s.seekable {
 		return 0, fmt.Errorf("mp3: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
@@ -64,6 +67,12 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 		cur, err := s.readSeeker.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return 0, err
+		}
+		// Asking for the current position must not reposition the decoder: the decoder
+		// cannot necessarily seek back to the position it is at, e.g. when its last
+		// frame is truncated.
+		if offset == 0 {
+			return cur, nil
 		}
 		pos = cur + offset
 	case io.SeekEnd:
@@ -80,7 +89,8 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	if pos == s.length {
 		// The underlying decoder cannot seek to exactly the end: it fails and
 		// leaves the decoder repositioned into the tail. Seek near the end and
-		// drain instead so the position reaches the end and further reads EOF.
+		// drain instead, so that the position reaches the end of the decodable
+		// data and further reads return io.EOF.
 		start := max(s.length-65536, 0)
 		if _, err := s.readSeeker.Seek(start, io.SeekStart); err != nil {
 			return 0, err
@@ -88,7 +98,14 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 		if _, err := io.Copy(io.Discard, s.readSeeker); err != nil {
 			return 0, err
 		}
-		return s.length, nil
+		// The length can count a truncated last frame, which the decoder cannot decode
+		// at all, and then the drain stops before the length. Report the position the
+		// drain actually reached, not the length the decoder never reached.
+		end, err := s.readSeeker.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		return end, nil
 	}
 	return s.readSeeker.Seek(pos, io.SeekStart)
 }

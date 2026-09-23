@@ -178,8 +178,101 @@ func TestSeekSeekableSource(t *testing.T) {
 	}
 }
 
+// ragtimeMP3FrameSizeInBytes is the size of a frame of ragtime.mp3 in bytes.
+const ragtimeMP3FrameSizeInBytes = 384
+
+func TestSeekEnd(t *testing.T) {
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			s, err := decode.f(bytes.NewReader(resources.Ragtime_mp3))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			pos, err := s.Seek(0, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, s.Length(); got != want {
+				t.Errorf("Seek(0, io.SeekEnd): got: %d, want: %d", got, want)
+			}
+
+			buf := make([]byte, 64)
+			if n, err := s.Read(buf); n != 0 || err != io.EOF {
+				t.Errorf("Read after Seek(0, io.SeekEnd): got: (%d, %v), want: (0, io.EOF)", n, err)
+			}
+			cur, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := cur, pos; got != want {
+				t.Errorf("Seek(0, io.SeekCurrent) after Seek(0, io.SeekEnd): got: %d, want: %d", got, want)
+			}
+			if n, err := s.Read(buf); n != 0 || err != io.EOF {
+				t.Errorf("Read after Seek(0, io.SeekCurrent) at the end: got: (%d, %v), want: (0, io.EOF)", n, err)
+			}
+
+			// A position beyond the length must be rejected.
+			if _, err := s.Seek(1, io.SeekEnd); err == nil {
+				t.Error("Seek(1, io.SeekEnd): got no error, want an error")
+			}
+		})
+	}
+}
+
+// The length reported by the underlying decoder counts a truncated last frame, which the
+// decoder cannot decode at all. Seeking to the end must return the position the decoder
+// actually reached, and the stream must stay at the end.
+func TestSeekEndTruncatedLastFrame(t *testing.T) {
+	// 10 complete frames followed by the header of the next frame.
+	src := resources.Ragtime_mp3[:10*ragtimeMP3FrameSizeInBytes+4]
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			s, err := decode.f(bytes.NewReader(src))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			drained, err := decode.f(bytes.NewReader(src))
+			if err != nil {
+				t.Fatal(err)
+			}
+			all, err := io.ReadAll(drained)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			pos, err := s.Seek(0, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(len(all)); got != want {
+				t.Errorf("Seek(0, io.SeekEnd): got: %d, want: %d, which is the whole decodable stream", got, want)
+			}
+			if pos > s.Length() {
+				t.Errorf("Seek(0, io.SeekEnd): got: %d, want a position <= %d (length)", pos, s.Length())
+			}
+
+			buf := make([]byte, 64)
+			if n, err := s.Read(buf); n != 0 || err != io.EOF {
+				t.Errorf("Read after Seek(0, io.SeekEnd): got: (%d, %v), want: (0, io.EOF)", n, err)
+			}
+			cur, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatalf("Seek(0, io.SeekCurrent) after Seek(0, io.SeekEnd): %v", err)
+			}
+			if got, want := cur, pos; got != want {
+				t.Errorf("Seek(0, io.SeekCurrent) after Seek(0, io.SeekEnd): got: %d, want: %d", got, want)
+			}
+			// The stream must not expose the truncated frame as stray audio.
+			if n, err := s.Read(buf); n != 0 || err != io.EOF {
+				t.Errorf("Read after Seek(0, io.SeekCurrent) at the end: got: (%d, %v), want: (0, io.EOF)", n, err)
+			}
+		})
+	}
+}
+
 func TestDecodeWithSampleRateNonSeekableSource(t *testing.T) {
-	const ragtimeMP3FrameSizeInBytes = 384
 	for _, frames := range []int{1, 10, 32} {
 		t.Run(fmt.Sprintf("frames=%d", frames), func(t *testing.T) {
 			src := resources.Ragtime_mp3[:frames*ragtimeMP3FrameSizeInBytes]
