@@ -382,7 +382,7 @@ func IsValidSwizzling(s string) bool {
 	const (
 		xyzw = "xyzw"
 		rgba = "rgba"
-		strq = "strq"
+		stpq = "stpq"
 	)
 
 	switch {
@@ -400,9 +400,9 @@ func IsValidSwizzling(s string) bool {
 			}
 		}
 		return true
-	case strings.IndexByte(strq, s[0]) >= 0:
+	case strings.IndexByte(stpq, s[0]) >= 0:
 		for _, c := range s {
-			if !strings.ContainsRune(strq, c) {
+			if !strings.ContainsRune(stpq, c) {
 				return false
 			}
 		}

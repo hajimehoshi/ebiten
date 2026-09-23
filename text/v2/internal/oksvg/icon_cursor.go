@@ -89,15 +89,14 @@ func (c *IconCursor) PushStyle(attrs []xml.Attr) error {
 	// Make a copy of the top style
 	curStyle := c.StyleStack[len(c.StyleStack)-1]
 	for _, pair := range pairs {
-		kv := strings.Split(pair, ":")
-		if len(kv) >= 2 {
-			k := strings.ToLower(kv[0])
-			k = strings.TrimSpace(k)
-			v := strings.TrimSpace(kv[1])
-			err := c.readStyleAttr(&curStyle, k, v)
-			if err != nil {
-				return err
-			}
+		k, v, ok := strings.Cut(pair, ":")
+		if !ok {
+			continue
+		}
+		k = strings.ToLower(strings.TrimSpace(k))
+		v = strings.TrimSpace(v)
+		if err := c.readStyleAttr(&curStyle, k, v); err != nil {
+			return err
 		}
 	}
 	if err := c.adaptClasses(&curStyle, className); err != nil {
@@ -300,6 +299,7 @@ func (c *IconCursor) readStyleAttr(curStyle *PathStyle, k, v string) error {
 			curStyle.Dash = dList
 			break
 		}
+		curStyle.Dash = nil
 	case "opacity", "stroke-opacity", "fill-opacity":
 		op, err := parseFloat(v, 64)
 		if err != nil {

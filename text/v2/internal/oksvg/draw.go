@@ -168,7 +168,7 @@ var (
 				return err
 			}
 		}
-		if len(c.points) > 4 {
+		if len(c.points) >= 4 {
 			c.Path.Start(fixed.Point26_6{
 				X: fixed.Int26_6((c.points[0]) * 64),
 				Y: fixed.Int26_6((c.points[1]) * 64)})
@@ -182,7 +182,7 @@ var (
 	}
 	polygonF svgFunc = func(c *IconCursor, attrs []xml.Attr) error {
 		err := polylineF(c, attrs)
-		if len(c.points) > 4 {
+		if len(c.points) >= 4 {
 			c.Path.Stop(true)
 		}
 		return err

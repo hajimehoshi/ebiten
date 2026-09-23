@@ -1082,3 +1082,33 @@ void main(void) {
 		})
 	}
 }
+
+func TestIsValidSwizzling(t *testing.T) {
+	tests := []struct {
+		Swizzling string
+		Expected  bool
+	}{
+		{"x", true},
+		{"xyzw", true},
+		{"r", true},
+		{"rgba", true},
+		{"s", true},
+		{"t", true},
+		{"p", true},
+		{"q", true},
+		{"stpq", true},
+		{"pp", true},
+		{"sr", false},
+		{"xs", false},
+		{"rx", false},
+		{"sx", false},
+		{"xyza", false},
+		{"xyzwx", false},
+		{"", false},
+	}
+	for _, tc := range tests {
+		if got := shaderir.IsValidSwizzling(tc.Swizzling); got != tc.Expected {
+			t.Errorf("IsValidSwizzling(%q): got: %v, want: %v", tc.Swizzling, got, tc.Expected)
+		}
+	}
+}
