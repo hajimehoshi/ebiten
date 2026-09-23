@@ -52,6 +52,7 @@ func (s *StereoF32) Read(b []byte) (int, error) {
 
 	// Read source bytes. Keep reading until one frame is available so that a source returning
 	// less than one frame at a time doesn't make Read return (0, nil).
+	var readErr error
 	for len(s.buf) < l && !s.eof {
 		origLen := len(s.buf)
 		if cap(s.buf) < l {
@@ -59,13 +60,14 @@ func (s *StereoF32) Read(b []byte) (int, error) {
 		}
 
 		n, err := s.source.Read(s.buf[origLen:l])
+		s.buf = s.buf[:origLen+n]
 		if err != nil && err != io.EOF {
-			return 0, err
+			readErr = err
+			break
 		}
 		if err == io.EOF {
 			s.eof = true
 		}
-		s.buf = s.buf[:origLen+n]
 		if len(s.buf) >= frameSize || n == 0 {
 			break
 		}
@@ -93,6 +95,9 @@ func (s *StereoF32) Read(b []byte) (int, error) {
 	s.buf = s.buf[:len(s.buf)-frames*frameSize]
 
 	n := frames * 8
+	if readErr != nil {
+		return n, readErr
+	}
 	if s.eof {
 		return n, io.EOF
 	}

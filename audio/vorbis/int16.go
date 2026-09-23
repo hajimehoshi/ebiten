@@ -51,9 +51,6 @@ func (r *int16BytesReader) Read(buf []byte) (int, error) {
 	}
 
 	n, err := r.r.Read(r.fbuf[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
 	if err == io.EOF {
 		r.eof = true
 	}

@@ -445,3 +445,44 @@ func TestFloat32SeekSmallNegativePosition(t *testing.T) {
 		t.Errorf("Seek(0, io.SeekCurrent): got: %d, want: 0", pos)
 	}
 }
+
+func TestFloat32SourceErrorWithData(t *testing.T) {
+	src := make([]byte, 40)
+	for i := range src {
+		src[i] = byte(i + 1)
+	}
+	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(&dataWithErrorReadSeeker{
+		src:    bytes.NewReader(src),
+		failAt: 1,
+		dataN:  7,
+	})
+	want := float32BytesFromInt16Bytes(src)
+
+	buf := make([]byte, 64)
+	n, err := r.Read(buf)
+	if !errors.Is(err, errSourceRead) {
+		t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+	}
+	if got, want := n, 3*4; got != want {
+		t.Errorf("Read: got %d bytes, want %d", got, want)
+	}
+	if got, want := buf[:n], want[:n]; !bytes.Equal(got, want) {
+		t.Errorf("Read: got %v, want %v", got, want)
+	}
+
+	pos, err := r.Seek(0, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := pos, int64(n); got != want {
+		t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+	}
+
+	rest, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := append(buf[:n:n], rest...); !bytes.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}

@@ -231,3 +231,37 @@ func TestInt16BytesReaderClipsOutOfRange(t *testing.T) {
 		}
 	}
 }
+
+// f32errorReader returns its values together with errSourceRead.
+type f32errorReader struct {
+	data []float32
+}
+
+func (f *f32errorReader) Read(buf []float32) (int, error) {
+	n := copy(buf, f.data)
+	f.data = f.data[n:]
+	return n, errSourceRead
+}
+
+func TestInt16BytesReaderErrorWithData(t *testing.T) {
+	in := []float32{0.1, -0.2, 0.3, -0.4}
+	r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32errorReader{
+		data: in,
+	}, 2)
+
+	buf := make([]byte, 64)
+	n, err := r.Read(buf)
+	if !errors.Is(err, errSourceRead) {
+		t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+	}
+
+	want := make([]byte, len(in)*2)
+	for i, f := range in {
+		s := int16(f * (1<<15 - 1))
+		want[2*i] = byte(s)
+		want[2*i+1] = byte(s >> 8)
+	}
+	if got := buf[:n]; !bytes.Equal(got, want) {
+		t.Errorf("Read: got %v, want %v", got, want)
+	}
+}

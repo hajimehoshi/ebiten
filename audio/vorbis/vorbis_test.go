@@ -595,3 +595,101 @@ func TestSeekSmallNegativePosition(t *testing.T) {
 		})
 	}
 }
+
+var errSourceRead = errors.New("vorbis_test: source read failed")
+
+// failOnceReadSeeker returns the bytes before failAt together with errSourceRead the first time a
+// Read reaches failAt. A negative failAt disables the failure.
+type failOnceReadSeeker struct {
+	src    *bytes.Reader
+	failAt int64
+}
+
+func (f *failOnceReadSeeker) Read(buf []byte) (int, error) {
+	pos := f.src.Size() - int64(f.src.Len())
+	if f.failAt <= pos || f.failAt > pos+int64(len(buf)) {
+		return f.src.Read(buf)
+	}
+	n, err := f.src.Read(buf[:f.failAt-pos])
+	f.failAt = -1
+	if err != nil {
+		return n, err
+	}
+	return n, errSourceRead
+}
+
+func (f *failOnceReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return f.src.Seek(offset, whence)
+}
+
+func TestDecodeSourceErrorWithData(t *testing.T) {
+	cases := []struct {
+		name   string
+		data   []byte
+		decode func(src io.Reader) (*vorbis.Stream, error)
+	}{
+		{
+			name:   "DecodeF32,mono",
+			data:   test_mono_ogg,
+			decode: vorbis.DecodeF32,
+		},
+		{
+			name:   "DecodeF32,stereo",
+			data:   test_stereo_ogg,
+			decode: vorbis.DecodeF32,
+		},
+		{
+			name:   "DecodeWithoutResampling,mono",
+			data:   test_mono_ogg,
+			decode: vorbis.DecodeWithoutResampling,
+		},
+		{
+			name:   "DecodeWithoutResampling,stereo",
+			data:   test_stereo_ogg,
+			decode: vorbis.DecodeWithoutResampling,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s, err := c.decode(bytes.NewReader(c.data))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want, err := io.ReadAll(s)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			src := &failOnceReadSeeker{
+				src:    bytes.NewReader(c.data),
+				failAt: -1,
+			}
+			s, err = c.decode(src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			src.failAt = int64(len(c.data) / 2)
+
+			buf := make([]byte, len(want))
+			n, err := s.Read(buf)
+			if !errors.Is(err, errSourceRead) {
+				t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+			}
+			if n <= 0 {
+				t.Errorf("Read: got %d bytes, want a positive count delivered with the error", n)
+			}
+			if !bytes.Equal(buf[:n], want[:n]) {
+				t.Errorf("Read: the %d bytes delivered with the error differ from a stream without the error", n)
+			}
+
+			pos, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(n); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+			}
+		})
+	}
+}

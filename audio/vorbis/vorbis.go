@@ -119,10 +119,7 @@ func (s *i16Stream) Read(b []byte) (int, error) {
 	l := int64(len(b))
 retry:
 	n, err := s.i16Reader.Read(b[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
-	if n == 0 && l > 0 && err != io.EOF {
+	if n == 0 && l > 0 && err == nil {
 		// When l is too small, decoder's Read might return 0 for a while. Let's retry.
 		goto retry
 	}

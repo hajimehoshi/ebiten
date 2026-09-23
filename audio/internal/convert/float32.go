@@ -49,6 +49,7 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 	// Read int16 bytes. Keep reading until one sample is available so that a source returning
 	// less than one sample at a time doesn't make Read return (0, nil).
 	i16LenToFill := len(buf) / 4 * 2
+	var readErr error
 	for len(r.i16Buf) < i16LenToFill && !r.eof {
 		origLen := len(r.i16Buf)
 		if cap(r.i16Buf) < i16LenToFill {
@@ -56,13 +57,14 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 		}
 
 		n, err := r.r.Read(r.i16Buf[origLen:i16LenToFill])
+		r.i16Buf = r.i16Buf[:origLen+n]
 		if err != nil && err != io.EOF {
-			return 0, err
+			readErr = err
+			break
 		}
 		if err == io.EOF {
 			r.eof = true
 		}
-		r.i16Buf = r.i16Buf[:origLen+n]
 		if len(r.i16Buf) >= 2 || n == 0 {
 			break
 		}
@@ -86,6 +88,9 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 	r.i16Buf = r.i16Buf[:len(r.i16Buf)-samplesToFill*2]
 
 	n := samplesToFill * 4
+	if readErr != nil {
+		return n, readErr
+	}
 	if r.eof {
 		return n, io.EOF
 	}

@@ -54,9 +54,6 @@ func (r *float32BytesReadSeeker) Read(buf []byte) (int, error) {
 	}
 
 	n, err := r.r.Read(r.fbuf[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
 
 	for i := range n {
 		v := math.Float32bits(r.fbuf[i])

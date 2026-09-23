@@ -108,6 +108,11 @@ type Resampling struct {
 	srcBufR               map[int64][]float64
 	lruSrcBlocks          []int64
 	eof                   bool
+
+	// partialSrcBuf is the beginning of the block partialSrcBlock read before a source error.
+	// The source position is right after it. partialSrcBuf is nil when there is no such block.
+	partialSrcBlock int64
+	partialSrcBuf   []byte
 }
 
 // NewResampling returns a stream that converts the sample rate of source.
@@ -173,7 +178,11 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 	nextPos := int64(i) / resamplingBufferSize
 	if _, ok := r.srcBufL[nextPos]; !ok {
 		blockStart := nextPos * resamplingBufferSize * sizePerSample
-		if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != nextPos {
+		buf := make([]byte, resamplingBufferSize*sizePerSample)
+		var c int
+		if r.partialSrcBuf != nil && r.partialSrcBlock == nextPos {
+			c = copy(buf, r.partialSrcBuf)
+		} else if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != nextPos {
 			seeker, ok := r.source.(io.Seeker)
 			if !ok {
 				return 0, 0, fmt.Errorf("convert: source must be io.Seeker")
@@ -182,8 +191,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 				return 0, 0, err
 			}
 		}
-		buf := make([]byte, resamplingBufferSize*sizePerSample)
-		var c int
+		r.partialSrcBuf = nil
 		var eof bool
 		for c < len(buf) {
 			n, err := r.source.Read(buf[c:])
@@ -202,6 +210,12 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 					break
 				}
 				r.lastReadSrcBlockValid = false
+				// Keep the bytes read so far, as a source that is not an io.Seeker cannot deliver them again.
+				if c > 0 {
+					r.partialSrcBlock = nextPos
+					r.partialSrcBuf = buf[:c]
+					r.srcReadEnd = max(r.srcReadEnd, blockStart+int64(c))
+				}
 				return 0, 0, err
 			}
 			// A source making no progress must not spin here.

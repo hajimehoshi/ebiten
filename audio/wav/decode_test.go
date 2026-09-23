@@ -799,3 +799,63 @@ func TestDecodePlaceholderDataChunkSizeShortReads(t *testing.T) {
 		t.Errorf("decoded %d bytes, want %d bytes", len(got), len(want))
 	}
 }
+
+var errSourceRead = errors.New("wav_test: source read failed")
+
+// failOnceReader returns the bytes before failAt together with errSourceRead the first time a Read
+// reaches failAt.
+type failOnceReader struct {
+	r      *bytes.Reader
+	failAt int64
+}
+
+func (f *failOnceReader) Read(buf []byte) (int, error) {
+	pos := f.r.Size() - int64(f.r.Len())
+	if f.failAt <= pos || f.failAt > pos+int64(len(buf)) {
+		return f.r.Read(buf)
+	}
+	n, err := f.r.Read(buf[:f.failAt-pos])
+	f.failAt = -1
+	if err != nil {
+		return n, err
+	}
+	return n, errSourceRead
+}
+
+func TestDecodePlaceholderDataChunkSizeSourceErrorWithData(t *testing.T) {
+	data := make([]byte, 1002)
+	for i := range data {
+		data[i] = byte(i + 1)
+	}
+	patched := pcmWavFile(2, 16, data)
+	setDataChunkSize(patched, 0)
+	dataStart := bytes.Index(patched, []byte("data")) + 8
+
+	s, err := wav.DecodeWithoutResampling(&failOnceReader{
+		r:      bytes.NewReader(patched),
+		failAt: int64(dataStart + 3*4 + 1),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buf := make([]byte, 64)
+	n, err := s.Read(buf)
+	if !errors.Is(err, errSourceRead) {
+		t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+	}
+	if got, want := n, 3*4; got != want {
+		t.Errorf("Read: got %d bytes, want %d", got, want)
+	}
+	if got, want := buf[:n], data[:n]; !bytes.Equal(got, want) {
+		t.Errorf("Read: got %v, want %v", got, want)
+	}
+
+	rest, err := io.ReadAll(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := append(buf[:n:n], rest...), data[:len(data)/4*4]; !bytes.Equal(got, want) {
+		t.Errorf("decoded %d bytes, want %d bytes", len(got), len(want))
+	}
+}
