@@ -30,8 +30,9 @@ const (
 )
 
 type compileContext struct {
-	structNames map[string]string
-	structTypes []shaderir.Type
+	structNames        map[string]string
+	structTypes        []shaderir.Type
+	assignedAttributes []bool
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -85,7 +86,8 @@ const (
 
 func Compile(p *shaderir.Program) (shader string) {
 	c := &compileContext{
-		structNames: map[string]string{},
+		structNames:        map[string]string{},
+		assignedAttributes: p.AssignedAttributes(),
 	}
 
 	var lines []string
@@ -149,6 +151,12 @@ func Compile(p *shaderir.Program) (shader string) {
 		}
 		lines[len(lines)-1] += ") {"
 		lines = append(lines, fmt.Sprintf("\tVaryings %s = {};", vertexOut))
+		for i, a := range p.Attributes {
+			if !c.assignedAttributes[i] {
+				continue
+			}
+			lines = append(lines, fmt.Sprintf("\t%s = %s;", c.varDecl(p, &a, attributeCopyName(i), false), attributeName(i)))
+		}
 		lines = append(lines, c.block(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 		if last := fmt.Sprintf("\treturn %s;", vertexOut); lines[len(lines)-1] != last {
 			lines = append(lines, last)
@@ -310,14 +318,27 @@ func constantToNumberLiteral(v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
-func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
+func attributeName(idx int) string {
+	return fmt.Sprintf("attributes[vid].M%d", idx)
+}
+
+// attributeCopyName returns the name of the local variable that holds a copy of an assigned attribute.
+// An attribute itself is read-only as it is accessed through a const pointer.
+func attributeCopyName(idx int) string {
+	return fmt.Sprintf("a%d", idx)
+}
+
+func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
 	switch topBlock {
 	case p.VertexFunc.Block:
 		na := len(p.Attributes)
 		nv := len(p.Varyings)
 		switch {
 		case idx < na:
-			return fmt.Sprintf("attributes[vid].M%d", idx)
+			if c.assignedAttributes[idx] {
+				return attributeCopyName(idx)
+			}
+			return attributeName(idx)
 		case idx == na:
 			return fmt.Sprintf("%s.Position", vertexOut)
 		case idx < na+nv+1:
@@ -342,7 +363,7 @@ func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) s
 
 func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shaderir.Block, index int, decl bool, level int) []string {
 	idt := strings.Repeat("\t", level+1)
-	name := localVariableName(p, topBlock, index)
+	name := c.localVariableName(p, topBlock, index)
 	t := p.LocalVariableType(topBlock, block, index)
 
 	var lines []string
@@ -379,7 +400,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.TextureVariable:
 			return fmt.Sprintf("T%d", e.Index)
 		case shaderir.LocalVariable:
-			return localVariableName(p, topBlock, e.Index)
+			return c.localVariableName(p, topBlock, e.Index)
 		case shaderir.StructMember:
 			return fmt.Sprintf("M%d", e.Index)
 		case shaderir.BuiltinFuncExpr:
@@ -485,7 +506,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.For:
-			v := localVariableName(p, topBlock, s.ForVarIndex)
+			v := c.localVariableName(p, topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
 			case 0:
