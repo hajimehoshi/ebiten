@@ -33,6 +33,15 @@ type compileContext struct {
 	structNames        map[string]string
 	structTypes        []shaderir.Type
 	assignedAttributes []bool
+
+	// vertexFuncIndices is the set of the indices of the functions reachable from the vertex entry point.
+	// Metal allows [[front_facing]] only in fragment functions, so these functions do not take front_facing.
+	vertexFuncIndices map[int]struct{}
+}
+
+func (c *compileContext) isVertexFunc(index int) bool {
+	_, ok := c.vertexFuncIndices[index]
+	return ok
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -88,6 +97,12 @@ func Compile(p *shaderir.Program) (shader string) {
 	c := &compileContext{
 		structNames:        map[string]string{},
 		assignedAttributes: p.AssignedAttributes(),
+		vertexFuncIndices:  map[int]struct{}{},
+	}
+	if p.VertexFunc.Block != nil {
+		for _, f := range p.ReachableFuncsFromBlock(p.VertexFunc.Block) {
+			c.vertexFuncIndices[f.Index] = struct{}{}
+		}
 	}
 
 	hasVertex := p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0
@@ -271,7 +286,9 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 	for i := 0; i < p.TextureCount; i++ {
 		args = append(args, fmt.Sprintf("texture2d<float> T%d", i))
 	}
-	args = append(args, "bool front_facing")
+	if !c.isVertexFunc(f.Index) {
+		args = append(args, "bool front_facing")
+	}
 
 	var idx int
 	for _, t := range f.InParams {
@@ -447,7 +464,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				for i := 0; i < p.TextureCount; i++ {
 					args = append(args, fmt.Sprintf("T%d", i))
 				}
-				args = append(args, "front_facing")
+				if !c.isVertexFunc(callee.Index) {
+					args = append(args, "front_facing")
+				}
 			}
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, expr(&exp))
