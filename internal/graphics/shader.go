@@ -26,7 +26,7 @@ import (
 
 // Go's whitespace is U+0020 (SP), U+0009 (\t), U+000d (\r), and U+000A (\n).
 // See https://go.dev/ref/spec#Tokens
-var reUnit = regexp.MustCompile(`^[ \t\r\n]*//kage:unit\s+([^ \t\r\n]+)[ \t\r\n]*$`)
+var reUnit = regexp.MustCompile(`^[ \t\r\n]*//kage:unit\s+([^ \t\r\n]+)(?:[ \t\r\n]+//.*)?[ \t\r\n]*$`)
 
 // ParseKageUnitDirective returns the value of the //kage:unit directive in src, or an empty string if
 // the directive is absent. A duplicated directive is an error.
