@@ -1175,6 +1175,12 @@ func colrClipBoxExtents(clips tables.ClipList, gid font.GID) (font.GlyphExtents,
 // cache key; the outline path is ppem-independent and shares one entry
 // across sizes (see glyphDataCacheKey).
 //
+// When sideways is true, the returned data is rotated: the outline
+// itself for an outline glyph, and the fallback outline carried by an
+// SVG or bitmap glyph, which is what a sideways run renders for those
+// glyphs. The rotation is applied to the cached value, so it happens
+// once per key.
+//
 // The caller must hold g.shapeMu, and the shared font state must
 // reflect the given variations and the bitmap-mode ppem.
 func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string, sideways bool, size, yOffset fixed.Int26_6, useBitmap bool) font.GlyphData {
@@ -1196,8 +1202,22 @@ func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string,
 		if d == nil {
 			return nil, false
 		}
-		if outline, ok := d.(font.GlyphOutline); ok && sideways {
-			outline.Sideways(fixed26_6ToFloat32(-yOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem()))
+		if sideways {
+			// A sideways run rasterizes the outline (or the fallback
+			// outline of an SVG or bitmap glyph) into already-rotated
+			// bounds, so every outline that can be drawn must be rotated
+			// and offset here, not only a top-level GlyphOutline.
+			yOffsetFontUnits := fixed26_6ToFloat32(-yOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
+			switch d := d.(type) {
+			case font.GlyphOutline:
+				d.Sideways(yOffsetFontUnits)
+			case font.GlyphSVG:
+				d.Outline.Sideways(yOffsetFontUnits)
+			case font.GlyphBitmap:
+				if d.Outline != nil {
+					d.Outline.Sideways(yOffsetFontUnits)
+				}
+			}
 		}
 		return d, true
 	})
@@ -1244,7 +1264,8 @@ func (g *GoTextFaceSource) realizeRenderData(rd *glyphRenderData) {
 	case font.GlyphSVG:
 		rawSegs = d.Outline.Segments
 		// A sideways SVG glyph would need a rotated rasterization, which
-		// is not supported; the fallback outline is used instead.
+		// is not supported; the fallback outline, rotated by
+		// fetchGlyphData, is used instead.
 		if !rd.sideways {
 			rd.realizedSVG = g.svgGlyphData(d, rd.gid)
 		}
@@ -1252,7 +1273,10 @@ func (g *GoTextFaceSource) realizeRenderData(rd *glyphRenderData) {
 		if d.Outline != nil {
 			rawSegs = d.Outline.Segments
 		}
-		if rd.useBitmap {
+		// A sideways bitmap would need a rotated rasterization, which is
+		// not supported; the fallback outline, rotated by fetchGlyphData,
+		// is used instead.
+		if rd.useBitmap && !rd.sideways {
 			rawBitmap = d
 			hasRawBitmap = true
 		}
