@@ -190,7 +190,7 @@ func shaderFromFillRule(fillRule FillRule) *Shader {
 func drawTrianglesWithStencilBuffer(dst *Image, vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions) {
 	if options.FillRule == FillRuleFillAll {
 		if !options.AntiAlias {
-			panic("not reached")
+			panic("ebiten: drawTrianglesWithStencilBuffer requires anti-aliasing or a fill rule other than FillRuleFillAll")
 		}
 		doDrawTrianglesWithAntialias(dst, vertices, indices, img, options, nil, nil)
 		return
@@ -201,7 +201,7 @@ func drawTrianglesWithStencilBuffer(dst *Image, vertices []Vertex, indices []uin
 func drawTrianglesShaderWithStencilBuffer(dst *Image, vertices []Vertex, indices []uint32, shader *Shader, options *DrawTrianglesShaderOptions) {
 	if options.FillRule == FillRuleFillAll {
 		if !options.AntiAlias {
-			panic("not reached")
+			panic("ebiten: drawTrianglesShaderWithStencilBuffer requires anti-aliasing or a fill rule other than FillRuleFillAll")
 		}
 		doDrawTrianglesWithAntialias(dst, vertices, indices, nil, nil, shader, options)
 		return

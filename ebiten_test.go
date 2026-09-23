@@ -41,3 +41,37 @@ func TestScreenSizeInFullscreen(t *testing.T) {
 		t.Errorf("h must be positive but not: %d", h)
 	}
 }
+
+func TestSetWindowSizeLimitsWithMinExceedingMax(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		minw int
+		minh int
+		maxw int
+		maxh int
+	}{
+		{
+			name: "Width",
+			minw: 200,
+			minh: -1,
+			maxw: 100,
+			maxh: -1,
+		},
+		{
+			name: "Height",
+			minw: -1,
+			minh: 200,
+			maxw: -1,
+			maxh: 100,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("SetWindowSizeLimits(%d, %d, %d, %d) must panic but not", tc.minw, tc.minh, tc.maxw, tc.maxh)
+				}
+			}()
+			ebiten.SetWindowSizeLimits(tc.minw, tc.minh, tc.maxw, tc.maxh)
+		})
+	}
+}

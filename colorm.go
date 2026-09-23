@@ -67,8 +67,13 @@ func (c *ColorM) Reset() {
 // In other words, Apply calculates ColorM * (r, g, b, a, 1)^T.
 // The result values are clamped to be in the range [0, 1].
 //
+// Apply panics if clr is nil.
+//
 // Deprecated: as of v2.5. Use the colorm package instead.
 func (c *ColorM) Apply(clr color.Color) color.Color {
+	if clr == nil {
+		panic("ebiten: the given color to Apply must not be nil")
+	}
 	return c.affineColorM().Apply(clr)
 }
 
@@ -93,8 +98,13 @@ func (c *ColorM) Scale(r, g, b, a float64) {
 
 // ScaleWithColor scales the matrix by clr.
 //
+// ScaleWithColor panics if clr is nil.
+//
 // Deprecated: as of v2.5. Use ColorScale or the colorm package instead.
 func (c *ColorM) ScaleWithColor(clr color.Color) {
+	if clr == nil {
+		panic("ebiten: the given color to ScaleWithColor must not be nil")
+	}
 	cr, cg, cb, ca := clr.RGBA()
 	if ca == 0 {
 		c.Scale(0, 0, 0, 0)
