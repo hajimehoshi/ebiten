@@ -183,7 +183,7 @@ func shaderFromFillRule(fillRule FillRule) *Shader {
 		}
 		return s
 	default:
-		panic("ebiten: not reached")
+		panic(fmt.Sprintf("ebiten: invalid fill rule: %d", int(fillRule)))
 	}
 }
 
