@@ -354,33 +354,30 @@ func platformInit() error {
 }
 
 func platformTerminate() error {
+	// Run every step even when one fails so that the later resources are still released.
+	var err error
+
 	if _glfw.platformWindow.blankCursor != 0 {
-		if err := _DestroyCursor(_glfw.platformWindow.blankCursor); err != nil {
-			return err
-		}
+		err = errors.Join(err, _DestroyCursor(_glfw.platformWindow.blankCursor))
 	}
 
 	if _glfw.platformWindow.deviceNotificationHandle != 0 {
-		if err := _UnregisterDeviceNotification(_glfw.platformWindow.deviceNotificationHandle); err != nil {
-			return err
-		}
+		err = errors.Join(err, _UnregisterDeviceNotification(_glfw.platformWindow.deviceNotificationHandle))
 	}
 
 	if _glfw.platformWindow.helperWindowHandle != 0 {
 		if !microsoftgdk.IsXbox() {
 			// An error 'invalid window handle' can occur without any specific reasons (#2551).
 			// As there is nothing to do, just ignore this error.
-			if err := _DestroyWindow(_glfw.platformWindow.helperWindowHandle); err != nil && !errors.Is(err, windows.ERROR_INVALID_WINDOW_HANDLE) {
-				return err
+			if destroyErr := _DestroyWindow(_glfw.platformWindow.helperWindowHandle); destroyErr != nil && !errors.Is(destroyErr, windows.ERROR_INVALID_WINDOW_HANDLE) {
+				err = errors.Join(err, destroyErr)
 			}
 		}
 	}
 
-	if err := unregisterWindowClassWin32(); err != nil {
-		return err
-	}
+	err = errors.Join(err, unregisterWindowClassWin32())
 
 	terminateWGL()
 
-	return nil
+	return err
 }
