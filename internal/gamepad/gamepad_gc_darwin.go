@@ -15,6 +15,7 @@
 package gamepad
 
 import (
+	"slices"
 	"sync"
 	"time"
 
@@ -29,6 +30,13 @@ import (
 type gcControllerToAdd struct {
 	controller uintptr
 	prop       controllerProperty
+	rejected   bool
+}
+
+type gcHIDDeviceLookup struct {
+	hidDeviceRegistryIDs []uint64
+	// lookupComplete reports whether the HID device lookup needs no further retries.
+	lookupComplete bool
 }
 
 type nativeGamepadsGC struct {
@@ -37,6 +45,10 @@ type nativeGamepadsGC struct {
 	controllersToAdd    []gcControllerToAdd
 	controllersToRemove []uintptr
 	controllersMu       sync.Mutex
+
+	// rejectedControllerHIDLookups maps rejected GC controllers to their HID device lookup results,
+	// holding one reference per controller until disconnection.
+	rejectedControllerHIDLookups map[uintptr]gcHIDDeviceLookup
 }
 
 // theGCGamepads is the running GameController backend. The notification blocks reference it
@@ -55,18 +67,44 @@ func (g *nativeGamepadsGC) init(gamepads *gamepads) error {
 }
 
 func (g *nativeGamepadsGC) update(gamepads *gamepads) error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
 	g.controllersMu.Lock()
 	defer g.controllersMu.Unlock()
 
 	for _, c := range g.controllersToAdd {
+		if c.rejected {
+			if _, ok := g.rejectedControllerHIDLookups[c.controller]; ok {
+				objc.ID(c.controller).Send(sel_release)
+				continue
+			}
+			if g.rejectedControllerHIDLookups == nil {
+				g.rejectedControllerHIDLookups = map[uintptr]gcHIDDeviceLookup{}
+			}
+			g.rejectedControllerHIDLookups[c.controller] = gcHIDDeviceLookup{}
+			continue
+		}
 		gamepads.addGCGamepad(c.controller, c.prop)
 	}
 	for _, controller := range g.controllersToRemove {
+		if _, ok := g.rejectedControllerHIDLookups[controller]; ok {
+			delete(g.rejectedControllerHIDLookups, controller)
+			// Release the reference retained by addController and held by rejectedControllerHIDLookups.
+			objc.ID(controller).Send(sel_release)
+		}
 		gamepads.removeGCGamepad(controller)
+		// Release the separate reference retained by removeController for the removal queue.
 		objc.ID(controller).Send(sel_release)
 	}
 	g.controllersToAdd = g.controllersToAdd[:0]
 	g.controllersToRemove = g.controllersToRemove[:0]
+	for controller, rejected := range g.rejectedControllerHIDLookups {
+		if !rejected.lookupComplete {
+			rejected.hidDeviceRegistryIDs, rejected.lookupComplete = gcHIDDeviceRegistryIDs(objc.ID(controller))
+			g.rejectedControllerHIDLookups[controller] = rejected
+		}
+	}
 	return nil
 }
 
@@ -176,4 +214,14 @@ func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float6
 	}
 	g.vibEnd = time.Now().Add(duration)
 	vibrateGCGamepad(g.leftMotor, g.rightMotor, strongMagnitude, weakMagnitude)
+}
+
+// isKnownRejectedHIDDevice reports whether the device is known to belong to a rejected GC controller.
+func (g *nativeGamepadsGC) isKnownRejectedHIDDevice(id uint64) bool {
+	for _, rejected := range g.rejectedControllerHIDLookups {
+		if slices.Contains(rejected.hidDeviceRegistryIDs, id) {
+			return true
+		}
+	}
+	return false
 }
