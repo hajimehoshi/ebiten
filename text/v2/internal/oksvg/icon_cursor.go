@@ -376,9 +376,13 @@ func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) error 
 	if className == "" || len(c.icon.classes) == 0 {
 		return nil
 	}
-	for k, v := range c.icon.classes[className] {
-		if err := c.readStyleAttr(pathStyle, k, v); err != nil {
-			return err
+	// A class attribute can hold several space-separated classes; apply each
+	// in order so later ones win, matching CSS semantics.
+	for _, name := range strings.Fields(className) {
+		for k, v := range c.icon.classes[name] {
+			if err := c.readStyleAttr(pathStyle, k, v); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
