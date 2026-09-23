@@ -80,6 +80,9 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	case io.SeekCurrent:
 		offset += r.pos
 	case io.SeekEnd:
+		if r.r.Length() == 0 {
+			return 0, fmt.Errorf("vorbis: the length is unknown and SeekEnd is unavailable: %w", errors.ErrUnsupported)
+		}
 		offset += r.r.Length() * sampleSize
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
