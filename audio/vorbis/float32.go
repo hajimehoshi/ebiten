@@ -88,6 +88,9 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", offset)
 	}
 	pos := offset / sampleSize * sampleSize
+	if total := r.r.Length() * sampleSize; total > 0 && pos > total {
+		return 0, fmt.Errorf("vorbis: position must be <= %d (length) but was %d", total, pos)
+	}
 	if err := r.r.SetPosition(pos / sampleSize); err != nil {
 		return 0, err
 	}
