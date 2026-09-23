@@ -16,106 +16,150 @@ package text_test
 
 import (
 	"bytes"
-	"fmt"
-	"image"
+	"strings"
 	"testing"
 
-	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/go-text/typesetting/font/opentype"
+
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
-// inkBounds returns the bounding rectangle of the non-transparent pixels of
-// a glyph image, in the image's coordinates. It returns false when the image
-// is nil or has no visible pixel.
-func inkBounds(t *testing.T, img *ebiten.Image) (image.Rectangle, bool) {
+// bitmapTablesRemoved returns the font data with the bitmap strike tables
+// removed, so that the same glyphs render from their outlines.
+func bitmapTablesRemoved(t *testing.T, data []byte) []byte {
 	t.Helper()
 
-	if img == nil {
-		return image.Rectangle{}, false
+	ld, err := opentype.NewLoader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
 	}
+	strikes := map[string]bool{
+		"EBDT": true,
+		"EBLC": true,
+		"EBSC": true,
+		"CBDT": true,
+		"CBLC": true,
+		"sbix": true,
+	}
+	var tables []opentype.Table
+	for _, tag := range ld.Tables() {
+		if strikes[tag.String()] {
+			continue
+		}
+		content, err := ld.RawTable(tag)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tables = append(tables, opentype.Table{
+			Tag:     tag,
+			Content: content,
+		})
+	}
+	return opentype.WriteTTF(tables)
+}
+
+// glyphInk returns the visible part of a glyph image as rows of '#' for a
+// pixel with any coverage and '.' for a transparent one.
+func glyphInk(t *testing.T, str string, face *text.GoTextFace) string {
+	t.Helper()
+
+	glyphs := text.AppendGlyphs(nil, str, face, nil)
+	if len(glyphs) != 1 {
+		t.Fatalf("got %d glyphs for %q, want 1", len(glyphs), str)
+	}
+	img := glyphs[0].Image
+	if img == nil {
+		t.Fatalf("%q has no glyph image", str)
+	}
+
 	b := img.Bounds()
 	pix := make([]byte, 4*b.Dx()*b.Dy())
 	img.ReadPixels(pix)
+	covered := func(x, y int) bool {
+		return pix[4*(y*b.Dx()+x)+3] != 0
+	}
 
 	minX, minY, maxX, maxY := b.Dx(), b.Dy(), -1, -1
-	for j := range b.Dy() {
-		for i := range b.Dx() {
-			if pix[4*(j*b.Dx()+i)+3] == 0 {
+	for y := range b.Dy() {
+		for x := range b.Dx() {
+			if !covered(x, y) {
 				continue
 			}
-			minX = min(minX, i)
-			minY = min(minY, j)
-			maxX = max(maxX, i)
-			maxY = max(maxY, j)
+			minX = min(minX, x)
+			minY = min(minY, y)
+			maxX = max(maxX, x)
+			maxY = max(maxY, y)
 		}
 	}
 	if maxX < 0 {
-		return image.Rectangle{}, false
+		t.Fatalf("%q has no visible pixel", str)
 	}
-	return image.Rect(minX, minY, maxX+1, maxY+1), true
+
+	var sb strings.Builder
+	for y := minY; y <= maxY; y++ {
+		for x := minX; x <= maxX; x++ {
+			if covered(x, y) {
+				sb.WriteByte('#')
+			} else {
+				sb.WriteByte('.')
+			}
+		}
+		sb.WriteByte('\n')
+	}
+	return sb.String()
+}
+
+// rotateClockwise returns the rows of an image rotated 90 degrees clockwise.
+func rotateClockwise(rows string) string {
+	lines := strings.Split(strings.TrimSuffix(rows, "\n"), "\n")
+	var sb strings.Builder
+	for x := range len(lines[0]) {
+		for y := len(lines) - 1; y >= 0; y-- {
+			sb.WriteByte(lines[y][x])
+		}
+		sb.WriteByte('\n')
+	}
+	return sb.String()
 }
 
 // TestBitmapFontSideways tests that a glyph of a bitmap font is rotated in a
 // sideways run. A bitmap strike cannot be rotated, so the glyph must fall
-// back to its outline rasterized with the sideways rotation applied, not to
-// the unrotated outline drawn into the already rotated bounds.
+// back to its outline rasterized with the sideways rotation applied, and not
+// to the unrotated outline drawn into the already rotated bounds.
+//
+// The expected image is built independently of that rotation: the outline of
+// the same glyph is rendered horizontally by the same font with its bitmap
+// tables removed, and rotated here.
 func TestBitmapFontSideways(t *testing.T) {
-	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.TerminusTTF_ttf))
+	// Terminus has a bitmap strike at 16ppem, so a horizontal run renders
+	// that strike and a sideways run needs the outline fallback.
+	const (
+		str  = "F"
+		size = 16
+	)
+
+	bitmapSource, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.TerminusTTF_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	outlineSource, err := text.NewGoTextFaceSource(bytes.NewReader(bitmapTablesRemoved(t, fonts.TerminusTTF_ttf)))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// Terminus has bitmap strikes at these ppem values, so every size below
-	// renders the strike in a horizontal run.
-	for _, size := range []float64{12, 14, 16, 18, 20, 22, 24, 28, 32} {
-		t.Run(fmt.Sprintf("%v", size), func(t *testing.T) {
-			const str = "F"
-
-			horizontal := &text.GoTextFace{
-				Source: source,
-				Size:   size,
-			}
-			vertical := &text.GoTextFace{
-				Source:    source,
-				Size:      size,
-				Direction: text.DirectionTopToBottomAndLeftToRight,
-			}
-
-			hgs := text.AppendGlyphs(nil, str, horizontal, nil)
-			vgs := text.AppendGlyphs(nil, str, vertical, nil)
-			if len(hgs) != 1 || len(vgs) != 1 {
-				t.Fatalf("got %d horizontal and %d vertical glyphs, want 1 each", len(hgs), len(vgs))
-			}
-
-			hInk, ok := inkBounds(t, hgs[0].Image)
-			if !ok {
-				t.Fatal("the horizontal glyph has no visible pixel")
-			}
-			vInk, ok := inkBounds(t, vgs[0].Image)
-			if !ok {
-				t.Fatal("the vertical glyph has no visible pixel")
-			}
-
-			// The sideways ink must be the horizontal ink turned on its side.
-			// A bitmap strike and the outline of the same glyph are hinted
-			// differently, so a few pixels of difference are allowed.
-			const maxDiff = 2
-			d := func(x int) int {
-				if x < 0 {
-					return -x
-				}
-				return x
-			}
-			if diff := d(vInk.Dx() - hInk.Dy()); diff > maxDiff {
-				t.Errorf("the vertical glyph width %d is not the horizontal glyph height %d rotated: the diff is %d", vInk.Dx(), hInk.Dy(), diff)
-			}
-			if diff := d(vInk.Dy() - hInk.Dx()); diff > maxDiff {
-				t.Errorf("the vertical glyph height %d is not the horizontal glyph width %d rotated: the diff is %d", vInk.Dy(), hInk.Dx(), diff)
-			}
-			if vInk.Dx() <= vInk.Dy() {
-				t.Errorf("the vertical glyph ink %v must be wider than high, which means the glyph is not rotated", vInk)
-			}
-		})
+	// Both runs rasterize the same segments, and the glyph is placed on a
+	// pixel in both of them, so no rasterization tolerance is needed.
+	want := rotateClockwise(glyphInk(t, str, &text.GoTextFace{
+		Source: outlineSource,
+		Size:   size,
+	}))
+	got := glyphInk(t, str, &text.GoTextFace{
+		Source:    bitmapSource,
+		Size:      size,
+		Direction: text.DirectionTopToBottomAndLeftToRight,
+	})
+	if got != want {
+		t.Errorf("the sideways glyph of a bitmap font is not the rotated outline:\ngot:\n%swant:\n%s", got, want)
 	}
 }
