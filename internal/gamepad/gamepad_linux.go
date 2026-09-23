@@ -407,6 +407,16 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 	// Read multiple events at once to reduce the number of the read syscalls.
 	var buf [numReadEvents * eventSize]byte
 
+	restoreDeviceState := func() error {
+		if err := g.pollAbsState(); err != nil {
+			return fmt.Errorf("gamepad: poll absolute state: %w", err)
+		}
+		if err := g.pollKeyState(); err != nil {
+			return fmt.Errorf("gamepad: poll key state: %w", err)
+		}
+		return nil
+	}
+
 	for {
 		n, err := unix.Read(g.fdPlus1-1, buf[:])
 		if err != nil {
@@ -418,48 +428,72 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 			return fmt.Errorf("gamepad: Read failed: %w", err)
 		}
 
-		const (
-			offsetTyp   = int(unsafe.Offsetof(input_event{}.typ))
-			offsetCode  = int(unsafe.Offsetof(input_event{}.code))
-			offsetValue = int(unsafe.Offsetof(input_event{}.value))
-		)
-		for off := 0; off+int(eventSize) <= n; off += int(eventSize) {
-			// time is not used.
-			e := input_event{
-				typ:   uint16(buf[off+offsetTyp]) | uint16(buf[off+offsetTyp+1])<<8,
-				code:  uint16(buf[off+offsetCode]) | uint16(buf[off+offsetCode+1])<<8,
-				value: int32(buf[off+offsetValue]) | int32(buf[off+offsetValue+1])<<8 | int32(buf[off+offsetValue+2])<<16 | int32(buf[off+offsetValue+3])<<24,
-			}
+		if err := g.handleEvents(buf[:n], restoreDeviceState); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-			if e.typ == unix.EV_SYN && e.code == _SYN_DROPPED {
-				g.dropped = true
-			}
-			if g.dropped {
-				// Ignore events through the next SYN_REPORT, then restore the device state.
-				if e.typ == unix.EV_SYN && e.code == _SYN_REPORT {
-					if err := g.pollAbsState(); err != nil {
-						return fmt.Errorf("gamepad: poll absolute state: %w", err)
+// handleEvents handles the events read from the device at once. buf must
+// contain full input_event structures. restoreDeviceState restores the device
+// state after a SYN_DROPPED event and can be nil if the state cannot be
+// restored.
+func (g *nativeGamepadImpl) handleEvents(buf []byte, restoreDeviceState func() error) error {
+	const (
+		eventSize   = unsafe.Sizeof(input_event{})
+		offsetTyp   = int(unsafe.Offsetof(input_event{}.typ))
+		offsetCode  = int(unsafe.Offsetof(input_event{}.code))
+		offsetValue = int(unsafe.Offsetof(input_event{}.value))
+	)
+
+	// The events restored by restoreDeviceState are newer than the events left
+	// in this buffer. The kernel flushes the queued key events when the key
+	// state is queried (evdev_handle_get_val in drivers/input/evdev.c), but it
+	// cannot flush the events already read into buf. Applying such a stale key
+	// event after the restore would resurrect an outdated button state, so
+	// skip the remaining key events in this buffer.
+	skipKeyEvents := false
+
+	for off := 0; off+int(eventSize) <= len(buf); off += int(eventSize) {
+		// time is not used.
+		e := input_event{
+			typ:   uint16(buf[off+offsetTyp]) | uint16(buf[off+offsetTyp+1])<<8,
+			code:  uint16(buf[off+offsetCode]) | uint16(buf[off+offsetCode+1])<<8,
+			value: int32(buf[off+offsetValue]) | int32(buf[off+offsetValue+1])<<8 | int32(buf[off+offsetValue+2])<<16 | int32(buf[off+offsetValue+3])<<24,
+		}
+
+		if e.typ == unix.EV_SYN && e.code == _SYN_DROPPED {
+			g.dropped = true
+		}
+		if g.dropped {
+			// Ignore events through the next SYN_REPORT, then restore the device state.
+			if e.typ == unix.EV_SYN && e.code == _SYN_REPORT {
+				if restoreDeviceState != nil {
+					if err := restoreDeviceState(); err != nil {
+						return err
 					}
-					if err := g.pollKeyState(); err != nil {
-						return fmt.Errorf("gamepad: poll key state: %w", err)
-					}
-					g.dropped = false
 				}
+				g.dropped = false
+				skipKeyEvents = true
+			}
+			continue
+		}
+
+		switch e.typ {
+		case unix.EV_KEY:
+			if skipKeyEvents {
 				continue
 			}
-
-			switch e.typ {
-			case unix.EV_KEY:
-				if int(e.code-_BTN_MISC) < len(g.keyMap) {
-					idx := g.keyMap[e.code-_BTN_MISC]
-					if idx < 0 {
-						continue
-					}
-					g.buttons[idx] = e.value != 0
+			if int(e.code-_BTN_MISC) < len(g.keyMap) {
+				idx := g.keyMap[e.code-_BTN_MISC]
+				if idx < 0 {
+					continue
 				}
-			case unix.EV_ABS:
-				g.handleAbsEvent(int(e.code), e.value)
+				g.buttons[idx] = e.value != 0
 			}
+		case unix.EV_ABS:
+			g.handleAbsEvent(int(e.code), e.value)
 		}
 	}
 	return nil
