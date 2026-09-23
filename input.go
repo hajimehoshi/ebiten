@@ -334,7 +334,7 @@ func AppendGamepadTouchIDs(id GamepadID, surface int, touchIDs []GamepadTouchID)
 }
 
 // GamepadTouchPosition returns the position of the touch (touchID) on the gamepad (id).
-// Each coordinate is in the range [-1.0 - 1.0], where (-1.0, -1.0) is the top-left corner of the touch surface
+// Each coordinate is in the range [0.0 - 1.0], where (0.0, 0.0) is the top-left corner of the touch surface
 // and (1.0, 1.0) is the bottom-right corner.
 //
 // If the touch of the specified ID is not present, GamepadTouchPosition returns (0, 0).

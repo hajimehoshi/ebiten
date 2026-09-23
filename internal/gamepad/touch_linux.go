@@ -212,21 +212,20 @@ func (t *touchNode) handleSlotValue(slot, code int, value int32) {
 	case _ABS_MT_POSITION_X:
 		c.x = normalizeAbs(value, t.xInfo)
 	case _ABS_MT_POSITION_Y:
-		// The kernel's y is 0 at the top, as the touch API has -1 at the top.
+		// The kernel's y grows downward, as the touch API's does.
 		c.y = normalizeAbs(value, t.yInfo)
 	}
 }
 
-// normalizeAbs maps an absolute axis value to -1..1 over the axis's range, clamping a value past
+// normalizeAbs maps an absolute axis value to 0..1 over the axis's range, clamping a value past
 // either end so that a device reporting outside the range it declared cannot leave the range the
-// touch API documents. An axis with an empty range has no position to report, so its value is the
-// center.
+// touch API documents. An axis with an empty range has no position to report, so its value is 0.
 func normalizeAbs(value int32, info input_absinfo) float64 {
 	r := float64(info.maximum) - float64(info.minimum)
 	if r <= 0 {
 		return 0
 	}
-	return mathutil.Clamp01((float64(value)-float64(info.minimum))/r)*2 - 1
+	return mathutil.Clamp01((float64(value) - float64(info.minimum)) / r)
 }
 
 func (g *nativeGamepadImpl) touchSurfaceCount() int {

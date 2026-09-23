@@ -18,6 +18,7 @@ import (
 	"github.com/ebitengine/purego/objc"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/cocoa"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // gcTouchSlotMax is the number of fingers the GameController framework tracks on a touch surface:
@@ -243,12 +244,16 @@ func (g *nativeGamepadGC) reportTouch(slot int, st gcTouchState) {
 	g.recordTouch(slot, st)
 }
 
-// recordTouch records one finger's report in the tracker. The framework's positive y points up; the
-// touch API has -1 at the top of the surface.
+// recordTouch records one finger's report in the tracker. The framework reports each coordinate in
+// -1..1 with positive y pointing up; the touch API has 0..1 with (0, 0) at the top left of the
+// surface. A value past either end is clamped so that the touch API's range holds whatever the
+// framework reports.
 //
 // recordTouch must be called with g.touchMu held.
 func (g *nativeGamepadGC) recordTouch(slot int, st gcTouchState) {
-	g.touchTracker.report(slot, st.active, float64(st.x), -float64(st.y))
+	x := mathutil.Clamp01((float64(st.x) + 1) / 2)
+	y := mathutil.Clamp01((1 - float64(st.y)) / 2)
+	g.touchTracker.report(slot, st.active, x, y)
 }
 
 // updateTouches takes the update's snapshot of the tracked fingers.

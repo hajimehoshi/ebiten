@@ -234,8 +234,8 @@ type Touch struct {
 	// contact and the next in the same slot.
 	ID byte
 
-	// X and Y are the finger's position, each in -1..1 with (-1, -1) at the
-	// top left of the touchpad.
+	// X and Y are the finger's position, each in 0..1 with (0, 0) at the top
+	// left of the touchpad and (1, 1) at its bottom right.
 	X, Y float64
 }
 
@@ -251,13 +251,13 @@ func touchpadSize(model model) (w, h int) {
 	return 0, 0
 }
 
-// touchCoord maps a grid coordinate to -1..1 over a grid of n units, clamping
+// touchCoord maps a grid coordinate to 0..1 over a grid of n units, clamping
 // values past the grid.
 func touchCoord(v, n int) float64 {
 	if n < 2 {
 		return 0
 	}
-	return mathutil.Clamp01(float64(v)/float64(n-1))*2 - 1
+	return mathutil.Clamp01(float64(v) / float64(n-1))
 }
 
 // touchFromRecord decodes a 4-byte touch record of a touchpad w by h units:

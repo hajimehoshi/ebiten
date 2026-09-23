@@ -94,9 +94,9 @@ func TestClassifyEvdev(t *testing.T) {
 	}
 }
 
-// touchPos converts a DualSense touchpad position to the touch API's -1..1.
+// touchPos converts a DualSense touchpad position to the touch API's 0..1.
 func touchPos(x, y int32) (float64, float64) {
-	return float64(x)/dualSenseTouchXMax*2 - 1, float64(y)/dualSenseTouchYMax*2 - 1
+	return float64(x) / dualSenseTouchXMax, float64(y) / dualSenseTouchYMax
 }
 
 func checkContacts(t *testing.T, node *gamepad.TouchNode, want []gamepad.TouchContactForTest) {
@@ -242,14 +242,15 @@ func TestTouchNodePositionRange(t *testing.T) {
 		x, y         int32
 		wantX, wantY float64
 	}{
-		{x: 0, y: 0, wantX: -1, wantY: -1},
+		{x: 0, y: 0, wantX: 0, wantY: 0},
+		{x: dualSenseTouchXMax, y: 0, wantX: 1, wantY: 0},
+		{x: 0, y: dualSenseTouchYMax, wantX: 0, wantY: 1},
 		{x: dualSenseTouchXMax, y: dualSenseTouchYMax, wantX: 1, wantY: 1},
-		{x: 0, y: dualSenseTouchYMax, wantX: -1, wantY: 1},
 
 		// A device reporting past the range it declared stays inside the range the touch API
 		// documents.
 		{x: dualSenseTouchXMax + 1, y: dualSenseTouchYMax * 4, wantX: 1, wantY: 1},
-		{x: -1, y: -30000, wantX: -1, wantY: -1},
+		{x: -1, y: -30000, wantX: 0, wantY: 0},
 	}
 	for _, test := range tests {
 		node.HandleAbsEventForTest(gamepad.ABSMTPositionX, test.x)
@@ -258,6 +259,23 @@ func TestTouchNodePositionRange(t *testing.T) {
 		if c.X != test.wantX || c.Y != test.wantY {
 			t.Errorf("position (%d, %d) = (%v, %v); want (%v, %v)", test.x, test.y, c.X, c.Y, test.wantX, test.wantY)
 		}
+	}
+}
+
+// A node whose axes have an odd number of values has a sample on the center of its surface.
+func TestTouchNodeCenterPosition(t *testing.T) {
+	const (
+		xMax = 1000
+		yMax = 500
+	)
+	node := gamepad.NewTouchNodeForTest(1, xMax, yMax)
+	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
+	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, xMax/2)
+	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, yMax/2)
+
+	c := node.ContactsForTest()[0]
+	if c.X != 0.5 || c.Y != 0.5 {
+		t.Errorf("position = (%v, %v); want (0.5, 0.5)", c.X, c.Y)
 	}
 }
 
@@ -303,8 +321,8 @@ func TestLinuxGamepadTouch(t *testing.T) {
 	if got, want := g.AppendTouchIDs(0, nil), []gamepad.TouchID{1}; !slices.Equal(got, want) {
 		t.Fatalf("AppendTouchIDs(0) = %v; want %v", got, want)
 	}
-	if x, y := g.TouchPosition(1); x != -1 || y != 1 {
-		t.Errorf("TouchPosition(1) = (%v, %v); want (-1, 1)", x, y)
+	if x, y := g.TouchPosition(1); x != 0 || y != 1 {
+		t.Errorf("TouchPosition(1) = (%v, %v); want (0, 1)", x, y)
 	}
 
 	// The tracking id changing between two updates is a new touch, even though the slot stayed

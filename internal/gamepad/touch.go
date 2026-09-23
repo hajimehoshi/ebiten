@@ -29,8 +29,8 @@ type touchContact struct {
 	// compared only for equality. A backend that cannot tell contacts apart reports 0.
 	id int
 
-	// x and y are the contact's position, each in -1..1, with (-1, -1) at the top left of the
-	// surface.
+	// x and y are the contact's position, each in 0..1, with (0, 0) at the top left of the surface
+	// and (1, 1) at its bottom right.
 	x, y float64
 }
 
@@ -157,8 +157,8 @@ func (g *Gamepad) AppendTouchIDs(surface int, ids []TouchID) []TouchID {
 	return ids
 }
 
-// TouchPosition returns the position of the touch, each coordinate in -1..1 with (-1, -1) at the
-// top left of its surface, or (0, 0) if the gamepad has no such touch.
+// TouchPosition returns the position of the touch, each coordinate in 0..1 with (0, 0) at the top
+// left of its surface and (1, 1) at its bottom right, or (0, 0) if the gamepad has no such touch.
 //
 // TouchPosition is concurrent-safe.
 func (g *Gamepad) TouchPosition(id TouchID) (x, y float64) {
