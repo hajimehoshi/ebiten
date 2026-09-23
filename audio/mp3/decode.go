@@ -74,6 +74,22 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	if pos < 0 {
 		return 0, fmt.Errorf("mp3: position must be >= 0 but was %d", pos)
 	}
+	if pos > s.length {
+		return 0, fmt.Errorf("mp3: position must be <= %d (length) but was %d", s.length, pos)
+	}
+	if pos == s.length {
+		// The underlying decoder cannot seek to exactly the end: it fails and
+		// leaves the decoder repositioned into the tail. Seek near the end and
+		// drain instead so the position reaches the end and further reads EOF.
+		start := max(s.length-65536, 0)
+		if _, err := s.readSeeker.Seek(start, io.SeekStart); err != nil {
+			return 0, err
+		}
+		if _, err := io.Copy(io.Discard, s.readSeeker); err != nil {
+			return 0, err
+		}
+		return s.length, nil
+	}
 	return s.readSeeker.Seek(pos, io.SeekStart)
 }
 
