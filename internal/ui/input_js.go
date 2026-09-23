@@ -286,7 +286,8 @@ func init() {
 	jsKeyboardGetLayoutMapCatchCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
 		err := args[0]
 		js.Global().Get("console").Call("error", "ui: navigator.keyboard.getLayoutMap() failed:", err)
-		jsKeyboardLayoutAvailable = false
+		// Do not latch the failure: the map stays undefined so the next tick
+		// retries automatically.
 		jsKeyboardGetLayoutMapCh <- js.Undefined()
 		return nil
 	})
