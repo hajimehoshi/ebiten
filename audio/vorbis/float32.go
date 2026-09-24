@@ -111,6 +111,10 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
+		// A query does not seek the decoder, which decodes again from the page before the position.
+		if offset == 0 {
+			return r.pos, nil
+		}
 		base = r.pos
 	case io.SeekEnd:
 		base = r.r.Length() * sampleSize

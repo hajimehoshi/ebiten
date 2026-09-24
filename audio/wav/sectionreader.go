@@ -66,6 +66,10 @@ func (s *sectionReader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
+		// A query does not seek the source.
+		if offset == 0 {
+			return s.pos, nil
+		}
 		base = s.pos
 	case io.SeekEnd:
 		base = s.size

@@ -370,6 +370,11 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 		return 0, err
 	}
 
+	// A query does not seek src, so that the data read next and its blending with afterLoop are kept.
+	if whence == io.SeekCurrent && offset == 0 {
+		return i.pos - int64(len(i.extra)), nil
+	}
+
 	var next int64
 	switch whence {
 	case io.SeekStart:

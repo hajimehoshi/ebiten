@@ -295,6 +295,111 @@ func TestFloat32SeekCurrentAfterPartialSampleRead(t *testing.T) {
 	}
 }
 
+// seekCountingReader is an io.ReadSeeker that counts the seeks other than a query for the current position.
+type seekCountingReader struct {
+	r     io.ReadSeeker
+	seeks int
+}
+
+func (s *seekCountingReader) Read(buf []byte) (int, error) {
+	return s.r.Read(buf)
+}
+
+func (s *seekCountingReader) Seek(offset int64, whence int) (int64, error) {
+	if offset != 0 || whence != io.SeekCurrent {
+		s.seeks++
+	}
+	return s.r.Seek(offset, whence)
+}
+
+func TestSeekCurrentAfterShortBufferDoesNotSeekSource(t *testing.T) {
+	for _, tc := range []struct {
+		name           string
+		newReader      func(io.ReadSeeker) io.ReadSeeker
+		bytesPerSample int
+	}{
+		{
+			name: "StereoI16",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoI16ReadSeeker(r, false, convert.FormatS16)
+			},
+			bytesPerSample: 4,
+		},
+		{
+			name: "StereoI16Mono",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoI16ReadSeeker(r, true, convert.FormatU8)
+			},
+			bytesPerSample: 4,
+		},
+		{
+			name: "StereoF32",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoF32(r, false)
+			},
+			bytesPerSample: 8,
+		},
+		{
+			name: "StereoF32Mono",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoF32(r, true)
+			},
+			bytesPerSample: 8,
+		},
+		{
+			name:           "Float32",
+			newReader:      convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker,
+			bytesPerSample: 8,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			src := randBytes(256)
+			want := readAligned(t, tc.newReader(bytes.NewReader(src)))
+
+			r := &seekCountingReader{
+				r: bytes.NewReader(src),
+			}
+			s := tc.newReader(r)
+			got := make([]byte, 4*tc.bytesPerSample)
+			if _, err := io.ReadFull(s, got); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.Read(make([]byte, 1)); !errors.Is(err, io.ErrShortBuffer) {
+				t.Fatalf("Read(a buffer of 1 byte): got %v, want %v", err, io.ErrShortBuffer)
+			}
+
+			pos, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pos != int64(len(got)) {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, len(got))
+			}
+			if r.seeks != 0 {
+				t.Errorf("Seek(0, io.SeekCurrent) sought the source %d times, want 0", r.seeks)
+			}
+			got = append(got, readAligned(t, s)...)
+			if !bytes.Equal(got, want) {
+				t.Errorf("reading after Seek(0, io.SeekCurrent): got % x, want % x", got, want)
+			}
+
+			pos, err = s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pos != int64(len(want)) {
+				t.Errorf("Seek(0, io.SeekCurrent) at the end: got %d, want %d", pos, len(want))
+			}
+			if n, err := s.Read(make([]byte, 64)); n != 0 || !errors.Is(err, io.EOF) {
+				t.Errorf("Read after Seek(0, io.SeekCurrent) at the end: got (%d, %v), want (0, %v)", n, err, io.EOF)
+			}
+			if r.seeks != 0 {
+				t.Errorf("Seek(0, io.SeekCurrent) at the end sought the source %d times, want 0", r.seeks)
+			}
+		})
+	}
+}
+
 // boundedSeeker is an io.ReadSeeker that rejects a seek resolving outside the source, like a real
 // audio source does, while a bytes.Reader allows seeking past the end.
 type boundedSeeker struct {

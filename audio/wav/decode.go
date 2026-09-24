@@ -63,6 +63,10 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+		// A query does not seek the inner reader, so that the bytes it buffers are kept.
+		if offset == 0 {
+			return cur, nil
+		}
 		base = cur
 	case io.SeekEnd:
 		// The end is unknown, so the underlying reader reports the error.

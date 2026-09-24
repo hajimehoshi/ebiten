@@ -229,6 +229,14 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 func (s *StereoPanStream) Seek(offset int64, whence int) (int64, error) {
 	// The source is ahead of this stream by the buffered bytes.
 	if whence == io.SeekCurrent {
+		// A query does not seek the source, so that the buffered bytes are kept.
+		if offset == 0 {
+			pos, err := s.ReadSeeker.Seek(0, io.SeekCurrent)
+			if err != nil {
+				return 0, err
+			}
+			return pos - int64(len(s.buf)), nil
+		}
 		offset -= int64(len(s.buf))
 	}
 	pos, err := s.ReadSeeker.Seek(offset, whence)

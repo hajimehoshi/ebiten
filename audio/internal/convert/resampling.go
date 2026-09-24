@@ -431,6 +431,10 @@ func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
+		// A query keeps the end-of-stream state.
+		if offset == 0 {
+			return r.pos, nil
+		}
 		base = r.pos
 	case io.SeekEnd:
 		if r.srcLength() < 0 {

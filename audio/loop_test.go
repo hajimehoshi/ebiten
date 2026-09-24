@@ -210,7 +210,9 @@ func (s *slowReader) Read(buf []byte) (int, error) {
 }
 
 func (s *slowReader) Seek(offset int64, whence int) (int64, error) {
-	s.eof = false
+	if whence != io.SeekCurrent || offset != 0 {
+		s.eof = false
+	}
 	return s.src.Seek(offset, whence)
 }
 
@@ -1352,6 +1354,80 @@ func TestInfiniteLoopReadAfterShortBufferFromWholeSampleSource(t *testing.T) {
 				if got, want := buf[:n], data[:c.bytesPerSample]; !bytes.Equal(got, want) {
 					t.Errorf("Read(a buffer of %d bytes) after a short buffer: got %v, want %v", size, got, want)
 				}
+			}
+		})
+	}
+}
+
+// seekCountingReader is an io.ReadSeeker that counts its seeks.
+type seekCountingReader struct {
+	r     io.ReadSeeker
+	seeks int
+}
+
+func (s *seekCountingReader) Read(buf []byte) (int, error) {
+	return s.r.Read(buf)
+}
+
+func (s *seekCountingReader) Seek(offset int64, whence int) (int64, error) {
+	s.seeks++
+	return s.r.Seek(offset, whence)
+}
+
+func TestInfiniteLoopSeekCurrentInBlendWindow(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		bitDepthInBytes int
+		newLoop         func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+	}{
+		{
+			name:            "int16",
+			bitDepthInBytes: 2,
+			newLoop:         audio.NewInfiniteLoop,
+		},
+		{
+			name:            "float32",
+			bitDepthInBytes: 4,
+			newLoop:         audio.NewInfiniteLoopF32,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			const length = 64
+			bytesPerSample := tc.bitDepthInBytes * 2
+			src := loopSourceWithAfterLoop(length, tc.bitDepthInBytes, 8)
+
+			want := make([]byte, 2*length)
+			if _, err := io.ReadFull(tc.newLoop(bytes.NewReader(src), length), want); err != nil {
+				t.Fatal(err)
+			}
+
+			r := &seekCountingReader{
+				r: bytes.NewReader(src),
+			}
+			l := tc.newLoop(r, length)
+			got := make([]byte, length+2*bytesPerSample)
+			if _, err := io.ReadFull(l, got); err != nil {
+				t.Fatal(err)
+			}
+
+			seeks := r.seeks
+			pos, err := l.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if want := int64(2 * bytesPerSample); pos != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, want)
+			}
+			if r.seeks != seeks {
+				t.Errorf("Seek(0, io.SeekCurrent) sought the source %d times, want 0", r.seeks-seeks)
+			}
+			rest := make([]byte, len(want)-len(got))
+			if _, err := io.ReadFull(l, rest); err != nil {
+				t.Fatal(err)
+			}
+			got = append(got, rest...)
+			if !bytes.Equal(got, want) {
+				t.Errorf("reading after Seek(0, io.SeekCurrent) in the blend window: got %v, want %v", got, want)
 			}
 		})
 	}

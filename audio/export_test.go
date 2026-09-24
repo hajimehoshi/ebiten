@@ -323,3 +323,9 @@ func ResetContextForTesting() {
 func (i *InfiniteLoop) SetNoBlendForTesting(value bool) {
 	i.noBlendForTesting = value
 }
+
+// NewTimeStreamForTesting returns the stream a Player reads from, over a seekable src in signed 16bit
+// integer stereo.
+func NewTimeStreamForTesting(src io.ReadSeeker, sampleRate int) (io.ReadSeeker, error) {
+	return newTimeStream(src, true, sampleRate, bitDepthInBytesInt16)
+}
