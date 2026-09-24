@@ -286,7 +286,14 @@ func init() {
 	jsKeyboardGetLayoutMapCatchCallback = js.FuncOf(func(this js.Value, args []js.Value) any {
 		err := args[0]
 		js.Global().Get("console").Call("error", "ui: navigator.keyboard.getLayoutMap() failed:", err)
-		jsKeyboardLayoutAvailable = false
+		// A SecurityError means the keyboard-map permissions policy prohibits
+		// the access (e.g., in an iframe without allow="keyboard-map"), which
+		// never recovers, so keep the layout map disabled. For the other
+		// errors, which are assumed to be transient, the map stays undefined
+		// so that the next tick retries (at most once per tick; see KeyName).
+		if err.Type() == js.TypeObject && err.Get("name").String() == "SecurityError" {
+			jsKeyboardLayoutAvailable = false
+		}
 		jsKeyboardGetLayoutMapCh <- js.Undefined()
 		return nil
 	})
@@ -303,7 +310,10 @@ func (u *UserInterface) KeyName(key Key) string {
 	}
 
 	// keyboardLayoutMap is reset every tick.
-	if u.keyboardLayoutMap.IsUndefined() {
+	// Request the layout map at most once per tick even on failure, so that a
+	// failing request does not cause a new request for every KeyName call.
+	if u.keyboardLayoutMap.IsUndefined() && !u.keyboardLayoutMapRequested {
+		u.keyboardLayoutMapRequested = true
 		// Invoke getLayoutMap every tick to detect the keyboard change.
 		// TODO: Calling this every tick might be inefficient. Is there a way to detect a keyboard change?
 		jsKeyboardGetLayoutMap.Invoke().Call("then", jsKeyboardGetLayoutMapThenCallback).Call("catch", jsKeyboardGetLayoutMapCatchCallback)
