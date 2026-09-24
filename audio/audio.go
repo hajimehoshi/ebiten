@@ -528,6 +528,7 @@ func (p *Player) Rewind() error {
 // The passed source to NewPlayer must be io.Seeker, or SetPosition panics.
 //
 // SetPosition returns error when seeking the source stream returns an error.
+// SetPosition returns an error for a negative offset.
 func (p *Player) SetPosition(offset time.Duration) error {
 	defer runtime.KeepAlive(p)
 	return p.p.SetPosition(offset)
