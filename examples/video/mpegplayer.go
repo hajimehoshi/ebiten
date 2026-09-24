@@ -266,43 +266,38 @@ func (a *mpegAudio) Read(buf []byte) (int, error) {
 	a.m.Lock()
 	defer a.m.Unlock()
 
-	var readBytes int
-	if len(a.leftovers) > 0 {
-		n := copy(buf, a.leftovers)
-		readBytes += n
-		buf = buf[n:]
+	const bytesPerSample = 8
 
-		copy(a.leftovers, a.leftovers[n:])
-		a.leftovers = a.leftovers[:len(a.leftovers)-n]
+	if len(buf) == 0 {
+		return 0, nil
 	}
 
-	for len(buf) > 0 && !a.audio.HasEnded() {
+	// Decode audio frames into the leftovers until they can fill buf. Decode at least one sample even
+	// when buf is shorter than that, so that the end of the audio can be told from a short buf.
+	for len(a.leftovers) < max(len(buf), bytesPerSample) && !a.audio.HasEnded() {
 		mpegSamples := a.audio.Decode()
 		if mpegSamples == nil {
 			break
 		}
-
-		bs := make([]byte, len(mpegSamples.Interleaved)*4)
-		for i, s := range mpegSamples.Interleaved {
+		for _, s := range mpegSamples.Interleaved {
 			v := math.Float32bits(s)
-			bs[4*i] = byte(v)
-			bs[4*i+1] = byte(v >> 8)
-			bs[4*i+2] = byte(v >> 16)
-			bs[4*i+3] = byte(v >> 24)
-		}
-
-		n := copy(buf, bs)
-		readBytes += n
-		buf = buf[n:]
-
-		if n < len(bs) {
-			a.leftovers = append(a.leftovers, bs[n:]...)
-			break
+			a.leftovers = append(a.leftovers, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
 		}
 	}
 
-	if a.audio.HasEnded() {
-		return readBytes, io.EOF
+	if len(buf) < bytesPerSample {
+		if len(a.leftovers) == 0 && a.audio.HasEnded() {
+			return 0, io.EOF
+		}
+		return 0, io.ErrShortBuffer
 	}
-	return readBytes, nil
+
+	// Return whole samples. The rest is kept in the leftovers for the next time.
+	n := copy(buf[:len(buf)/bytesPerSample*bytesPerSample], a.leftovers)
+	a.leftovers = a.leftovers[:copy(a.leftovers, a.leftovers[n:])]
+
+	if len(a.leftovers) == 0 && a.audio.HasEnded() {
+		return n, io.EOF
+	}
+	return n, nil
 }
