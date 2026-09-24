@@ -47,6 +47,9 @@ type Stream struct {
 }
 
 // Read is an implementation of io.Reader's Read.
+//
+// Read returns only whole samples (4 bytes each in the 16-bit integer format, 8 bytes each in the 32-bit float format).
+// For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.inner.Read(p)
 }
@@ -54,6 +57,9 @@ func (s *Stream) Read(p []byte) (int, error) {
 // Seek is an implementation of io.Seeker's Seek.
 //
 // If the underlying source is not an io.Seeker, Seek returns an error.
+//
+// The returned position can differ from the requested one with a nil error: a position in the middle of a sample is
+// rounded down to a sample boundary.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	var base int64
 	switch whence {
