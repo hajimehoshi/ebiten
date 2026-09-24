@@ -1010,3 +1010,60 @@ func TestSeekRounding(t *testing.T) {
 		}
 	}
 }
+
+func TestReadAfterSeek(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		for _, decode := range []struct {
+			name           string
+			f              func(io.Reader) (*vorbis.Stream, error)
+			bytesPerSample int64
+		}{
+			{
+				name:           "I16",
+				f:              vorbis.DecodeWithoutResampling,
+				bytesPerSample: 4,
+			},
+			{
+				name:           "F32",
+				f:              vorbis.DecodeF32,
+				bytesPerSample: 8,
+			},
+		} {
+			t.Run(file.name+"/"+decode.name, func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(file.bs))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want, err := io.ReadAll(s)
+				if err != nil {
+					t.Fatal(err)
+				}
+				size := decode.bytesPerSample
+				for pos := int64(0); pos < int64(len(want)); pos += 10000 * size {
+					if _, err := s.Seek(pos, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					got := make([]byte, min(1024*size, int64(len(want))-pos))
+					if _, err := io.ReadFull(s, got); err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(got, want[pos:pos+int64(len(got))]) {
+						t.Errorf("Read after Seek(%d, io.SeekStart): the data differs from a continuous read at the same position", pos)
+					}
+				}
+			})
+		}
+	}
+}
