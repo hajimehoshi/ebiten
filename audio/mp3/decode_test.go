@@ -304,3 +304,98 @@ func TestDecodeWithSampleRateInvalidSampleRate(t *testing.T) {
 		}
 	}
 }
+
+// Issue #3619
+func TestSeekPastEnd(t *testing.T) {
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			s, err := decode.f(bytes.NewReader(resources.Ragtime_mp3))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if s.Length() <= 0 {
+				t.Fatalf("Length(): got %d, want a positive value", s.Length())
+			}
+
+			for _, offset := range []int64{s.Length(), s.Length() + 1000, 10 * s.Length()} {
+				pos, err := s.Seek(offset, io.SeekStart)
+				if err != nil {
+					t.Errorf("Seek(%d, io.SeekStart): %v", offset, err)
+					continue
+				}
+				if got, want := pos, offset; got != want {
+					t.Errorf("Seek(%d, io.SeekStart): got %d, want %d", offset, got, want)
+				}
+				if n, err := s.Read(make([]byte, 8192)); n != 0 || !errors.Is(err, io.EOF) {
+					t.Errorf("Read after Seek(%d, io.SeekStart): got (%d, %v), want (0, %v)", offset, n, err, io.EOF)
+				}
+				pos, err = s.Seek(0, io.SeekCurrent)
+				if err != nil {
+					t.Errorf("Seek(0, io.SeekCurrent) after Seek(%d, io.SeekStart): %v", offset, err)
+					continue
+				}
+				if got, want := pos, offset; got != want {
+					t.Errorf("Seek(0, io.SeekCurrent) after Seek(%d, io.SeekStart): got %d, want %d", offset, got, want)
+				}
+			}
+
+			pos, err := s.Seek(0, io.SeekEnd)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, s.Length(); got != want {
+				t.Errorf("Seek(0, io.SeekEnd): got %d, want %d", got, want)
+			}
+			if n, err := s.Read(make([]byte, 8192)); n != 0 || !errors.Is(err, io.EOF) {
+				t.Errorf("Read after Seek(0, io.SeekEnd): got (%d, %v), want (0, %v)", n, err, io.EOF)
+			}
+
+			pos, err = s.Seek(-4, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, s.Length()-4; got != want {
+				t.Errorf("Seek(-4, io.SeekCurrent) at the end: got %d, want %d", got, want)
+			}
+			if n, err := s.Read(make([]byte, 8192)); n != 4 || (err != nil && !errors.Is(err, io.EOF)) {
+				t.Errorf("Read after Seek(-4, io.SeekCurrent) at the end: got (%d, %v), want (4, nil or %v)", n, err, io.EOF)
+			}
+
+			pos, err = s.Seek(0, io.SeekStart)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(0); got != want {
+				t.Errorf("Seek(0, io.SeekStart): got %d, want %d", got, want)
+			}
+			if n, err := s.Read(make([]byte, 8192)); n == 0 || err != nil {
+				t.Errorf("Read after Seek(0, io.SeekStart): got (%d, %v), want data and no error", n, err)
+			}
+		})
+	}
+}
+
+func TestSeekPastEndRounding(t *testing.T) {
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			for _, r := range []int64{1, 2, 3, 5, 7} {
+				s, err := decode.f(bytes.NewReader(resources.Ragtime_mp3))
+				if err != nil {
+					t.Fatal(err)
+				}
+				base := s.Length() / 2 / 8 * 8
+				inRange, err := s.Seek(base+r, io.SeekStart)
+				if err != nil {
+					t.Fatal(err)
+				}
+				pastEnd, err := s.Seek(s.Length()+r, io.SeekStart)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got, want := pastEnd-s.Length(), inRange-base; got != want {
+					t.Errorf("Seek(Length()+%d) rounded to Length()%+d, want Length()%+d as Seek(%d) rounded to %d%+d", r, got, want, base+r, base, want)
+				}
+			}
+		})
+	}
+}
