@@ -17,6 +17,7 @@ package wav
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
@@ -140,13 +141,21 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	}, nil
 }
 
+// readHeaderPart fills buf from src. A source that ends before buf is filled is reported as an invalid
+// header, and any other failure of the source is returned wrapped. what names the part for the error.
+func readHeaderPart(src io.Reader, buf []byte, what string) error {
+	if _, err := io.ReadFull(src, buf); err != nil {
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return fmt.Errorf("wav: invalid header: %s too short", what)
+		}
+		return fmt.Errorf("wav: failed to read %s: %w", what, err)
+	}
+	return nil
+}
+
 func decode(src io.Reader, bitDepthInBytes int) (*Stream, error) {
 	buf := make([]byte, 12)
-	n, err := io.ReadFull(src, buf)
-	if n != len(buf) {
-		return nil, fmt.Errorf("wav: invalid header: too short")
-	}
-	if err != nil {
+	if err := readHeaderPart(src, buf, "header"); err != nil {
 		return nil, err
 	}
 	if !bytes.Equal(buf[0:4], []byte("RIFF")) {
@@ -165,11 +174,7 @@ func decode(src io.Reader, bitDepthInBytes int) (*Stream, error) {
 chunks:
 	for {
 		var buf [8]byte
-		n, err := io.ReadFull(src, buf[:])
-		if n != len(buf) {
-			return nil, fmt.Errorf("wav: invalid header: chunk header too short")
-		}
-		if err != nil {
+		if err := readHeaderPart(src, buf[:], "chunk header"); err != nil {
 			return nil, err
 		}
 		headerSize += 8
@@ -183,11 +188,7 @@ chunks:
 				return nil, fmt.Errorf("wav: invalid header: maybe non-PCM file?")
 			}
 			var fmtBuf [16]byte
-			n, err := io.ReadFull(src, fmtBuf[:])
-			if n != len(fmtBuf) {
-				return nil, fmt.Errorf("wav: invalid header: 'fmt ' chunk too short")
-			}
-			if err != nil {
+			if err := readHeaderPart(src, fmtBuf[:], "'fmt ' chunk"); err != nil {
 				return nil, err
 			}
 			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8

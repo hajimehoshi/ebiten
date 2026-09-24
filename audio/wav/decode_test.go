@@ -400,6 +400,85 @@ func TestDecodeWithSampleRateInvalidSampleRate(t *testing.T) {
 	}
 }
 
+// failingReader delivers the first limit bytes of its source and then fails with err.
+type failingReader struct {
+	r     *bytes.Reader
+	limit int64
+	err   error
+}
+
+func (f *failingReader) Read(buf []byte) (int, error) {
+	pos := f.r.Size() - int64(f.r.Len())
+	if pos >= f.limit {
+		return 0, f.err
+	}
+	if int64(len(buf)) > f.limit-pos {
+		buf = buf[:f.limit-pos]
+	}
+	return f.r.Read(buf)
+}
+
+func TestDecodeHeaderReadError(t *testing.T) {
+	data := wavFile(testSampleRate, nil, nil, []byte{1, 2, 3, 4})
+	for _, tc := range []struct {
+		name  string
+		limit int64
+	}{
+		{
+			name:  "header",
+			limit: 0,
+		},
+		{
+			name:  "inside the header",
+			limit: 5,
+		},
+		{
+			name:  "chunk header",
+			limit: 12,
+		},
+		{
+			name:  "inside the chunk header",
+			limit: 15,
+		},
+		{
+			name:  "'fmt ' chunk",
+			limit: 20,
+		},
+		{
+			name:  "inside the 'fmt ' chunk",
+			limit: 30,
+		},
+		{
+			name:  "'data' chunk header",
+			limit: 36,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			newSource := func() io.Reader {
+				return &failingReader{
+					r:     bytes.NewReader(data),
+					limit: tc.limit,
+					err:   errSourceRead,
+				}
+			}
+			if _, err := wav.DecodeWithoutResampling(newSource()); !errors.Is(err, errSourceRead) {
+				t.Errorf("wav.DecodeWithoutResampling: got %v, want %v", err, errSourceRead)
+			}
+			if _, err := wav.DecodeWithSampleRate(testSampleRate, newSource()); !errors.Is(err, errSourceRead) {
+				t.Errorf("wav.DecodeWithSampleRate: got %v, want %v", err, errSourceRead)
+			}
+			if _, err := wav.DecodeF32(newSource()); !errors.Is(err, errSourceRead) {
+				t.Errorf("wav.DecodeF32: got %v, want %v", err, errSourceRead)
+			}
+
+			truncated := bytes.NewReader(data[:tc.limit])
+			if _, err := wav.DecodeWithoutResampling(truncated); err == nil {
+				t.Errorf("wav.DecodeWithoutResampling with a truncated source: got no error, want an error")
+			}
+		})
+	}
+}
+
 // pcmWavFile returns a linear PCM WAV file with the given channel count and bit depth
 // whose 'data' chunk holds data.
 func pcmWavFile(channelCount, bitsPerSample int, data []byte) []byte {
