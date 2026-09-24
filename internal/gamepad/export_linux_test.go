@@ -30,27 +30,23 @@ const (
 
 // Event node capability codes, for building the bitmaps classification reads.
 const (
-	EVKey = unix.EV_KEY
-	EVAbs = unix.EV_ABS
-	EVFF  = unix.EV_FF
+	ABS_X              = _ABS_X
+	ABS_Y              = _ABS_Y
+	ABS_RZ             = _ABS_RZ
+	ABS_HAT0X          = _ABS_HAT0X
+	ABS_HAT0Y          = _ABS_HAT0Y
+	ABS_MT_SLOT        = _ABS_MT_SLOT
+	ABS_MT_POSITION_X  = _ABS_MT_POSITION_X
+	ABS_MT_POSITION_Y  = _ABS_MT_POSITION_Y
+	ABS_MT_TRACKING_ID = _ABS_MT_TRACKING_ID
 
-	ABSX            = _ABS_X
-	ABSY            = _ABS_Y
-	ABSRZ           = _ABS_RZ
-	ABSHat0X        = _ABS_HAT0X
-	ABSHat0Y        = _ABS_HAT0Y
-	ABSMTSlot       = _ABS_MT_SLOT
-	ABSMTPositionX  = _ABS_MT_POSITION_X
-	ABSMTPositionY  = _ABS_MT_POSITION_Y
-	ABSMTTrackingID = _ABS_MT_TRACKING_ID
+	BTN_LEFT           = 0x110
+	BTN_SOUTH          = _BTN_A
+	BTN_TOOL_FINGER    = 0x145
+	BTN_TOUCH          = 0x14a
+	BTN_TOOL_DOUBLETAP = 0x14d
 
-	BTNLeft          = 0x110
-	BTNSouth         = _BTN_A
-	BTNToolFinger    = 0x145
-	BTNTouch         = 0x14a
-	BTNToolDoubleTap = 0x14d
-
-	InputPropAccelerometer = _INPUT_PROP_ACCELEROMETER
+	INPUT_PROP_ACCELEROMETER = _INPUT_PROP_ACCELEROMETER
 )
 
 type EvdevKind = evdevKind

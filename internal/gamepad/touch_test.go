@@ -125,7 +125,10 @@ func TestTouchIDsFollowContacts(t *testing.T) {
 
 	// An empty surface has no touches but still counts.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{}, {}},
+		{
+			{},
+			{},
+		},
 	})
 	if got := g.TouchSurfaceCount(); got != 1 {
 		t.Errorf("TouchSurfaceCount() = %d; want 1", got)
@@ -134,21 +137,46 @@ func TestTouchIDsFollowContacts(t *testing.T) {
 
 	// A finger down in slot 0 is a touch.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, X: 0.25, Y: 0.625}, {}},
+		{
+			{
+				Active: true,
+				X:      0.25,
+				Y:      0.625,
+			},
+			{},
+		},
 	})
 	first := onlyTouchID(t, g, 0)
 	checkTouchPosition(t, g, first, 0.25, 0.625)
 
 	// The finger moving keeps its ID and updates its position.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, X: 0.5, Y: 0.75}, {}},
+		{
+			{
+				Active: true,
+				X:      0.5,
+				Y:      0.75,
+			},
+			{},
+		},
 	})
 	checkTouchKept(t, g, 0, first)
 	checkTouchPosition(t, g, first, 0.5, 0.75)
 
 	// A second finger is another touch; the first keeps its own ID.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, X: 0.5, Y: 0.75}, {Active: true, X: 1, Y: 0}},
+		{
+			{
+				Active: true,
+				X:      0.5,
+				Y:      0.75,
+			},
+			{
+				Active: true,
+				X:      1,
+				Y:      0,
+			},
+		},
 	})
 	checkTouchCount(t, g, 0, 2)
 	second := findTouchID(t, g, 0, 1, 0)
@@ -157,7 +185,14 @@ func TestTouchIDsFollowContacts(t *testing.T) {
 
 	// Lifting the first finger retires its ID and its position, and leaves the second alone.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{}, {Active: true, X: 1, Y: 0}},
+		{
+			{},
+			{
+				Active: true,
+				X:      1,
+				Y:      0,
+			},
+		},
 	})
 	checkTouchKept(t, g, 0, second)
 	checkTouchRetired(t, g, 0, first)
@@ -165,7 +200,18 @@ func TestTouchIDsFollowContacts(t *testing.T) {
 
 	// A finger back in slot 0 is a new touch, never the retired one.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, X: 0, Y: 0.5}, {Active: true, X: 1, Y: 0}},
+		{
+			{
+				Active: true,
+				X:      0,
+				Y:      0.5,
+			},
+			{
+				Active: true,
+				X:      1,
+				Y:      0,
+			},
+		},
 	})
 	checkTouchCount(t, g, 0, 2)
 	third := findTouchID(t, g, 0, 0, 0.5)
@@ -173,7 +219,10 @@ func TestTouchIDsFollowContacts(t *testing.T) {
 
 	// Everything lifted.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{}, {}},
+		{
+			{},
+			{},
+		},
 	})
 	checkTouchCount(t, g, 0, 0)
 	for _, id := range []gamepad.TouchID{first, second, third} {
@@ -187,17 +236,38 @@ func TestTouchContactIDChangeIsNewTouch(t *testing.T) {
 	// The device numbers its contacts, so a finger lifted and put back between two updates shows up
 	// as the slot staying active with a different contact ID.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, ID: 7, X: 0.1, Y: 0.2}},
+		{
+			{
+				Active: true,
+				ID:     7,
+				X:      0.1,
+				Y:      0.2,
+			},
+		},
 	})
 	first := onlyTouchID(t, g, 0)
 
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, ID: 7, X: 0.3, Y: 0.4}},
+		{
+			{
+				Active: true,
+				ID:     7,
+				X:      0.3,
+				Y:      0.4,
+			},
+		},
 	})
 	checkTouchKept(t, g, 0, first)
 
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, ID: 8, X: 0.3, Y: 0.4}},
+		{
+			{
+				Active: true,
+				ID:     8,
+				X:      0.3,
+				Y:      0.4,
+			},
+		},
 	})
 	second := onlyTouchID(t, g, 0)
 	checkDistinctTouchIDs(t, first, second)
@@ -262,8 +332,21 @@ func TestTouchSlotTrackerTellsContactsApart(t *testing.T) {
 func TestTouchSurfaces(t *testing.T) {
 	g := gamepad.NewGamepadForTest("")
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, X: 0.25, Y: 0.75}},
-		{{}, {Active: true, X: 1, Y: 1}},
+		{
+			{
+				Active: true,
+				X:      0.25,
+				Y:      0.75,
+			},
+		},
+		{
+			{},
+			{
+				Active: true,
+				X:      1,
+				Y:      1,
+			},
+		},
 	})
 
 	if got := g.TouchSurfaceCount(); got != 2 {
@@ -289,7 +372,18 @@ func TestTouchSurfaces(t *testing.T) {
 func TestTouchSlotLayoutChange(t *testing.T) {
 	g := gamepad.NewGamepadForTest("")
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, X: 0.25, Y: 0.25}, {Active: true, X: 0.75, Y: 0.75}},
+		{
+			{
+				Active: true,
+				X:      0.25,
+				Y:      0.25,
+			},
+			{
+				Active: true,
+				X:      0.75,
+				Y:      0.75,
+			},
+		},
 	})
 	checkTouchCount(t, g, 0, 2)
 	before := touchIDs(g, 0)
@@ -298,8 +392,20 @@ func TestTouchSlotLayoutChange(t *testing.T) {
 	// A backend reporting a different layout starts over, and the IDs it hands out afterward are
 	// still fresh.
 	g.SetTouchReportForTest([][]gamepad.TouchContactForTest{
-		{{Active: true, X: 0.25, Y: 0.25}},
-		{{Active: true, X: 0.75, Y: 0.75}},
+		{
+			{
+				Active: true,
+				X:      0.25,
+				Y:      0.25,
+			},
+		},
+		{
+			{
+				Active: true,
+				X:      0.75,
+				Y:      0.75,
+			},
+		},
 	})
 	after := append(touchIDs(g, 0), touchIDs(g, 1)...)
 	checkTouchCount(t, g, 0, 1)
@@ -309,7 +415,11 @@ func TestTouchSlotLayoutChange(t *testing.T) {
 
 func TestVirtualGamepadHasNoTouchSurface(t *testing.T) {
 	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
-		{ID: 0, Name: "Pad", Buttons: []bool{true}},
+		{
+			ID:      0,
+			Name:    "Pad",
+			Buttons: []bool{true},
+		},
 	})
 	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
 

@@ -191,21 +191,41 @@ func (g *nativeGamepadGC) startTouchTracking() {
 			// implies, ignoring the touchpad button's value and pressed state.
 			touchpadHandler := func(active bool) objc.Block {
 				return objc.NewBlock(func(_ objc.Block, _ objc.ID, x, y, _ float32, _ bool) {
-					g.reportTouch(slot, gcTouchState{active: active, x: x, y: y})
+					g.reportTouch(slot, gcTouchState{
+						active: active,
+						x:      x,
+						y:      y,
+					})
 				})
 			}
 			e.handlers = []gcTouchHandler{
-				{setter: sel_setTouchDown, block: touchpadHandler(true)},
-				{setter: sel_setTouchMoved, block: touchpadHandler(true)},
-				{setter: sel_setTouchUp, block: touchpadHandler(false)},
+				{
+					setter: sel_setTouchDown,
+					block:  touchpadHandler(true),
+				},
+				{
+					setter: sel_setTouchMoved,
+					block:  touchpadHandler(true),
+				},
+				{
+					setter: sel_setTouchUp,
+					block:  touchpadHandler(false),
+				},
 			}
 
 		case gcTouchSlotDPad:
 			valueChanged := objc.NewBlock(func(_ objc.Block, _ objc.ID, x, y float32) {
-				g.reportTouch(slot, gcTouchState{active: x != 0 || y != 0, x: x, y: y})
+				g.reportTouch(slot, gcTouchState{
+					active: x != 0 || y != 0,
+					x:      x,
+					y:      y,
+				})
 			})
 			e.handlers = []gcTouchHandler{
-				{setter: sel_setValueChangedHandler, block: valueChanged},
+				{
+					setter: sel_setValueChangedHandler,
+					block:  valueChanged,
+				},
 			}
 		}
 

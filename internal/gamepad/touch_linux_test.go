@@ -19,6 +19,8 @@ package gamepad_test
 import (
 	"testing"
 
+	"golang.org/x/sys/unix"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
@@ -29,8 +31,8 @@ const (
 )
 
 var (
-	dualSenseTouchKeys = []int{gamepad.BTNLeft, gamepad.BTNToolFinger, gamepad.BTNTouch, gamepad.BTNToolDoubleTap}
-	dualSenseTouchAbs  = []int{gamepad.ABSX, gamepad.ABSY, gamepad.ABSMTSlot, gamepad.ABSMTPositionX, gamepad.ABSMTPositionY, gamepad.ABSMTTrackingID}
+	dualSenseTouchKeys = []int{gamepad.BTN_LEFT, gamepad.BTN_TOOL_FINGER, gamepad.BTN_TOUCH, gamepad.BTN_TOOL_DOUBLETAP}
+	dualSenseTouchAbs  = []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_MT_SLOT, gamepad.ABS_MT_POSITION_X, gamepad.ABS_MT_POSITION_Y, gamepad.ABS_MT_TRACKING_ID}
 )
 
 func TestClassifyEvdev(t *testing.T) {
@@ -44,45 +46,45 @@ func TestClassifyEvdev(t *testing.T) {
 	}{
 		{
 			name: "gamepad node",
-			evs:  []int{gamepad.EVKey, gamepad.EVAbs, gamepad.EVFF},
-			keys: []int{gamepad.BTNSouth},
-			abs:  []int{gamepad.ABSX, gamepad.ABSY, gamepad.ABSRZ, gamepad.ABSHat0X, gamepad.ABSHat0Y},
+			evs:  []int{unix.EV_KEY, unix.EV_ABS, unix.EV_FF},
+			keys: []int{gamepad.BTN_SOUTH},
+			abs:  []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_RZ, gamepad.ABS_HAT0X, gamepad.ABS_HAT0Y},
 			want: gamepad.EvdevKindGamepad,
 		},
 		{
 			name: "touchpad node",
-			evs:  []int{gamepad.EVKey, gamepad.EVAbs},
+			evs:  []int{unix.EV_KEY, unix.EV_ABS},
 			keys: dualSenseTouchKeys,
 			abs:  dualSenseTouchAbs,
 			want: gamepad.EvdevKindTouchSurface,
 		},
 		{
 			name:  "motion sensors node",
-			evs:   []int{gamepad.EVAbs},
-			abs:   []int{gamepad.ABSX, gamepad.ABSY, gamepad.ABSRZ},
-			props: []int{gamepad.InputPropAccelerometer},
+			evs:   []int{unix.EV_ABS},
+			abs:   []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_RZ},
+			props: []int{gamepad.INPUT_PROP_ACCELEROMETER},
 			want:  gamepad.EvdevKindOther,
 		},
 		{
 			name: "keyboard",
-			evs:  []int{gamepad.EVKey},
-			keys: []int{gamepad.BTNLeft},
+			evs:  []int{unix.EV_KEY},
+			keys: []int{gamepad.BTN_LEFT},
 			want: gamepad.EvdevKindOther,
 		},
 		{
 			// A device with both gamepad buttons and multitouch axes is a gamepad.
 			name: "gamepad with multitouch axes",
-			evs:  []int{gamepad.EVKey, gamepad.EVAbs},
-			keys: []int{gamepad.BTNSouth, gamepad.BTNTouch},
+			evs:  []int{unix.EV_KEY, unix.EV_ABS},
+			keys: []int{gamepad.BTN_SOUTH, gamepad.BTN_TOUCH},
 			abs:  dualSenseTouchAbs,
 			want: gamepad.EvdevKindGamepad,
 		},
 		{
 			// Multitouch needs the tracking id to tell contacts apart.
 			name: "multitouch without tracking id",
-			evs:  []int{gamepad.EVKey, gamepad.EVAbs},
+			evs:  []int{unix.EV_KEY, unix.EV_ABS},
 			keys: dualSenseTouchKeys,
-			abs:  []int{gamepad.ABSX, gamepad.ABSY, gamepad.ABSMTSlot, gamepad.ABSMTPositionX, gamepad.ABSMTPositionY},
+			abs:  []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_MT_SLOT, gamepad.ABS_MT_POSITION_X, gamepad.ABS_MT_POSITION_Y},
 			want: gamepad.EvdevKindGamepad,
 		},
 	}
@@ -133,28 +135,28 @@ func TestTouchNodeOneFinger(t *testing.T) {
 	checkTouchCount(t, g, 0, 0)
 
 	// Finger down on slot 0, which is current from the start so no slot event precedes it.
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 4)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1139)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 522)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 4)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 1139)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 522)
 	g.UpdateForTest()
 	id := onlyTouchID(t, g, 0)
 	checkTouchPositionAt(t, g, id, 1139, 522)
 
 	// Movement is position events only, and the touch keeps its ID.
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1132)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 518)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 1132)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 518)
 	g.UpdateForTest()
 	checkTouchKept(t, g, 0, id)
 	checkTouchPositionAt(t, g, id, 1132, 518)
 
 	// One axis can change alone.
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 390)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 390)
 	g.UpdateForTest()
 	checkTouchKept(t, g, 0, id)
 	checkTouchPositionAt(t, g, id, 1132, 390)
 
 	// Lift is a tracking id of -1.
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, -1)
 	g.UpdateForTest()
 	checkTouchCount(t, g, 0, 0)
 	checkTouchRetired(t, g, 0, id)
@@ -164,15 +166,15 @@ func TestTouchNodeTwoFingers(t *testing.T) {
 	g, node := newTouchGamepad(t, 2)
 
 	// Finger A down on slot 0.
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 5)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 751)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 304)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 5)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 751)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 304)
 
 	// Finger B down on slot 1.
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 6)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1573)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 698)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 6)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 1573)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 698)
 	g.UpdateForTest()
 
 	// Both fingers are on the surface at once, so they have distinct IDs.
@@ -183,47 +185,47 @@ func TestTouchNodeTwoFingers(t *testing.T) {
 
 	// Reports alternate between the slots, each carrying only what changed. Both fingers keep their
 	// IDs while they move.
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 0)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 752)
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1569)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 701)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 752)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 1569)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 701)
 	g.UpdateForTest()
 	checkTouchCount(t, g, 0, 2)
 	checkTouchPositionAt(t, g, a, 752, 304)
 	checkTouchPositionAt(t, g, b, 1569, 701)
 
 	// B lifts first: its ID is retired, and A continues on slot 0 with its own.
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 0)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 731)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, -1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 731)
 	g.UpdateForTest()
 	checkTouchKept(t, g, 0, a)
 	checkTouchRetired(t, g, 0, b)
 	checkTouchPositionAt(t, g, a, 731, 304)
 
 	// B comes back on slot 1 as a new contact, which is a new touch.
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 7)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1671)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 107)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 7)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 1671)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 107)
 	g.UpdateForTest()
 	checkTouchCount(t, g, 0, 2)
 	b2 := findTouchAt(t, g, 1671, 107)
 	checkDistinctTouchIDs(t, a, b, b2)
 
 	// A lifts while B stays: B keeps its ID.
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 0)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 1558)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, -1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 1558)
 	g.UpdateForTest()
 	checkTouchKept(t, g, 0, b2)
 	checkTouchRetired(t, g, 0, a)
 	checkTouchPositionAt(t, g, b2, 1558, 107)
 
 	// B lifts last, on the current slot with no slot event.
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, -1)
 	g.UpdateForTest()
 	checkTouchCount(t, g, 0, 0)
 	checkTouchRetired(t, g, 0, b2)
@@ -234,17 +236,17 @@ func TestTouchNodeTwoFingers(t *testing.T) {
 func TestTouchNodeReleaseAndPressBetweenUpdates(t *testing.T) {
 	g, node := newTouchGamepad(t, 2)
 
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 5)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 0)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, dualSenseTouchYMax)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 5)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, dualSenseTouchYMax)
 	g.UpdateForTest()
 	first := onlyTouchID(t, g, 0)
 	checkTouchPositionAt(t, g, first, 0, dualSenseTouchYMax)
 
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, -1)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 6)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, dualSenseTouchXMax)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, -1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 6)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, dualSenseTouchXMax)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 0)
 	g.UpdateForTest()
 	second := onlyTouchID(t, g, 0)
 	checkDistinctTouchIDs(t, first, second)
@@ -256,16 +258,16 @@ func TestTouchNodeIgnoresUnknownSlot(t *testing.T) {
 	g, node := newTouchGamepad(t, 2)
 
 	// Events for a slot the node did not report are dropped until a known slot is selected.
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 5)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 9)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 100)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 5)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 9)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 100)
 	g.UpdateForTest()
 	checkTouchCount(t, g, 0, 0)
 
-	node.HandleAbsEventForTest(gamepad.ABSMTSlot, 1)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 9)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, 100)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, 200)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_SLOT, 1)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 9)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, 100)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, 200)
 	g.UpdateForTest()
 	id := onlyTouchID(t, g, 0)
 	checkTouchPositionAt(t, g, id, 100, 200)
@@ -273,26 +275,62 @@ func TestTouchNodeIgnoresUnknownSlot(t *testing.T) {
 
 func TestTouchNodePositionRange(t *testing.T) {
 	g, node := newTouchGamepad(t, 1)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 0)
 
 	tests := []struct {
 		name         string
 		x, y         int32
 		wantX, wantY float64
 	}{
-		{name: "top left", x: 0, y: 0, wantX: 0, wantY: 0},
-		{name: "top right", x: dualSenseTouchXMax, y: 0, wantX: 1, wantY: 0},
-		{name: "bottom left", x: 0, y: dualSenseTouchYMax, wantX: 0, wantY: 1},
-		{name: "bottom right", x: dualSenseTouchXMax, y: dualSenseTouchYMax, wantX: 1, wantY: 1},
+		{
+			name:  "top left",
+			x:     0,
+			y:     0,
+			wantX: 0,
+			wantY: 0,
+		},
+		{
+			name:  "top right",
+			x:     dualSenseTouchXMax,
+			y:     0,
+			wantX: 1,
+			wantY: 0,
+		},
+		{
+			name:  "bottom left",
+			x:     0,
+			y:     dualSenseTouchYMax,
+			wantX: 0,
+			wantY: 1,
+		},
+		{
+			name:  "bottom right",
+			x:     dualSenseTouchXMax,
+			y:     dualSenseTouchYMax,
+			wantX: 1,
+			wantY: 1,
+		},
 
 		// A device reporting past the range it declared stays inside the range the touch API
 		// documents.
-		{name: "past the maxima", x: dualSenseTouchXMax + 1, y: dualSenseTouchYMax * 4, wantX: 1, wantY: 1},
-		{name: "below the minima", x: -1, y: -30000, wantX: 0, wantY: 0},
+		{
+			name:  "past the maxima",
+			x:     dualSenseTouchXMax + 1,
+			y:     dualSenseTouchYMax * 4,
+			wantX: 1,
+			wantY: 1,
+		},
+		{
+			name:  "below the minima",
+			x:     -1,
+			y:     -30000,
+			wantX: 0,
+			wantY: 0,
+		},
 	}
 	for _, test := range tests {
-		node.HandleAbsEventForTest(gamepad.ABSMTPositionX, test.x)
-		node.HandleAbsEventForTest(gamepad.ABSMTPositionY, test.y)
+		node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, test.x)
+		node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, test.y)
 		g.UpdateForTest()
 		id := onlyTouchID(t, g, 0)
 		if x, y := g.TouchPosition(id); x != test.wantX || y != test.wantY {
@@ -310,9 +348,9 @@ func TestTouchNodeCenterPosition(t *testing.T) {
 	node := gamepad.NewTouchNodeForTest(1, xMax, yMax)
 	g := gamepad.NewLinuxGamepadForTest(node)
 
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionX, xMax/2)
-	node.HandleAbsEventForTest(gamepad.ABSMTPositionY, yMax/2)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, xMax/2)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, yMax/2)
 	g.UpdateForTest()
 
 	checkTouchPosition(t, g, onlyTouchID(t, g, 0), 0.5, 0.5)
@@ -323,11 +361,11 @@ func TestTouchNodeCenterPosition(t *testing.T) {
 func TestTouchNodeEmptyPositionRange(t *testing.T) {
 	node := gamepad.NewTouchNodeForTest(1, 0, 0)
 	g := gamepad.NewLinuxGamepadForTest(node)
-	node.HandleAbsEventForTest(gamepad.ABSMTTrackingID, 0)
+	node.HandleAbsEventForTest(gamepad.ABS_MT_TRACKING_ID, 0)
 
 	for _, v := range []int32{-5000, 0, 1, 5000} {
-		node.HandleAbsEventForTest(gamepad.ABSMTPositionX, v)
-		node.HandleAbsEventForTest(gamepad.ABSMTPositionY, v)
+		node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_X, v)
+		node.HandleAbsEventForTest(gamepad.ABS_MT_POSITION_Y, v)
 		g.UpdateForTest()
 		id := onlyTouchID(t, g, 0)
 		if x, y := g.TouchPosition(id); x != 0 || y != 0 {

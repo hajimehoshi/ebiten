@@ -352,8 +352,18 @@ var touchRecords = []byte{
 // tall; both models are 1920 units wide.
 func touches(h int) [sonyhid.TouchCount]sonyhid.Touch {
 	return [sonyhid.TouchCount]sonyhid.Touch{
-		{Active: true, ID: 5, X: float64(1139) / 1919, Y: float64(522) / float64(h-1)},
-		{Active: false, ID: 6, X: float64(100) / 1919, Y: float64(200) / float64(h-1)},
+		{
+			Active: true,
+			ID:     5,
+			X:      1139.0 / 1919,
+			Y:      522.0 / float64(h-1),
+		},
+		{
+			Active: false,
+			ID:     6,
+			X:      100.0 / 1919,
+			Y:      200.0 / float64(h-1),
+		},
 	}
 }
 
@@ -475,7 +485,12 @@ func TestInputStateFromReport(t *testing.T) {
 	ds4USBTouchPastGrid := append([]byte{}, ds4USB...)
 	copy(ds4USBTouchPastGrid[1+34:], []byte{0x00, 0xff, 0xff, 0xff})
 	ds4LayoutStatePastGrid := ds4LayoutState
-	ds4LayoutStatePastGrid.Touches[0] = sonyhid.Touch{Active: true, ID: 0, X: 1, Y: 1}
+	ds4LayoutStatePastGrid.Touches[0] = sonyhid.Touch{
+		Active: true,
+		ID:     0,
+		X:      1,
+		Y:      1,
+	}
 
 	// ds4USBTwoTouchPackets carries two touch packets: the first is
 	// touchRecords, and the second, 9 bytes on, lifts contact 5 where it was
@@ -490,7 +505,12 @@ func TestInputStateFromReport(t *testing.T) {
 	})
 	ds4LayoutStateSecondPacket := ds4LayoutState
 	ds4LayoutStateSecondPacket.Touches[0].Active = false
-	ds4LayoutStateSecondPacket.Touches[1] = sonyhid.Touch{Active: true, ID: 7, X: ds4LayoutState.Touches[1].X, Y: ds4LayoutState.Touches[1].Y}
+	ds4LayoutStateSecondPacket.Touches[1] = sonyhid.Touch{
+		Active: true,
+		ID:     7,
+		X:      ds4LayoutState.Touches[1].X,
+		Y:      ds4LayoutState.Touches[1].Y,
+	}
 
 	// ds4USBTouchPacketOverrun claims more touch packets than the report has
 	// room for. Only three fit in a USB report, so the third is decoded: it
@@ -499,8 +519,18 @@ func TestInputStateFromReport(t *testing.T) {
 	ds4USBTouchPacketOverrun[1+32] = 0xff
 	ds4LayoutStateFillerPacket := ds4LayoutState
 	ds4LayoutStateFillerPacket.Touches = [sonyhid.TouchCount]sonyhid.Touch{
-		{Active: false, ID: 0x6e, X: 1, Y: 1},
-		{Active: false, ID: 0x6e, X: 1, Y: 1},
+		{
+			Active: false,
+			ID:     0x6e,
+			X:      1,
+			Y:      1,
+		},
+		{
+			Active: false,
+			ID:     0x6e,
+			X:      1,
+			Y:      1,
+		},
 	}
 
 	tests := []struct {
@@ -879,14 +909,44 @@ func TestTouchPositionRange(t *testing.T) {
 		x, y         int
 		wantX, wantY float64
 	}{
-		{name: "top left", x: 0, y: 0, wantX: 0, wantY: 0},
-		{name: "top right", x: maxX, y: 0, wantX: 1, wantY: 0},
-		{name: "bottom left", x: 0, y: maxY, wantX: 0, wantY: 1},
-		{name: "bottom right", x: maxX, y: maxY, wantX: 1, wantY: 1},
+		{
+			name:  "top left",
+			x:     0,
+			y:     0,
+			wantX: 0,
+			wantY: 0,
+		},
+		{
+			name:  "top right",
+			x:     maxX,
+			y:     0,
+			wantX: 1,
+			wantY: 0,
+		},
+		{
+			name:  "bottom left",
+			x:     0,
+			y:     maxY,
+			wantX: 0,
+			wantY: 1,
+		},
+		{
+			name:  "bottom right",
+			x:     maxX,
+			y:     maxY,
+			wantX: 1,
+			wantY: 1,
+		},
 
 		// A position past the grid stays inside the range the touch API
 		// documents.
-		{name: "past the grid", x: dualSenseTouchWidth, y: dualSenseTouchHeight * 2, wantX: 1, wantY: 1},
+		{
+			name:  "past the grid",
+			x:     dualSenseTouchWidth,
+			y:     dualSenseTouchHeight * 2,
+			wantX: 1,
+			wantY: 1,
+		},
 	}
 	for _, test := range tests {
 		x, y := decodeTouchPosition(t, test.x, test.y)

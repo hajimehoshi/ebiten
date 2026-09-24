@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"time"
 	"unsafe"
 
@@ -60,10 +61,10 @@ type nativeGamepadsImpl struct {
 	inotifyPlus1 int
 	watch        int
 
-	// pendingTouch holds the touch surface nodes whose gamepad node has not been opened yet, keyed
-	// by the controller's uniq string. A node's gamepad can appear before or after it, so whichever
-	// is opened second does the pairing.
-	pendingTouch map[string]*touchNode
+	// pendingTouch holds the touch surface nodes whose gamepad node has not been opened yet, at most
+	// one per uniq string. A node's gamepad can appear before or after it, so whichever is opened
+	// second does the pairing.
+	pendingTouch []*touchNode
 }
 
 func newNativeGamepadsImpl() nativeGamepads {
@@ -138,12 +139,9 @@ func (g *nativeGamepadsImpl) isOpen(gamepads *gamepads, path string) bool {
 	}) != nil {
 		return true
 	}
-	for _, t := range g.pendingTouch {
-		if t.path == path {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(g.pendingTouch, func(t *touchNode) bool {
+		return t.path == path
+	})
 }
 
 // openDevice opens the event node at path and, by what it is, adds it as a gamepad, attaches it as
@@ -213,9 +211,13 @@ func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
 		}
 		return fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
 	}
-	// A node without properties is fine; the property bits then stay clear.
 	propBits := make([]byte, (_INPUT_PROP_CNT+7)/8)
-	_ = ioctl(fd, _EVIOCGPROP(uint(len(propBits))), unsafe.Pointer(&propBits[0]))
+	if err := ioctl(fd, _EVIOCGPROP(uint(len(propBits))), unsafe.Pointer(&propBits[0])); err != nil {
+		if isDisconnectError(err) {
+			return nil
+		}
+		return fmt.Errorf("gamepad: ioctl for propBits failed: %w", err)
+	}
 
 	kind := classifyEvdev(evBits, keyBits, absBits, propBits)
 	if kind == evdevKindOther {
@@ -225,7 +227,7 @@ func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
 
 	// The uniq string, the controller's address on the kernel drivers of interest, is what ties a
 	// touch surface node to its gamepad node. Many devices have none.
-	uniq := ""
+	var uniq string
 	cuniq := make([]byte, 256)
 	if err := ioctl(fd, _EVIOCGUNIQ(uint(len(cuniq))), unsafe.Pointer(&cuniq[0])); err == nil {
 		uniq = unix.ByteSliceToString(cuniq)
@@ -344,9 +346,11 @@ func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
 	}
 
 	// The gamepad's touch surface may have been opened first.
-	if t := g.pendingTouch[uniq]; t != nil && uniq != "" && t.id.vendor == id.vendor && t.id.product == id.product {
-		n.touch = t
-		delete(g.pendingTouch, uniq)
+	if i := slices.IndexFunc(g.pendingTouch, func(t *touchNode) bool {
+		return uniq != "" && t.uniq == uniq && t.id.vendor == id.vendor && t.id.product == id.product
+	}); i >= 0 {
+		n.touch = g.pendingTouch[i]
+		g.pendingTouch = slices.Delete(g.pendingTouch, i, i+1)
 	}
 
 	owned = false
@@ -371,13 +375,14 @@ func (g *nativeGamepadsImpl) attachTouch(gamepads *gamepads, t *touchNode) {
 		})
 		return
 	}
-	if g.pendingTouch == nil {
-		g.pendingTouch = map[string]*touchNode{}
+	if i := slices.IndexFunc(g.pendingTouch, func(old *touchNode) bool {
+		return old.uniq == t.uniq
+	}); i >= 0 {
+		g.pendingTouch[i].close()
+		g.pendingTouch[i] = t
+		return
 	}
-	if old := g.pendingTouch[t.uniq]; old != nil {
-		old.close()
-	}
-	g.pendingTouch[t.uniq] = t
+	g.pendingTouch = append(g.pendingTouch, t)
 }
 
 // removeDevice drops the node at path, whichever of a gamepad, an attached touch surface, or a
@@ -406,12 +411,11 @@ func (g *nativeGamepadsImpl) removeDevice(gamepads *gamepads, path string) {
 		})
 		return
 	}
-	for uniq, t := range g.pendingTouch {
-		if t.path == path {
-			t.close()
-			delete(g.pendingTouch, uniq)
-			return
-		}
+	if i := slices.IndexFunc(g.pendingTouch, func(t *touchNode) bool {
+		return t.path == path
+	}); i >= 0 {
+		g.pendingTouch[i].close()
+		g.pendingTouch = slices.Delete(g.pendingTouch, i, i+1)
 	}
 }
 
