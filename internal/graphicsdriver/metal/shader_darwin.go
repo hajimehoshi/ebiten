@@ -58,12 +58,22 @@ func (s *Shader) ID() graphicsdriver.ShaderID {
 }
 
 func (s *Shader) Dispose() {
-	for _, rps := range s.rpss {
+	for key, rps := range s.rpss {
 		rps.Release()
+		delete(s.rpss, key)
 	}
-	s.vs.Release()
-	s.fs.Release()
-	s.lib.Release()
+	if s.vs != (mtl.Function{}) {
+		s.vs.Release()
+		s.vs = mtl.Function{}
+	}
+	if s.fs != (mtl.Function{}) {
+		s.fs.Release()
+		s.fs = mtl.Function{}
+	}
+	if s.lib != (mtl.Library{}) {
+		s.lib.Release()
+		s.lib = mtl.Library{}
+	}
 	s.graphics.removeShader(s)
 }
 
