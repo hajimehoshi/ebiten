@@ -464,6 +464,11 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 		return fmt.Errorf("audio: player is already closed")
 	}
 
+	// timeDurationToPos rounds toward zero, so a negative offset must be rejected before the conversion.
+	if offset < 0 {
+		return fmt.Errorf("audio: offset must be non-negative but was %v", offset)
+	}
+
 	if p.player != nil {
 		// The device is available. Seek via the underlying player so that its buffer is reset.
 		pos := p.stream.timeDurationToPos(offset)

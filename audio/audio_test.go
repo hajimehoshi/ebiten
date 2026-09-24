@@ -263,6 +263,59 @@ func TestSetPositionLongDuration(t *testing.T) {
 	}
 }
 
+func TestSetPositionNegative(t *testing.T) {
+	tests := []struct {
+		name string
+		play bool
+	}{
+		{
+			name: "BeforeDeviceCreation",
+			play: false,
+		},
+		{
+			name: "AfterPlay",
+			play: true,
+		},
+	}
+	offsets := []time.Duration{
+		-time.Nanosecond,
+		-10 * time.Microsecond,
+		-30 * time.Microsecond,
+		-time.Second,
+	}
+	for _, test := range tests {
+		for _, offset := range offsets {
+			t.Run(test.name+"/"+offset.String(), func(t *testing.T) {
+				setup()
+				defer teardown()
+
+				src := bytes.NewReader(make([]byte, 44100*8))
+				p, err := context.NewPlayerF32(src)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := p.SetPosition(500 * time.Millisecond); err != nil {
+					t.Fatal(err)
+				}
+				if test.play {
+					if err := audio.UpdateForTesting(); err != nil {
+						t.Fatal(err)
+					}
+					p.Play()
+				}
+
+				want := p.Position()
+				if err := p.SetPosition(offset); err == nil {
+					t.Errorf("SetPosition(%v): got: nil, want: an error", offset)
+				}
+				if got := p.Position(); got != want {
+					t.Errorf("Position() after SetPosition(%v): got: %v, want: %v", offset, got, want)
+				}
+			})
+		}
+	}
+}
+
 // Issue #3438
 func TestRewindNonSeekableBeforeDeviceCreation(t *testing.T) {
 	setup()
