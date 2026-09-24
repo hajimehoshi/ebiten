@@ -376,13 +376,36 @@ func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) error 
 	if className == "" || len(c.icon.classes) == 0 {
 		return nil
 	}
-	// A class attribute can hold several space-separated classes; apply each
-	// in order so later ones win, matching CSS semantics.
+	// A class attribute can hold several space-separated classes. Collect the
+	// names so that repeated names are applied only once.
+	names := map[string]bool{}
 	for _, name := range strings.Fields(className) {
-		for k, v := range c.icon.classes[name] {
-			if err := c.readStyleAttr(pathStyle, k, v); err != nil {
-				return err
+		names[name] = true
+	}
+	// Resolve the winning declaration for each property by walking the
+	// stylesheet rules in order. Later rules override earlier ones regardless of
+	// the order the class names appear in the attribute, matching the CSS
+	// cascade, and each property is applied exactly once so that declarations
+	// which multiply (such as opacity) override rather than compound.
+	attrs := styleAttribute{}
+	for _, rule := range c.icon.classes {
+		matched := false
+		for _, name := range rule.classes {
+			if names[name] {
+				matched = true
+				break
 			}
+		}
+		if !matched {
+			continue
+		}
+		for k, v := range rule.attrs {
+			attrs[k] = v
+		}
+	}
+	for k, v := range attrs {
+		if err := c.readStyleAttr(pathStyle, k, v); err != nil {
+			return err
 		}
 	}
 	return nil
