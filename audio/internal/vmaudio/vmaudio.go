@@ -185,7 +185,7 @@ func (c *Context) takeControlChanges(controls []vmprotocol.AudioControl) []vmpro
 }
 
 // read reads player id's samples into buf and reports whether its source has ended. The player is kept
-// until Close, so a finished source can be sought back and replayed.
+// until Close, so a source that reached its end can be sought back and replayed.
 func (c *Context) read(id int64, buf []byte) (n int, eof bool) {
 	p, suspended := c.playerForRead(id)
 	if p == nil {
@@ -307,7 +307,8 @@ func (p *Player) Close() error {
 }
 
 // Seek seeks the source, which must be an io.Seeker, and discards the bytes buffered from the old
-// position.
+// position. A seek undoes the end of the source, but not a source error, which is terminal just as it
+// is for the Oto-backed player.
 func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -321,9 +322,6 @@ func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	}
 	p.buf = p.buf[:0]
 	p.eof = false
-	// A seek makes the player readable again also after a source error, as finishedLocked
-	// documents.
-	p.err = nil
 	return n, nil
 }
 
@@ -385,8 +383,9 @@ func (p *Player) read(buf []byte, suspended bool) (n int, eof bool) {
 	return n, p.finishedLocked()
 }
 
-// finishedLocked reports whether the player can produce no more samples until a Seek: its source failed,
-// or ended with too little buffered to form a frame. p.mu must be held.
+// finishedLocked reports whether the player can produce no more samples: its source failed, which is
+// terminal — a Seek cannot recover from it, as for the Oto-backed player — or the source ended with too
+// little buffered to form a frame, which a Seek can undo. p.mu must be held.
 func (p *Player) finishedLocked() bool {
 	return p.err != nil || (p.eof && len(p.buf) < 8)
 }
