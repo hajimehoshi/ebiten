@@ -149,6 +149,9 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 		}
 		base = s.posInBytes
 	case io.SeekEnd:
+		if s.totalBytes() == 0 {
+			return 0, fmt.Errorf("vorbis: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
+		}
 		base = s.totalBytes()
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)

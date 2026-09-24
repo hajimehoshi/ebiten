@@ -1176,3 +1176,61 @@ func TestSeekCurrentDoesNotSeekSource(t *testing.T) {
 		}
 	}
 }
+
+// truncateLastPage returns a stream whose last Ogg page is cut in its header, so that the
+// decoder cannot read the last granule position and reports an unknown length.
+func truncateLastPage(bs []byte) []byte {
+	i := bytes.LastIndex(bs, []byte("OggS"))
+	if i < 0 {
+		panic("vorbis_test: no Ogg page is found")
+	}
+	return bs[:i+3]
+}
+
+func TestSeekEndWithUnknownLength(t *testing.T) {
+	for idx, src := range [][]byte{test_mono_ogg, test_stereo_ogg} {
+		src := truncateLastPage(src)
+		for _, decode := range []struct {
+			name string
+			f    func(io.Reader) (*vorbis.Stream, error)
+		}{
+			{
+				name: "Int16",
+				f:    vorbis.DecodeWithoutResampling,
+			},
+			{
+				name: "Float32",
+				f:    vorbis.DecodeF32,
+			},
+			{
+				name: "Resampled",
+				f:    func(src io.Reader) (*vorbis.Stream, error) { return vorbis.DecodeWithSampleRate(32000, src) },
+			},
+		} {
+			t.Run(fmt.Sprintf("%s/source=%d", decode.name, idx), func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got, want := s.Length(), int64(0); got != want {
+					t.Fatalf("Length: got %d, want %d", got, want)
+				}
+
+				if _, err := s.Seek(64, io.SeekStart); err != nil {
+					t.Fatal(err)
+				}
+
+				// The unknown length must not be mistaken for the length of an empty stream,
+				// which would make a seek from the end land on the start and succeed.
+				for _, offset := range []int64{0, -8} {
+					if _, err := s.Seek(offset, io.SeekEnd); !errors.Is(err, errors.ErrUnsupported) {
+						t.Errorf("Seek(%d, io.SeekEnd): got error %v, want an error matching errors.ErrUnsupported", offset, err)
+					}
+					if pos, err := s.Seek(0, io.SeekCurrent); err != nil || pos != 64 {
+						t.Errorf("position after the rejected seek = (%d, %v), want 64", pos, err)
+					}
+				}
+			})
+		}
+	}
+}
