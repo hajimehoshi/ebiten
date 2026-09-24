@@ -55,12 +55,6 @@ func (s *Stream) Read(p []byte) (int, error) {
 //
 // If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	// A query for the current position must not move the stream, even when a read has left it in the
-	// middle of a sample.
-	if offset == 0 && whence == io.SeekCurrent {
-		return s.inner.Seek(offset, whence)
-	}
-
 	var base int64
 	switch whence {
 	case io.SeekStart:
@@ -296,26 +290,26 @@ chunks:
 		s = newSectionReader(src, headerSize, dataSize)
 	}
 
+	var format convert.Format
+	switch bitsPerSample {
+	case 8:
+		format = convert.FormatU8
+	case 16:
+		format = convert.FormatS16
+	default:
+		// TODO: Support signed 24bit integer format (#2215).
+		return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
+	}
+	// A source already in stereo 16bit is converted too, so that a read returns whole samples.
+	s = convert.NewStereoI16ReadSeeker(s, mono, format)
+
 	// sizeScale is the ratio of the decoded size to the 'data' chunk size.
 	sizeScale := int64(1)
-	if mono || bitsPerSample != 16 {
-		var format convert.Format
-		switch bitsPerSample {
-		case 8:
-			format = convert.FormatU8
-		case 16:
-			format = convert.FormatS16
-		default:
-			// TODO: Support signed 24bit integer format (#2215).
-			return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
-		}
-		s = convert.NewStereoI16ReadSeeker(s, mono, format)
-		if mono {
-			sizeScale *= 2
-		}
-		if bitsPerSample != 16 {
-			sizeScale *= 2
-		}
+	if mono {
+		sizeScale *= 2
+	}
+	if bitsPerSample != 16 {
+		sizeScale *= 2
 	}
 
 	if bitDepthInBytes == bitDepthInBytesFloat32 {

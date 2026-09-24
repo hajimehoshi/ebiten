@@ -862,7 +862,7 @@ func TestDecodePlaceholderDataChunkSizeShortReads(t *testing.T) {
 
 	var got []byte
 	for {
-		var buf [1]byte
+		var buf [4]byte
 		n, err := s.Read(buf[:])
 		if n == 0 && err == nil {
 			t.Fatal("Read: got (0, <nil>), want a non-zero byte count or an error")
@@ -1301,5 +1301,96 @@ func TestSeekEOFSourceError(t *testing.T) {
 				t.Error(err)
 			}
 		})
+	}
+}
+
+func readWithSizes(t *testing.T, r io.Reader, sizes []int, bytesPerSample int) []byte {
+	t.Helper()
+	var got []byte
+	for i := 0; ; i++ {
+		size := sizes[i%len(sizes)]
+		buf := make([]byte, size)
+		n, err := r.Read(buf)
+		if n%bytesPerSample != 0 {
+			t.Errorf("Read(a buffer of %d bytes) at %d: got %d bytes, want a multiple of %d", size, len(got), n, bytesPerSample)
+		}
+		got = append(got, buf[:n]...)
+		if errors.Is(err, io.EOF) {
+			return got
+		}
+		if size < bytesPerSample && errors.Is(err, io.ErrShortBuffer) {
+			continue
+		}
+		if err != nil {
+			t.Fatalf("Read(a buffer of %d bytes) at %d: %v", size, len(got), err)
+		}
+		if n == 0 {
+			t.Fatalf("Read(a buffer of %d bytes) at %d: got (0, <nil>)", size, len(got))
+		}
+	}
+}
+
+func readAligned(t *testing.T, r io.Reader) []byte {
+	t.Helper()
+	var got []byte
+	buf := make([]byte, 4096)
+	for {
+		n, err := r.Read(buf)
+		got = append(got, buf[:n]...)
+		if errors.Is(err, io.EOF) {
+			return got
+		}
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+func TestReadWholeSamples(t *testing.T) {
+	decoders := append(wavDecoders, struct {
+		name           string
+		f              func(io.Reader) (*wav.Stream, error)
+		bytesPerSample int64
+	}{
+		name: "SameSampleRate",
+		f: func(src io.Reader) (*wav.Stream, error) {
+			return wav.DecodeWithSampleRate(testSampleRate, src)
+		},
+		bytesPerSample: 4,
+	})
+	data := make([]byte, 1003)
+	for i := range data {
+		data[i] = byte(i*7 + 1)
+	}
+	for _, channels := range []int{1, 2} {
+		for _, bits := range []int{8, 16} {
+			for _, placeholderSize := range []bool{false, true} {
+				for _, decode := range decoders {
+					t.Run(fmt.Sprintf("%s/channels=%d/bits=%d/placeholderSize=%t", decode.name, channels, bits, placeholderSize), func(t *testing.T) {
+						file := pcmWavFile(channels, bits, data)
+						if placeholderSize {
+							setDataChunkSize(file, 0)
+						}
+						ref, err := decode.f(bytes.NewReader(file))
+						if err != nil {
+							t.Fatal(err)
+						}
+						want := readAligned(t, ref)
+
+						s, err := decode.f(&shortReader{
+							r:    bytes.NewReader(file),
+							maxN: 1,
+						})
+						if err != nil {
+							t.Fatal(err)
+						}
+						got := readWithSizes(t, s, []int{1, 5, 3, 6, 2, 7, 9, 13, 4, 10, 8, 1027}, int(decode.bytesPerSample))
+						if !bytes.Equal(got, want) {
+							t.Errorf("got %d bytes, want %d bytes equal to reading with aligned buffers", len(got), len(want))
+						}
+					})
+				}
+			}
+		}
 	}
 }

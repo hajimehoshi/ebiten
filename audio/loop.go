@@ -32,7 +32,7 @@ type InfiniteLoop struct {
 	bitDepthInBytes int
 	bytesPerSample  int
 
-	// extra holds source bytes buffered until a destination can receive a whole value.
+	// extra holds source bytes buffered until a destination can receive a whole sample.
 	extra []byte
 
 	// afterLoop is data after the loop.
@@ -160,7 +160,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
 	}
-	if len(b) < i.bitDepthInBytes {
+	if len(b) < i.bytesPerSample {
 		return 0, i.readShortBuffer()
 	}
 
@@ -170,7 +170,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 
 	// When the source or the loop reaches its end, go back to the loop start and read again so that
 	// this doesn't return (0, nil). A retry either returns data, stops at the loop start, or grows
-	// the remainder, which is shorter than one value, so the retries end.
+	// the remainder, which is shorter than one sample, so the retries end.
 	for rewinds := 0; ; rewinds++ {
 		n, err := i.read(b)
 		if err != nil && err != io.EOF {
@@ -193,24 +193,24 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	}
 }
 
-// readShortBuffer buffers one value to distinguish EOF from a short destination buffer.
+// readShortBuffer buffers one sample to distinguish EOF from a short destination buffer.
 func (i *InfiniteLoop) readShortBuffer() error {
 	if err := i.ensurePos(); err != nil {
 		return err
 	}
 	for rewinds := 0; ; {
-		if len(i.extra) >= i.bitDepthInBytes {
+		if len(i.extra) >= i.bytesPerSample {
 			return io.ErrShortBuffer
 		}
-		var buf [4]byte
-		size := min(int64(i.bitDepthInBytes-len(i.extra)), i.length()-i.pos)
+		var buf [bitDepthInBytesFloat32 * channelCount]byte
+		size := min(int64(i.bytesPerSample-len(i.extra)), i.length()-i.pos)
 		n, err := i.src.Read(buf[:size])
 		i.extra = append(i.extra, buf[:n]...)
 		i.pos += int64(n)
 		if err != nil && err != io.EOF {
 			return err
 		}
-		if len(i.extra) >= i.bitDepthInBytes {
+		if len(i.extra) >= i.bytesPerSample {
 			return io.ErrShortBuffer
 		}
 		if err == io.EOF || i.pos == i.length() {
@@ -239,15 +239,16 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 	copy(b, i.extra)
 	i.extra = i.extra[:0]
 
-	// Keep reading until one value is available so that a source returning less than one value
-	// at a time doesn't make Read return (0, nil).
+	// Keep reading until one sample is available so that a source returning less than one sample
+	// at a time doesn't make Read return (0, nil). A sample already in extra is returned without
+	// reading, as the space left in b can be shorter than a sample.
 	var n int
 	var err error
-	for {
+	for extralen+n < i.bytesPerSample {
 		var nn int
 		nn, err = i.src.Read(b[extralen+n:])
 		n += nn
-		if err != nil || nn == 0 || extralen+n >= i.bitDepthInBytes {
+		if err != nil || nn == 0 {
 			break
 		}
 	}
@@ -261,7 +262,7 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 	bpos := i.pos - int64(n)
 
 	// Save the remainder part to extra. This will be used at the next Read.
-	if rem := n % i.bitDepthInBytes; rem != 0 {
+	if rem := n % i.bytesPerSample; rem != 0 {
 		i.extra = append(i.extra, b[n-rem:n]...)
 		b = b[:n-rem]
 		n = n - rem
@@ -379,12 +380,9 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must be >= 0 but was %d", next)
 	}
-	// A query for the current position must not move the stream, even when a read has left it in the
-	// middle of a sample. Otherwise, a position in the middle of a sample is rounded down to a sample
-	// boundary, as reading from there would return bytes straddling two samples.
-	if offset != 0 || whence != io.SeekCurrent {
-		next = next / int64(i.bytesPerSample) * int64(i.bytesPerSample)
-	}
+	// A position in the middle of a sample is rounded down to a sample boundary, as reading from there
+	// would return bytes straddling two samples.
+	next = next / int64(i.bytesPerSample) * int64(i.bytesPerSample)
 	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart
 	}
