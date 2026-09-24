@@ -16,6 +16,7 @@ package audio_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"io"
 	"math"
@@ -1113,6 +1114,105 @@ func TestInfiniteLoopShortBufferEOFAndRecovery(t *testing.T) {
 			}
 			if pos, err := l.Seek(0, io.SeekCurrent); err != nil || pos != 0 {
 				t.Errorf("current after short Read = (%d, %v), want 0", pos, err)
+			}
+		})
+	}
+}
+
+// loopSourceWithAfterLoop returns a source whose loop part of length bytes is silent and which is
+// followed by afterLoopSamples non-silent samples, encoded for the bit depth.
+func loopSourceWithAfterLoop(length int, bitDepthInBytes int, afterLoopSamples int) []byte {
+	src := make([]byte, length)
+	for range afterLoopSamples * 2 {
+		switch bitDepthInBytes {
+		case 2:
+			src = binary.LittleEndian.AppendUint16(src, 1600)
+		case 4:
+			bits := math.Float32bits(1)
+			src = append(src, byte(bits), byte(bits>>8), byte(bits>>16), byte(bits>>24))
+		}
+	}
+	return src
+}
+
+// failingSeekReader is a source whose Seek fails with err while fail is set.
+type failingSeekReader struct {
+	src  io.ReadSeeker
+	fail bool
+	err  error
+}
+
+func (f *failingSeekReader) Read(buf []byte) (int, error) {
+	return f.src.Read(buf)
+}
+
+func (f *failingSeekReader) Seek(offset int64, whence int) (int64, error) {
+	if f.fail {
+		return 0, f.err
+	}
+	return f.src.Seek(offset, whence)
+}
+
+func TestInfiniteLoopKeepsBlendingOnFailedSourceSeek(t *testing.T) {
+	cases := []struct {
+		name            string
+		bitDepthInBytes int
+		newLoop         func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+		halfSample      []byte
+	}{
+		{
+			name:            "int16",
+			bitDepthInBytes: 2,
+			newLoop:         audio.NewInfiniteLoop,
+			halfSample:      binary.LittleEndian.AppendUint16(binary.LittleEndian.AppendUint16(nil, 800), 800),
+		},
+		{
+			name:            "float32",
+			bitDepthInBytes: 4,
+			newLoop:         audio.NewInfiniteLoopF32,
+			halfSample: func() []byte {
+				bits := math.Float32bits(0.5)
+				half := []byte{byte(bits), byte(bits >> 8), byte(bits >> 16), byte(bits >> 24)}
+				return append(half, half...)
+			}(),
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			const length = 64
+			bytesPerSample := c.bitDepthInBytes * 2
+			src := loopSourceWithAfterLoop(length, c.bitDepthInBytes, 2)
+			seekErr := errors.New("audio_test: seek failed")
+			r := &failingSeekReader{
+				src: bytes.NewReader(src),
+				err: seekErr,
+			}
+			l := c.newLoop(r, length)
+
+			if _, err := io.ReadFull(l, make([]byte, length)); err != nil {
+				t.Fatal(err)
+			}
+			first := make([]byte, bytesPerSample)
+			if _, err := io.ReadFull(l, first); err != nil {
+				t.Fatal(err)
+			}
+			if got, want := first, src[length:length+bytesPerSample]; !bytes.Equal(got, want) {
+				t.Fatalf("the first sample of the second lap: got %v, want %v (blended with the data after the loop)", got, want)
+			}
+
+			r.fail = true
+			if _, err := l.Seek(0, io.SeekStart); !errors.Is(err, seekErr) {
+				t.Fatalf("Seek: got %v, want %v", err, seekErr)
+			}
+			r.fail = false
+
+			second := make([]byte, bytesPerSample)
+			if _, err := io.ReadFull(l, second); err != nil {
+				t.Fatal(err)
+			}
+			if got, want := second, c.halfSample; !bytes.Equal(got, want) {
+				t.Errorf("the second sample of the second lap after a failed Seek: got %v, want %v (still blended)", got, want)
 			}
 		})
 	}
