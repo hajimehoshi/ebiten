@@ -424,6 +424,10 @@ func (r *failReader) Read(p []byte) (int, error) {
 	return 0, r.err
 }
 
+func (r *failReader) Seek(offset int64, whence int) (int64, error) {
+	return 0, nil
+}
+
 func TestFailingSource(t *testing.T) {
 	c := newContext(t, 8)
 	wantErr := errors.New("source failed")
@@ -436,5 +440,18 @@ func TestFailingSource(t *testing.T) {
 	}
 	if err := p.Err(); !errors.Is(err, wantErr) {
 		t.Errorf("Err() = %v; want %v", err, wantErr)
+	}
+
+	if _, err := p.Seek(0, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	if p.IsPlaying() {
+		t.Error("a player whose source failed reported playing after Seek")
+	}
+	if _, eof := c.ReadForTesting(id, 16); !eof {
+		t.Error("a player whose source failed was not finished after Seek")
+	}
+	if err := p.Err(); !errors.Is(err, wantErr) {
+		t.Errorf("Err() after Seek = %v; want %v", err, wantErr)
 	}
 }
