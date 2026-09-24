@@ -940,6 +940,24 @@ func TestDecodePlaceholderDataChunkSizeSourceErrorWithData(t *testing.T) {
 	}
 }
 
+func TestDecodePlaceholderDataChunkSizeSeekUnsupported(t *testing.T) {
+	file := pcmWavFile(2, 16, make([]byte, 1000))
+	setDataChunkSize(file, 0)
+
+	s, err := wav.DecodeWithoutResampling(&failingSeekSource{
+		Reader: bytes.NewReader(file),
+		err:    errors.New("wav_test: source seek failed"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+		if _, err := s.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
+			t.Errorf("Seek(0, %d): got %v, want an error wrapping errors.ErrUnsupported", whence, err)
+		}
+	}
+}
+
 func TestSeekOverflow(t *testing.T) {
 	for _, channels := range []int{1, 2} {
 		for _, bits := range []int{8, 16} {

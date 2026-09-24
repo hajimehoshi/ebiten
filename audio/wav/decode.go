@@ -293,7 +293,10 @@ chunks:
 
 	var s io.ReadSeeker
 	if dataSize < 0 {
-		s = newFrameAlignedReader(src, int(bytesPerFrame))
+		// The converter below discards a partial frame at the end.
+		s = unseekableReader{
+			Reader: src,
+		}
 	} else {
 		// A partial frame at the tail of the data chunk cannot be decoded. Discard it.
 		dataSize = dataSize / bytesPerFrame * bytesPerFrame
@@ -359,6 +362,18 @@ func sizeToEnd(src io.Reader) (int64, error) {
 		return 0, err
 	}
 	return end - cur, nil
+}
+
+// unseekableReader is an io.ReadSeeker reading from an io.Reader that cannot seek.
+type unseekableReader struct {
+	io.Reader
+}
+
+// Seek is an implementation of io.Seeker's Seek.
+//
+// Seek always returns an error wrapping errors.ErrUnsupported.
+func (unseekableReader) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("wav: source must be io.Seeker: %w", errors.ErrUnsupported)
 }
 
 // Decode decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
