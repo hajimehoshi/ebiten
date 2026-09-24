@@ -1428,8 +1428,8 @@ func (i *Image) Dispose() {
 	}
 	i.invokeUsageCallbacks()
 	i.image.Deallocate()
-	i.image = nil
 	i.subImageCacheM.Lock()
+	i.image = nil
 	i.subImageCache = nil
 	i.subImageCacheM.Unlock()
 
