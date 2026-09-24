@@ -31,6 +31,7 @@ import (
 )
 
 const (
+	channelCount           = 2
 	bitDepthInBytesInt16   = 2
 	bitDepthInBytesFloat32 = 4
 )
@@ -41,10 +42,22 @@ type Stream struct {
 	length     int64
 	sampleRate int
 	seekable   bool
+
+	// atEnd reports whether the stream has been sought to or past its end.
+	atEnd bool
+
+	// endPos is the position of the stream while atEnd is true.
+	endPos int64
+
+	// bytesPerSample is the size in bytes of one sample across all the channels.
+	bytesPerSample int64
 }
 
 // Read is an implementation of io.Reader's Read.
 func (s *Stream) Read(buf []byte) (int, error) {
+	if s.atEnd {
+		return 0, io.EOF
+	}
 	return s.readSeeker.Read(buf)
 }
 
@@ -56,16 +69,28 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("mp3: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 
+	// A query for the current position does not seek the decoder. A seek restarts decoding from the
+	// previous frame, which can change the data that follows.
+	if offset == 0 && whence == io.SeekCurrent {
+		if s.atEnd {
+			return s.endPos, nil
+		}
+		return s.readSeeker.Seek(0, io.SeekCurrent)
+	}
+
 	// Resolve the position here: the underlying decoder panics for a negative position.
 	var base int64
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
-		cur, err := s.readSeeker.Seek(0, io.SeekCurrent)
-		if err != nil {
-			return 0, err
+		base = s.endPos
+		if !s.atEnd {
+			cur, err := s.readSeeker.Seek(0, io.SeekCurrent)
+			if err != nil {
+				return 0, err
+			}
+			base = cur
 		}
-		base = cur
 	case io.SeekEnd:
 		base = s.length
 	default:
@@ -75,7 +100,22 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("mp3: invalid seek offset %d for position %d", offset, base)
 	}
-	return s.readSeeker.Seek(pos, io.SeekStart)
+	// A position in the middle of a sample is rounded down to a sample boundary, as reading from there
+	// would return bytes straddling two samples.
+	pos = pos / s.bytesPerSample * s.bytesPerSample
+	// The underlying decoder fails to seek to its end and panics past it, so a position there is not
+	// delegated (#3619).
+	if s.length >= 0 && pos >= s.length {
+		s.atEnd = true
+		s.endPos = pos
+		return pos, nil
+	}
+	n, err := s.readSeeker.Seek(pos, io.SeekStart)
+	if err != nil {
+		return 0, err
+	}
+	s.atEnd = false
+	return n, nil
 }
 
 // Length returns the size of decoded stream in bytes.
@@ -109,10 +149,11 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 	_, seekable := src.(io.Seeker)
 	r := convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(d)
 	s := &Stream{
-		readSeeker: r,
-		length:     d.Length() / bitDepthInBytesInt16 * bitDepthInBytesFloat32,
-		sampleRate: d.SampleRate(),
-		seekable:   seekable,
+		readSeeker:     r,
+		length:         d.Length() / bitDepthInBytesInt16 * bitDepthInBytesFloat32,
+		sampleRate:     d.SampleRate(),
+		seekable:       seekable,
+		bytesPerSample: channelCount * bitDepthInBytesFloat32,
 	}
 	return s, nil
 }
@@ -132,12 +173,18 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 	}
 	_, seekable := src.(io.Seeker)
 	s := &Stream{
-		readSeeker: d,
-		length:     d.Length(),
-		sampleRate: d.SampleRate(),
-		seekable:   seekable,
+		readSeeker:     newInt16ReadSeeker(d),
+		length:         d.Length(),
+		sampleRate:     d.SampleRate(),
+		seekable:       seekable,
+		bytesPerSample: channelCount * bitDepthInBytesInt16,
 	}
 	return s, nil
+}
+
+// newInt16ReadSeeker returns a stream of d whose reads return whole samples.
+func newInt16ReadSeeker(d *mp3.Decoder) io.ReadSeeker {
+	return convert.NewStereoI16ReadSeeker(d, false, convert.FormatS16)
 }
 
 // DecodeWithSampleRate decodes an MP3 source and returns a decoded stream in signed 16bit integer, little endian, 2 channels (stereo) format.
@@ -163,7 +210,7 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 	}
 	_, seekable := src.(io.Seeker)
 
-	var r io.ReadSeeker = d
+	r := newInt16ReadSeeker(d)
 	length := d.Length()
 	if d.SampleRate() != sampleRate {
 		r2 := convert.NewResampling(d, d.Length(), d.SampleRate(), sampleRate, bitDepthInBytesInt16)
@@ -171,10 +218,11 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 		length = r2.Length()
 	}
 	s := &Stream{
-		readSeeker: r,
-		length:     length,
-		sampleRate: sampleRate,
-		seekable:   seekable,
+		readSeeker:     r,
+		length:         length,
+		sampleRate:     sampleRate,
+		seekable:       seekable,
+		bytesPerSample: channelCount * bitDepthInBytesInt16,
 	}
 	return s, nil
 }

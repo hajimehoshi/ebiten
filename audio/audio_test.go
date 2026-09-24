@@ -263,6 +263,59 @@ func TestSetPositionLongDuration(t *testing.T) {
 	}
 }
 
+func TestSetPositionNegative(t *testing.T) {
+	tests := []struct {
+		name string
+		play bool
+	}{
+		{
+			name: "BeforeDeviceCreation",
+			play: false,
+		},
+		{
+			name: "AfterPlay",
+			play: true,
+		},
+	}
+	offsets := []time.Duration{
+		-time.Nanosecond,
+		-10 * time.Microsecond,
+		-30 * time.Microsecond,
+		-time.Second,
+	}
+	for _, test := range tests {
+		for _, offset := range offsets {
+			t.Run(test.name+"/"+offset.String(), func(t *testing.T) {
+				setup()
+				defer teardown()
+
+				src := bytes.NewReader(make([]byte, 44100*8))
+				p, err := context.NewPlayerF32(src)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if err := p.SetPosition(500 * time.Millisecond); err != nil {
+					t.Fatal(err)
+				}
+				if test.play {
+					if err := audio.UpdateForTesting(); err != nil {
+						t.Fatal(err)
+					}
+					p.Play()
+				}
+
+				want := p.Position()
+				if err := p.SetPosition(offset); err == nil {
+					t.Errorf("SetPosition(%v): got: nil, want: an error", offset)
+				}
+				if got := p.Position(); got != want {
+					t.Errorf("Position() after SetPosition(%v): got: %v, want: %v", offset, got, want)
+				}
+			})
+		}
+	}
+}
+
 // Issue #3438
 func TestRewindNonSeekableBeforeDeviceCreation(t *testing.T) {
 	setup()
@@ -915,4 +968,22 @@ func TestResumeRetriesAfterError(t *testing.T) {
 	runWithTimeout(t, "resume", audio.ResumeForTesting)
 	runWithTimeout(t, "suspend", audio.SuspendForTesting)
 	runWithTimeout(t, "resume", audio.ResumeForTesting)
+}
+
+func TestTimeStreamSeekCurrentOverInfiniteLoop(t *testing.T) {
+	const length = 64
+	s, err := audio.NewTimeStreamForTesting(audio.NewInfiniteLoop(bytes.NewReader(make([]byte, length)), length), 48000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.ReadFull(s, make([]byte, length+16)); err != nil {
+		t.Fatal(err)
+	}
+	pos, err := s.Seek(0, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := int64(length + 16); pos != want {
+		t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, want)
+	}
 }

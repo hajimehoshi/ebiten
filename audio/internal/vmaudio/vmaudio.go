@@ -231,7 +231,9 @@ type Player struct {
 	playing bool
 	volume  float64
 	eof     bool
-	err     error
+
+	// err is the first error the source returned other than io.EOF.
+	err error
 
 	// buf holds bytes read from the source but not yet returned (a short or unaligned source read can
 	// leave a partial frame behind).
@@ -307,7 +309,8 @@ func (p *Player) Close() error {
 }
 
 // Seek seeks the source, which must be an io.Seeker, and discards the bytes buffered from the old
-// position.
+// position. A player at the end of its source can be played again after Seek, while a player whose source
+// failed stays finished.
 func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()

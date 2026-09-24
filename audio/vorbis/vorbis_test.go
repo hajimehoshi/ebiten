@@ -895,6 +895,288 @@ func TestDecodeWithSampleRateInvalidSampleRate(t *testing.T) {
 	}
 }
 
+func TestSeekRounding(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		for _, decode := range []struct {
+			name           string
+			f              func(io.Reader) (*vorbis.Stream, error)
+			bytesPerSample int64
+		}{
+			{
+				name:           "I16",
+				f:              vorbis.DecodeWithoutResampling,
+				bytesPerSample: 4,
+			},
+			{
+				name:           "F32",
+				f:              vorbis.DecodeF32,
+				bytesPerSample: 8,
+			},
+			{
+				name: "Resampled",
+				f: func(r io.Reader) (*vorbis.Stream, error) {
+					return vorbis.DecodeWithSampleRate(32000, r)
+				},
+				bytesPerSample: 4,
+			},
+		} {
+			t.Run(file.name+"/"+decode.name, func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(file.bs))
+				if err != nil {
+					t.Fatal(err)
+				}
+				size := decode.bytesPerSample
+				base := s.Length() / 2 / size * size
+				want := make([]byte, 4*size)
+				if _, err := s.Seek(base, io.SeekStart); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := io.ReadFull(s, want); err != nil {
+					t.Fatal(err)
+				}
+
+				for r := int64(1); r < size; r++ {
+					for _, tc := range []struct {
+						name   string
+						from   int64
+						offset int64
+						whence int
+					}{
+						{
+							name:   "SeekStart",
+							from:   0,
+							offset: base + r,
+							whence: io.SeekStart,
+						},
+						{
+							name:   "SeekCurrent",
+							from:   0,
+							offset: base + r,
+							whence: io.SeekCurrent,
+						},
+						{
+							name:   "SeekCurrentBackward",
+							from:   base + size,
+							offset: r - size,
+							whence: io.SeekCurrent,
+						},
+						{
+							name:   "SeekEnd",
+							from:   0,
+							offset: base + r - s.Length(),
+							whence: io.SeekEnd,
+						},
+					} {
+						if _, err := s.Seek(tc.from, io.SeekStart); err != nil {
+							t.Fatal(err)
+						}
+						pos, err := s.Seek(tc.offset, tc.whence)
+						if err != nil {
+							t.Fatal(err)
+						}
+						if got, want := pos, base; got != want {
+							t.Errorf("%s to %d: got %d, want %d", tc.name, base+r, got, want)
+						}
+						got := make([]byte, len(want))
+						if _, err := io.ReadFull(s, got); err != nil {
+							t.Fatal(err)
+						}
+						if !bytes.Equal(got, want) {
+							t.Errorf("%s to %d: the data read differs from the data at %d", tc.name, base+r, base)
+						}
+					}
+
+					pos, err := s.Seek(s.Length()+r, io.SeekStart)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if got, want := pos, s.Length(); got != want {
+						t.Errorf("Seek(Length()+%d, io.SeekStart): got %d, want %d", r, got, want)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestReadAfterSeek(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		for _, decode := range []struct {
+			name           string
+			f              func(io.Reader) (*vorbis.Stream, error)
+			bytesPerSample int64
+		}{
+			{
+				name:           "I16",
+				f:              vorbis.DecodeWithoutResampling,
+				bytesPerSample: 4,
+			},
+			{
+				name:           "F32",
+				f:              vorbis.DecodeF32,
+				bytesPerSample: 8,
+			},
+		} {
+			t.Run(file.name+"/"+decode.name, func(t *testing.T) {
+				s, err := decode.f(bytes.NewReader(file.bs))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want, err := io.ReadAll(s)
+				if err != nil {
+					t.Fatal(err)
+				}
+				size := decode.bytesPerSample
+				for pos := int64(0); pos < int64(len(want)); pos += 10000 * size {
+					if _, err := s.Seek(pos, io.SeekStart); err != nil {
+						t.Fatal(err)
+					}
+					got := make([]byte, min(1024*size, int64(len(want))-pos))
+					if _, err := io.ReadFull(s, got); err != nil {
+						t.Fatal(err)
+					}
+					if !bytes.Equal(got, want[pos:pos+int64(len(got))]) {
+						t.Errorf("Read after Seek(%d, io.SeekStart): the data differs from a continuous read at the same position", pos)
+					}
+				}
+			})
+		}
+	}
+}
+
+// seekCountingReader is an io.ReadSeeker that counts its seeks.
+type seekCountingReader struct {
+	r     io.ReadSeeker
+	seeks int
+}
+
+func (s *seekCountingReader) Read(buf []byte) (int, error) {
+	return s.r.Read(buf)
+}
+
+func (s *seekCountingReader) Seek(offset int64, whence int) (int64, error) {
+	s.seeks++
+	return s.r.Seek(offset, whence)
+}
+
+func TestSeekCurrentDoesNotSeekSource(t *testing.T) {
+	for _, file := range []struct {
+		name string
+		bs   []byte
+	}{
+		{
+			name: "Mono",
+			bs:   test_mono_ogg,
+		},
+		{
+			name: "Stereo",
+			bs:   test_stereo_ogg,
+		},
+	} {
+		for _, decode := range []struct {
+			name           string
+			f              func(io.Reader) (*vorbis.Stream, error)
+			bytesPerSample int64
+		}{
+			{
+				name:           "I16",
+				f:              vorbis.DecodeWithoutResampling,
+				bytesPerSample: 4,
+			},
+			{
+				name:           "F32",
+				f:              vorbis.DecodeF32,
+				bytesPerSample: 8,
+			},
+		} {
+			t.Run(file.name+"/"+decode.name, func(t *testing.T) {
+				ref, err := decode.f(bytes.NewReader(file.bs))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want, err := io.ReadAll(ref)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				r := &seekCountingReader{
+					r: bytes.NewReader(file.bs),
+				}
+				s, err := decode.f(r)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := make([]byte, 1024*decode.bytesPerSample)
+				if _, err := io.ReadFull(s, got); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := s.Read(make([]byte, 1)); !errors.Is(err, io.ErrShortBuffer) {
+					t.Fatalf("Read(a buffer of 1 byte): got %v, want %v", err, io.ErrShortBuffer)
+				}
+
+				seeks := r.seeks
+				pos, err := s.Seek(0, io.SeekCurrent)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if pos != int64(len(got)) {
+					t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, len(got))
+				}
+				if r.seeks != seeks {
+					t.Errorf("Seek(0, io.SeekCurrent) sought the source %d times, want 0", r.seeks-seeks)
+				}
+				rest, err := io.ReadAll(s)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got = append(got, rest...)
+				if !bytes.Equal(got, want) {
+					t.Error("reading after Seek(0, io.SeekCurrent): the data differs from reading without the query")
+				}
+
+				seeks = r.seeks
+				pos, err = s.Seek(0, io.SeekCurrent)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if pos != int64(len(want)) {
+					t.Errorf("Seek(0, io.SeekCurrent) at the end: got %d, want %d", pos, len(want))
+				}
+				if n, err := s.Read(make([]byte, 64)); n != 0 || !errors.Is(err, io.EOF) {
+					t.Errorf("Read after Seek(0, io.SeekCurrent) at the end: got (%d, %v), want (0, %v)", n, err, io.EOF)
+				}
+				if r.seeks != seeks {
+					t.Errorf("Seek(0, io.SeekCurrent) at the end sought the source %d times, want 0", r.seeks-seeks)
+				}
+			})
+		}
+	}
+}
+
 // truncateLastPage returns a stream whose last Ogg page is cut in its header, so that the
 // decoder cannot read the last granule position and reports an unknown length.
 func truncateLastPage(bs []byte) []byte {

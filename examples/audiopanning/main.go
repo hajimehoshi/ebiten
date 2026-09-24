@@ -22,6 +22,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"slices"
 	"sync"
 	"time"
 
@@ -150,25 +151,42 @@ type StereoPanStream struct {
 	mu      sync.Mutex
 	pan     float64 // -1: left; 0: center; 1: right
 	prevPan float64
-	buf     []byte
+	// buf holds the bytes read from the source but not returned yet.
+	buf []byte
 }
 
 func (s *StereoPanStream) Read(p []byte) (int, error) {
-	// If the stream has a buffer that was read in the previous time, use this first.
-	var bufN int
-	if len(s.buf) > 0 {
-		bufN = copy(p, s.buf)
-		s.buf = s.buf[bufN:]
+	const bytesPerSample = 8
+
+	if len(p) == 0 {
+		return 0, nil
 	}
 
-	readN, err := s.ReadSeeker.Read(p[bufN:])
+	// Read the source into the buffer. Read at least one sample even when p is shorter than that, so
+	// that the end of the source can be told from a short p.
+	size := max(len(p)/bytesPerSample, 1) * bytesPerSample
+	var err error
+	if len(s.buf) < size {
+		bufN := len(s.buf)
+		s.buf = slices.Grow(s.buf, size-bufN)[:size]
+		var readN int
+		readN, err = s.ReadSeeker.Read(s.buf[bufN:])
+		s.buf = s.buf[:bufN+readN]
+	}
 
-	// Align the buffer size in multiples of 4. The extra part is pushed to the buffer for the
-	// next time.
-	totalN := bufN + readN
-	extra := totalN - totalN/8*8
-	s.buf = append(s.buf, p[totalN-extra:totalN]...)
-	alignedN := totalN - extra
+	if len(p) < bytesPerSample {
+		if err == io.EOF && len(s.buf) >= bytesPerSample {
+			err = nil
+		}
+		if err != nil {
+			return 0, err
+		}
+		return 0, io.ErrShortBuffer
+	}
+
+	// Return whole samples. The extra part is kept in the buffer for the next time.
+	alignedN := copy(p, s.buf[:len(s.buf)/bytesPerSample*bytesPerSample])
+	s.buf = s.buf[:copy(s.buf, s.buf[alignedN:])]
 
 	prevPan := s.prevPan
 	s.mu.Lock()
@@ -206,6 +224,27 @@ func (s *StereoPanStream) Read(p []byte) (int, error) {
 		s.prevPan = pan
 	}
 	return alignedN, err
+}
+
+func (s *StereoPanStream) Seek(offset int64, whence int) (int64, error) {
+	// The source is ahead of this stream by the buffered bytes.
+	if whence == io.SeekCurrent {
+		// A query does not seek the source, so that the buffered bytes are kept.
+		if offset == 0 {
+			pos, err := s.ReadSeeker.Seek(0, io.SeekCurrent)
+			if err != nil {
+				return 0, err
+			}
+			return pos - int64(len(s.buf)), nil
+		}
+		offset -= int64(len(s.buf))
+	}
+	pos, err := s.ReadSeeker.Seek(offset, whence)
+	if err != nil {
+		return 0, err
+	}
+	s.buf = s.buf[:0]
+	return pos, nil
 }
 
 func (s *StereoPanStream) SetPan(pan float64) {

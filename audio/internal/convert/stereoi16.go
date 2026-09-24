@@ -178,9 +178,8 @@ func (s *StereoI16ReadSeeker) presentedPosition(pos int64) (int64, bool) {
 }
 
 func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
-	// Resolve the requested position before rounding the offset toward the frame boundary
-	// below, as the rounding truncates toward zero and would turn a small negative position
-	// into 0. An unknown whence is left to the source.
+	// Resolve the requested position before rounding the offset down to a frame boundary. An
+	// unknown whence is left to the source.
 	var base int64
 	ok := true
 	// alignedEnd is the source position just past the last whole frame. It is resolved only
@@ -219,11 +218,15 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("convert: position overflows int64")
 	}
+	// A query does not seek the source, so that the buffered bytes are kept.
+	if whence == io.SeekCurrent && offset == 0 {
+		return base, nil
+	}
 	if _, ok := mathutil.AddForSeek(base, offset); !ok {
 		return 0, fmt.Errorf("convert: invalid seek position")
 	}
 
-	sourceOffset, ok := mathutil.Mul(offset/4, s.sourceFrameSize())
+	sourceOffset, ok := mathutil.Mul(mathutil.FloorDiv(offset, 4), s.sourceFrameSize())
 	if !ok {
 		return 0, fmt.Errorf("convert: source position overflows int64")
 	}

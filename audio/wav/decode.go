@@ -17,14 +17,17 @@ package wav
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 const (
+	channelCount           = 2
 	bitDepthInBytesInt16   = 2
 	bitDepthInBytesFloat32 = 4
 )
@@ -38,6 +41,9 @@ type Stream struct {
 	inner      io.ReadSeeker
 	size       int64
 	sampleRate int
+
+	// bytesPerSample is the size in bytes of one sample across all the channels.
+	bytesPerSample int64
 }
 
 // Read is an implementation of io.Reader's Read.
@@ -49,7 +55,36 @@ func (s *Stream) Read(p []byte) (int, error) {
 //
 // If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.inner.Seek(offset, whence)
+	var base int64
+	switch whence {
+	case io.SeekStart:
+	case io.SeekCurrent:
+		cur, err := s.inner.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		// A query does not seek the inner reader, so that the bytes it buffers are kept.
+		if offset == 0 {
+			return cur, nil
+		}
+		base = cur
+	case io.SeekEnd:
+		// The end is unknown, so the underlying reader reports the error.
+		if s.size < 0 {
+			return s.inner.Seek(offset, whence)
+		}
+		base = s.size
+	default:
+		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
+	}
+	pos, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("wav: invalid seek offset %d for position %d", offset, base)
+	}
+	// A position in the middle of a sample is rounded down to a sample boundary, as reading from there
+	// would return bytes straddling two samples.
+	pos = pos / s.bytesPerSample * s.bytesPerSample
+	return s.inner.Seek(pos, io.SeekStart)
 }
 
 // Length returns the size of decoded stream in bytes.
@@ -134,19 +169,28 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 
 	r := convert.NewResampling(s.inner, s.size, s.sampleRate, sampleRate, bitDepthInBytesInt16)
 	return &Stream{
-		inner:      r,
-		size:       r.Length(),
-		sampleRate: sampleRate,
+		inner:          r,
+		size:           r.Length(),
+		sampleRate:     sampleRate,
+		bytesPerSample: channelCount * bitDepthInBytesInt16,
 	}, nil
+}
+
+// readHeaderPart fills buf from src. A source that ends before buf is filled is reported as an invalid
+// header, and any other failure of the source is returned wrapped. what names the part for the error.
+func readHeaderPart(src io.Reader, buf []byte, what string) error {
+	if _, err := io.ReadFull(src, buf); err != nil {
+		if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+			return fmt.Errorf("wav: invalid header: %s too short", what)
+		}
+		return fmt.Errorf("wav: failed to read %s: %w", what, err)
+	}
+	return nil
 }
 
 func decode(src io.Reader, bitDepthInBytes int) (*Stream, error) {
 	buf := make([]byte, 12)
-	n, err := io.ReadFull(src, buf)
-	if n != len(buf) {
-		return nil, fmt.Errorf("wav: invalid header: too short")
-	}
-	if err != nil {
+	if err := readHeaderPart(src, buf, "header"); err != nil {
 		return nil, err
 	}
 	if !bytes.Equal(buf[0:4], []byte("RIFF")) {
@@ -165,11 +209,7 @@ func decode(src io.Reader, bitDepthInBytes int) (*Stream, error) {
 chunks:
 	for {
 		var buf [8]byte
-		n, err := io.ReadFull(src, buf[:])
-		if n != len(buf) {
-			return nil, fmt.Errorf("wav: invalid header: chunk header too short")
-		}
-		if err != nil {
+		if err := readHeaderPart(src, buf[:], "chunk header"); err != nil {
 			return nil, err
 		}
 		headerSize += 8
@@ -183,11 +223,7 @@ chunks:
 				return nil, fmt.Errorf("wav: invalid header: maybe non-PCM file?")
 			}
 			var fmtBuf [16]byte
-			n, err := io.ReadFull(src, fmtBuf[:])
-			if n != len(fmtBuf) {
-				return nil, fmt.Errorf("wav: invalid header: 'fmt ' chunk too short")
-			}
-			if err != nil {
+			if err := readHeaderPart(src, fmtBuf[:], "'fmt ' chunk"); err != nil {
 				return nil, err
 			}
 			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8
@@ -258,26 +294,26 @@ chunks:
 		s = newSectionReader(src, headerSize, dataSize)
 	}
 
+	var format convert.Format
+	switch bitsPerSample {
+	case 8:
+		format = convert.FormatU8
+	case 16:
+		format = convert.FormatS16
+	default:
+		// TODO: Support signed 24bit integer format (#2215).
+		return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
+	}
+	// A source already in stereo 16bit is converted too, so that a read returns whole samples.
+	s = convert.NewStereoI16ReadSeeker(s, mono, format)
+
 	// sizeScale is the ratio of the decoded size to the 'data' chunk size.
 	sizeScale := int64(1)
-	if mono || bitsPerSample != 16 {
-		var format convert.Format
-		switch bitsPerSample {
-		case 8:
-			format = convert.FormatU8
-		case 16:
-			format = convert.FormatS16
-		default:
-			// TODO: Support signed 24bit integer format (#2215).
-			return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
-		}
-		s = convert.NewStereoI16ReadSeeker(s, mono, format)
-		if mono {
-			sizeScale *= 2
-		}
-		if bitsPerSample != 16 {
-			sizeScale *= 2
-		}
+	if mono {
+		sizeScale *= 2
+	}
+	if bitsPerSample != 16 {
+		sizeScale *= 2
 	}
 
 	if bitDepthInBytes == bitDepthInBytesFloat32 {
@@ -291,9 +327,10 @@ chunks:
 		size = dataSize * sizeScale
 	}
 	return &Stream{
-		inner:      s,
-		size:       size,
-		sampleRate: sampleRate,
+		inner:          s,
+		size:           size,
+		sampleRate:     sampleRate,
+		bytesPerSample: int64(channelCount * bitDepthInBytes),
 	}, nil
 }
 

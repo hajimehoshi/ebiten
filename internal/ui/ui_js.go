@@ -120,6 +120,11 @@ type userInterfaceImpl struct {
 	outsideSizeUnchangedCount int
 
 	keyboardLayoutMap js.Value
+	// keyboardLayoutMapRequested is true once getLayoutMap has been requested
+	// in the current tick, even if the request failed. This is reset every
+	// tick along with keyboardLayoutMap so that a failing request is retried
+	// at most once per tick, not on every KeyName call.
+	keyboardLayoutMapRequested bool
 
 	textInputFocusedFunc func() bool
 
@@ -894,6 +899,7 @@ func (u *UserInterface) updateScreenSize() {
 func (u *UserInterface) readInputState(inputState *InputState) {
 	u.inputState.copyAndReset(inputState)
 	u.keyboardLayoutMap = js.Value{}
+	u.keyboardLayoutMapRequested = false
 }
 
 func (u *UserInterface) Window() Window {

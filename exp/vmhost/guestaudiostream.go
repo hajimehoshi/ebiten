@@ -63,8 +63,9 @@ func (p *GuestAudioStream) markClosed() {
 // guest's sample rate (see [GuestSession.AudioSampleRate]), with the volume NOT applied (see
 // [GuestAudioStream.Volume]). It pulls the samples from the guest on demand, so it may block briefly
 // while the session is busy. It returns 0 bytes when the stream is paused or has produced none yet, and
-// io.EOF when the source reaches its end. io.EOF does not close the stream: if the guest seeks the
-// source back and plays again, a later Read yields its samples. Once the guest closes its player (or
+// io.EOF when the source reaches its end. It returns [io.ErrShortBuffer] for a non-empty b shorter than
+// one sample (8 bytes) unless the source has ended. io.EOF does not close the stream: if the guest seeks
+// the source back and plays again, a later Read yields its samples. Once the guest closes its player (or
 // the session closes) Read reports io.EOF for good.
 func (p *GuestAudioStream) Read(b []byte) (int, error) {
 	n, eof := p.session.readGuestAudio(p.id, b)
@@ -75,6 +76,9 @@ func (p *GuestAudioStream) Read(b []byte) (int, error) {
 
 	if n == 0 && eof {
 		return 0, io.EOF
+	}
+	if len(b) > 0 && len(b) < 8 {
+		return 0, io.ErrShortBuffer
 	}
 	return n, nil
 }
