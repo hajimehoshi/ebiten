@@ -2577,7 +2577,7 @@ func (u *glfwBackend) RunOnMainThread(f func()) {
 }
 
 func (u *glfwBackend) run(game Game, options *RunOptions) error {
-	if options.SingleThread || buildTagSingleThread || runtime.GOOS == "js" {
+	if options.SingleThread || buildTagSingleThread {
 		return u.runSingleThread(game, options)
 	}
 	return u.runMultiThread(game, options)
