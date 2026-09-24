@@ -215,6 +215,70 @@ func TestAddForSeek(t *testing.T) {
 	}
 }
 
+func TestFloorDiv(t *testing.T) {
+	cases := []struct {
+		x    int64
+		y    int64
+		want int64
+	}{
+		{
+			x:    0,
+			y:    4,
+			want: 0,
+		},
+		{
+			x:    7,
+			y:    4,
+			want: 1,
+		},
+		{
+			x:    8,
+			y:    4,
+			want: 2,
+		},
+		{
+			x:    -1,
+			y:    4,
+			want: -1,
+		},
+		{
+			x:    -4,
+			y:    4,
+			want: -1,
+		},
+		{
+			x:    -5,
+			y:    4,
+			want: -2,
+		},
+		{
+			x:    -1,
+			y:    1,
+			want: -1,
+		},
+		{
+			x:    math.MinInt64,
+			y:    8,
+			want: math.MinInt64 / 8,
+		},
+		{
+			x:    math.MinInt64 + 1,
+			y:    8,
+			want: math.MinInt64 / 8,
+		},
+		{
+			x:    math.MaxInt64,
+			y:    8,
+			want: math.MaxInt64 / 8,
+		},
+	}
+	for _, c := range cases {
+		if got := mathutil.FloorDiv(c.x, c.y); got != c.want {
+			t.Errorf("FloorDiv(%d, %d) = %d, want %d", c.x, c.y, got, c.want)
+		}
+	}
+}
+
 func TestMul(t *testing.T) {
 	values := []int64{
 		math.MinInt64, math.MinInt64 + 1, -1 << 32, -3037000500, -3037000499,

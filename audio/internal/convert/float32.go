@@ -111,9 +111,7 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("float32: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
-	// Resolve the requested position before rounding the offset toward the sample boundary
-	// below, as the rounding truncates toward zero and would turn a small negative position
-	// into 0.
+	// Resolve the requested position before rounding the offset down to a sample boundary.
 	var base int64
 	// alignedEnd is the source position just past the last whole sample. It is resolved only
 	// for io.SeekEnd.
@@ -157,7 +155,7 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("convert: invalid seek position")
 	}
 
-	offset = offset / 4 * 2
+	offset = mathutil.FloorDiv(offset, 4) * 2
 
 	switch whence {
 	case io.SeekCurrent:

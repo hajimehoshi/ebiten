@@ -241,7 +241,7 @@ func TestFloat32SeekEndUnalignedSource(t *testing.T) {
 					}
 					continue
 				}
-				wantPos := int64(len(want)) + offset/4*4
+				wantPos := (int64(len(want)) + offset) / 4 * 4
 				if err != nil {
 					t.Errorf("Seek(%d, io.SeekEnd): %v", offset, err)
 					continue

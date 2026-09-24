@@ -69,6 +69,15 @@ func Mul(x, y int64) (int64, bool) {
 	return int64(lo), true
 }
 
+// FloorDiv returns x / y rounded toward negative infinity. y must be positive.
+func FloorDiv(x, y int64) int64 {
+	q := x / y
+	if x%y < 0 {
+		q--
+	}
+	return q
+}
+
 // MulDiv returns x * mul / div truncated toward zero.
 // It returns (0, false) if div is zero or the result does not fit in int64.
 func MulDiv(x, mul, div int64) (int64, bool) {

@@ -23,9 +23,11 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 const (
+	channelCount           = 2
 	bitDepthInBytesInt16   = 2
 	bitDepthInBytesFloat32 = 4
 )
@@ -39,6 +41,9 @@ type Stream struct {
 	inner      io.ReadSeeker
 	size       int64
 	sampleRate int
+
+	// bytesPerSample is the size in bytes of one sample across all the channels.
+	bytesPerSample int64
 }
 
 // Read is an implementation of io.Reader's Read.
@@ -50,7 +55,38 @@ func (s *Stream) Read(p []byte) (int, error) {
 //
 // If the underlying source is not an io.Seeker, Seek returns an error.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
-	return s.inner.Seek(offset, whence)
+	// A query for the current position must not move the stream, even when a read has left it in the
+	// middle of a sample.
+	if offset == 0 && whence == io.SeekCurrent {
+		return s.inner.Seek(offset, whence)
+	}
+
+	var base int64
+	switch whence {
+	case io.SeekStart:
+	case io.SeekCurrent:
+		cur, err := s.inner.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		base = cur
+	case io.SeekEnd:
+		// The end is unknown, so the underlying reader reports the error.
+		if s.size < 0 {
+			return s.inner.Seek(offset, whence)
+		}
+		base = s.size
+	default:
+		return 0, fmt.Errorf("wav: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
+	}
+	pos, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("wav: invalid seek offset %d for position %d", offset, base)
+	}
+	// A position in the middle of a sample is rounded down to a sample boundary, as reading from there
+	// would return bytes straddling two samples.
+	pos = pos / s.bytesPerSample * s.bytesPerSample
+	return s.inner.Seek(pos, io.SeekStart)
 }
 
 // Length returns the size of decoded stream in bytes.
@@ -135,9 +171,10 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 
 	r := convert.NewResampling(s.inner, s.size, s.sampleRate, sampleRate, bitDepthInBytesInt16)
 	return &Stream{
-		inner:      r,
-		size:       r.Length(),
-		sampleRate: sampleRate,
+		inner:          r,
+		size:           r.Length(),
+		sampleRate:     sampleRate,
+		bytesPerSample: channelCount * bitDepthInBytesInt16,
 	}, nil
 }
 
@@ -292,9 +329,10 @@ chunks:
 		size = dataSize * sizeScale
 	}
 	return &Stream{
-		inner:      s,
-		size:       size,
-		sampleRate: sampleRate,
+		inner:          s,
+		size:           size,
+		sampleRate:     sampleRate,
+		bytesPerSample: int64(channelCount * bitDepthInBytes),
 	}, nil
 }
 
