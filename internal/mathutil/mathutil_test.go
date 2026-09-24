@@ -196,3 +196,108 @@ func testMulDiv(t *testing.T, x, mul, div int64) {
 		t.Errorf("MulDiv(%d, %d, %d): got: (%d, %t), want: (%d, %t)", x, mul, div, got, ok, wantValue, wantOK)
 	}
 }
+
+func TestAddForSeek(t *testing.T) {
+	values := []int64{math.MinInt64, math.MinInt64 + 1, -1 << 62, -2, -1, 0, 1, 2, 1 << 62, math.MaxInt64 - 1, math.MaxInt64}
+	for _, x := range values {
+		for _, y := range values {
+			sum := new(big.Int).Add(big.NewInt(x), big.NewInt(y))
+			wantOK := sum.IsInt64() && sum.Sign() >= 0
+			var want int64
+			if wantOK {
+				want = sum.Int64()
+			}
+			got, ok := mathutil.AddForSeek(x, y)
+			if got != want || ok != wantOK {
+				t.Errorf("AddForSeek(%d, %d) = (%d, %t), want (%d, %t)", x, y, got, ok, want, wantOK)
+			}
+		}
+	}
+}
+
+func TestFloorDiv(t *testing.T) {
+	cases := []struct {
+		x    int64
+		y    int64
+		want int64
+	}{
+		{
+			x:    0,
+			y:    4,
+			want: 0,
+		},
+		{
+			x:    7,
+			y:    4,
+			want: 1,
+		},
+		{
+			x:    8,
+			y:    4,
+			want: 2,
+		},
+		{
+			x:    -1,
+			y:    4,
+			want: -1,
+		},
+		{
+			x:    -4,
+			y:    4,
+			want: -1,
+		},
+		{
+			x:    -5,
+			y:    4,
+			want: -2,
+		},
+		{
+			x:    -1,
+			y:    1,
+			want: -1,
+		},
+		{
+			x:    math.MinInt64,
+			y:    8,
+			want: math.MinInt64 / 8,
+		},
+		{
+			x:    math.MinInt64 + 1,
+			y:    8,
+			want: math.MinInt64 / 8,
+		},
+		{
+			x:    math.MaxInt64,
+			y:    8,
+			want: math.MaxInt64 / 8,
+		},
+	}
+	for _, c := range cases {
+		if got := mathutil.FloorDiv(c.x, c.y); got != c.want {
+			t.Errorf("FloorDiv(%d, %d) = %d, want %d", c.x, c.y, got, c.want)
+		}
+	}
+}
+
+func TestMul(t *testing.T) {
+	values := []int64{
+		math.MinInt64, math.MinInt64 + 1, -1 << 32, -3037000500, -3037000499,
+		-2, -1, 0, 1, 2, 3037000499, 3037000500, 1 << 32,
+		math.MaxInt64 - 1, math.MaxInt64,
+	}
+	for _, x := range values {
+		for _, y := range values {
+			var product big.Int
+			product.Mul(big.NewInt(x), big.NewInt(y))
+			wantOK := product.IsInt64()
+			var want int64
+			if wantOK {
+				want = product.Int64()
+			}
+			got, ok := mathutil.Mul(x, y)
+			if got != want || ok != wantOK {
+				t.Errorf("Mul(%d, %d) = (%d, %t), want (%d, %t)", x, y, got, ok, want, wantOK)
+			}
+		}
+	}
+}

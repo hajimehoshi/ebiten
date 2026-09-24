@@ -203,7 +203,7 @@ func destroyContextGLX(window *Window) error {
 }
 
 // initGLX initializes GLX.
-func initGLX() error {
+func initGLX() (err error) {
 	glx := &_glfw.platformContext.glx
 
 	if glx.handle != 0 {
@@ -215,6 +215,11 @@ func initGLX() error {
 		return fmt.Errorf("glfw: glx: failed to load GLX: %w", APIUnavailable)
 	}
 	glx.handle = handle
+	defer func() {
+		if err != nil {
+			terminateGLX()
+		}
+	}()
 
 	registerRequired := func(fptr any, name string) bool {
 		sym, err := purego.Dlsym(handle, name)

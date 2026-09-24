@@ -16,6 +16,7 @@ package ebitenutil
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -41,6 +42,9 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 		return nil, err
 	}
 	defer res.Body.Close()
+	if res.StatusCode < 200 || res.StatusCode >= 300 {
+		return nil, fmt.Errorf("ebitenutil: OpenFile: unexpected status %s for %s", res.Status, path)
+	}
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
 		return nil, err

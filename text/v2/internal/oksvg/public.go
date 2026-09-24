@@ -224,6 +224,7 @@ func ParseSVGColor(colorStr string) (color.Color, error) {
 		if err != nil {
 			return color.NRGBA{}, fmt.Errorf("invalid hue in hsl: '%s' (%s)", vals[0], err)
 		}
+		H = ((H % 360) + 360) % 360
 
 		S, err := strconv.ParseFloat(strings.TrimSuffix(strings.TrimSpace(vals[1]), "%"), 64)
 		if err != nil {

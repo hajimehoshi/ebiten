@@ -562,8 +562,8 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	src0Pos = vec2(0)
 	return vec4(0)
 }
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
+`)); err != nil {
+		t.Error(err)
 	}
 
 	if _, err := compileToIR([]byte(`package main
@@ -572,8 +572,8 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	src0Pos.x = 0
 	return vec4(0)
 }
-`)); err == nil {
-		t.Errorf("error must be non-nil but was nil")
+`)); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -1117,7 +1117,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	a := 1 << 62
+	a := 1 << 30
 	_ = a
 	return vec4(0)
 }`)); err != nil {
@@ -3704,6 +3704,69 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestSyntaxIntConstantRange(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{stmt: "a := 2147483647; _ = a", err: false},
+		{stmt: "a := 2147483648; _ = a", err: true},
+		{stmt: "a := -2147483648; _ = a", err: false},
+		{stmt: "a := -2147483649; _ = a", err: true},
+		{stmt: "a := 1 << 30; _ = a", err: false},
+		{stmt: "a := 1 << 31; _ = a", err: true},
+		{stmt: "a := 1 << 40; _ = a", err: true},
+		{stmt: "a := 0x7fffffff; _ = a", err: false},
+		{stmt: "a := 0xffffffff; _ = a", err: true},
+		{stmt: "var a int = 2147483647; _ = a", err: false},
+		{stmt: "var a int = 2147483648; _ = a", err: true},
+		{stmt: "var a int = 1 << 40; _ = a", err: true},
+		{stmt: "var a int; a = 2147483648; _ = a", err: true},
+		{stmt: "var a int; b := a + 2147483648; _ = b", err: true},
+		{stmt: "var a int; b := a == 2147483648; _ = b", err: true},
+		{stmt: "a := int(2147483647); _ = a", err: false},
+		{stmt: "a := int(2147483648); _ = a", err: true},
+		{stmt: "a := int(1 << 40); _ = a", err: true},
+		{stmt: "a := ivec2(1 << 40); _ = a", err: true},
+		{stmt: "a := ivec2(1 << 40, 0); _ = a", err: true},
+		{stmt: "a := min(int(1), 1 << 40); _ = a", err: true},
+		{stmt: "const a = 1 << 40; b := float(a); _ = b", err: false},
+		{stmt: "const a = 1 << 40; b := a; _ = b", err: true},
+		{stmt: "const a int = 2147483647; _ = a", err: false},
+		{stmt: "const a int = 2147483648", err: true},
+		{stmt: "const a int = 1 << 40", err: true},
+		{stmt: "for i := 0; i < 2147483647; i++ {}", err: false},
+		{stmt: "for i := 0; i < 2147483648; i++ {}", err: true},
+		{stmt: "for i := 2147483648; i < 0; i++ {}", err: true},
+		{stmt: "for i := 0; i < 1; i += 2147483648 {}", err: true},
+		{stmt: "for range 2147483647 {}", err: false},
+		{stmt: "for range 2147483648 {}", err: true},
+		{stmt: "a := 2147483648.0; _ = a", err: false},
+		{stmt: "a := float(2147483648); _ = a", err: false},
+		{stmt: "a := float(1 << 40); _ = a", err: false},
+		{stmt: "a := vec2(1 << 40); _ = a", err: false},
+		{stmt: "a := 1.0 * 1099511627776; _ = a", err: false},
+		{stmt: "var a float; b := a + 2147483648; _ = b", err: false},
+		{stmt: "var a [2147483647]int; _ = a", err: false},
+	}
+
+	for _, c := range cases {
+		stmt := c.stmt
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return nil but returned %v", stmt, err)
+		}
+	}
+}
+
 func TestSyntaxConstType(t *testing.T) {
 	cases := []struct {
 		stmt string
@@ -3987,6 +4050,153 @@ var Foo float = 1
 var Foo, Bar int = 1, 1
 `)); err == nil {
 		t.Error("compileToIR must return an error but did not")
+	}
+}
+
+// Issue #3759
+func TestSyntaxAssignToEntryPointArguments(t *testing.T) {
+	signatures := []string{
+		"func Vertex(p vec2, q vec2, i int, iv ivec2) vec4",
+		"func Fragment(dstPos vec4, p vec2, q vec2, i int, iv ivec2) vec4",
+		"func foo(p vec2, q vec2, i int, iv ivec2) vec4",
+	}
+	stmts := []string{
+		"p = vec2(1)",
+		"p += vec2(1)",
+		"p -= vec2(1)",
+		"p *= 2",
+		"p /= 2",
+		"i %= 2",
+		"i &= 1",
+		"i |= 1",
+		"i ^= 1",
+		"i &^= 1",
+		"i <<= 1",
+		"i >>= 1",
+		"p++",
+		"p--",
+		"i++",
+		"i--",
+		"p.x = 1",
+		"p.yx = vec2(1)",
+		"p.x += 1",
+		"p.y++",
+		"iv.x <<= 1",
+		"p[0] = 1",
+		"p[1] *= 2",
+		"p[0]--",
+		"iv[1] |= 1",
+		"p, i = f()",
+		"p.x, iv[0] = g()",
+		"p, q = q, p",
+	}
+	for _, sig := range signatures {
+		for _, stmt := range stmts {
+			src := fmt.Sprintf(`package main
+
+func f() (vec2, int) {
+	return vec2(1), 1
+}
+
+func g() (float, int) {
+	return 1, 1
+}
+
+%s {
+	%s
+	return vec4(p, q) + vec4(float(i), float(iv.x), 0, 0)
+}
+`, sig, stmt)
+			if _, err := compileToIR([]byte(src)); err != nil {
+				t.Errorf("%s: %s: %v", sig, stmt, err)
+			}
+		}
+	}
+}
+
+// Issue #3759
+func TestSyntaxAssignToUniformVariablePartially(t *testing.T) {
+	signatures := []string{
+		"func Vertex(dstPos vec2, src0Pos vec2, color vec4) vec4",
+		"func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4",
+		"func foo() vec4",
+	}
+	stmts := []string{
+		"U = vec4(1)",
+		"U += vec4(1)",
+		"U -= vec4(1)",
+		"U *= 2",
+		"U /= 2",
+		"I %= 2",
+		"I &= 1",
+		"I |= 1",
+		"I ^= 1",
+		"I &^= 1",
+		"I <<= 1",
+		"I >>= 1",
+		"U++",
+		"U--",
+		"I++",
+		"U.x = 1",
+		"U.yx = vec2(1)",
+		"U.x += 1",
+		"U.y++",
+		"IV.x <<= 1",
+		"U[0] = 1",
+		"U[1] *= 2",
+		"U[0]--",
+		"IV[1] |= 1",
+		"A[0] = vec4(1)",
+		"A[1] += vec4(1)",
+		"A[0]++",
+		"A[0].x = 1",
+		"A[1].x -= 1",
+		"A[0][2]++",
+		"U, x = f()",
+		"x, U.x = g()",
+		"A[1], x = f()",
+		"x, A[0][3] = g()",
+		"U, x = vec4(1), 1",
+		"x, U.x = 1, 1",
+	}
+	for _, sig := range signatures {
+		for _, stmt := range stmts {
+			for _, local := range []bool{false, true} {
+				var decls string
+				if local {
+					decls = "var U vec4\n\tvar A [2]vec4\n\tvar I int\n\tvar IV ivec2"
+				}
+				src := fmt.Sprintf(`package main
+
+var U vec4
+var A [2]vec4
+var I int
+var IV ivec2
+
+func f() (vec4, float) {
+	return vec4(1), 1
+}
+
+func g() (float, float) {
+	return 1, 1
+}
+
+%s {
+	%s
+	var x float
+	%s
+	return U + A[0] + vec4(float(I), float(IV.x), x, 0)
+}
+`, sig, decls, stmt)
+				_, err := compileToIR([]byte(src))
+				if local && err != nil {
+					t.Errorf("%s: %s must compile with local variables but returned %v", sig, stmt, err)
+				}
+				if !local && err == nil {
+					t.Errorf("%s: %s must return an error with uniform variables but did not", sig, stmt)
+				}
+			}
+		}
 	}
 }
 

@@ -424,6 +424,10 @@ func (r *failReader) Read(p []byte) (int, error) {
 	return 0, r.err
 }
 
+func (r *failReader) Seek(offset int64, whence int) (int64, error) {
+	return 0, nil
+}
+
 func TestFailingSource(t *testing.T) {
 	c := newContext(t, 8)
 	wantErr := errors.New("source failed")
@@ -437,51 +441,23 @@ func TestFailingSource(t *testing.T) {
 	if err := p.Err(); !errors.Is(err, wantErr) {
 		t.Errorf("Err() = %v; want %v", err, wantErr)
 	}
-}
 
-// seekableFailReader fails every read and can be seeked.
-type seekableFailReader struct {
-	err error
-}
-
-func (r *seekableFailReader) Read(buf []byte) (int, error) {
-	return 0, r.err
-}
-
-func (r *seekableFailReader) Seek(offset int64, whence int) (int64, error) {
-	return 0, nil
-}
-
-func TestSourceErrorIsTerminalEvenAfterSeek(t *testing.T) {
-	c := newContext(t, 8)
-	wantErr := errors.New("source failed")
-	p := c.NewPlayer(&seekableFailReader{err: wantErr})
-	p.Play()
-	id := onlyControlID(t, c)
-
-	if _, eof := c.ReadForTesting(id, 16); !eof {
-		t.Fatal("a failed source did not finish the player")
-	}
-	// The failure is reported as not playing.
-	if controls := c.TakeControlChangesForTesting(nil); len(controls) != 1 || controls[0].Playing {
-		t.Fatalf("controls after the failure = %+v; want one not playing", controls)
-	}
 	if _, err := p.Seek(0, io.SeekStart); err != nil {
 		t.Fatal(err)
 	}
-
-	// A seek undoes the end of a source, but not a source error: the player stays finished, so that the
-	// virtual backend agrees with the Oto-backed one, where a source error closes the player.
-	if err := p.Err(); !errors.Is(err, wantErr) {
-		t.Errorf("Err() after a seek = %v; want %v", err, wantErr)
+	if p.IsPlaying() {
+		t.Error("a player whose source failed reported playing after Seek")
 	}
 	if _, eof := c.ReadForTesting(id, 16); !eof {
-		t.Error("a player whose source failed played again after a seek")
+		t.Error("a player whose source failed was not finished after Seek")
 	}
-	if p.IsPlaying() {
-		t.Error("IsPlaying after a source error and a seek = true; want false")
+	if err := p.Err(); !errors.Is(err, wantErr) {
+		t.Errorf("Err() after Seek = %v; want %v", err, wantErr)
 	}
-	if controls := c.TakeControlChangesForTesting(nil); len(controls) != 0 {
-		t.Errorf("controls after the seek = %+v; want none (the playing state did not change)", controls)
+
+	// The host is told exactly once that the player stopped: neither the failure nor the seek makes it
+	// report playing again.
+	if controls := c.TakeControlChangesForTesting(nil); len(controls) != 1 || controls[0].Playing {
+		t.Errorf("controls = %+v; want exactly one control, not playing", controls)
 	}
 }

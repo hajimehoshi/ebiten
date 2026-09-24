@@ -54,9 +54,11 @@ func (r *frameAlignedReader) Read(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	// Keep reading until one frame is available so that a source returning less than one frame
-	// at a time doesn't make Read return (0, nil).
-	l := max(len(p), r.frameSize)
+	// Buffer at least one frame to distinguish EOF from a short destination buffer. Keep reading until
+	// one frame is available so that a source returning less than one frame at a time doesn't make
+	// Read return (0, nil).
+	l := max(len(p)/r.frameSize, 1) * r.frameSize
+	var readErr error
 	for len(r.buf) < l && !r.eof {
 		origLen := len(r.buf)
 		if cap(r.buf) < l {
@@ -69,16 +71,31 @@ func (r *frameAlignedReader) Read(p []byte) (int, error) {
 			break
 		}
 		if err != nil {
-			return 0, err
+			readErr = err
+			break
 		}
 		if r.available() > 0 || n == 0 {
 			break
 		}
 	}
 
-	n := copy(p, r.buf[:r.available()])
+	if len(p) < r.frameSize {
+		if readErr != nil {
+			return 0, readErr
+		}
+		if r.eof && r.available() == 0 {
+			return 0, io.EOF
+		}
+		return 0, io.ErrShortBuffer
+	}
+
+	// Return whole frames. An incomplete frame is left for the next read.
+	n := copy(p[:len(p)/r.frameSize*r.frameSize], r.buf[:r.available()])
 	r.pos += int64(n)
 	r.buf = r.buf[:copy(r.buf, r.buf[n:])]
+	if readErr != nil {
+		return n, readErr
+	}
 	if r.eof && r.available() == 0 {
 		return n, io.EOF
 	}

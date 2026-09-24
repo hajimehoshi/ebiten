@@ -464,6 +464,11 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 		return fmt.Errorf("audio: player is already closed")
 	}
 
+	// timeDurationToPos rounds toward zero, so a negative offset must be rejected before the conversion.
+	if offset < 0 {
+		return fmt.Errorf("audio: offset must be non-negative but was %v", offset)
+	}
+
 	if p.player != nil {
 		// The device is available. Seek via the underlying player so that its buffer is reset.
 		pos := p.stream.timeDurationToPos(offset)
@@ -679,6 +684,13 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 	pos, err := s.r.(io.Seeker).Seek(offset, whence)
 	if err != nil {
 		return pos, err
+	}
+
+	// A query reports the position counted by Read, which differs from the source's position when the
+	// source folds its position like an InfiniteLoop. The source is still queried above, so that a
+	// source that cannot tell its position reports its error.
+	if whence == io.SeekCurrent && offset == 0 {
+		return s.pos.Load(), nil
 	}
 
 	s.pos.Store(pos)
