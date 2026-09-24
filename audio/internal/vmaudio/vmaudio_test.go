@@ -454,4 +454,10 @@ func TestFailingSource(t *testing.T) {
 	if err := p.Err(); !errors.Is(err, wantErr) {
 		t.Errorf("Err() after Seek = %v; want %v", err, wantErr)
 	}
+
+	// The host is told exactly once that the player stopped: neither the failure nor the seek makes it
+	// report playing again.
+	if controls := c.TakeControlChangesForTesting(nil); len(controls) != 1 || controls[0].Playing {
+		t.Errorf("controls = %+v; want exactly one control, not playing", controls)
+	}
 }
