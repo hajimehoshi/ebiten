@@ -170,21 +170,21 @@ func TestInfiniteLoopWithPartialFrameAfterLoop(t *testing.T) {
 func TestInfiniteLoopWithIncompleteSize(t *testing.T) {
 	// s1 should work as if 4092 is given.
 	s1 := audio.NewInfiniteLoop(bytes.NewReader(make([]byte, 4096)), 4095)
-	n1, err := s1.Seek(4094, io.SeekStart)
+	n1, err := s1.Seek(4096, io.SeekStart)
 	if err != nil {
 		t.Error(err)
 	}
-	if got, want := n1, int64(4094-4092); got != want {
+	if got, want := n1, int64(4096-4092); got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 
 	// s2 should work as if 2044 and 2044 are given.
 	s2 := audio.NewInfiniteLoopWithIntro(bytes.NewReader(make([]byte, 4096)), 2047, 2046)
-	n2, err := s2.Seek(4094, io.SeekStart)
+	n2, err := s2.Seek(4096, io.SeekStart)
 	if err != nil {
 		t.Error(err)
 	}
-	if got, want := n2, int64(2044+(4094-(2044+2044))); got != want {
+	if got, want := n2, int64(2044+(4096-(2044+2044))); got != want {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 }
@@ -268,7 +268,7 @@ func TestInfiniteLoopWithSlowSource(t *testing.T) {
 	buf := make([]byte, 4096)
 
 	// With a slow source, whose Read always reads at most one byte,
-	// an infinite loop should return whole samples (bitDepthInBytes = 2) instead of no bytes.
+	// an infinite loop should return whole values (bitDepthInBytes = 2) instead of no bytes.
 
 	for i := range 4 {
 		n, err := loop.Read(buf)
@@ -718,22 +718,22 @@ func TestInfiniteLoopShortBuffer(t *testing.T) {
 }
 
 func TestInfiniteLoopSeekAlignment(t *testing.T) {
-	// A seek must land on a value boundary, so that the values read afterwards are the source's and
+	// A seek must land on a sample boundary, so that the samples read afterwards are the source's and
 	// not ones straddling two of them.
 	cases := []struct {
-		name            string
-		bitDepthInBytes int64
-		newLoop         func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
+		name           string
+		bytesPerSample int64
+		newLoop        func(src io.ReadSeeker, length int64) *audio.InfiniteLoop
 	}{
 		{
-			name:            "int16",
-			bitDepthInBytes: 2,
-			newLoop:         audio.NewInfiniteLoop,
+			name:           "int16",
+			bytesPerSample: 4,
+			newLoop:        audio.NewInfiniteLoop,
 		},
 		{
-			name:            "float32",
-			bitDepthInBytes: 4,
-			newLoop:         audio.NewInfiniteLoopF32,
+			name:           "float32",
+			bytesPerSample: 8,
+			newLoop:        audio.NewInfiniteLoopF32,
 		},
 	}
 
@@ -745,7 +745,7 @@ func TestInfiniteLoopSeekAlignment(t *testing.T) {
 			}
 
 			for offset := range int64(16) {
-				want := offset / c.bitDepthInBytes * c.bitDepthInBytes
+				want := offset / c.bytesPerSample * c.bytesPerSample
 
 				for _, whence := range []int{io.SeekStart, io.SeekCurrent} {
 					l := c.newLoop(bytes.NewReader(src), int64(len(src)))

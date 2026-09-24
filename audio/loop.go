@@ -239,7 +239,7 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 	copy(b, i.extra)
 	i.extra = i.extra[:0]
 
-	// Keep reading until one sample is available so that a source returning less than one sample
+	// Keep reading until one value is available so that a source returning less than one value
 	// at a time doesn't make Read return (0, nil).
 	var n int
 	var err error
@@ -357,7 +357,7 @@ func (i *InfiniteLoop) rewind() error {
 // whence must be [io.SeekStart] or [io.SeekCurrent] since an [InfiniteLoop] has no end.
 //
 // The returned position can differ from the requested one with a nil error: a position beyond the loop end is folded
-// into the loop, and a position in the middle of a value is rounded down to a value boundary.
+// into the loop, and a position in the middle of a sample is rounded down to a sample boundary.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart, io.SeekCurrent:
@@ -379,9 +379,12 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	if next < 0 {
 		return 0, fmt.Errorf("audio: position must be >= 0 but was %d", next)
 	}
-	// A position in the middle of a value is not a position this stream can be at: reading from
-	// there would return values straddling two of the source's.
-	next = next / int64(i.bitDepthInBytes) * int64(i.bitDepthInBytes)
+	// A query for the current position must not move the stream, even when a read has left it in the
+	// middle of a sample. Otherwise, a position in the middle of a sample is rounded down to a sample
+	// boundary, as reading from there would return bytes straddling two samples.
+	if offset != 0 || whence != io.SeekCurrent {
+		next = next / int64(i.bytesPerSample) * int64(i.bytesPerSample)
+	}
 	if next > i.lstart {
 		next = ((next - i.lstart) % i.llength) + i.lstart
 	}
