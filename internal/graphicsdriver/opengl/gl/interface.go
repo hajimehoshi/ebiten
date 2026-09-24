@@ -39,8 +39,6 @@ type Context interface {
 	BufferInit(target uint32, size int, usage uint32)
 	BufferSubData(target uint32, offset int, data []byte)
 	CheckFramebufferStatus(target uint32) uint32
-	Clear(mask uint32)
-	ColorMask(red, green, blue, alpha bool)
 	CompileShader(shader uint32)
 	CreateBuffer() uint32
 	CreateFramebuffer() uint32
@@ -54,8 +52,6 @@ type Context interface {
 	DeleteShader(shader uint32)
 	DeleteTexture(texture uint32)
 	DeleteVertexArray(array uint32)
-	Disable(cap uint32)
-	DisableVertexAttribArray(index uint32)
 	DrawElements(mode uint32, count int32, xtype uint32, offset int)
 	Enable(cap uint32)
 	EnableVertexAttribArray(index uint32)
