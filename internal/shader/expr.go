@@ -40,6 +40,24 @@ const maxConstShift = 1 << 16
 
 var textureVariableRe = regexp.MustCompile(`\A__t(\d+)\z`)
 
+// shiftCount validates the constant shift count c of the operator op and returns it.
+func (cs *compileState) shiftCount(pos token.Pos, op token.Token, c gconstant.Value) (uint, bool) {
+	if c.Kind() != gconstant.Int {
+		cs.addError(pos, fmt.Sprintf("unexpected %s type for: %s", c.String(), op))
+		return 0, false
+	}
+	if gconstant.Sign(c) < 0 {
+		cs.addError(pos, fmt.Sprintf("negative shift count: %s", c.String()))
+		return 0, false
+	}
+	shift, ok := gconstant.Int64Val(c)
+	if !ok || shift > maxConstShift {
+		cs.addError(pos, fmt.Sprintf("shift count too large: %s", c.String()))
+		return 0, false
+	}
+	return uint(shift), true
+}
+
 func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, markLocalVariableUsed bool) ([]shaderir.Expr, []shaderir.Type, []shaderir.Stmt, bool) {
 	switch e := expr.(type) {
 	case *ast.BasicLit:
@@ -167,20 +185,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			case token.EQL, token.NEQ, token.LSS, token.LEQ, token.GTR, token.GEQ:
 				v = gconstant.MakeBool(gconstant.Compare(lhs[0].Const, op, rhs[0].Const))
 			case token.SHL, token.SHR:
-				shift, ok := gconstant.Int64Val(rhs[0].Const)
+				shift, ok := cs.shiftCount(e.Pos(), e.Op, rhs[0].Const)
 				if !ok {
-					cs.addError(e.Pos(), fmt.Sprintf("unexpected %s type for: %s", rhs[0].Const.String(), e.Op))
 					return nil, nil, nil, false
 				}
-				if shift < 0 {
-					cs.addError(e.Pos(), fmt.Sprintf("negative shift count: %s", rhs[0].Const.String()))
-					return nil, nil, nil, false
-				}
-				if shift > maxConstShift {
-					cs.addError(e.Pos(), fmt.Sprintf("shift count too large: %s", rhs[0].Const.String()))
-					return nil, nil, nil, false
-				}
-				v = gconstant.Shift(lhs[0].Const, op, uint(shift))
+				v = gconstant.Shift(lhs[0].Const, op, shift)
 			default:
 				if (op == token.QUO || op == token.QUO_ASSIGN || op == token.REM) && gconstant.Sign(rhs[0].Const) == 0 {
 					cs.addError(e.Pos(), "division by zero")
@@ -195,6 +204,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					Const: v,
 				},
 			}, []shaderir.Type{t}, stmts, true
+		}
+
+		if (e.Op == token.SHL || e.Op == token.SHR) && rhs[0].Const != nil {
+			if _, ok := cs.shiftCount(e.Pos(), e.Op, rhs[0].Const); !ok {
+				return nil, nil, nil, false
+			}
 		}
 
 		return []shaderir.Expr{

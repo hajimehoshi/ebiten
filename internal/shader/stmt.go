@@ -200,6 +200,12 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 
+			if (op == shaderir.LeftShift || op == shaderir.RightShift) && rhs[0].Const != nil {
+				if _, ok := cs.shiftCount(stmt.Pos(), stmt.Tok, rhs[0].Const); !ok {
+					return nil, false
+				}
+			}
+
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Assign,
 				Exprs: []shaderir.Expr{

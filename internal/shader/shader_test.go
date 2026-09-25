@@ -623,3 +623,73 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 		t.Errorf("GLSL should contain the scientific-notation literal 1.0000000000e+19, but got:\n%s", fs)
 	}
 }
+
+func compileFragmentStmt(stmt string) error {
+	_, err := shader.Compile(fmt.Appendf(nil, `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, stmt), "Vertex", "Fragment", 0)
+	return err
+}
+
+func TestCompileShiftCountWithVariable(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "x := 1; _ = x >> -1",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; _ = x << (1 << 40)",
+			err:  true,
+		},
+		{
+			stmt: "x := ivec2(1); _ = x >> -1",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; x <<= -1",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; x >>= (1 << 40)",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; _ = x >> 1",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; _ = x << 2",
+			err:  false,
+		},
+		{
+			stmt: "x := ivec2(1); _ = x >> 1",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; x <<= 1",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; x >>= 1",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; y := 2; _ = x << y",
+			err:  false,
+		},
+	}
+	for _, c := range cases {
+		err := compileFragmentStmt(c.stmt)
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
