@@ -15,6 +15,7 @@
 package shader
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	gconstant "go/constant"
@@ -47,6 +48,11 @@ type function struct {
 
 type compileState struct {
 	fs *token.FileSet
+
+	// internalRegionStart and internalRegionEnd are the byte offsets of the internal region in the source.
+	// The region is empty when the source has none.
+	internalRegionStart int
+	internalRegionEnd   int
 
 	vertexEntry   string
 	fragmentEntry string
@@ -200,6 +206,20 @@ func (p *ParseError) Positions() []token.Position {
 	return ps
 }
 
+const internalRegionDirective = "//kage:internalregion"
+
+const (
+	// InternalRegionBegin is the line that begins the internal region.
+	InternalRegionBegin = internalRegionDirective + " begin"
+
+	// InternalRegionEnd is the line that ends the internal region.
+	InternalRegionEnd = internalRegionDirective + " end"
+)
+
+// Compile compiles a Kage source into an intermediate representation.
+//
+// A uniform variable whose name starts with __ can be declared only in the internal region, which is the
+// lines between [InternalRegionBegin] and [InternalRegionEnd]. A source can have at most one internal region.
 func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*shaderir.Program, error) {
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
@@ -215,6 +235,10 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 	s.ir.SourceID = shaderir.CalcSourceID(src)
 	s.ir.TextureCount = textureCount
 	s.global.ir = &shaderir.Block{}
+	s.parseInternalRegion(fs.File(f.Pos()), src)
+	if len(s.errs) > 0 {
+		return nil, &ParseError{s.errs}
+	}
 	s.parse(f)
 
 	if len(s.errs) > 0 {
@@ -234,6 +258,60 @@ func (s *compileState) addError(pos token.Pos, str string) {
 		position: s.fs.Position(pos),
 		message:  str,
 	})
+}
+
+// parseInternalRegion records the byte offsets of the internal region in src, the source of file, and
+// reports malformed internal region directives.
+func (cs *compileState) parseInternalRegion(file *token.File, src []byte) {
+	begin, end := -1, -1
+	var offset int
+	for line := range bytes.Lines(src) {
+		lineOffset := offset
+		offset += len(line)
+
+		directive := strings.TrimSpace(string(line))
+		arg, ok := strings.CutPrefix(directive, internalRegionDirective)
+		if !ok {
+			continue
+		}
+		// Skip another directive whose name merely starts with the same prefix.
+		if arg != "" && arg[0] != ' ' && arg[0] != '\t' {
+			continue
+		}
+		switch strings.TrimSpace(arg) {
+		case "begin":
+			if begin >= 0 {
+				cs.addError(file.Pos(lineOffset), "at most one internal region can exist in a shader")
+				return
+			}
+			begin = lineOffset
+		case "end":
+			if end >= 0 {
+				cs.addError(file.Pos(lineOffset), "at most one internal region can exist in a shader")
+				return
+			}
+			end = lineOffset
+		default:
+			cs.addError(file.Pos(lineOffset), fmt.Sprintf("invalid directive: %s", directive))
+			return
+		}
+	}
+
+	if begin < 0 && end < 0 {
+		return
+	}
+	if begin < 0 || end < 0 || end < begin {
+		cs.addError(file.Pos(max(begin, end)), fmt.Sprintf("%s and %s must appear in this order", InternalRegionBegin, InternalRegionEnd))
+		return
+	}
+	cs.internalRegionStart = begin
+	cs.internalRegionEnd = end
+}
+
+// inInternalRegion reports whether pos is in the internal region.
+func (cs *compileState) inInternalRegion(pos token.Pos) bool {
+	offset := cs.fs.Position(pos).Offset
+	return cs.internalRegionStart <= offset && offset < cs.internalRegionEnd
 }
 
 func (cs *compileState) parse(f *ast.File) {
@@ -440,7 +518,9 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 
 					// TODO: Should rhs be ignored?
 					for i, v := range vs {
-						if !strings.HasPrefix(v.name, "__") {
+						// A uniform variable starting with __ is reserved for the internal region.
+						reserved := strings.HasPrefix(v.name, "__") && cs.inInternalRegion(s.Names[i].Pos())
+						if !reserved {
 							if v.name[0] < 'A' || 'Z' < v.name[0] {
 								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
 							}

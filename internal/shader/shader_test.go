@@ -1114,3 +1114,184 @@ func Fragment() vec4 {
 		})
 	}
 }
+
+func TestCompileReservedUniformName(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		err  bool
+	}{
+		{
+			name: "outside the internal region",
+			src: `package main
+
+var __foo float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(__foo)
+}`,
+			err: true,
+		},
+		{
+			name: "inside the internal region",
+			src: fmt.Sprintf(`package main
+
+%s
+var __foo float
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(__foo)
+}`, shader.InternalRegionBegin, shader.InternalRegionEnd),
+			err: false,
+		},
+		{
+			name: "local variable",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	__x := 1.0
+	return vec4(__x)
+}`,
+			err: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 0)
+			if err == nil && c.err {
+				t.Errorf("Compile must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("Compile must not return an error but returned %v", err)
+			}
+		})
+	}
+}
+
+func TestCompileInternalRegionDirectives(t *testing.T) {
+	begin := shader.InternalRegionBegin
+	end := shader.InternalRegionEnd
+	cases := []struct {
+		name       string
+		directives []string
+		err        bool
+	}{
+		{
+			name:       "none",
+			directives: nil,
+			err:        false,
+		},
+		{
+			name:       "one region",
+			directives: []string{begin, end},
+			err:        false,
+		},
+		{
+			name:       "two regions",
+			directives: []string{begin, end, begin, end},
+			err:        true,
+		},
+		{
+			name:       "begin only",
+			directives: []string{begin},
+			err:        true,
+		},
+		{
+			name:       "end only",
+			directives: []string{end},
+			err:        true,
+		},
+		{
+			name:       "end before begin",
+			directives: []string{end, begin},
+			err:        true,
+		},
+		{
+			name:       "unknown argument",
+			directives: []string{"//kage:internalregion middle"},
+			err:        true,
+		},
+		{
+			name:       "another directive with the same prefix",
+			directives: []string{"//kage:internalregionx begin"},
+			err:        false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			src := fmt.Sprintf(`package main
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`, strings.Join(c.directives, "\n"))
+			_, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+			if err == nil && c.err {
+				t.Errorf("Compile must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("Compile must not return an error but returned %v", err)
+			}
+		})
+	}
+}
+
+func TestCompileReservedUniformNameWithBridge(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		err  bool
+	}{
+		{
+			name: "reserved uniform",
+			src: `//kage:unit pixels
+
+package main
+
+var __foo float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(__foo)
+}`,
+			err: true,
+		},
+		{
+			name: "reserved uniform in a user's internal region",
+			src: fmt.Sprintf(`//kage:unit pixels
+
+package main
+
+%s
+var __foo float
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(__foo)
+}`, shader.InternalRegionBegin, shader.InternalRegionEnd),
+			err: true,
+		},
+		{
+			name: "exposed uniform",
+			src: `//kage:unit pixels
+
+package main
+
+var Foo float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos) * Foo
+}`,
+			err: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := graphics.CompileShader([]byte(c.src))
+			if err == nil && c.err {
+				t.Errorf("CompileShader must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("CompileShader must not return an error but returned %v", err)
+			}
+		})
+	}
+}
