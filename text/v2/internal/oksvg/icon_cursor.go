@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/srwiley/rasterx"
@@ -377,27 +378,26 @@ func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) error 
 		return nil
 	}
 	// A class attribute can hold several space-separated classes. Collect the
-	// names so that repeated names are applied only once.
-	names := map[string]bool{}
+	// names into a set so that repeated names are applied only once.
+	names := map[string]struct{}{}
 	for _, name := range strings.Fields(className) {
-		names[name] = true
+		names[name] = struct{}{}
 	}
 	// Resolve the winning declaration for each property by walking the
 	// stylesheet rules in order. Later rules override earlier ones regardless of
 	// the order the class names appear in the attribute, matching the CSS
 	// cascade, and each property is applied exactly once so that declarations
 	// which multiply (such as opacity) override rather than compound.
-	attrs := styleAttribute{}
+	var attrs styleAttribute
 	for _, rule := range c.icon.classes {
-		matched := false
-		for _, name := range rule.classes {
-			if names[name] {
-				matched = true
-				break
-			}
-		}
-		if !matched {
+		if !slices.ContainsFunc(rule.classes, func(name string) bool {
+			_, ok := names[name]
+			return ok
+		}) {
 			continue
+		}
+		if attrs == nil {
+			attrs = styleAttribute{}
 		}
 		for k, v := range rule.attrs {
 			attrs[k] = v
