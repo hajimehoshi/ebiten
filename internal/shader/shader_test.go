@@ -828,3 +828,63 @@ func TestCompileCompositeLitBoolConstant(t *testing.T) {
 		t.Errorf("Compile must not return an error for a bool array literal, but got %v", err)
 	}
 }
+
+func TestCompileCompositeLitElementType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "x := 1; _ = [2]float{x, 2}",
+			err:  true,
+		},
+		{
+			stmt: "b := true; _ = [2]float{b, 2}",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; _ = [2]int{x, 2}",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; _ = [2]bool{x, true}",
+			err:  true,
+		},
+		{
+			stmt: "v := vec2(1); _ = [2]float{v, 2}",
+			err:  true,
+		},
+		{
+			stmt: "v := vec2(1); _ = [2]vec3{v, vec3(1)}",
+			err:  true,
+		},
+		{
+			stmt: "_ = [2]float{1, 2}",
+			err:  false,
+		},
+		{
+			stmt: "x := 1.0; _ = [2]float{x, 2}",
+			err:  false,
+		},
+		{
+			stmt: "i := 1; _ = [2]int{i, 2}",
+			err:  false,
+		},
+		{
+			stmt: "b := true; _ = [2]bool{b, false}",
+			err:  false,
+		},
+		{
+			stmt: "v := vec2(1); _ = [2]vec2{v, v}",
+			err:  false,
+		},
+	}
+	for _, c := range cases {
+		err := compileFragmentStmt(c.stmt)
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

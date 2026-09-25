@@ -1133,17 +1133,22 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		var stmts []shaderir.Stmt
 		for i, e := range e.Elts {
-			exprs, _, ss, ok := cs.parseExpr(block, fname, e, markLocalVariableUsed)
+			exprs, ets, ss, ok := cs.parseExpr(block, fname, e, markLocalVariableUsed)
 			if !ok {
 				return nil, nil, nil, false
 			}
-			if len(exprs) != 1 {
+			if len(exprs) != 1 || len(ets) != 1 {
 				cs.addError(e.Pos(), "multiple-value context is not available at a composite literal")
 				return nil, nil, nil, false
 			}
 
 			expr := exprs[0]
-			if expr.Const != nil {
+			if expr.Const == nil {
+				if !canAssign(&t.Sub[0], &ets[0], expr.Const) {
+					cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in array literal", ets[0].String(), t.Sub[0].String()))
+					return nil, nil, nil, false
+				}
+			} else {
 				switch t.Sub[0].Main {
 				case shaderir.Bool:
 					if expr.Const.Kind() != gconstant.Bool {
