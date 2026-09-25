@@ -813,3 +813,18 @@ func TestCompileUnaryOperandType(t *testing.T) {
 		}
 	}
 }
+
+func TestCompileCompositeLitBoolConstant(t *testing.T) {
+	err := compileFragmentStmt("_ = [2]bool{1, 2}")
+	var perr *shader.ParseError
+	if err == nil {
+		t.Errorf("Compile must return an error for a non-bool constant in a bool array literal, but got nil")
+	} else if !errors.As(err, &perr) {
+		t.Errorf("Compile must return a *shader.ParseError, but got %v", err)
+	} else if got, want := len(perr.Positions()), 1; got != want {
+		t.Errorf("the number of the errors: got: %d, want: %d (%v)", got, want, err)
+	}
+	if err := compileFragmentStmt("_ = [2]bool{true, false}"); err != nil {
+		t.Errorf("Compile must not return an error for a bool array literal, but got %v", err)
+	}
+}

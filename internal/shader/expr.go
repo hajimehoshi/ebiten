@@ -1147,7 +1147,8 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				switch t.Sub[0].Main {
 				case shaderir.Bool:
 					if expr.Const.Kind() != gconstant.Bool {
-						cs.addError(e.Pos(), fmt.Sprintf("cannot %s to type bool", expr.Const.String()))
+						cs.addError(e.Pos(), fmt.Sprintf("cannot convert %s to type bool", expr.Const.String()))
+						return nil, nil, nil, false
 					}
 				case shaderir.Int:
 					if !canTruncateToInteger(expr.Const) {
