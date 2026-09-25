@@ -888,3 +888,88 @@ func TestCompileCompositeLitElementType(t *testing.T) {
 		}
 	}
 }
+
+func TestCompileEllipsisArrayOutsideCompositeLit(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		err  bool
+	}{
+		{
+			name: "local variable",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [...]float
+	return vec4(float(len(a)))
+}`,
+			err: true,
+		},
+		{
+			name: "uniform variable",
+			src: `package main
+
+var U [...]float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(float(len(U)))
+}`,
+			err: true,
+		},
+		{
+			name: "parameter",
+			src: `package main
+
+func f(a [...]float) int {
+	return len(a)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(float(f([2]float{1, 2})))
+}`,
+			err: true,
+		},
+		{
+			name: "type declaration",
+			src: `package main
+
+type T [...]float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			name: "composite literal",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a := [...]float{1, 2}
+	return vec4(a[0] + float(len(a)))
+}`,
+			err: false,
+		},
+		{
+			name: "uniform variable with a length",
+			src: `package main
+
+var U [4]float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(U[0])
+}`,
+			err: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 0)
+			if err == nil && c.err {
+				t.Errorf("Compile must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("Compile must not return an error but returned %v", err)
+			}
+		})
+	}
+}

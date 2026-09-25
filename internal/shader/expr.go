@@ -1108,7 +1108,14 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}, ts[:1], stmts, true
 
 	case *ast.CompositeLit:
-		t, ok := cs.parseType(block, fname, e.Type)
+		var t shaderir.Type
+		var ok bool
+		if at, isArray := e.Type.(*ast.ArrayType); isArray && isEllipsis(at.Len) {
+			// The length of a [...] array is the number of the elements.
+			t, ok = cs.parseArrayType(block, fname, at, len(e.Elts))
+		} else {
+			t, ok = cs.parseType(block, fname, e.Type)
+		}
 		if !ok {
 			return nil, nil, nil, false
 		}
@@ -1116,14 +1123,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			cs.addError(e.Pos(), fmt.Sprintf("invalid composite literal type %s", t.String()))
 			return nil, nil, nil, false
 		}
-		if t.Main == shaderir.Array {
-			if t.Length == -1 {
-				t.Length = len(e.Elts)
-			} else if t.Length < len(e.Elts) {
-				// KeyValueExpr is not supported yet. Just compare the length.
-				cs.addError(e.Pos(), fmt.Sprintf("too many values in %s literal", t.String()))
-				return nil, nil, nil, false
-			}
+		if t.Length < len(e.Elts) {
+			// KeyValueExpr is not supported yet. Just compare the length.
+			cs.addError(e.Pos(), fmt.Sprintf("too many values in %s literal", t.String()))
+			return nil, nil, nil, false
 		}
 
 		idx := block.totalLocalVariableCount()
