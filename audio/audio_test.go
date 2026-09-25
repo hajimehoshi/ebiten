@@ -294,7 +294,11 @@ func TestSetPositionNegative(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				defer p.Close()
+				defer func() {
+					if err := p.Close(); err != nil {
+						t.Errorf("Close: %v", err)
+					}
+				}()
 				if err := p.SetPosition(500 * time.Millisecond); err != nil {
 					t.Fatal(err)
 				}
