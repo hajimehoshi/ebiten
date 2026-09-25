@@ -437,8 +437,7 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 
 // handleEvents handles the events read from the device at once. buf must
 // contain full input_event structures. restoreDeviceState restores the device
-// state after a SYN_DROPPED event and can be nil if the state cannot be
-// restored.
+// state after a SYN_DROPPED event.
 func (g *nativeGamepadImpl) handleEvents(buf []byte, restoreDeviceState func() error) error {
 	const (
 		eventSize   = unsafe.Sizeof(input_event{})
@@ -469,10 +468,8 @@ func (g *nativeGamepadImpl) handleEvents(buf []byte, restoreDeviceState func() e
 		if g.dropped {
 			// Ignore events through the next SYN_REPORT, then restore the device state.
 			if e.typ == unix.EV_SYN && e.code == _SYN_REPORT {
-				if restoreDeviceState != nil {
-					if err := restoreDeviceState(); err != nil {
-						return err
-					}
+				if err := restoreDeviceState(); err != nil {
+					return err
 				}
 				g.dropped = false
 				skipKeyEvents = true

@@ -14,70 +14,39 @@
 
 //go:build !android && !nintendosdk && !playstation5
 
-package gamepad
+package gamepad_test
 
 import (
 	"testing"
-	"unsafe"
 
-	"golang.org/x/sys/unix"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
-func encodeInputEvents(t *testing.T, events []input_event) []byte {
-	t.Helper()
-	const (
-		eventSize   = unsafe.Sizeof(input_event{})
-		offsetTyp   = int(unsafe.Offsetof(input_event{}.typ))
-		offsetCode  = int(unsafe.Offsetof(input_event{}.code))
-		offsetValue = int(unsafe.Offsetof(input_event{}.value))
-	)
-	buf := make([]byte, 0, len(events)*int(eventSize))
-	for _, e := range events {
-		b := make([]byte, eventSize)
-		b[offsetTyp] = byte(e.typ)
-		b[offsetTyp+1] = byte(e.typ >> 8)
-		b[offsetCode] = byte(e.code)
-		b[offsetCode+1] = byte(e.code >> 8)
-		b[offsetValue] = byte(e.value)
-		b[offsetValue+1] = byte(e.value >> 8)
-		b[offsetValue+2] = byte(e.value >> 16)
-		b[offsetValue+3] = byte(e.value >> 24)
-		buf = append(buf, b...)
+// reportUnexpectedRestore returns a restore callback for tests that do not
+// expect a recovery from a SYN_DROPPED event.
+func reportUnexpectedRestore(t *testing.T) func() error {
+	return func() error {
+		t.Error("the device state must not be restored without SYN_REPORT after SYN_DROPPED")
+		return nil
 	}
-	return buf
-}
-
-func newTestGamepadImpl() *nativeGamepadImpl {
-	g := &nativeGamepadImpl{}
-	for i := range g.keyMap {
-		g.keyMap[i] = -1
-	}
-	for i := range g.absMap {
-		g.absMap[i] = -1
-	}
-	// Map BTN_A to the button 0 and ABS_X to the axis 0.
-	g.keyMap[_BTN_A-_BTN_MISC] = 0
-	g.absMap[_ABS_X] = 0
-	g.absInfo[_ABS_X] = input_absinfo{minimum: -1, maximum: 1}
-	return g
 }
 
 func TestHandleEvents(t *testing.T) {
-	g := newTestGamepadImpl()
-	buf := encodeInputEvents(t, []input_event{
-		{typ: unix.EV_KEY, code: _BTN_A, value: 1},
-		{typ: unix.EV_SYN, code: _SYN_REPORT},
-		{typ: unix.EV_ABS, code: _ABS_X, value: 1},
-		{typ: unix.EV_SYN, code: _SYN_REPORT},
-	})
-	if err := g.handleEvents(buf, nil); err != nil {
-		t.Fatalf("handleEvents failed: %v", err)
+	gp := gamepad.NewTestGamepad()
+	events := []gamepad.InputEvent{
+		{Typ: gamepad.EVKey, Code: gamepad.BtnA, Value: 1},
+		{Typ: gamepad.EVSyn, Code: gamepad.SynReport},
+		{Typ: gamepad.EVAbs, Code: gamepad.AbsX, Value: 1},
+		{Typ: gamepad.EVSyn, Code: gamepad.SynReport},
 	}
-	if !g.buttons[0] {
-		t.Errorf("buttons[0]: got: false, want: true")
+	if err := gp.HandleEvents(events, reportUnexpectedRestore(t)); err != nil {
+		t.Fatalf("HandleEvents failed: %v", err)
 	}
-	if got, want := g.axes[0], 1.0; got != want {
-		t.Errorf("axes[0]: got: %g, want: %g", got, want)
+	if !gp.IsButtonPressed(0) {
+		t.Errorf("button 0: got: not pressed, want: pressed")
+	}
+	if got, want := gp.AxisValue(0), 1.0; got != want {
+		t.Errorf("axis 0: got: %g, want: %g", got, want)
 	}
 }
 
@@ -87,100 +56,111 @@ func TestHandleEvents(t *testing.T) {
 // state is queried, so applying an already-buffered press would leave the
 // button stuck until the next transition.
 func TestHandleEventsSynDroppedStaleKeyEvent(t *testing.T) {
-	g := newTestGamepadImpl()
-	// Simulate the kernel state: the button is released. This is what
-	// pollKeyState (EVIOCGKEY) would report, and the queued release is
-	// flushed at the same time.
-	restoreDeviceState := func() error {
-		g.buttons[0] = false
-		return nil
-	}
-
-	// The press was queued before the release that the ioctl flushed, so it
-	// is stale once the snapshot is taken.
-	buf := encodeInputEvents(t, []input_event{
-		{typ: unix.EV_SYN, code: _SYN_DROPPED},
-		{typ: unix.EV_SYN, code: _SYN_REPORT},
-		{typ: unix.EV_KEY, code: _BTN_A, value: 1},
-		{typ: unix.EV_SYN, code: _SYN_REPORT},
-	})
-	if err := g.handleEvents(buf, restoreDeviceState); err != nil {
-		t.Fatalf("handleEvents failed: %v", err)
-	}
-	if g.dropped {
-		t.Errorf("dropped: got: true, want: false")
-	}
-	if g.buttons[0] {
-		t.Errorf("buttons[0]: got: true, want: false (the stale key event must be skipped)")
-	}
-}
-
-// TestHandleEventsSynDroppedEventsAfterBatch tests that key events read in a
-// later batch are applied again after a SYN_DROPPED recovery. Only the events
-// of the batch that contained the recovery are stale.
-func TestHandleEventsSynDroppedEventsAfterBatch(t *testing.T) {
-	g := newTestGamepadImpl()
+	gp := gamepad.NewTestGamepad()
 	restoreCalled := 0
 	restoreDeviceState := func() error {
 		restoreCalled++
 		return nil
 	}
 
-	dropped := encodeInputEvents(t, []input_event{
-		{typ: unix.EV_SYN, code: _SYN_DROPPED},
-		{typ: unix.EV_KEY, code: _BTN_A, value: 1},
-		{typ: unix.EV_SYN, code: _SYN_REPORT},
-	})
-	if err := g.handleEvents(dropped, restoreDeviceState); err != nil {
-		t.Fatalf("handleEvents for the dropped batch failed: %v", err)
+	// The press was queued before the release that the key-state snapshot
+	// flushed, so it is stale once the snapshot is taken.
+	events := []gamepad.InputEvent{
+		{Typ: gamepad.EVSyn, Code: gamepad.SynDropped},
+		{Typ: gamepad.EVSyn, Code: gamepad.SynReport},
+		{Typ: gamepad.EVKey, Code: gamepad.BtnA, Value: 1},
+		{Typ: gamepad.EVSyn, Code: gamepad.SynReport},
+	}
+	if err := gp.HandleEvents(events, restoreDeviceState); err != nil {
+		t.Fatalf("HandleEvents failed: %v", err)
 	}
 	if restoreCalled != 1 {
-		t.Errorf("restoreDeviceState calls: got: %d, want: %d", restoreCalled, 1)
+		t.Errorf("the number of restoreDeviceState calls: got: %d, want: %d", restoreCalled, 1)
 	}
-	// The event between SYN_DROPPED and SYN_REPORT must be ignored.
-	if g.buttons[0] {
-		t.Errorf("buttons[0]: got: true, want: false")
+	if gp.IsButtonPressed(0) {
+		t.Errorf("button 0: got: pressed, want: not pressed (the stale key event must be skipped)")
 	}
 
-	next := encodeInputEvents(t, []input_event{
-		{typ: unix.EV_KEY, code: _BTN_A, value: 1},
-		{typ: unix.EV_SYN, code: _SYN_REPORT},
-	})
-	if err := g.handleEvents(next, restoreDeviceState); err != nil {
-		t.Fatalf("handleEvents for the next batch failed: %v", err)
+	// A key event in a later batch is not stale and must be applied.
+	events = []gamepad.InputEvent{
+		{Typ: gamepad.EVKey, Code: gamepad.BtnA, Value: 1},
+		{Typ: gamepad.EVSyn, Code: gamepad.SynReport},
 	}
-	if !g.buttons[0] {
-		t.Errorf("buttons[0]: got: false, want: true (a later batch must not be skipped)")
+	if err := gp.HandleEvents(events, restoreDeviceState); err != nil {
+		t.Fatalf("HandleEvents for the later batch failed: %v", err)
 	}
-	if restoreCalled != 1 {
-		t.Errorf("restoreDeviceState calls: got: %d, want: %d", restoreCalled, 1)
+	if !gp.IsButtonPressed(0) {
+		t.Errorf("button 0: got: not pressed, want: pressed (a later batch must not be skipped)")
 	}
 }
 
-// TestHandleEventsSynDroppedWithoutReport tests that events are ignored while
-// the device is in the dropped state until the next SYN_REPORT arrives.
-func TestHandleEventsSynDroppedWithoutReport(t *testing.T) {
-	g := newTestGamepadImpl()
+// TestHandleEventsSynDroppedUntilReport tests that events are ignored while
+// the device is in the dropped state, across batches, until the next
+// SYN_REPORT restores the device state.
+func TestHandleEventsSynDroppedUntilReport(t *testing.T) {
+	gp := gamepad.NewTestGamepad()
+	restoreCalled := 0
 	restoreDeviceState := func() error {
-		t.Error("restoreDeviceState must not be called without SYN_REPORT")
+		restoreCalled++
 		return nil
 	}
 
-	buf := encodeInputEvents(t, []input_event{
-		{typ: unix.EV_SYN, code: _SYN_DROPPED},
-		{typ: unix.EV_KEY, code: _BTN_A, value: 1},
-		{typ: unix.EV_ABS, code: _ABS_X, value: 1},
-	})
-	if err := g.handleEvents(buf, restoreDeviceState); err != nil {
-		t.Fatalf("handleEvents failed: %v", err)
+	// The batch ends without SYN_REPORT.
+	events := []gamepad.InputEvent{
+		{Typ: gamepad.EVSyn, Code: gamepad.SynDropped},
+		{Typ: gamepad.EVKey, Code: gamepad.BtnA, Value: 1},
+		{Typ: gamepad.EVAbs, Code: gamepad.AbsX, Value: 1},
 	}
-	if !g.dropped {
-		t.Errorf("dropped: got: false, want: true")
+	if err := gp.HandleEvents(events, restoreDeviceState); err != nil {
+		t.Fatalf("HandleEvents for the first batch failed: %v", err)
 	}
-	if g.buttons[0] {
-		t.Errorf("buttons[0]: got: true, want: false")
+	if restoreCalled != 0 {
+		t.Errorf("the number of restoreDeviceState calls: got: %d, want: %d", restoreCalled, 0)
 	}
-	if got, want := g.axes[0], 0.0; got != want {
-		t.Errorf("axes[0]: got: %g, want: %g", got, want)
+	if gp.IsButtonPressed(0) {
+		t.Errorf("button 0: got: pressed, want: not pressed (events must be ignored while dropped)")
+	}
+	if got, want := gp.AxisValue(0), 0.0; got != want {
+		t.Errorf("axis 0: got: %g, want: %g (events must be ignored while dropped)", got, want)
+	}
+
+	// The dropped state lasts until the SYN_REPORT of this batch. The events
+	// before the report are ignored, and the key events after the report are
+	// stale.
+	events = []gamepad.InputEvent{
+		{Typ: gamepad.EVKey, Code: gamepad.BtnA, Value: 1},
+		{Typ: gamepad.EVSyn, Code: gamepad.SynReport},
+		{Typ: gamepad.EVKey, Code: gamepad.BtnA, Value: 1},
+	}
+	if err := gp.HandleEvents(events, restoreDeviceState); err != nil {
+		t.Fatalf("HandleEvents for the second batch failed: %v", err)
+	}
+	if restoreCalled != 1 {
+		t.Errorf("the number of restoreDeviceState calls: got: %d, want: %d", restoreCalled, 1)
+	}
+	if gp.IsButtonPressed(0) {
+		t.Errorf("button 0: got: pressed, want: not pressed")
+	}
+	if got, want := gp.AxisValue(0), 0.0; got != want {
+		t.Errorf("axis 0: got: %g, want: %g", got, want)
+	}
+
+	// The next batch is processed normally.
+	events = []gamepad.InputEvent{
+		{Typ: gamepad.EVKey, Code: gamepad.BtnA, Value: 1},
+		{Typ: gamepad.EVAbs, Code: gamepad.AbsX, Value: 1},
+		{Typ: gamepad.EVSyn, Code: gamepad.SynReport},
+	}
+	if err := gp.HandleEvents(events, restoreDeviceState); err != nil {
+		t.Fatalf("HandleEvents for the third batch failed: %v", err)
+	}
+	if restoreCalled != 1 {
+		t.Errorf("the number of restoreDeviceState calls: got: %d, want: %d", restoreCalled, 1)
+	}
+	if !gp.IsButtonPressed(0) {
+		t.Errorf("button 0: got: not pressed, want: pressed")
+	}
+	if got, want := gp.AxisValue(0), 1.0; got != want {
+		t.Errorf("axis 0: got: %g, want: %g", got, want)
 	}
 }
