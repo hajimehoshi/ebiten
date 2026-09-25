@@ -745,3 +745,71 @@ func TestCompileIndexType(t *testing.T) {
 		}
 	}
 }
+
+func TestCompileUnaryOperandType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "b := true; _ = -b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; _ = +b",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; _ = !x",
+			err:  true,
+		},
+		{
+			stmt: "i := 1; _ = !i",
+			err:  true,
+		},
+		{
+			stmt: "v := vec2(1); _ = !v",
+			err:  true,
+		},
+		{
+			stmt: "m := mat2(1); _ = !m",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; _ = -x",
+			err:  false,
+		},
+		{
+			stmt: "x := 1.0; _ = +x",
+			err:  false,
+		},
+		{
+			stmt: "i := 1; _ = -i",
+			err:  false,
+		},
+		{
+			stmt: "v := vec2(1); _ = -v",
+			err:  false,
+		},
+		{
+			stmt: "v := ivec3(1); _ = -v",
+			err:  false,
+		},
+		{
+			stmt: "m := mat2(1); _ = -m",
+			err:  false,
+		},
+		{
+			stmt: "b := true; _ = !b",
+			err:  false,
+		},
+	}
+	for _, c := range cases {
+		err := compileFragmentStmt(c.stmt)
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

@@ -1080,13 +1080,23 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		case token.NOT:
 			op = shaderir.NotOp
 		case token.XOR:
-			if ts[0].Main != shaderir.Int && !ts[0].IsIntVector() {
-				cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", e.Op, ts[0].String()))
-				return nil, nil, nil, false
-			}
 			op = shaderir.ComplementOp
 		default:
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected operator: %s", e.Op))
+			return nil, nil, nil, false
+		}
+
+		var valid bool
+		switch e.Op {
+		case token.ADD, token.SUB:
+			valid = ts[0].Main == shaderir.Int || ts[0].Main == shaderir.Float || ts[0].IsIntVector() || ts[0].IsFloatVector() || ts[0].IsMatrix()
+		case token.NOT:
+			valid = ts[0].Main == shaderir.Bool
+		case token.XOR:
+			valid = ts[0].Main == shaderir.Int || ts[0].IsIntVector()
+		}
+		if !valid {
+			cs.addError(e.Pos(), fmt.Sprintf("invalid operation: operator %s not defined on %s", e.Op, ts[0].String()))
 			return nil, nil, nil, false
 		}
 		return []shaderir.Expr{
