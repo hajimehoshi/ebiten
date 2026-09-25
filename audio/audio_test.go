@@ -265,16 +265,16 @@ func TestSetPositionLongDuration(t *testing.T) {
 
 func TestSetPositionNegative(t *testing.T) {
 	tests := []struct {
-		name string
-		play bool
+		name         string
+		createDevice bool
 	}{
 		{
-			name: "BeforeDeviceCreation",
-			play: false,
+			name:         "BeforeDeviceCreation",
+			createDevice: false,
 		},
 		{
-			name: "AfterPlay",
-			play: true,
+			name:         "AfterDeviceCreation",
+			createDevice: true,
 		},
 	}
 	offsets := []time.Duration{
@@ -294,17 +294,21 @@ func TestSetPositionNegative(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+				defer p.Close()
 				if err := p.SetPosition(500 * time.Millisecond); err != nil {
 					t.Fatal(err)
 				}
-				if test.play {
+				if test.createDevice {
 					if err := audio.UpdateForTesting(); err != nil {
 						t.Fatal(err)
 					}
-					p.Play()
+					// Keep the player paused so that background updates cannot change its position.
+					if err := audio.EnsurePlayerForTesting(p); err != nil {
+						t.Fatal(err)
+					}
 				}
 
-				want := p.Position()
+				const want = 500 * time.Millisecond
 				if err := p.SetPosition(offset); err == nil {
 					t.Errorf("SetPosition(%v): got: nil, want: an error", offset)
 				}
