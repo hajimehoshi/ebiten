@@ -175,11 +175,15 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	// Comparing matrices is forbidden (#2187).
 	// Comparing arrays is forbidden as well, as most of the shading languages don't have the
 	// operation (#3535).
+	// Comparing textures is forbidden as well, as a texture is an opaque handle.
 	if op == EqualOp || op == NotEqualOp {
 		if lhst.IsMatrix() || rhst.IsMatrix() {
 			return Type{}, false
 		}
 		if lhst.Main == Array || rhst.Main == Array {
+			return Type{}, false
+		}
+		if lhst.Main == Texture || rhst.Main == Texture {
 			return Type{}, false
 		}
 		if lhst.Equal(&rhst) {

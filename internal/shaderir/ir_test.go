@@ -1112,3 +1112,56 @@ func TestIsValidSwizzling(t *testing.T) {
 		}
 	}
 }
+
+func TestTypeFromBinaryOpTextureComparison(t *testing.T) {
+	texture := shaderir.Type{Main: shaderir.Texture}
+	float := shaderir.Type{Main: shaderir.Float}
+	boolean := shaderir.Type{Main: shaderir.Bool}
+	cases := []struct {
+		op   shaderir.Op
+		lhs  shaderir.Type
+		rhs  shaderir.Type
+		want shaderir.Type
+		ok   bool
+	}{
+		{
+			op:  shaderir.EqualOp,
+			lhs: texture,
+			rhs: texture,
+			ok:  false,
+		},
+		{
+			op:  shaderir.NotEqualOp,
+			lhs: texture,
+			rhs: texture,
+			ok:  false,
+		},
+		{
+			op:   shaderir.EqualOp,
+			lhs:  float,
+			rhs:  float,
+			want: boolean,
+			ok:   true,
+		},
+		{
+			op:   shaderir.NotEqualOp,
+			lhs:  boolean,
+			rhs:  boolean,
+			want: boolean,
+			ok:   true,
+		},
+	}
+	for _, c := range cases {
+		got, ok := shaderir.TypeFromBinaryOp(c.op, c.lhs, c.rhs, nil, nil)
+		if ok != c.ok {
+			t.Errorf("%s (%d) %s: ok: got: %t, want: %t", c.lhs.String(), c.op, c.rhs.String(), ok, c.ok)
+			continue
+		}
+		if !ok {
+			continue
+		}
+		if !got.Equal(&c.want) {
+			t.Errorf("%s (%d) %s: got: %s, want: %s", c.lhs.String(), c.op, c.rhs.String(), got.String(), c.want.String())
+		}
+	}
+}
