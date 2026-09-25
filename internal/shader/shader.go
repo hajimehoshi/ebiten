@@ -339,11 +339,14 @@ func (cs *compileState) parse(f *ast.File) {
 		if len(fragmentInParams) > len(vertexOutParams) {
 			cs.addError(cs.fragmentEntryPos, fmt.Sprintf("the number of the fragment arguments (%d) must not be greater than the number of the vertex returning values (%d)", len(fragmentInParams), len(vertexOutParams)))
 		}
-
+	}
+	if cs.vertexEntryPos.IsValid() {
 		// The first out-param is treated as gl_Position in GLSL.
-		if vertexOutParams[0].typ.Main != shaderir.Vec4 {
+		if len(vertexOutParams) == 0 || vertexOutParams[0].typ.Main != shaderir.Vec4 {
 			cs.addError(cs.vertexEntryPos, "vertex entry point must have at least one returning vec4 value for a position")
 		}
+	}
+	if cs.fragmentEntryPos.IsValid() {
 		if len(fragmentOutParams) != 0 || fragmentReturnType.Main != shaderir.Vec4 {
 			cs.addError(cs.fragmentEntryPos, "fragment entry point must have one returning vec4 value for a color")
 		}

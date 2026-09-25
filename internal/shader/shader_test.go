@@ -1044,3 +1044,73 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		})
 	}
 }
+
+func TestCompileEntryPointTypesWithNoFragmentArguments(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		err  bool
+	}{
+		{
+			name: "vertex returning int",
+			src: `package main
+
+func Vertex(position vec2) int {
+	return 1
+}
+
+func Fragment() vec4 {
+	return vec4(1)
+}`,
+			err: true,
+		},
+		{
+			name: "vertex returning nothing",
+			src: `package main
+
+func Vertex(position vec2) {
+}
+
+func Fragment() vec4 {
+	return vec4(1)
+}`,
+			err: true,
+		},
+		{
+			name: "fragment returning int",
+			src: `package main
+
+func Vertex(position vec2) vec4 {
+	return vec4(position, 0, 1)
+}
+
+func Fragment() int {
+	return 1
+}`,
+			err: true,
+		},
+		{
+			name: "vertex and fragment returning vec4",
+			src: `package main
+
+func Vertex(position vec2) vec4 {
+	return vec4(position, 0, 1)
+}
+
+func Fragment() vec4 {
+	return vec4(1)
+}`,
+			err: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 0)
+			if err == nil && c.err {
+				t.Errorf("Compile must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("Compile must not return an error but returned %v", err)
+			}
+		})
+	}
+}
