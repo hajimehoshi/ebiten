@@ -693,3 +693,55 @@ func TestCompileShiftCountWithVariable(t *testing.T) {
 		}
 	}
 }
+
+func TestCompileIndexType(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "a := [2]float{1, 2}; x := 1.5; _ = a[x]",
+			err:  true,
+		},
+		{
+			stmt: "a := [2]float{1, 2}; x := true; _ = a[x]",
+			err:  true,
+		},
+		{
+			stmt: "a := [2]float{1, 2}; x := ivec2(0); _ = a[x]",
+			err:  true,
+		},
+		{
+			stmt: "v := vec2(1); x := 1.5; _ = v[x]",
+			err:  true,
+		},
+		{
+			stmt: "m := mat2(1); x := 0.5; _ = m[x]",
+			err:  true,
+		},
+		{
+			stmt: "a := [2]float{1, 2}; i := 1; _ = a[i]",
+			err:  false,
+		},
+		{
+			stmt: "a := [2]float{1, 2}; _ = a[1.0]",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(1); i := 2; _ = v[i]",
+			err:  false,
+		},
+		{
+			stmt: "m := mat2(1); i := 0; _ = m[i]",
+			err:  false,
+		},
+	}
+	for _, c := range cases {
+		err := compileFragmentStmt(c.stmt)
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

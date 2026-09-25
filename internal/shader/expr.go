@@ -1190,13 +1190,13 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		var stmts []shaderir.Stmt
 
 		// Parse the index first
-		exprs, _, ss, ok := cs.parseExpr(block, fname, e.Index, true)
+		exprs, its, ss, ok := cs.parseExpr(block, fname, e.Index, true)
 		if !ok {
 			return nil, nil, nil, false
 		}
 		stmts = append(stmts, ss...)
 
-		if len(exprs) != 1 {
+		if len(exprs) != 1 || len(its) != 1 {
 			cs.addError(e.Pos(), "multiple-value context is not available at an index expression")
 			return nil, nil, nil, false
 		}
@@ -1206,6 +1206,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", idx.Const.String()))
 				return nil, nil, nil, false
 			}
+		} else if its[0].Main != shaderir.Int {
+			cs.addError(e.Pos(), fmt.Sprintf("index must be int but %s", its[0].String()))
+			return nil, nil, nil, false
 		}
 
 		exprs, ts, ss, ok := cs.parseExpr(block, fname, e.X, markLocalVariableUsed)
