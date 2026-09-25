@@ -973,3 +973,74 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		})
 	}
 }
+
+func TestCompileArrayLengthLimit(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		err  bool
+	}{
+		{
+			name: "local variable",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [20000000]float
+	return vec4(a[0])
+}`,
+			err: true,
+		},
+		{
+			name: "local variable just above the limit",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [4097]float
+	return vec4(a[0])
+}`,
+			err: true,
+		},
+		{
+			name: "uniform variable",
+			src: `package main
+
+var U [4097]float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(U[0])
+}`,
+			err: true,
+		},
+		{
+			name: "local variable at the limit",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [4096]float
+	return vec4(a[0])
+}`,
+			err: false,
+		},
+		{
+			name: "uniform variable at the limit",
+			src: `package main
+
+var U [4096]float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(U[0])
+}`,
+			err: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 0)
+			if err == nil && c.err {
+				t.Errorf("Compile must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("Compile must not return an error but returned %v", err)
+			}
+		})
+	}
+}

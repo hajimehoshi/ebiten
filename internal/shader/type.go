@@ -23,6 +23,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+// maxArrayLength is the maximum length of an array type.
+//
+// The backends emit code for each array element, so a huge length makes code generation take an
+// enormous amount of time and memory. A uniform variable cannot be longer than this anyway. A DirectX 11
+// constant buffer has at most 4096 16-byte registers, and each array element takes at least one register.
+// Metal passes uniform variables with setVertexBytes and setFragmentBytes, which are for data smaller than
+// 4 KB, and each array element takes at least one byte.
+const maxArrayLength = 4096
+
 func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (shaderir.Type, bool) {
 	switch t := expr.(type) {
 	case *ast.Ident:
@@ -85,7 +94,7 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 			cs.addError(t.Pos(), fmt.Sprintf("invalid array length %d", l))
 			return shaderir.Type{}, false
 		}
-		return cs.parseArrayType(block, fname, t, int(l))
+		return cs.parseArrayType(block, fname, t, l)
 	case *ast.StructType:
 		cs.addError(t.Pos(), "struct is not implemented")
 		return shaderir.Type{}, false
@@ -96,7 +105,11 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 }
 
 // parseArrayType parses the array type t whose length is the given length.
-func (cs *compileState) parseArrayType(block *block, fname string, t *ast.ArrayType, length int) (shaderir.Type, bool) {
+func (cs *compileState) parseArrayType(block *block, fname string, t *ast.ArrayType, length int64) (shaderir.Type, bool) {
+	if length > maxArrayLength {
+		cs.addError(t.Pos(), fmt.Sprintf("array length %d exceeds the limit %d", length, maxArrayLength))
+		return shaderir.Type{}, false
+	}
 	elm, ok := cs.parseType(block, fname, t.Elt)
 	if !ok {
 		return shaderir.Type{}, false
@@ -108,7 +121,7 @@ func (cs *compileState) parseArrayType(block *block, fname string, t *ast.ArrayT
 	return shaderir.Type{
 		Main:   shaderir.Array,
 		Sub:    []shaderir.Type{elm},
-		Length: length,
+		Length: int(length),
 	}, true
 }
 

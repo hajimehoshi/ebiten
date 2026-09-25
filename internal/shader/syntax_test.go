@@ -3747,7 +3747,7 @@ func TestSyntaxIntConstantRange(t *testing.T) {
 		{stmt: "a := vec2(1 << 40); _ = a", err: false},
 		{stmt: "a := 1.0 * 1099511627776; _ = a", err: false},
 		{stmt: "var a float; b := a + 2147483648; _ = b", err: false},
-		{stmt: "var a [2147483647]int; _ = a", err: false},
+		{stmt: "var a [4096]int; _ = a", err: false},
 	}
 
 	for _, c := range cases {

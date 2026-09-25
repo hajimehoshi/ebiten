@@ -1112,7 +1112,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		var ok bool
 		if at, isArray := e.Type.(*ast.ArrayType); isArray && isEllipsis(at.Len) {
 			// The length of a [...] array is the number of the elements.
-			t, ok = cs.parseArrayType(block, fname, at, len(e.Elts))
+			t, ok = cs.parseArrayType(block, fname, at, int64(len(e.Elts)))
 		} else {
 			t, ok = cs.parseType(block, fname, e.Type)
 		}
