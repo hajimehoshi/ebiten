@@ -828,6 +828,9 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 		return g.withDeviceRemovedReason(err)
 	}
 	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{g.drawCommandList})
+	// The draw command list has no pending commands anymore. Without this, the next flushCommandList
+	// would submit an empty command list and wait for the GPU for nothing.
+	g.needFlushDrawCommandList = false
 
 	// Release the vertex and index buffers when too many have been created.
 	// The threshold is an arbitrary number.
