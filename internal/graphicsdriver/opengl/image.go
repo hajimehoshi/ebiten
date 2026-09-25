@@ -48,9 +48,11 @@ func (i *Image) ID() graphicsdriver.ImageID {
 func (i *Image) Dispose() {
 	if i.framebuffer != nil {
 		i.graphics.context.deleteFramebuffer(i.framebuffer.native)
+		i.framebuffer = nil
 	}
 	if i.texture != 0 {
 		i.graphics.context.deleteTexture(i.texture)
+		i.texture = 0
 	}
 
 	i.graphics.removeImage(i)
