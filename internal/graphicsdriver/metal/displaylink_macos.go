@@ -131,8 +131,16 @@ func (v *view) initCAMetalDisplayLink() error {
 					if drawable == (ca.MetalDrawable{}) {
 						return
 					}
-					v.drawableCh <- drawable
-					<-v.drawableDoneCh
+					// Never block on the send: the receiver may already have
+					// stopped draining (see updateMetalDisplayLink), and a
+					// callback blocked here wedges the display link's run
+					// loop forever. Dropping the drawable is safe: nothing
+					// is waiting for it.
+					select {
+					case v.drawableCh <- drawable:
+						<-v.drawableDoneCh
+					default:
+					}
 				},
 			},
 		},
