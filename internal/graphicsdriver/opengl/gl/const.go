@@ -47,7 +47,6 @@ const (
 	ONE_MINUS_DST_COLOR   = 0x0307
 	ONE_MINUS_SRC_ALPHA   = 0x0303
 	ONE_MINUS_SRC_COLOR   = 0x0301
-	PIXEL_PACK_BUFFER     = 0x88EB
 	RGBA                  = 0x1908
 	SCISSOR_TEST          = 0x0C11
 	SRC_ALPHA             = 0x0302
