@@ -511,10 +511,18 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 	case *ast.BranchStmt:
 		switch stmt.Tok {
 		case token.BREAK:
+			if !block.inLoop() {
+				cs.addError(stmt.Pos(), "break is not in a loop")
+				return nil, false
+			}
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Break,
 			})
 		case token.CONTINUE:
+			if !block.inLoop() {
+				cs.addError(stmt.Pos(), "continue is not in a loop")
+				return nil, false
+			}
 			stmts = append(stmts, shaderir.Stmt{
 				Type: shaderir.Continue,
 			})
@@ -885,6 +893,7 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	if !ok {
 		return nil, false
 	}
+	pseudoBlock.loop = true
 	ss := pseudoBlock.ir.Stmts
 
 	if len(ss) != 1 {
@@ -1123,6 +1132,7 @@ func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.Rang
 	if !ok {
 		return nil, false
 	}
+	pseudoBlock.loop = true
 	vartype := shaderir.Type{Main: shaderir.Int}
 	varidx := pseudoBlock.totalLocalVariableCount()
 	pseudoBlock.addNamedLocalVariable(keyname, vartype, keypos)

@@ -6169,3 +6169,70 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxBranchOutsideLoop(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "break",
+			err:  true,
+		},
+		{
+			stmt: "continue",
+			err:  true,
+		},
+		{
+			stmt: "if dstPos.x > 0 { break }",
+			err:  true,
+		},
+		{
+			stmt: "if dstPos.x > 0 { continue }",
+			err:  true,
+		},
+		{
+			stmt: "{ break }",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { }; break",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { break }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { continue }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { if i == 1 { break } }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { { if i == 1 { continue } } }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range 2 { if i == 1 { break }; continue }",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

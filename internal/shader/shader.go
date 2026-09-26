@@ -104,7 +104,20 @@ type block struct {
 	consts     []constant
 	outer      *block
 
+	// loop is true when the block is the scope of a for-statement.
+	loop bool
+
 	ir *shaderir.Block
+}
+
+// inLoop reports whether the block or one of its enclosing blocks belongs to a for-statement.
+func (b *block) inLoop() bool {
+	for ; b != nil; b = b.outer {
+		if b.loop {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *block) totalLocalVariableCount() int {
