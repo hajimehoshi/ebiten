@@ -2446,13 +2446,31 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 `)); err != nil {
 		t.Error(err)
 	}
-	// discard without return doesn't work so far.
-	// TODO: Allow discard without return.
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	discard()
 	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	discard()
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	if dstPos.x > 0 {
+		discard()
+	} else {
+		return vec4(0)
+	}
 }
 `)); err != nil {
 		t.Error(err)
@@ -6233,6 +6251,138 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			t.Errorf("%s must return an error but does not", c.stmt)
 		} else if err != nil && !c.err {
 			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxReturnOnEveryPath(t *testing.T) {
+	cases := []struct {
+		fn  string
+		err bool
+	}{
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else if x < 0 {
+		return -1
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	for i := 0; i < 4; i++ {
+		return 1
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else {
+		return 0
+	}
+	x = 1
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) (y float) {
+	if x > 0 {
+		y = 1
+		return
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else {
+		return 0
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else if x < 0 {
+		return -1
+	} else {
+		return 0
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	if y := x; y > 0 {
+		return 1
+	} else {
+		return 0
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	{
+		return x
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) (y float) {
+	if x > 0 {
+		y = 1
+		return
+	} else {
+		return
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	for i := 0; i < 2; i++ {
+		if x > 0 {
+			return 1
+		}
+	}
+	return 0
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(dstPos.x))
+}`, c.fn)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.fn)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.fn, err)
 		}
 	}
 }

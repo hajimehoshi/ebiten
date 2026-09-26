@@ -958,23 +958,8 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}
 
 	if len(outParams) > 0 || returnType.Main != shaderir.None {
-		var hasReturn func(stmts []shaderir.Stmt) bool
-		hasReturn = func(stmts []shaderir.Stmt) bool {
-			for _, stmt := range stmts {
-				if stmt.Type == shaderir.Return {
-					return true
-				}
-				for _, b := range stmt.Blocks {
-					if hasReturn(b.Stmts) {
-						return true
-					}
-				}
-			}
-			return false
-		}
-
-		if !hasReturn(b.ir.Stmts) {
-			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but does not", d.Name))
+		if !isTerminating(b.ir.Stmts) {
+			cs.addError(d.Pos(), fmt.Sprintf("function %s must end with a return statement on every path but does not", d.Name))
 			return function{}, false
 		}
 	}
@@ -1038,6 +1023,30 @@ func (cs *compileState) checkIntConstRangeInStmts(pos token.Pos, stmts []shaderi
 		}
 	}
 	return ok
+}
+
+// isTerminating reports whether the statement list ends with a statement that returns on every path.
+//
+// A list terminates when its last statement is a return, a discard, a block that terminates, or an
+// if-statement with an else branch whose both branches terminate. A for-statement never terminates, as
+// its condition can be false at the first iteration.
+func isTerminating(stmts []shaderir.Stmt) bool {
+	if len(stmts) == 0 {
+		return false
+	}
+	last := stmts[len(stmts)-1]
+	switch last.Type {
+	case shaderir.Return, shaderir.Discard:
+		return true
+	case shaderir.BlockStmt:
+		return isTerminating(last.Blocks[0].Stmts)
+	case shaderir.If:
+		if len(last.Blocks) != 2 {
+			return false
+		}
+		return isTerminating(last.Blocks[0].Stmts) && isTerminating(last.Blocks[1].Stmts)
+	}
+	return false
 }
 
 func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable, returnType shaderir.Type, checkLocalVariableUsage bool) (*block, bool) {
