@@ -1128,11 +1128,7 @@ func (cs *compileState) checkIntConstRangeInStmts(pos token.Pos, stmts []shaderi
 	return ok
 }
 
-// isTerminating reports whether the statement list ends with a statement that returns on every path.
-//
-// A list terminates when its last statement is a return, a discard, a block that terminates, or an
-// if-statement with an else branch whose both branches terminate. A for-statement never terminates, as
-// its condition can be false at the first iteration.
+// isTerminating reports whether stmts ends in a statement that returns or discards on every path.
 func isTerminating(stmts []shaderir.Stmt) bool {
 	if len(stmts) == 0 {
 		return false
@@ -1144,11 +1140,14 @@ func isTerminating(stmts []shaderir.Stmt) bool {
 	case shaderir.BlockStmt:
 		return isTerminating(last.Blocks[0].Stmts)
 	case shaderir.If:
+		// An if-statement without an else branch falls through when its condition is false.
 		if len(last.Blocks) != 2 {
 			return false
 		}
 		return isTerminating(last.Blocks[0].Stmts) && isTerminating(last.Blocks[1].Stmts)
 	}
+	// A for-statement never terminates. Every Kage loop has a condition or a range clause, either of which
+	// makes a loop non-terminating in Go.
 	return false
 }
 
