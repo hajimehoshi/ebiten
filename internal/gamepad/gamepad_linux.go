@@ -258,7 +258,7 @@ func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
 			// An even (X) code claims its Y neighbor so that both share one hat index,
 			// and the iteration for that claimed Y code is skipped. A lone odd (Y) code
 			// gets its own index and must not overwrite or skip the following code.
-			if code%2 == 1 && isBitSet(absBits, code-1) {
+			if code%2 == 1 && isBitSet(info.absBits, code-1) {
 				continue
 			}
 			n.absMap[code] = hatCount
