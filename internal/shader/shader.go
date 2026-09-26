@@ -365,6 +365,7 @@ func (cs *compileState) parse(f *ast.File) {
 	var fragmentInParams []variable
 	var fragmentOutParams []variable
 	var fragmentReturnType shaderir.Type
+	funcNames := map[string]struct{}{}
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.FuncDecl)
 		if !ok {
@@ -372,12 +373,12 @@ func (cs *compileState) parse(f *ast.File) {
 		}
 		n := fd.Name.Name
 
-		for _, f := range cs.funcs {
-			if f.name == n {
-				cs.addError(d.Pos(), fmt.Sprintf("redeclared function: %s", n))
-				return
-			}
+		// The entry points are not registered in cs.funcs, so check the names separately.
+		if _, ok := funcNames[n]; ok {
+			cs.addError(d.Pos(), fmt.Sprintf("redeclared function: %s", n))
+			return
 		}
+		funcNames[n] = struct{}{}
 
 		inParams, outParams, ret := cs.parseFuncParams(&cs.global, n, fd)
 
