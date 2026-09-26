@@ -649,7 +649,6 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 						return nil, false
 					}
 
-					// TODO: Should rhs be ignored?
 					for i, v := range vs {
 						// A uniform variable starting with __ is reserved for the internal region.
 						reserved := strings.HasPrefix(v.name, "__") && cs.inInternalRegion(s.Names[i].Pos())
