@@ -611,13 +611,30 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	if len(lhs) == len(rhs) {
 		var localVariablIndicesToAssignLater []int
 		var leftExprsToAssignLater []shaderir.Expr
-		for i, e := range lhs {
-			// Parse RHS first for the order of the statements.
+
+		// Parse all the right-hand sides before any new variable on the left-hand side is declared, as the new variables
+		// are not in scope on the right-hand side.
+		type rhsValue struct {
+			exprs []shaderir.Expr
+			types []shaderir.Type
+			stmts []shaderir.Stmt
+		}
+		rhsValues := make([]rhsValue, len(rhs))
+		for i := range rhs {
 			r, rts, ss, ok := cs.parseExpr(block, fname, rhs[i], true)
 			if !ok {
 				return nil, false
 			}
-			stmts = append(stmts, ss...)
+			rhsValues[i] = rhsValue{
+				exprs: r,
+				types: rts,
+				stmts: ss,
+			}
+		}
+
+		for i, e := range lhs {
+			r, rts := rhsValues[i].exprs, rhsValues[i].types
+			stmts = append(stmts, rhsValues[i].stmts...)
 
 			if define {
 				if _, ok := e.(*ast.Ident); !ok {

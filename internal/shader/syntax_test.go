@@ -7419,3 +7419,38 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxShortVarDeclRHSScope(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "x, y := 2.0, x; _, _ = x, y",
+			err:  true,
+		},
+		{
+			stmt: "x, y := 2.0, y; _, _ = x, y",
+			err:  true,
+		},
+		{
+			stmt: "x := 5.0; _ = x; { x, y := 1.0, x; _, _ = x, y }",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
