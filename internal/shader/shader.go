@@ -809,7 +809,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 			for i, rt := range rts {
 				if !canAssign(&t, &rt, es[i].Const) {
-					s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
+					s.addError(n.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
 				}
 				if es[i].Const != nil {
 					switch t.Main {
@@ -861,7 +861,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 			}
 
 			if !canAssign(&t, &inittypes[i], initexprs[i].Const) {
-				s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", inittypes[i].String(), t.String()))
+				s.addError(n.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", inittypes[i].String(), t.String()))
 			}
 
 			// Add the same initexprs for each variable.

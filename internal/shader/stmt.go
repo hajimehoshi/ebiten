@@ -667,7 +667,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 
 			for i := range lts {
 				if !canAssign(&lts[i], &rts[i], r[i].Const) {
-					cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rts[i].String(), lts[i].String()))
+					cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in assignment", rts[i].String(), lts[i].String()))
 					return nil, false
 				}
 				switch lts[0].Main {
@@ -782,7 +782,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			allblank = false
 
 			if !canAssign(&lts[0], &rhsTypes[i], rhsExprs[i].Const) {
-				cs.addError(pos, fmt.Sprintf("cannot use type %s as type %s in variable declaration", rhsTypes[i].String(), lts[0].String()))
+				cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in assignment", rhsTypes[i].String(), lts[0].String()))
 				return nil, false
 			}
 
