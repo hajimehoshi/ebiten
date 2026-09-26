@@ -1247,3 +1247,57 @@ func TestTypeFromBinaryOpArithmeticOnArrayAndTexture(t *testing.T) {
 		}
 	}
 }
+
+func TestTypeFromBinaryOpUntypedIntConsts(t *testing.T) {
+	cases := []struct {
+		op  shaderir.Op
+		lhs constant.Value
+		rhs constant.Value
+	}{
+		{
+			op:  shaderir.ModOp,
+			lhs: constant.MakeInt64(5),
+			rhs: constant.MakeInt64(2),
+		},
+		{
+			op:  shaderir.And,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.AndNot,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.Or,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.Xor,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.LeftShift,
+			lhs: constant.MakeInt64(1),
+			rhs: constant.MakeInt64(2),
+		},
+		{
+			op:  shaderir.RightShift,
+			lhs: constant.MakeInt64(4),
+			rhs: constant.MakeInt64(1),
+		},
+	}
+	for _, c := range cases {
+		got, ok := shaderir.TypeFromBinaryOp(c.op, shaderir.Type{}, shaderir.Type{}, c.lhs, c.rhs)
+		if !ok {
+			t.Errorf("%s (%d) %s must be accepted but was not", c.lhs, c.op, c.rhs)
+			continue
+		}
+		if !got.Equal(&shaderir.Type{}) {
+			t.Errorf("%s (%d) %s: got: %s, want: untyped", c.lhs, c.op, c.rhs, got.String())
+		}
+	}
+}

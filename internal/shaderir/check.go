@@ -115,21 +115,21 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		// For %, both operands must be integers if both are constants. Truncatable to an integer is not enough.
 		if op == ModOp {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
-				return Type{Main: Int}, true
+				return Type{}, true
 			}
 			return Type{}, false
 		}
 
 		if op == And || op == AndNot || op == Or || op == Xor {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
-				return Type{Main: Int}, true
+				return Type{}, true
 			}
 			return Type{}, false
 		}
 
 		if op == LeftShift || op == RightShift {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
-				return Type{Main: Int}, true
+				return Type{}, true
 			}
 			return Type{}, false
 		}
