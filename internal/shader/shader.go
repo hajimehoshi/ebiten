@@ -918,6 +918,12 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 				return nil, false
 			}
 		}
+		for _, c := range cs {
+			if name != "_" && c.name == name {
+				s.addError(n.Pos(), fmt.Sprintf("duplicated local constant name: %s", name))
+				return nil, false
+			}
+		}
 		for _, v := range block.vars {
 			if v.name == name {
 				s.addError(n.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))

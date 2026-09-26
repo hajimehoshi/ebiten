@@ -6833,3 +6833,69 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxDuplicatedConstNames(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const b, b = 1, 2
+	return vec4(b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const a, b, a float = 1, 2, 3
+	return vec4(a, b, 0, 0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+const b, b = 1, 2
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const a, b = 1, 2
+	const _, _ = 3, 4
+	return vec4(a, b, 0, 0)
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+const a, b = 1, 2
+const _, _ = 3, 4
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(a, b, 0, 0)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
