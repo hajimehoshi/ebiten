@@ -193,6 +193,24 @@ func (b *block) findConstant(name string) (constant, bool) {
 	return constant{}, false
 }
 
+// declared reports whether a variable in vars or a constant in consts is named name. A blank name is never reported.
+func declared(name string, vars []variable, consts []constant) bool {
+	if name == "_" {
+		return false
+	}
+	for _, v := range vars {
+		if v.name == name {
+			return true
+		}
+	}
+	for _, c := range consts {
+		if c.name == name {
+			return true
+		}
+	}
+	return false
+}
+
 type ParseError struct {
 	errs []compileError
 }
@@ -877,19 +895,9 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 		}
 
 		name := n.Name
-		if name != "_" {
-			for _, v := range append(block.vars, vars...) {
-				if v.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-					return nil, nil, nil, false
-				}
-			}
-			for _, c := range block.consts {
-				if c.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-					return nil, nil, nil, false
-				}
-			}
+		if declared(name, append(block.vars, vars...), block.consts) {
+			s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+			return nil, nil, nil, false
 		}
 		vars = append(vars, variable{
 			name: name,
@@ -922,19 +930,9 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 	var cs []constant
 	for i, n := range vs.Names {
 		name := n.Name
-		if name != "_" {
-			for _, c := range append(block.consts, cs...) {
-				if c.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-					return nil, false
-				}
-			}
-			for _, v := range block.vars {
-				if v.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-					return nil, false
-				}
-			}
+		if declared(name, block.vars, append(block.consts, cs...)) {
+			s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+			return nil, false
 		}
 
 		es, ts, ss, ok := s.parseExpr(block, fname, vs.Values[i], false)

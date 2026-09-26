@@ -624,19 +624,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 				name := e.(*ast.Ident).Name
-				if name != "_" {
-					for _, v := range block.vars {
-						if v.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-							return nil, false
-						}
-					}
-					for _, c := range block.consts {
-						if c.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-							return nil, false
-						}
-					}
+				if declared(name, block.vars, block.consts) {
+					cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+					return nil, false
 				}
 				ts, ok := cs.functionReturnTypes(block, rhs[i])
 				if !ok {
@@ -763,19 +753,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 				name := e.(*ast.Ident).Name
-				if name != "_" {
-					for _, v := range block.vars {
-						if v.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-							return nil, false
-						}
-					}
-					for _, c := range block.consts {
-						if c.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-							return nil, false
-						}
-					}
+				if declared(name, block.vars, block.consts) {
+					cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+					return nil, false
 				}
 				t := rhsTypes[i]
 				if t.Main == shaderir.None {
