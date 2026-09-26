@@ -419,6 +419,22 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			types = append(types, ts...)
 		}
 
+		if len(stmt.Results) > 0 {
+			want := len(outParams)
+			if want == 0 && returnType.Main != shaderir.None {
+				want = 1
+			}
+			got := len(exprs)
+			if want == 0 {
+				// A function returning nothing must not return even a call yielding no values.
+				got = len(stmt.Results)
+			}
+			if got != want {
+				cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", want, got))
+				return nil, false
+			}
+		}
+
 		for i, t := range types {
 			expr := exprs[i]
 			var outT shaderir.Type

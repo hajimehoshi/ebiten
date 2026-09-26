@@ -6013,3 +6013,159 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxReturnVoidCall(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() float {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f())
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() (x float) {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f())
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() (float, float) {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := f()
+	return vec4(a + b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f()
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f() {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f()
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f(x float) float {
+	if x > 0 {
+		return g()
+	}
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(dstPos.x))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func h() (float, float) {
+	return 1, 2
+}
+
+func f() float {
+	return h()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f())
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() float {
+	return 1
+}
+
+func h() (float, float) {
+	return 1, 2
+}
+
+func f() float {
+	return g()
+}
+
+func f2() (float, float) {
+	return h()
+}
+
+func f3() (x float) {
+	x = g()
+	return
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := f2()
+	return vec4(f() + a + b + f3())
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
