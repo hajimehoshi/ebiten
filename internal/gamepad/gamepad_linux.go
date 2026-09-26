@@ -116,7 +116,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 		if !reEvent.MatchString(ent.Name()) {
 			continue
 		}
-		if err := g.openDevice(gamepads, filepath.Join(dirName, ent.Name())); err != nil {
+		if err := g.openEventNode(gamepads, filepath.Join(dirName, ent.Name())); err != nil {
 			return err
 		}
 	}
@@ -133,9 +133,9 @@ func (g *nativeGamepadsImpl) isOpen(gamepads *gamepads, path string) bool {
 	}) != nil
 }
 
-// openDevice opens the event node at path and, by what it is, adds it as a gamepad, attaches it as
-// the touch surface of its gamepad, or closes it again.
-func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
+// openEventNode opens the event node at path and, by what it is, adds it as a gamepad, attaches it
+// as the touch surface of its gamepad, or closes it again.
+func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) error {
 	if g.isOpen(gamepads, path) {
 		return nil
 	}
@@ -272,7 +272,7 @@ func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
 			if isDisconnectError(err) {
 				return nil
 			}
-			return fmt.Errorf("gamepad: ioctl for an abs at openGamepad failed: %w", err)
+			return fmt.Errorf("gamepad: ioctl for an abs at openEventNode failed: %w", err)
 		}
 		n.absMap[code] = axisCount
 		axisCount++
@@ -481,7 +481,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 
 		path := filepath.Join(dirName, name)
 		if e.Mask&(unix.IN_CREATE|unix.IN_ATTRIB) != 0 {
-			if err := g.openDevice(gamepads, path); err != nil {
+			if err := g.openEventNode(gamepads, path); err != nil {
 				return err
 			}
 			continue
