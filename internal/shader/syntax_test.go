@@ -5938,3 +5938,78 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxOperatorAssignBool(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "b := true; c := false; b += c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b -= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b *= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b /= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b &= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b |= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "var a, b [2]float; a += b; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a := 1; b := 2; a += b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; b := 2.0; a *= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := vec2(1); b := vec2(2); a -= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := ivec2(1); b := ivec2(2); a &= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := mat2(1); b := mat2(2); a *= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "b := true; c := false; b = b && c; _ = b",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
