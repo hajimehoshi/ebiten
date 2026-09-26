@@ -157,6 +157,17 @@ func (w *desktopWindow) isWindowMaximizable() bool {
 	return maxw == glfw.DontCare && maxh == glfw.DontCare
 }
 
+// isWindowSizeFixed reports whether the minimum and maximum window sizes are both specified and
+// equal, forcing the window to a single fixed size. Restoring such a window can reposition it on
+// macOS (#2259), so callers must not restore it as they would an ordinary resizable window.
+func (w *desktopWindow) isWindowSizeFixed() bool {
+	minw, minh, maxw, maxh := w.getWindowSizeLimitsInDIP()
+	if minw == glfw.DontCare || minh == glfw.DontCare || maxw == glfw.DontCare || maxh == glfw.DontCare {
+		return false
+	}
+	return minw == maxw && minh == maxh
+}
+
 // adjustWindowSizeBasedOnSizeLimitsInDIP adjusts the size based on the window size limits.
 // width and height are in device-independent pixels.
 func (w *desktopWindow) adjustWindowSizeBasedOnSizeLimitsInDIP(width, height int) (int, int) {
@@ -417,7 +428,10 @@ func (w *desktopWindow) Restore() {
 	if w.ui.isTerminated() {
 		return
 	}
-	if !w.isWindowMaximizable() {
+	// Unlike Maximize, Restore has no need to check isWindowMaximizable: a maximum window size
+	// alone does not prevent restoring a window that is already maximized or minimized (#3651).
+	// A fixed-size window is a different matter and stays blocked (#2259).
+	if w.isWindowSizeFixed() {
 		return
 	}
 	b := w.ui.runningBackend()
