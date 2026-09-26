@@ -5597,3 +5597,74 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxDivisionByConstantZero(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "x := 1.0; y := x / 0.0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; y := x / 0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; y := x % 0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; y := x / (1.0 - 1.0); _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := vec2(1); y := x / 0.0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; x /= 0.0",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; x %= 0",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; y := x / 2.0; _ = y",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; y := x % 2; _ = y",
+			err:  false,
+		},
+		{
+			stmt: "x := 1.0; z := 0.0; y := x / z; _ = y",
+			err:  false,
+		},
+		{
+			stmt: "x := 1.0; x /= 2.0",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; x %= 2",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

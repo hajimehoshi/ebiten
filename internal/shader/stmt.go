@@ -86,6 +86,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 
+			if (stmt.Tok == token.QUO_ASSIGN || stmt.Tok == token.REM_ASSIGN) && isConstZero(rhs[0].Const) {
+				cs.addError(stmt.Pos(), "division by zero")
+				return nil, false
+			}
+
 			var op shaderir.Op
 			switch stmt.Tok {
 			case token.ADD_ASSIGN:
@@ -745,6 +750,18 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	}
 
 	return stmts, true
+}
+
+// isConstZero reports whether v is a numeric constant equal to zero.
+func isConstZero(v gconstant.Value) bool {
+	if v == nil {
+		return false
+	}
+	switch v.Kind() {
+	case gconstant.Int, gconstant.Float:
+		return gconstant.Sign(v) == 0
+	}
+	return false
 }
 
 func toDefaultType(v gconstant.Value) shaderir.Type {

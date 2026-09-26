@@ -176,6 +176,12 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			return nil, nil, nil, false
 		}
 
+		// A constant zero divisor is an error even when the dividend is not a constant.
+		if (op == token.QUO || op == token.QUO_ASSIGN || op == token.REM) && isConstZero(rhs[0].Const) {
+			cs.addError(e.Pos(), "division by zero")
+			return nil, nil, nil, false
+		}
+
 		if lhs[0].Const != nil && rhs[0].Const != nil {
 			var v gconstant.Value
 			switch op {
@@ -191,10 +197,6 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				}
 				v = gconstant.Shift(lhs[0].Const, op, shift)
 			default:
-				if (op == token.QUO || op == token.QUO_ASSIGN || op == token.REM) && gconstant.Sign(rhs[0].Const) == 0 {
-					cs.addError(e.Pos(), "division by zero")
-					return nil, nil, nil, false
-				}
 				v = gconstant.BinaryOp(lhs[0].Const, op, rhs[0].Const)
 			}
 
