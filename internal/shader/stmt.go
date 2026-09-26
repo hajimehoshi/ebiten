@@ -381,11 +381,15 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		})
 
 	case *ast.ReturnStmt:
+		want := len(outParams)
+		if want == 0 && returnType.Main != shaderir.None {
+			want = 1
+		}
 		if len(stmt.Results) != len(outParams) && len(stmt.Results) != 1 {
 			if !(len(stmt.Results) == 0 && len(outParams) > 0 && outParams[0].name != "") {
 				// TODO: Check variable shadowings.
 				// https://go.dev/ref/spec#Return_statements
-				cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
+				cs.addError(returnCountErrorPos(stmt, len(stmt.Results), want), fmt.Sprintf("the number of returning variables must be %d but %d", want, len(stmt.Results)))
 				return nil, false
 			}
 		}
@@ -407,11 +411,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 			if len(outParams) > 1 && len(stmt.Results) == 1 {
 				if len(es) == 1 {
-					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(stmt.Results)))
+					cs.addError(returnCountErrorPos(stmt, len(stmt.Results), want), fmt.Sprintf("the number of returning variables must be %d but %d", want, len(stmt.Results)))
 					return nil, false
 				}
 				if len(es) > 1 && len(es) != len(outParams) {
-					cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", len(outParams), len(es)))
+					cs.addError(returnCountErrorPos(stmt, len(es), want), fmt.Sprintf("the number of returning variables must be %d but %d", want, len(es)))
 					return nil, false
 				}
 			}
@@ -424,17 +428,13 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		}
 
 		if len(stmt.Results) > 0 {
-			want := len(outParams)
-			if want == 0 && returnType.Main != shaderir.None {
-				want = 1
-			}
 			got := len(exprs)
 			if want == 0 {
 				// A function returning nothing must not return even a call yielding no values.
 				got = len(stmt.Results)
 			}
 			if got != want {
-				cs.addError(stmt.Pos(), fmt.Sprintf("the number of returning variables must be %d but %d", want, got))
+				cs.addError(returnCountErrorPos(stmt, got, want), fmt.Sprintf("the number of returning variables must be %d but %d", want, got))
 				return nil, false
 			}
 		}
@@ -584,6 +584,21 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		return nil, false
 	}
 	return stmts, true
+}
+
+// returnCountErrorPos returns where to report stmt returning got values instead of want: the first extra
+// result expression if stmt has more than want of them, the last result expression otherwise, or stmt itself
+// if it has none.
+func returnCountErrorPos(stmt *ast.ReturnStmt, got, want int) token.Pos {
+	n := len(stmt.Results)
+	switch {
+	case n == 0:
+		return stmt.Pos()
+	case got > want && n > want:
+		return stmt.Results[want].Pos()
+	default:
+		return stmt.Results[n-1].Pos()
+	}
 }
 
 func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, rhs []ast.Expr, define bool) ([]shaderir.Stmt, bool) {
