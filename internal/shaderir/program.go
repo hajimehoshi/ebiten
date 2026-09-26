@@ -137,9 +137,11 @@ type Expr struct {
 	Exprs       []Expr
 	Const       constant.Value
 	BuiltinFunc BuiltinFunc
-	Swizzling   string
-	Index       int
-	Op          Op
+	// Swizzling is spelled in the xyzw set regardless of [Expr.SwizzlingSet].
+	Swizzling    string
+	SwizzlingSet SwizzlingSet
+	Index        int
+	Op           Op
 }
 
 type ExprType int
@@ -372,6 +374,34 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 		return BuiltinFunc(str), true
 	}
 	return "", false
+}
+
+// SwizzlingSet is the naming set of vector components a swizzle is written in.
+type SwizzlingSet int
+
+const (
+	SwizzlingSetXYZW SwizzlingSet = iota
+	SwizzlingSetRGBA
+	SwizzlingSetSTPQ
+)
+
+// SourceSwizzling returns the swizzle of a [SwizzlingExpr] spelled in [Expr.SwizzlingSet].
+func (e Expr) SourceSwizzling() string {
+	var names string
+	switch e.SwizzlingSet {
+	case SwizzlingSetRGBA:
+		names = "rgba"
+	case SwizzlingSetSTPQ:
+		names = "stpq"
+	default:
+		return e.Swizzling
+	}
+	return strings.Map(func(r rune) rune {
+		if i := strings.IndexRune("xyzw", r); i >= 0 {
+			return rune(names[i])
+		}
+		return r
+	}, e.Swizzling)
 }
 
 func IsValidSwizzling(s string) bool {

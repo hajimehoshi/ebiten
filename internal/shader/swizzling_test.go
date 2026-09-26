@@ -17,6 +17,7 @@ package shader_test
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 	"text/template"
@@ -26,6 +27,37 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
 )
+
+func walkSwizzlingExprs(p *shaderir.Program, f func(e *shaderir.Expr)) {
+	var walkExpr func(e *shaderir.Expr)
+	walkExpr = func(e *shaderir.Expr) {
+		if e.Type == shaderir.SwizzlingExpr {
+			f(e)
+		}
+		for i := range e.Exprs {
+			walkExpr(&e.Exprs[i])
+		}
+	}
+	var walkBlock func(b *shaderir.Block)
+	walkBlock = func(b *shaderir.Block) {
+		if b == nil {
+			return
+		}
+		for i := range b.Stmts {
+			for j := range b.Stmts[i].Exprs {
+				walkExpr(&b.Stmts[i].Exprs[j])
+			}
+			for _, child := range b.Stmts[i].Blocks {
+				walkBlock(child)
+			}
+		}
+	}
+	walkBlock(p.VertexFunc.Block)
+	walkBlock(p.FragmentFunc.Block)
+	for _, fn := range p.Funcs {
+		walkBlock(fn.Block)
+	}
+}
 
 func TestSwizzlingCanonical(t *testing.T) {
 	const source = `//kage:unit pixels
@@ -76,44 +108,119 @@ func Fragment(position vec4) vec4 {
 		hvs, hfs, _, _ := hlsl.Compile(p)
 		return []string{vs, fs, esVS, esFS, hvs, hfs, msl.Compile(p)}
 	}
-	var checkExpr func(shaderir.Expr)
-	checkExpr = func(e shaderir.Expr) {
-		if e.Type == shaderir.SwizzlingExpr {
-			if len(e.Swizzling) < 1 || len(e.Swizzling) > 4 || strings.Trim(e.Swizzling, "xyzw") != "" {
-				t.Errorf("noncanonical IR swizzle: %q", e.Swizzling)
-			}
-		}
-		for _, child := range e.Exprs {
-			checkExpr(child)
-		}
-	}
-	var checkBlock func(*shaderir.Block)
-	checkBlock = func(b *shaderir.Block) {
-		for _, stmt := range b.Stmts {
-			for _, e := range stmt.Exprs {
-				checkExpr(e)
-			}
-			for _, child := range stmt.Blocks {
-				checkBlock(child)
-			}
-		}
+	clearSwizzlingSet := func(e *shaderir.Expr) {
+		e.SwizzlingSet = shaderir.SwizzlingSetXYZW
 	}
 	want := compile(t, "xyzw")
-	checkBlock(want.FragmentFunc.Block)
-	for _, f := range want.Funcs {
-		checkBlock(f.Block)
-	}
+	walkSwizzlingExprs(want, func(e *shaderir.Expr) {
+		if len(e.Swizzling) < 1 || len(e.Swizzling) > 4 || strings.Trim(e.Swizzling, "xyzw") != "" {
+			t.Errorf("noncanonical IR swizzle: %q", e.Swizzling)
+		}
+	})
 	wantOutputs := outputs(want)
+	walkSwizzlingExprs(want, clearSwizzlingSet)
 	for _, set := range []string{"xyzw", "rgba", "stpq"} {
 		t.Run(set, func(t *testing.T) {
 			got := compile(t, set)
+			gotOutputs := outputs(got)
+			walkSwizzlingExprs(got, clearSwizzlingSet)
 			if !reflect.DeepEqual(got.FragmentFunc, want.FragmentFunc) || !reflect.DeepEqual(got.Funcs, want.Funcs) {
 				t.Error("equivalent swizzles produced different IR")
 			}
-			for i, output := range outputs(got) {
+			for i, output := range gotOutputs {
 				if output != wantOutputs[i] {
 					t.Errorf("backend output %d differs for equivalent swizzles", i)
 				}
+			}
+		})
+	}
+}
+
+func TestSwizzlingSet(t *testing.T) {
+	testCases := []struct {
+		Selectors  string
+		Swizzlings []string
+		Sets       []shaderir.SwizzlingSet
+	}{
+		{
+			Selectors:  "xyzw",
+			Swizzlings: []string{"xyzw"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetXYZW},
+		},
+		{
+			Selectors:  "rgba",
+			Swizzlings: []string{"xyzw"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetRGBA},
+		},
+		{
+			Selectors:  "stpq",
+			Swizzlings: []string{"xyzw"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetSTPQ},
+		},
+		{
+			Selectors:  "x",
+			Swizzlings: []string{"x"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetXYZW},
+		},
+		{
+			Selectors:  "rgr",
+			Swizzlings: []string{"xyx"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetRGBA},
+		},
+		{
+			Selectors:  "qpts",
+			Swizzlings: []string{"wzyx"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetSTPQ},
+		},
+		{
+			Selectors:  "xy.ts",
+			Swizzlings: []string{"xy", "yx"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetXYZW, shaderir.SwizzlingSetSTPQ},
+		},
+		{
+			Selectors:  "rg.yx",
+			Swizzlings: []string{"xy", "yx"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetRGBA, shaderir.SwizzlingSetXYZW},
+		},
+		{
+			Selectors:  "st.gr",
+			Swizzlings: []string{"xy", "yx"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetSTPQ, shaderir.SwizzlingSetRGBA},
+		},
+		{
+			Selectors:  "wzyx.rgba.stpq",
+			Swizzlings: []string{"wzyx", "xyzw", "xyzw"},
+			Sets:       []shaderir.SwizzlingSet{shaderir.SwizzlingSetXYZW, shaderir.SwizzlingSetRGBA, shaderir.SwizzlingSetSTPQ},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.Selectors, func(t *testing.T) {
+			p, err := compileToIR([]byte(fmt.Sprintf(`//kage:unit pixels
+package main
+func Fragment() vec4 {
+	var v vec4
+	w := v.%s
+	_ = w
+	return v
+}`, tc.Selectors)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			var swizzlings, sources []string
+			var sets []shaderir.SwizzlingSet
+			walkSwizzlingExprs(p, func(e *shaderir.Expr) {
+				swizzlings = append(swizzlings, e.Swizzling)
+				sets = append(sets, e.SwizzlingSet)
+				sources = append(sources, e.SourceSwizzling())
+			})
+			if !slices.Equal(swizzlings, tc.Swizzlings) {
+				t.Errorf("Swizzling: got: %q, want: %q", swizzlings, tc.Swizzlings)
+			}
+			if !slices.Equal(sets, tc.Sets) {
+				t.Errorf("SwizzlingSet: got: %v, want: %v", sets, tc.Sets)
+			}
+			if want := strings.Split(tc.Selectors, "."); !slices.Equal(sources, want) {
+				t.Errorf("SourceSwizzling: got: %q, want: %q", sources, want)
 			}
 		})
 	}

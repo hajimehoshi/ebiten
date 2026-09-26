@@ -1016,14 +1016,16 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			cs.addError(e.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
 			return nil, nil, nil, false
 		}
+		swizzling, set := normalizeSwizzling(e.Sel.Name)
 		return []shaderir.Expr{
 			{
 				Type: shaderir.FieldSelector,
 				Exprs: []shaderir.Expr{
 					exprs[0],
 					{
-						Type:      shaderir.SwizzlingExpr,
-						Swizzling: normalizeSwizzling(e.Sel.Name),
+						Type:         shaderir.SwizzlingExpr,
+						Swizzling:    swizzling,
+						SwizzlingSet: set,
 					},
 				},
 			},
@@ -1387,7 +1389,18 @@ func (cs *compileState) parseCallee(block *block, e ast.Expr) (shaderir.Expr, bo
 	return shaderir.Expr{}, false
 }
 
-func normalizeSwizzling(s string) string {
+// normalizeSwizzling returns s spelled in the xyzw set, and the set s is written in.
+// s must be a valid swizzle.
+func normalizeSwizzling(s string) (string, shaderir.SwizzlingSet) {
+	var set shaderir.SwizzlingSet
+	switch s[0] {
+	case 'x', 'y', 'z', 'w':
+		set = shaderir.SwizzlingSetXYZW
+	case 'r', 'g', 'b', 'a':
+		set = shaderir.SwizzlingSetRGBA
+	case 's', 't', 'p', 'q':
+		set = shaderir.SwizzlingSetSTPQ
+	}
 	return strings.Map(func(r rune) rune {
 		switch r {
 		case 'r', 's':
@@ -1401,7 +1414,7 @@ func normalizeSwizzling(s string) string {
 		default:
 			return r
 		}
-	}, s)
+	}, s), set
 }
 
 func isValidSwizzling(swizzling string, t shaderir.Type) bool {
