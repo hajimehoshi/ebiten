@@ -605,7 +605,8 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	var stmts []shaderir.Stmt
 	var rhsExprs []shaderir.Expr
 	var rhsTypes []shaderir.Type
-	allblank := true
+	var newVariable bool
+	lhsNames := map[string]struct{}{}
 
 	if len(lhs) == len(rhs) {
 		var localVariablIndicesToAssignLater []int
@@ -624,27 +625,36 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 				name := e.(*ast.Ident).Name
-				if declared(name, block.vars, block.consts) {
-					cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-					return nil, false
+				if name != "_" {
+					if _, ok := lhsNames[name]; ok {
+						cs.addError(e.Pos(), fmt.Sprintf("%s repeated on left side of :=", name))
+						return nil, false
+					}
+					lhsNames[name] = struct{}{}
 				}
-				ts, ok := cs.functionReturnTypes(block, rhs[i])
-				if !ok {
-					ts = rts
+				// A name already declared in this block is assigned instead of declared.
+				if !declared(name, block.vars, block.consts) {
+					ts, ok := cs.functionReturnTypes(block, rhs[i])
+					if !ok {
+						ts = rts
+					}
+					if len(ts) > 1 {
+						cs.addError(rhs[i].Pos(), "single-value context and multiple-value context cannot be mixed")
+						return nil, false
+					}
+					if len(ts) == 0 {
+						cs.addError(rhs[i].Pos(), "the right-hand side of := has no value")
+						return nil, false
+					}
+					t := ts[0]
+					if t.Main == shaderir.None {
+						t = toDefaultType(r[0].Const)
+					}
+					block.addNamedLocalVariable(name, t, e.Pos())
+					if name != "_" {
+						newVariable = true
+					}
 				}
-				if len(ts) > 1 {
-					cs.addError(rhs[i].Pos(), "single-value context and multiple-value context cannot be mixed")
-					return nil, false
-				}
-				if len(ts) == 0 {
-					cs.addError(rhs[i].Pos(), "the right-hand side of := has no value")
-					return nil, false
-				}
-				t := ts[0]
-				if t.Main == shaderir.None {
-					t = toDefaultType(r[0].Const)
-				}
-				block.addNamedLocalVariable(name, t, e.Pos())
 			}
 
 			if len(r) > 1 {
@@ -674,7 +684,6 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			if !cs.checkAssignmentTarget(e.Pos(), &l[0]) {
 				return nil, false
 			}
-			allblank = false
 
 			for i := range lts {
 				if !canAssign(&lts[i], &rts[i], r[i].Const) {
@@ -753,17 +762,26 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					return nil, false
 				}
 				name := e.(*ast.Ident).Name
-				if declared(name, block.vars, block.consts) {
-					cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-					return nil, false
+				if name != "_" {
+					if _, ok := lhsNames[name]; ok {
+						cs.addError(e.Pos(), fmt.Sprintf("%s repeated on left side of :=", name))
+						return nil, false
+					}
+					lhsNames[name] = struct{}{}
 				}
-				t := rhsTypes[i]
-				if t.Main == shaderir.None {
-					// TODO: This is to determine a type when the rhs values are constants (not literals),
-					// but there are no actual cases when len(lhs) != len(rhs). Is this correct?
-					t = toDefaultType(rhsExprs[i].Const)
+				// A name already declared in this block is assigned instead of declared.
+				if !declared(name, block.vars, block.consts) {
+					t := rhsTypes[i]
+					if t.Main == shaderir.None {
+						// TODO: This is to determine a type when the rhs values are constants (not literals),
+						// but there are no actual cases when len(lhs) != len(rhs). Is this correct?
+						t = toDefaultType(rhsExprs[i].Const)
+					}
+					block.addNamedLocalVariable(name, t, e.Pos())
+					if name != "_" {
+						newVariable = true
+					}
 				}
-				block.addNamedLocalVariable(name, t, e.Pos())
 			}
 
 			l, lts, ss, ok := cs.parseExpr(block, fname, lhs[i], false)
@@ -788,7 +806,6 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			if !cs.checkAssignmentTarget(e.Pos(), &l[0]) {
 				return nil, false
 			}
-			allblank = false
 
 			if !canAssign(&lts[0], &rhsTypes[i], rhsExprs[i].Const) {
 				cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in assignment", rhsTypes[i].String(), lts[0].String()))
@@ -802,7 +819,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 		}
 	}
 
-	if define && allblank {
+	if define && !newVariable {
 		cs.addError(pos, "no new variables on left side of :=")
 		return nil, false
 	}

@@ -7319,3 +7319,103 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxShortVarRedeclaration(t *testing.T) {
+	cases := []struct {
+		decls string
+		stmt  string
+		err   bool
+	}{
+		{
+			stmt: "a := 1.0; _ = a; a, b := 2.0, 3.0; _, _ = a, b",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; _ = a; b, a := f(); _, _ = a, b",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; _ = a; a, b := 2, 3.0; _, _ = a, b",
+			err:  false,
+		},
+		{
+			stmt: "a := 1; _ = a; a, b := 1.5, 2.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a := 1; x := 2.0; _ = a; a, b := x, 3.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; a := 2.0; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a, b := 1.0, 2.0; _, _ = a, b; a, b := 3.0, 4.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a, a := 1.0, 2.0; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; a, a, b := 2.0, 3.0, 4.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "const c = 1; c, d := 2.0, 3.0; _, _ = c, d",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; { a, b := 2.0, 3.0; _, _ = a, b }",
+			err:  false,
+		},
+		{
+			stmt: "_, _ := 1.0, 2.0",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; _, a := 2.0, 3.0; _ = a",
+			err:  true,
+		},
+		{
+			decls: "func g(x float) float {\n\tx, y := 2.0, 3.0\n\treturn x + y\n}",
+			stmt:  "_ = g(1)",
+			err:   false,
+		},
+		{
+			decls: "func g() (r float) {\n\tr, y := 2.0, 3.0\n\t_ = y\n\treturn\n}",
+			stmt:  "_ = g()",
+			err:   false,
+		},
+		{
+			stmt: "a := 1.0; b := 2.0; a, b, c := b, a, 3.0; _, _, _ = a, b, c",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; a, b := 2.0, 3.0; _ = b",
+			err:  true,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func f() (float, float) {
+	return 1, 2
+}
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.decls, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
