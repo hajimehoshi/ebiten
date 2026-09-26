@@ -147,7 +147,8 @@ func (a *gpuResourcesState) requestToRestoreGPUResources() bool {
 	case gpuResourcesStatePhaseNone:
 		// GPU resources are not saved, so there is nothing to restore.
 	case gpuResourcesStatePhaseSaveRequested:
-		// GPU resources are not saved, so there is nothing to restore.
+		// GPU resources were lost before they were saved, so there is nothing to restore.
+		// A save finishing after this would read the lost resources, so cancel it.
 		a.phase = gpuResourcesStatePhaseNone
 	case gpuResourcesStatePhaseSaved:
 		a.phase = gpuResourcesStatePhaseRestoreRequested
