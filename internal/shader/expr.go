@@ -176,7 +176,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		// A constant zero divisor is an error even when the dividend is not a constant.
 		if (op == token.QUO || op == token.QUO_ASSIGN || op == token.REM) && isConstZero(rhs[0].Const) {
-			cs.addError(e.Pos(), "division by zero")
+			cs.addError(e.Y.Pos(), "division by zero")
 			return nil, nil, nil, false
 		}
 
@@ -866,11 +866,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		f := cs.funcs[callee.Index]
 
 		if len(f.ir.InParams) < len(args) {
-			cs.addError(e.Pos(), fmt.Sprintf("too many arguments in call to %s", e.Fun))
+			cs.addError(argPositions[len(f.ir.InParams)], fmt.Sprintf("too many arguments in call to %s", e.Fun))
 			return nil, nil, nil, false
 		}
 		if len(f.ir.InParams) > len(args) {
-			cs.addError(e.Pos(), fmt.Sprintf("not enough arguments in call to %s", e.Fun))
+			cs.addError(e.Rparen, fmt.Sprintf("not enough arguments in call to %s", e.Fun))
 			return nil, nil, nil, false
 		}
 
@@ -989,7 +989,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 
 		if len(types) == 0 || !isValidSwizzling(e.Sel.Name, types[0]) {
-			cs.addError(e.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
+			cs.addError(e.Sel.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
 			return nil, nil, nil, false
 		}
 
@@ -1019,7 +1019,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}
 		}
 		if t.Equal(&shaderir.Type{}) {
-			cs.addError(e.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
+			cs.addError(e.Sel.Pos(), fmt.Sprintf("unexpected swizzling: %s", e.Sel.Name))
 			return nil, nil, nil, false
 		}
 		swizzling, set := normalizeSwizzling(e.Sel.Name)
@@ -1135,7 +1135,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		if t.Length < len(e.Elts) {
 			// KeyValueExpr is not supported yet. Just compare the length.
-			cs.addError(e.Pos(), fmt.Sprintf("too many values in %s literal", t.String()))
+			cs.addError(e.Elts[t.Length].Pos(), fmt.Sprintf("too many values in %s literal", t.String()))
 			return nil, nil, nil, false
 		}
 
@@ -1226,17 +1226,17 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		stmts = append(stmts, ss...)
 
 		if len(exprs) != 1 || len(its) != 1 {
-			cs.addError(e.Pos(), "multiple-value context is not available at an index expression")
+			cs.addError(e.Index.Pos(), "multiple-value context is not available at an index expression")
 			return nil, nil, nil, false
 		}
 		idx := exprs[0]
 		if idx.Const != nil {
 			if !canTruncateToInteger(idx.Const) {
-				cs.addError(e.Pos(), fmt.Sprintf("constant %s truncated to integer", idx.Const.String()))
+				cs.addError(e.Index.Pos(), fmt.Sprintf("constant %s truncated to integer", idx.Const.String()))
 				return nil, nil, nil, false
 			}
 		} else if its[0].Main != shaderir.Int {
-			cs.addError(e.Pos(), fmt.Sprintf("index must be int but %s", its[0].String()))
+			cs.addError(e.Index.Pos(), fmt.Sprintf("index must be int but %s", its[0].String()))
 			return nil, nil, nil, false
 		}
 
@@ -1272,11 +1272,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}
 			v, ok := gconstant.Int64Val(gconstant.ToInt(idx.Const))
 			if !ok {
-				cs.addError(e.Pos(), fmt.Sprintf("constant %s cannot be used as an index", idx.Const.String()))
+				cs.addError(e.Index.Pos(), fmt.Sprintf("constant %s cannot be used as an index", idx.Const.String()))
 				return nil, nil, nil, false
 			}
 			if v < 0 || int(v) >= length {
-				cs.addError(e.Pos(), fmt.Sprintf("index out of range: %d", v))
+				cs.addError(e.Index.Pos(), fmt.Sprintf("index out of range: %d", v))
 				return nil, nil, nil, false
 			}
 		}

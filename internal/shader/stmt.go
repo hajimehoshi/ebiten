@@ -71,7 +71,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				return nil, false
 			}
 			if len(rhs) != 1 || len(rts) != 1 {
-				cs.addError(stmt.Pos(), fmt.Sprintf("the right-hand side of %s must be a single value", stmt.Tok))
+				cs.addError(stmt.Rhs[0].Pos(), fmt.Sprintf("the right-hand side of %s must be a single value", stmt.Tok))
 				return nil, false
 			}
 			stmts = append(stmts, ss...)
@@ -91,7 +91,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 
 			if (stmt.Tok == token.QUO_ASSIGN || stmt.Tok == token.REM_ASSIGN) && isConstZero(rhs[0].Const) {
-				cs.addError(stmt.Pos(), "division by zero")
+				cs.addError(stmt.Rhs[0].Pos(), "division by zero")
 				return nil, false
 			}
 
@@ -293,11 +293,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			for _, t := range ts {
 				tss = append(tss, t.String())
 			}
-			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %s", strings.Join(tss, ", ")))
+			cs.addError(stmt.Cond.Pos(), fmt.Sprintf("if-condition must be bool but: %s", strings.Join(tss, ", ")))
 			return nil, false
 		}
 		if !(ts[0].Main == shaderir.Bool || (ts[0].Main == shaderir.None && exprs[0].Const != nil && exprs[0].Const.Kind() == gconstant.Bool)) {
-			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %s", typeString(ts[0], exprs[0].Const)))
+			cs.addError(stmt.Cond.Pos(), fmt.Sprintf("if-condition must be bool but: %s", typeString(ts[0], exprs[0].Const)))
 			return nil, false
 		}
 		stmts = append(stmts, ss...)
@@ -622,11 +622,11 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					ts = rts
 				}
 				if len(ts) > 1 {
-					cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
+					cs.addError(rhs[i].Pos(), "single-value context and multiple-value context cannot be mixed")
 					return nil, false
 				}
 				if len(ts) == 0 {
-					cs.addError(pos, "the right-hand side of := has no value")
+					cs.addError(rhs[i].Pos(), "the right-hand side of := has no value")
 					return nil, false
 				}
 				t := ts[0]
@@ -637,7 +637,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 			}
 
 			if len(r) > 1 {
-				cs.addError(pos, "single-value context and multiple-value context cannot be mixed")
+				cs.addError(rhs[i].Pos(), "single-value context and multiple-value context cannot be mixed")
 				return nil, false
 			}
 
@@ -649,9 +649,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 
 			if len(l) != len(r) {
 				if len(r) == 0 {
-					cs.addError(pos, "right-hand side (no value) used as value")
+					cs.addError(rhs[i].Pos(), "right-hand side (no value) used as value")
 				} else {
-					cs.addError(pos, fmt.Sprintf("assignment mismatch: %d variables but the right-hand side has %d values", len(l), len(r)))
+					cs.addError(rhs[i].Pos(), fmt.Sprintf("assignment mismatch: %d variables but the right-hand side has %d values", len(l), len(r)))
 				}
 				return nil, false
 			}
@@ -928,25 +928,25 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	ss := pseudoBlock.ir.Stmts
 
 	if len(ss) != 1 {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Init.Pos(), msg)
 		return nil, false
 	}
 	if ss[0].Type != shaderir.Assign {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Init.Pos(), msg)
 		return nil, false
 	}
 	if ss[0].Exprs[0].Type != shaderir.LocalVariable {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Init.Pos(), msg)
 		return nil, false
 	}
 	varidx := ss[0].Exprs[0].Index
 	if ss[0].Exprs[1].Const == nil {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Init.Pos(), msg)
 		return nil, false
 	}
 
 	if len(pseudoBlock.vars) != 1 {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Init.Pos(), msg)
 		return nil, false
 	}
 
@@ -958,36 +958,36 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 		return nil, false
 	}
 	if len(exprs) != 1 {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Cond.Pos(), msg)
 		return nil, false
 	}
 	if len(ts) != 1 || ts[0].Main != shaderir.Bool {
-		cs.addError(stmt.Pos(), "for-statement's condition must be bool")
+		cs.addError(stmt.Cond.Pos(), "for-statement's condition must be bool")
 		return nil, false
 	}
 	if len(ss) != 0 {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Cond.Pos(), msg)
 		return nil, false
 	}
 	if exprs[0].Type != shaderir.Binary {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Cond.Pos(), msg)
 		return nil, false
 	}
 	op := exprs[0].Op
 	if op != shaderir.LessThanOp && op != shaderir.LessThanEqualOp && op != shaderir.GreaterThanOp && op != shaderir.GreaterThanEqualOp && op != shaderir.EqualOp && op != shaderir.NotEqualOp {
-		cs.addError(stmt.Pos(), "for-statement's condition must have one of these operators: <, <=, >, >=, ==, !=")
+		cs.addError(stmt.Cond.Pos(), "for-statement's condition must have one of these operators: <, <=, >, >=, ==, !=")
 		return nil, false
 	}
 	if exprs[0].Exprs[0].Type != shaderir.LocalVariable {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Cond.Pos(), msg)
 		return nil, false
 	}
 	if exprs[0].Exprs[0].Index != varidx {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Cond.Pos(), msg)
 		return nil, false
 	}
 	if exprs[0].Exprs[1].Const == nil {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Cond.Pos(), msg)
 		return nil, false
 	}
 	end := exprs[0].Exprs[1].Const
@@ -997,35 +997,35 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 		return nil, false
 	}
 	if len(postSs) != 1 {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	if postSs[0].Type != shaderir.Assign {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	if postSs[0].Exprs[0].Type != shaderir.LocalVariable {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	if postSs[0].Exprs[0].Index != varidx {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	if postSs[0].Exprs[1].Type != shaderir.Binary {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	if postSs[0].Exprs[1].Exprs[0].Type != shaderir.LocalVariable {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	if postSs[0].Exprs[1].Exprs[0].Index != varidx {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	if postSs[0].Exprs[1].Exprs[1].Const == nil {
-		cs.addError(stmt.Pos(), msg)
+		cs.addError(stmt.Post.Pos(), msg)
 		return nil, false
 	}
 	delta := postSs[0].Exprs[1].Exprs[1].Const
@@ -1034,7 +1034,7 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 	case shaderir.Sub:
 		delta = gconstant.UnaryOp(token.SUB, delta, 0)
 	default:
-		cs.addError(stmt.Pos(), "for-statement's post statement must have one of these operators: +=, -=, ++, --")
+		cs.addError(stmt.Post.Pos(), "for-statement's post statement must have one of these operators: +=, -=, ++, --")
 		return nil, false
 	}
 

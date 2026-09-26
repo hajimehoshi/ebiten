@@ -781,11 +781,11 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 				return nil, nil, nil, false
 			}
 			if len(es) == 0 || len(rts) == 0 {
-				s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+				s.addError(init.Pos(), "the right-hand side of the variable declaration has no value")
 				return nil, nil, nil, false
 			}
 			if len(es) > 1 || len(rts) > 1 {
-				s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+				s.addError(init.Pos(), "the numbers of lhs and rhs don't match")
 				return nil, nil, nil, false
 			}
 
@@ -795,10 +795,10 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					ts = rts
 				}
 				if len(ts) > 1 {
-					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+					s.addError(init.Pos(), "the numbers of lhs and rhs don't match")
 				}
 				if len(ts) == 0 {
-					s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+					s.addError(init.Pos(), "the right-hand side of the variable declaration has no value")
 					return nil, nil, nil, false
 				}
 				t = ts[0]
@@ -892,11 +892,11 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSpec) ([]constant, bool) {
 	if len(vs.Names) > len(vs.Values) {
-		s.addError(vs.Pos(), "missing init expr for const declaration")
+		s.addError(vs.Names[len(vs.Values)].Pos(), "missing init expr for const declaration")
 		return nil, false
 	}
 	if len(vs.Names) < len(vs.Values) {
-		s.addError(vs.Pos(), "extra init expr for const declaration")
+		s.addError(vs.Values[len(vs.Names)].Pos(), "extra init expr for const declaration")
 		return nil, false
 	}
 
@@ -936,15 +936,15 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			return nil, false
 		}
 		if len(ss) > 0 {
-			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", name))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("invalid constant expression: %s", name))
 			return nil, false
 		}
 		if len(ts) != 1 || len(es) != 1 {
-			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", n))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("invalid constant expression: %s", n))
 			return nil, false
 		}
 		if es[0].Type != shaderir.NumberExpr {
-			s.addError(vs.Pos(), fmt.Sprintf("constant expression must be a number but not: %s", n))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("constant expression must be a number but not: %s", n))
 			return nil, false
 		}
 
@@ -954,7 +954,7 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			t = ts[0]
 		}
 		if !t.Equal(&shaderir.Type{}) && !canAssign(&t, &ts[0], es[0].Const) {
-			s.addError(vs.Pos(), fmt.Sprintf("cannot use %v as %s value in constant declaration", es[0].Const, t.String()))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("cannot use %v as %s value in constant declaration", es[0].Const, t.String()))
 			return nil, false
 		}
 
@@ -1102,7 +1102,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 	if len(outParams) > 0 || returnType.Main != shaderir.None {
 		if !isTerminating(b.ir.Stmts) {
-			cs.addError(d.Pos(), fmt.Sprintf("function %s must end with a return statement on every path but does not", d.Name))
+			cs.addError(d.Body.Rbrace, fmt.Sprintf("function %s must end with a return statement on every path but does not", d.Name))
 			return function{}, false
 		}
 	}
