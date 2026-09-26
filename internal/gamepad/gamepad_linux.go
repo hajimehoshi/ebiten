@@ -623,8 +623,8 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 		}
 	}
 
-	// The touch surface is an extra: a failure on its node costs the surface, not the gamepad. Its
-	// removal drops it from the list either way.
+	// The touch surface is an extra: a failure on its node costs the surface, not the gamepad. An
+	// event node fails only once its device is removed, so there is nothing to reattach.
 	if g.touch != nil {
 		if err := g.touch.update(); err != nil {
 			g.touch.close()
