@@ -605,14 +605,14 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 
 			if define {
 				if _, ok := e.(*ast.Ident); !ok {
-					cs.addError(pos, "non-name on the left side of :=")
+					cs.addError(e.Pos(), "non-name on the left side of :=")
 					return nil, false
 				}
 				name := e.(*ast.Ident).Name
 				if name != "_" {
 					for _, v := range block.vars {
 						if v.name == name {
-							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+							cs.addError(e.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
 							return nil, false
 						}
 					}
@@ -660,7 +660,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				continue
 			}
 
-			if !cs.checkAssignmentTarget(pos, &l[0]) {
+			if !cs.checkAssignmentTarget(e.Pos(), &l[0]) {
 				return nil, false
 			}
 			allblank = false
@@ -736,14 +736,14 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 		for i, e := range lhs {
 			if define {
 				if _, ok := e.(*ast.Ident); !ok {
-					cs.addError(pos, "non-name on the left side of :=")
+					cs.addError(e.Pos(), "non-name on the left side of :=")
 					return nil, false
 				}
 				name := e.(*ast.Ident).Name
 				if name != "_" {
 					for _, v := range block.vars {
 						if v.name == name {
-							cs.addError(pos, fmt.Sprintf("duplicated local variable name: %s", name))
+							cs.addError(e.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
 							return nil, false
 						}
 					}
@@ -776,7 +776,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				continue
 			}
 
-			if !cs.checkAssignmentTarget(pos, &l[0]) {
+			if !cs.checkAssignmentTarget(e.Pos(), &l[0]) {
 				return nil, false
 			}
 			allblank = false

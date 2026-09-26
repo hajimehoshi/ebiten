@@ -871,13 +871,13 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 		name := n.Name
 		for _, v := range append(block.vars, vars...) {
 			if v.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
+				s.addError(n.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
 				return nil, nil, nil, false
 			}
 		}
 		for _, c := range block.consts {
 			if c.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
+				s.addError(n.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
 				return nil, nil, nil, false
 			}
 		}
@@ -914,13 +914,13 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 		name := n.Name
 		for _, c := range block.consts {
 			if c.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant name: %s", name))
+				s.addError(n.Pos(), fmt.Sprintf("duplicated local constant name: %s", name))
 				return nil, false
 			}
 		}
 		for _, v := range block.vars {
 			if v.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
+				s.addError(n.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
 				return nil, false
 			}
 		}
