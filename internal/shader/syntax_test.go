@@ -6502,3 +6502,87 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		t.Error(err)
 	}
 }
+
+func TestSyntaxDuplicatedParamNames(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func f(x float) (x float) {
+	return
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float, x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1, 2))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) (y float, y float) {
+	return
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := f(1)
+	return vec4(a + b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Vertex(dstPos vec2, src0Pos vec2, color vec4) (dstPos vec4, src0Pos vec2, color vec4) {
+	return vec4(dstPos, 0, 1), src0Pos, color
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) (y float) {
+	y = x
+	return
+}
+
+func g(_ float, _ float) (_ float, _ float) {
+	return 1, 2
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := g(1, 2)
+	return vec4(f(1) + a + b)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}

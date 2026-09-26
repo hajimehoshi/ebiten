@@ -866,6 +866,20 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 }
 
 func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncDecl) (in, out []variable, ret shaderir.Type) {
+	// Parameters and named results share one scope, so a name must not appear twice among them.
+	names := map[string]struct{}{}
+	checkName := func(n *ast.Ident) bool {
+		if n.Name == "_" {
+			return true
+		}
+		if _, ok := names[n.Name]; ok {
+			cs.addError(n.Pos(), fmt.Sprintf("duplicate argument %s", n.Name))
+			return false
+		}
+		names[n.Name] = struct{}{}
+		return true
+	}
+
 	for _, f := range d.Type.Params.List {
 		t, ok := cs.parseType(block, fname, f.Type)
 		if !ok {
@@ -880,6 +894,9 @@ func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncD
 			continue
 		}
 		for _, n := range f.Names {
+			if !checkName(n) {
+				return
+			}
 			in = append(in, variable{
 				name: n.Name,
 				typ:  t,
@@ -903,6 +920,9 @@ func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncD
 			})
 		} else {
 			for _, n := range f.Names {
+				if !checkName(n) {
+					return
+				}
 				out = append(out, variable{
 					name: n.Name,
 					typ:  t,
