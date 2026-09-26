@@ -137,6 +137,10 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 		if !ok {
 			return 0, fmt.Errorf("convert: position overflows int64")
 		}
+		// A query does not seek the source, so that the buffered bytes are kept.
+		if offset == 0 {
+			return base, nil
+		}
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the sample size. Resolve the offset
 		// from the last whole sample so that the source is never seeked to the middle of a sample.

@@ -265,16 +265,16 @@ func TestSetPositionLongDuration(t *testing.T) {
 
 func TestSetPositionNegative(t *testing.T) {
 	tests := []struct {
-		name string
-		play bool
+		name         string
+		createDevice bool
 	}{
 		{
-			name: "BeforeDeviceCreation",
-			play: false,
+			name:         "BeforeDeviceCreation",
+			createDevice: false,
 		},
 		{
-			name: "AfterPlay",
-			play: true,
+			name:         "AfterDeviceCreation",
+			createDevice: true,
 		},
 	}
 	offsets := []time.Duration{
@@ -294,17 +294,25 @@ func TestSetPositionNegative(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
+				defer func() {
+					if err := p.Close(); err != nil {
+						t.Errorf("Close: %v", err)
+					}
+				}()
 				if err := p.SetPosition(500 * time.Millisecond); err != nil {
 					t.Fatal(err)
 				}
-				if test.play {
+				if test.createDevice {
 					if err := audio.UpdateForTesting(); err != nil {
 						t.Fatal(err)
 					}
-					p.Play()
+					// Keep the player paused so that background updates cannot change its position.
+					if err := audio.EnsurePlayerForTesting(p); err != nil {
+						t.Fatal(err)
+					}
 				}
 
-				want := p.Position()
+				const want = 500 * time.Millisecond
 				if err := p.SetPosition(offset); err == nil {
 					t.Errorf("SetPosition(%v): got: nil, want: an error", offset)
 				}
@@ -968,4 +976,22 @@ func TestResumeRetriesAfterError(t *testing.T) {
 	runWithTimeout(t, "resume", audio.ResumeForTesting)
 	runWithTimeout(t, "suspend", audio.SuspendForTesting)
 	runWithTimeout(t, "resume", audio.ResumeForTesting)
+}
+
+func TestTimeStreamSeekCurrentOverInfiniteLoop(t *testing.T) {
+	const length = 64
+	s, err := audio.NewTimeStreamForTesting(audio.NewInfiniteLoop(bytes.NewReader(make([]byte, length)), length), 48000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := io.ReadFull(s, make([]byte, length+16)); err != nil {
+		t.Fatal(err)
+	}
+	pos, err := s.Seek(0, io.SeekCurrent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := int64(length + 16); pos != want {
+		t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, want)
+	}
 }

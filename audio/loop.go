@@ -156,6 +156,9 @@ func (i *InfiniteLoop) blendRate(pos int64) float32 {
 //
 // If the source ends before the loop, the loop has nothing to repeat and Read returns [io.EOF].
 // If the source ends inside the loop, the loop is shortened to end there.
+//
+// Read returns only whole samples (4 bytes each in the 16-bit integer format, 8 bytes each in the 32-bit float format).
+// For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 func (i *InfiniteLoop) Read(b []byte) (int, error) {
 	if len(b) == 0 {
 		return 0, nil
@@ -368,6 +371,11 @@ func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 
 	if err := i.ensurePos(); err != nil {
 		return 0, err
+	}
+
+	// A query does not seek src, so that the data read next and its blending with afterLoop are kept.
+	if whence == io.SeekCurrent && offset == 0 {
+		return i.pos - int64(len(i.extra)), nil
 	}
 
 	var next int64

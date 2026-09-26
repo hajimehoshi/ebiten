@@ -501,6 +501,92 @@ func TestSeekCurrentAfterUnalignedRead(t *testing.T) {
 	}
 }
 
+// seekCountingReader is an io.ReadSeeker that counts its seeks.
+type seekCountingReader struct {
+	r     io.ReadSeeker
+	seeks int
+}
+
+func (s *seekCountingReader) Read(buf []byte) (int, error) {
+	return s.r.Read(buf)
+}
+
+func (s *seekCountingReader) Seek(offset int64, whence int) (int64, error) {
+	s.seeks++
+	return s.r.Seek(offset, whence)
+}
+
+func TestSeekCurrentAfterShortBufferRead(t *testing.T) {
+	for _, decode := range mp3Decoders {
+		t.Run(decode.name, func(t *testing.T) {
+			const skip = 1 << 15
+			ref, err := decode.f(bytes.NewReader(resources.Ragtime_mp3))
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := make([]byte, skip+8192)
+			if _, err := io.ReadFull(ref, want); err != nil {
+				t.Fatal(err)
+			}
+
+			r := &seekCountingReader{
+				r: bytes.NewReader(resources.Ragtime_mp3),
+			}
+			s, err := decode.f(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := io.ReadFull(s, make([]byte, skip)); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := s.Read(make([]byte, 1)); !errors.Is(err, io.ErrShortBuffer) {
+				t.Fatalf("Read(a buffer of 1 byte): got %v, want %v", err, io.ErrShortBuffer)
+			}
+
+			seeks := r.seeks
+			pos, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(skip); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+			}
+			if r.seeks != seeks {
+				t.Errorf("Seek(0, io.SeekCurrent) sought the source %d times, want 0", r.seeks-seeks)
+			}
+			got := make([]byte, len(want)-skip)
+			if _, err := io.ReadFull(s, got); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want[skip:]) {
+				t.Error("reading after Seek(0, io.SeekCurrent): the data differs from reading without the query")
+			}
+
+			tail := 16 * decode.bytesPerSample
+			if _, err := s.Seek(s.Length()-tail, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := io.ReadFull(s, make([]byte, tail)); err != nil {
+				t.Fatal(err)
+			}
+			seeks = r.seeks
+			pos, err = s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, s.Length(); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent) at the end: got %d, want %d", got, want)
+			}
+			if n, err := s.Read(make([]byte, 64)); n != 0 || !errors.Is(err, io.EOF) {
+				t.Errorf("Read after Seek(0, io.SeekCurrent) at the end: got (%d, %v), want (0, %v)", n, err, io.EOF)
+			}
+			if r.seeks != seeks {
+				t.Errorf("Seek(0, io.SeekCurrent) at the end sought the source %d times, want 0", r.seeks-seeks)
+			}
+		})
+	}
+}
+
 func readWithSizes(t *testing.T, r io.Reader, sizes []int, bytesPerSample int, limit int) []byte {
 	t.Helper()
 	var got []byte

@@ -83,14 +83,6 @@ func (a *arrayBufferLayout) enable(context *context) {
 	}
 }
 
-// disable stops using the array buffer.
-func (a *arrayBufferLayout) disable(context *context) {
-	// TODO: Disabling should be done in reversed order?
-	for i := range a.parts {
-		context.ctx.DisableVertexAttribArray(uint32(i))
-	}
-}
-
 // theArrayBufferLayout is the array buffer layout for Ebitengine.
 var theArrayBufferLayout arrayBufferLayout
 

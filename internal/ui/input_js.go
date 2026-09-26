@@ -16,6 +16,7 @@ package ui
 
 import (
 	"math"
+	"regexp"
 	"syscall/js"
 	"unicode"
 )
@@ -37,9 +38,25 @@ var (
 	stringTouchmove   = js.ValueOf("touchmove")
 	stringTouchcancel = js.ValueOf("touchcancel")
 
+	stringAltGraph = js.ValueOf("AltGraph")
 	stringCapsLock = js.ValueOf("CapsLock")
 	stringNumLock  = js.ValueOf("NumLock")
 )
+
+var appleUserAgent = regexp.MustCompile(`\b(Macintosh|iPhone|iPad)\b`)
+
+// isApple reports whether the browser runs on an Apple platform.
+var isApple = func() bool {
+	nav := js.Global().Get("navigator")
+	if !nav.Truthy() {
+		return false
+	}
+	ua := nav.Get("userAgent")
+	if ua.Type() != js.TypeString {
+		return false
+	}
+	return appleUserAgent.MatchString(ua.String())
+}()
 
 func jsCodeToID(code js.Value) Key {
 	// js.Value cannot be used as a map key.
@@ -140,8 +157,15 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	switch {
 	case t.Equal(stringKeydown):
 		if str := e.Get("key").String(); isKeyString(str) {
-			for _, r := range str {
-				u.inputState.appendRune(r)
+			ctrl := e.Get("ctrlKey").Bool()
+			alt := e.Get("altKey").Bool()
+			meta := e.Get("metaKey").Bool()
+			altGraph := e.Call("getModifierState", stringAltGraph).Bool()
+			// Like the desktop backends, report no characters for shortcut chords (#3502).
+			if !isShortcutChord(ctrl, alt, meta, altGraph, isApple) {
+				for _, r := range str {
+					u.inputState.appendRune(r)
+				}
 			}
 		}
 		u.keyDown(e)
@@ -233,6 +257,27 @@ func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
 			y:  t.Get("clientY").Float(),
 		})
 	}
+}
+
+// isShortcutChord reports whether a keydown with the given modifier states is a shortcut chord rather than text input.
+func isShortcutChord(ctrl, alt, meta, altGraph, isApple bool) bool {
+	// Meta is always a shortcut modifier: Command on macOS (e.g. Command+S) and the Windows key elsewhere.
+	if meta {
+		return true
+	}
+	// AltGraph produces characters on many keyboard layouts (e.g. AltGr+Q gives '@' on a German
+	// layout). Windows reports AltGr as Ctrl+Alt, so AltGraph must be checked before Ctrl and Alt.
+	if altGraph {
+		return false
+	}
+	// Ctrl is the shortcut modifier on Windows and Linux (e.g. Ctrl+C). On macOS, where Command takes
+	// that role, Ctrl+letter still produces no printable character on the desktop.
+	if ctrl {
+		return true
+	}
+	// On Apple platforms, Option produces characters (e.g. Option+A gives 'å') and the key string holds
+	// the produced character. Elsewhere, Alt is a shortcut modifier (e.g. Alt+F).
+	return alt && !isApple
 }
 
 func isKeyString(str string) bool {

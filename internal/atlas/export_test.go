@@ -115,3 +115,25 @@ func (s *Shader) IsRegisteredFuncForTesting() func() bool {
 		return ok
 	}
 }
+
+type GPUResourcesState = gpuResourcesState
+
+func (a *gpuResourcesState) RequestToSaveGPUResources() bool {
+	return a.requestToSaveGPUResources()
+}
+
+func (a *gpuResourcesState) FinishSavingGPUResources(succeeded bool) bool {
+	return a.finishSavingGPUResources(succeeded)
+}
+
+func (a *gpuResourcesState) AreGPUResourcesSaved() bool {
+	return a.areGPUResourcesSaved()
+}
+
+func (a *gpuResourcesState) RequestToRestoreGPUResources() bool {
+	return a.requestToRestoreGPUResources()
+}
+
+func (a *gpuResourcesState) StartRestoringGPUResourcesIfNeeded() bool {
+	return a.startRestoringGPUResourcesIfNeeded()
+}

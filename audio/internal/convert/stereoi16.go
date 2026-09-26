@@ -218,6 +218,10 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("convert: position overflows int64")
 	}
+	// A query does not seek the source, so that the buffered bytes are kept.
+	if whence == io.SeekCurrent && offset == 0 {
+		return base, nil
+	}
 	if _, ok := mathutil.AddForSeek(base, offset); !ok {
 		return 0, fmt.Errorf("convert: invalid seek position")
 	}

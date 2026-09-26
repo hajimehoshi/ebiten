@@ -12,24 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package colormode
+package ui
 
-import "syscall/js"
-
-var (
-	matchMedia = js.Global().Get("window").Get("matchMedia")
-)
-
-func systemColorMode() ColorMode {
-	if !matchMedia.Truthy() {
-		return Unknown
-	}
-	media := matchMedia.Invoke("(prefers-color-scheme: dark)")
-	if media.Type() != js.TypeObject {
-		return Unknown
-	}
-	if media.Get("matches").Bool() {
-		return Dark
-	}
-	return Light
+func IsShortcutChordForTest(ctrl, alt, meta, altGraph, isApple bool) bool {
+	return isShortcutChord(ctrl, alt, meta, altGraph, isApple)
 }

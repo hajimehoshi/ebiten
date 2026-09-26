@@ -1112,3 +1112,192 @@ func TestIsValidSwizzling(t *testing.T) {
 		}
 	}
 }
+
+func TestTypeFromBinaryOpTextureComparison(t *testing.T) {
+	texture := shaderir.Type{Main: shaderir.Texture}
+	float := shaderir.Type{Main: shaderir.Float}
+	boolean := shaderir.Type{Main: shaderir.Bool}
+	cases := []struct {
+		op   shaderir.Op
+		lhs  shaderir.Type
+		rhs  shaderir.Type
+		want shaderir.Type
+		ok   bool
+	}{
+		{
+			op:  shaderir.EqualOp,
+			lhs: texture,
+			rhs: texture,
+			ok:  false,
+		},
+		{
+			op:  shaderir.NotEqualOp,
+			lhs: texture,
+			rhs: texture,
+			ok:  false,
+		},
+		{
+			op:   shaderir.EqualOp,
+			lhs:  float,
+			rhs:  float,
+			want: boolean,
+			ok:   true,
+		},
+		{
+			op:   shaderir.NotEqualOp,
+			lhs:  boolean,
+			rhs:  boolean,
+			want: boolean,
+			ok:   true,
+		},
+	}
+	for _, c := range cases {
+		got, ok := shaderir.TypeFromBinaryOp(c.op, c.lhs, c.rhs, nil, nil)
+		if ok != c.ok {
+			t.Errorf("%s (%d) %s: ok: got: %t, want: %t", c.lhs.String(), c.op, c.rhs.String(), ok, c.ok)
+			continue
+		}
+		if !ok {
+			continue
+		}
+		if !got.Equal(&c.want) {
+			t.Errorf("%s (%d) %s: got: %s, want: %s", c.lhs.String(), c.op, c.rhs.String(), got.String(), c.want.String())
+		}
+	}
+}
+
+func TestTypeFromBinaryOpArithmeticOnArrayAndTexture(t *testing.T) {
+	texture := shaderir.Type{Main: shaderir.Texture}
+	array := shaderir.Type{
+		Main: shaderir.Array,
+		Sub: []shaderir.Type{
+			{Main: shaderir.Float},
+		},
+		Length: 2,
+	}
+	float := shaderir.Type{Main: shaderir.Float}
+	vec2 := shaderir.Type{Main: shaderir.Vec2}
+	mat2 := shaderir.Type{Main: shaderir.Mat2}
+	ops := []shaderir.Op{
+		shaderir.Add,
+		shaderir.Sub,
+		shaderir.ComponentWiseMul,
+		shaderir.MatrixMul,
+		shaderir.Div,
+	}
+	for _, op := range ops {
+		for _, typ := range []shaderir.Type{array, texture} {
+			if _, ok := shaderir.TypeFromBinaryOp(op, typ, typ, nil, nil); ok {
+				t.Errorf("%s (%d) %s must not be accepted but was", typ.String(), op, typ.String())
+			}
+			if _, ok := shaderir.TypeFromBinaryOp(op, typ, float, nil, nil); ok {
+				t.Errorf("%s (%d) %s must not be accepted but was", typ.String(), op, float.String())
+			}
+			if _, ok := shaderir.TypeFromBinaryOp(op, float, typ, nil, nil); ok {
+				t.Errorf("%s (%d) %s must not be accepted but was", float.String(), op, typ.String())
+			}
+		}
+	}
+
+	cases := []struct {
+		op   shaderir.Op
+		lhs  shaderir.Type
+		rhs  shaderir.Type
+		want shaderir.Type
+	}{
+		{
+			op:   shaderir.Add,
+			lhs:  float,
+			rhs:  float,
+			want: float,
+		},
+		{
+			op:   shaderir.Sub,
+			lhs:  vec2,
+			rhs:  vec2,
+			want: vec2,
+		},
+		{
+			op:   shaderir.ComponentWiseMul,
+			lhs:  vec2,
+			rhs:  float,
+			want: vec2,
+		},
+		{
+			op:   shaderir.MatrixMul,
+			lhs:  mat2,
+			rhs:  mat2,
+			want: mat2,
+		},
+		{
+			op:   shaderir.Div,
+			lhs:  mat2,
+			rhs:  float,
+			want: mat2,
+		},
+	}
+	for _, c := range cases {
+		got, ok := shaderir.TypeFromBinaryOp(c.op, c.lhs, c.rhs, nil, nil)
+		if !ok {
+			t.Errorf("%s (%d) %s must be accepted but was not", c.lhs.String(), c.op, c.rhs.String())
+			continue
+		}
+		if !got.Equal(&c.want) {
+			t.Errorf("%s (%d) %s: got: %s, want: %s", c.lhs.String(), c.op, c.rhs.String(), got.String(), c.want.String())
+		}
+	}
+}
+
+func TestTypeFromBinaryOpUntypedIntConsts(t *testing.T) {
+	cases := []struct {
+		op  shaderir.Op
+		lhs constant.Value
+		rhs constant.Value
+	}{
+		{
+			op:  shaderir.ModOp,
+			lhs: constant.MakeInt64(5),
+			rhs: constant.MakeInt64(2),
+		},
+		{
+			op:  shaderir.And,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.AndNot,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.Or,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.Xor,
+			lhs: constant.MakeInt64(6),
+			rhs: constant.MakeInt64(3),
+		},
+		{
+			op:  shaderir.LeftShift,
+			lhs: constant.MakeInt64(1),
+			rhs: constant.MakeInt64(2),
+		},
+		{
+			op:  shaderir.RightShift,
+			lhs: constant.MakeInt64(4),
+			rhs: constant.MakeInt64(1),
+		},
+	}
+	for _, c := range cases {
+		got, ok := shaderir.TypeFromBinaryOp(c.op, shaderir.Type{}, shaderir.Type{}, c.lhs, c.rhs)
+		if !ok {
+			t.Errorf("%s (%d) %s must be accepted but was not", c.lhs, c.op, c.rhs)
+			continue
+		}
+		if !got.Equal(&shaderir.Type{}) {
+			t.Errorf("%s (%d) %s: got: %s, want: untyped", c.lhs, c.op, c.rhs, got.String())
+		}
+	}
+}

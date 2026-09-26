@@ -192,3 +192,66 @@ func TestAudioForwarding(t *testing.T) {
 	}
 	readers.Wait()
 }
+
+func TestAudioReadShortBuffer(t *testing.T) {
+	var streams []*vmhost.GuestAudioStream
+
+	guest := startGuestWithOptions(t, "./testdata/audio", activateByEnv, "unix", &vmhost.NewGuestSessionOptions{
+		OnAudioStream: func(s *vmhost.GuestAudioStream) {
+			streams = append(streams, s)
+		},
+	})
+
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	outsideScreen := ebiten.NewImage(int(64*scale), int(64*scale))
+	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
+		t.Fatal(err)
+	}
+
+	for tick := 1; tick <= 3; tick++ {
+		guest.AdvanceTicks(1)
+		if !guest.WaitTicks() {
+			t.Fatalf("waiting for tick %d failed: %v", tick, guest.Err())
+		}
+	}
+	if len(streams) != 1 {
+		t.Fatalf("OnAudioStream reported %d streams; want 1 (the ramp)", len(streams))
+	}
+	ramp := streams[0]
+
+	var buf [8]byte
+	if n, err := ramp.Read(buf[:]); n != len(buf) || err != nil {
+		t.Fatalf("Read(a buffer of %d bytes): got (%d, %v), want (%d, <nil>)", len(buf), n, err, len(buf))
+	}
+	comps := []float32{
+		math.Float32frombits(binary.LittleEndian.Uint32(buf[0:])),
+		math.Float32frombits(binary.LittleEndian.Uint32(buf[4:])),
+	}
+
+	for size := 1; size < 8; size++ {
+		if n, err := ramp.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.ErrShortBuffer) {
+			t.Errorf("Read(a buffer of %d bytes) mid-stream: got (%d, %v), want (0, %v)", size, n, err, io.ErrShortBuffer)
+		}
+	}
+
+	rest, eof := readComps(t, ramp, 1<<30)
+	if !eof {
+		t.Error("the finite ramp stream did not reach EOF")
+	}
+	comps = append(comps, rest...)
+	if len(comps) != 4000 {
+		t.Errorf("ramp stream has %d components; want 4000", len(comps))
+	}
+	for i, v := range comps {
+		if want := float32(i + 1); v != want {
+			t.Errorf("ramp component %d = %v; want %v", i, v, want)
+			break
+		}
+	}
+
+	for size := 1; size < 8; size++ {
+		if n, err := ramp.Read(make([]byte, size)); n != 0 || !errors.Is(err, io.EOF) {
+			t.Errorf("Read(a buffer of %d bytes) at the end: got (%d, %v), want (0, %v)", size, n, err, io.EOF)
+		}
+	}
+}

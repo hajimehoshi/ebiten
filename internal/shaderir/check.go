@@ -87,6 +87,12 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		if lhst.Main == Bool || rhst.Main == Bool {
 			return Type{}, false
 		}
+		if lhst.Main == Array || rhst.Main == Array {
+			return Type{}, false
+		}
+		if lhst.Main == Texture || rhst.Main == Texture {
+			return Type{}, false
+		}
 		if (lhsConst != nil && lhsConst.Kind() == constant.Bool) || (rhsConst != nil && rhsConst.Kind() == constant.Bool) {
 			return Type{}, false
 		}
@@ -109,21 +115,21 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 		// For %, both operands must be integers if both are constants. Truncatable to an integer is not enough.
 		if op == ModOp {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
-				return Type{Main: Int}, true
+				return Type{}, true
 			}
 			return Type{}, false
 		}
 
 		if op == And || op == AndNot || op == Or || op == Xor {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
-				return Type{Main: Int}, true
+				return Type{}, true
 			}
 			return Type{}, false
 		}
 
 		if op == LeftShift || op == RightShift {
 			if lhsConst.Kind() == constant.Int && rhsConst.Kind() == constant.Int {
-				return Type{Main: Int}, true
+				return Type{}, true
 			}
 			return Type{}, false
 		}
@@ -175,11 +181,15 @@ func TypeFromBinaryOp(op Op, lhst, rhst Type, lhsConst, rhsConst constant.Value)
 	// Comparing matrices is forbidden (#2187).
 	// Comparing arrays is forbidden as well, as most of the shading languages don't have the
 	// operation (#3535).
+	// Comparing textures is forbidden as well, as a texture is an opaque handle.
 	if op == EqualOp || op == NotEqualOp {
 		if lhst.IsMatrix() || rhst.IsMatrix() {
 			return Type{}, false
 		}
 		if lhst.Main == Array || rhst.Main == Array {
+			return Type{}, false
+		}
+		if lhst.Main == Texture || rhst.Main == Texture {
 			return Type{}, false
 		}
 		if lhst.Equal(&rhst) {

@@ -47,6 +47,9 @@ type Stream struct {
 }
 
 // Read is an implementation of io.Reader's Read.
+//
+// Read returns only whole samples (4 bytes each in the 16-bit integer format, 8 bytes each in the 32-bit float format).
+// For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.inner.Read(p)
 }
@@ -54,6 +57,9 @@ func (s *Stream) Read(p []byte) (int, error) {
 // Seek is an implementation of io.Seeker's Seek.
 //
 // If the underlying source is not an io.Seeker, Seek returns an error.
+//
+// The returned position can differ from the requested one with a nil error: a position in the middle of a sample is
+// rounded down to a sample boundary.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	var base int64
 	switch whence {
@@ -62,6 +68,10 @@ func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 		cur, err := s.inner.Seek(0, io.SeekCurrent)
 		if err != nil {
 			return 0, err
+		}
+		// A query does not seek the inner reader, so that the bytes it buffers are kept.
+		if offset == 0 {
+			return cur, nil
 		}
 		base = cur
 	case io.SeekEnd:
@@ -283,7 +293,10 @@ chunks:
 
 	var s io.ReadSeeker
 	if dataSize < 0 {
-		s = newFrameAlignedReader(src, int(bytesPerFrame))
+		// The converter below discards a partial frame at the end.
+		s = unseekableReader{
+			Reader: src,
+		}
 	} else {
 		// A partial frame at the tail of the data chunk cannot be decoded. Discard it.
 		dataSize = dataSize / bytesPerFrame * bytesPerFrame
@@ -349,6 +362,18 @@ func sizeToEnd(src io.Reader) (int64, error) {
 		return 0, err
 	}
 	return end - cur, nil
+}
+
+// unseekableReader is an io.ReadSeeker reading from an io.Reader that cannot seek.
+type unseekableReader struct {
+	io.Reader
+}
+
+// Seek is an implementation of io.Seeker's Seek.
+//
+// Seek always returns an error wrapping errors.ErrUnsupported.
+func (unseekableReader) Seek(offset int64, whence int) (int64, error) {
+	return 0, fmt.Errorf("wav: source must be io.Seeker: %w", errors.ErrUnsupported)
 }
 
 // Decode decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.

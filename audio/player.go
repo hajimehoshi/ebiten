@@ -686,6 +686,13 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 		return pos, err
 	}
 
+	// A query reports the position counted by Read, which differs from the source's position when the
+	// source folds its position like an InfiniteLoop. The source is still queried above, so that a
+	// source that cannot tell its position reports its error.
+	if whence == io.SeekCurrent && offset == 0 {
+		return s.pos.Load(), nil
+	}
+
 	s.pos.Store(pos)
 	return pos, nil
 }

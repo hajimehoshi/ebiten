@@ -276,7 +276,15 @@ func PlayersCountForTesting() int {
 	return n
 }
 
+func EnsurePlayerForTesting(p *Player) error {
+	// ensurePlayer accesses player state with its caller holding the mutex, as Play and startIfPending do.
+	p.p.m.Lock()
+	defer p.p.m.Unlock()
+	return p.p.ensurePlayer()
+}
+
 func BufferSizeForTesting(p *Player) int {
+	// initBufferSize is protected by the player mutex and can change when the underlying player is created.
 	p.p.m.Lock()
 	defer p.p.m.Unlock()
 	return p.p.initBufferSize
@@ -291,6 +299,7 @@ func BufferSizeForTesting(p *Player) int {
 func PlayingButUntrackedForTesting(p *Player) bool {
 	pi := p.p
 
+	// isPlaying requires its caller to hold the player mutex. Keep it held across both checks.
 	pi.m.Lock()
 	defer pi.m.Unlock()
 
@@ -299,6 +308,7 @@ func PlayingButUntrackedForTesting(p *Player) bool {
 	}
 
 	c := pi.context
+	// The context mutex protects playingPlayers from concurrent additions and removals.
 	c.m.Lock()
 	defer c.m.Unlock()
 	_, ok := c.playingPlayers[pi]
@@ -322,4 +332,10 @@ func ResetContextForTesting() {
 
 func (i *InfiniteLoop) SetNoBlendForTesting(value bool) {
 	i.noBlendForTesting = value
+}
+
+// NewTimeStreamForTesting returns the stream a Player reads from, over a seekable src in signed 16bit
+// integer stereo.
+func NewTimeStreamForTesting(src io.ReadSeeker, sampleRate int) (io.ReadSeeker, error) {
+	return newTimeStream(src, true, sampleRate, bitDepthInBytesInt16)
 }

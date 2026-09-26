@@ -111,8 +111,15 @@ func (r *float32BytesReadSeeker) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart:
 	case io.SeekCurrent:
+		// A query does not seek the decoder, which decodes again from the page before the position.
+		if offset == 0 {
+			return r.pos, nil
+		}
 		base = r.pos
 	case io.SeekEnd:
+		if r.r.Length() == 0 {
+			return 0, fmt.Errorf("vorbis: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
+		}
 		base = r.r.Length() * sampleSize
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)

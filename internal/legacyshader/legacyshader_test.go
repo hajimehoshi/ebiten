@@ -168,9 +168,8 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		"__legacyshader_imageSrcRegionOnTexture()",
 		"__legacyshader_imageDstRegionOnTexture()",
 		"__legacyshader_imageSrc0Origin(), __legacyshader_imageSrc1Origin()",
-		"func Fragment(dstPos vec4, __legacyshader_srcPos vec2, color vec4) vec4 {",
-		"src0Pos := __legacyshader_srcPos / max(imageSrc0TextureSize(), vec2(1))",
-		"_ = src0Pos",
+		"func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {",
+		"src0Pos /= max(imageSrc0TextureSize(), vec2(1))",
 	} {
 		if !strings.Contains(outStr, want) {
 			t.Errorf("ConvertToPixels result must contain %q but does not:\n%s", want, outStr)
@@ -218,6 +217,22 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return color
+}`,
+		`package main
+
+func Fragment(dstPos vec4, _ vec2, color vec4) vec4 {
+	return color
+}`,
+		`package main
+
+func Fragment(vec4, vec2, vec4) vec4 {
+	return vec4(0)
+}`,
+		`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	src0Pos += vec2(1)
+	return imageSrc0At(src0Pos)
 }`,
 	}
 	for _, src := range cases {

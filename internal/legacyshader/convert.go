@@ -159,10 +159,8 @@ func convertToPixels(src []byte) ([]byte, error) {
 		if !ok || fd.Recv != nil || fd.Name.Name != "Fragment" || fd.Body == nil || fd.Type.Params == nil {
 			continue
 		}
-		// The second parameter is the source position. An entry point's parameter cannot be assigned,
-		// so rename the parameter and redeclare a local variable with the original name holding the
-		// converted position. The local variable is always used by the appended blank assignment, in
-		// case the original parameter is unused.
+		// The second parameter is the source position. Convert it in place at the beginning of the body,
+		// so that the rest of the body sees the position in texels.
 		var idx int
 		var srcPosIdent *ast.Ident
 		for _, field := range fd.Type.Params.List {
@@ -180,12 +178,7 @@ func convertToPixels(src []byte) ([]byte, error) {
 		if srcPosIdent == nil || srcPosIdent.Name == "_" {
 			continue
 		}
-		orig := srcPosIdent.Name
-		srcPosIdent.Name = texelHelperPrefix + "srcPos"
-		fd.Body.List = append([]ast.Stmt{
-			srcPosConversionStmt(orig, srcPosIdent.Name),
-			blankUseStmt(orig),
-		}, fd.Body.List...)
+		fd.Body.List = append([]ast.Stmt{srcPosConversionStmt(srcPosIdent.Name)}, fd.Body.List...)
 	}
 
 	var buf bytes.Buffer
@@ -197,39 +190,26 @@ func convertToPixels(src []byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// srcPosConversionStmt returns the statement `name := param / max(imageSrc0TextureSize(), vec2(1))`,
+// srcPosConversionStmt returns the statement `name /= max(imageSrc0TextureSize(), vec2(1))`,
 // converting the fragment entry point's source position from pixels to texels. The texture size is
 // guarded against zero (no source image) to avoid a division by zero.
-func srcPosConversionStmt(name, param string) ast.Stmt {
+func srcPosConversionStmt(name string) ast.Stmt {
 	return &ast.AssignStmt{
 		Lhs: []ast.Expr{ast.NewIdent(name)},
-		Tok: token.DEFINE,
+		Tok: token.QUO_ASSIGN,
 		Rhs: []ast.Expr{
-			&ast.BinaryExpr{
-				X:  ast.NewIdent(param),
-				Op: token.QUO,
-				Y: &ast.CallExpr{
-					Fun: ast.NewIdent("max"),
-					Args: []ast.Expr{
-						&ast.CallExpr{
-							Fun: ast.NewIdent("imageSrc0TextureSize"),
-						},
-						&ast.CallExpr{
-							Fun:  ast.NewIdent("vec2"),
-							Args: []ast.Expr{&ast.BasicLit{Kind: token.INT, Value: "1"}},
-						},
+			&ast.CallExpr{
+				Fun: ast.NewIdent("max"),
+				Args: []ast.Expr{
+					&ast.CallExpr{
+						Fun: ast.NewIdent("imageSrc0TextureSize"),
+					},
+					&ast.CallExpr{
+						Fun:  ast.NewIdent("vec2"),
+						Args: []ast.Expr{&ast.BasicLit{Kind: token.INT, Value: "1"}},
 					},
 				},
 			},
 		},
-	}
-}
-
-// blankUseStmt returns the statement `_ = name`.
-func blankUseStmt(name string) ast.Stmt {
-	return &ast.AssignStmt{
-		Lhs: []ast.Expr{ast.NewIdent("_")},
-		Tok: token.ASSIGN,
-		Rhs: []ast.Expr{ast.NewIdent(name)},
 	}
 }

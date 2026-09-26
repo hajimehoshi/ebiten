@@ -965,3 +965,69 @@ func TestImageSizeSameAsBackendSize(t *testing.T) {
 		}
 	}
 }
+
+func TestGPUResourcesStateSaveAndRestore(t *testing.T) {
+	var s atlas.GPUResourcesState
+	if !s.RequestToSaveGPUResources() {
+		t.Errorf("RequestToSaveGPUResources: got false, want true")
+	}
+	if !s.FinishSavingGPUResources(true) {
+		t.Errorf("FinishSavingGPUResources(true): got false, want true")
+	}
+	if !s.AreGPUResourcesSaved() {
+		t.Errorf("AreGPUResourcesSaved after saving: got false, want true")
+	}
+	if !s.RequestToRestoreGPUResources() {
+		t.Errorf("RequestToRestoreGPUResources: got false, want true")
+	}
+	if !s.StartRestoringGPUResourcesIfNeeded() {
+		t.Errorf("StartRestoringGPUResourcesIfNeeded: got false, want true")
+	}
+	if s.StartRestoringGPUResourcesIfNeeded() {
+		t.Errorf("StartRestoringGPUResourcesIfNeeded after restoring: got true, want false")
+	}
+}
+
+func TestGPUResourcesStateRestoreBeforeSaveSucceeded(t *testing.T) {
+	var s atlas.GPUResourcesState
+	if !s.RequestToSaveGPUResources() {
+		t.Errorf("RequestToSaveGPUResources: got false, want true")
+	}
+	if s.RequestToRestoreGPUResources() {
+		t.Errorf("RequestToRestoreGPUResources before saving: got true, want false")
+	}
+	if s.FinishSavingGPUResources(true) {
+		t.Errorf("FinishSavingGPUResources(true) after the restore request: got true, want false")
+	}
+	if s.AreGPUResourcesSaved() {
+		t.Errorf("AreGPUResourcesSaved: got true, want false")
+	}
+	if s.StartRestoringGPUResourcesIfNeeded() {
+		t.Errorf("StartRestoringGPUResourcesIfNeeded: got true, want false")
+	}
+	if !s.RequestToSaveGPUResources() {
+		t.Errorf("RequestToSaveGPUResources after the cancellation: got false, want true")
+	}
+}
+
+func TestGPUResourcesStateRestoreBeforeSaveFailed(t *testing.T) {
+	var s atlas.GPUResourcesState
+	if !s.RequestToSaveGPUResources() {
+		t.Errorf("RequestToSaveGPUResources: got false, want true")
+	}
+	if s.RequestToRestoreGPUResources() {
+		t.Errorf("RequestToRestoreGPUResources before saving: got true, want false")
+	}
+	if s.FinishSavingGPUResources(false) {
+		t.Errorf("FinishSavingGPUResources(false) after the restore request: got true, want false")
+	}
+	if s.AreGPUResourcesSaved() {
+		t.Errorf("AreGPUResourcesSaved: got true, want false")
+	}
+	if s.RequestToRestoreGPUResources() {
+		t.Errorf("RequestToRestoreGPUResources after the failed save: got true, want false")
+	}
+	if s.StartRestoringGPUResourcesIfNeeded() {
+		t.Errorf("StartRestoringGPUResourcesIfNeeded: got true, want false")
+	}
+}

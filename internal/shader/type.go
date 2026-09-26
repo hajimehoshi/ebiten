@@ -23,6 +23,15 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
+// maxArrayLength is the maximum length of an array type.
+//
+// The backends emit code for each array element, so a huge length makes code generation take an
+// enormous amount of time and memory. A uniform variable cannot be longer than this anyway. A DirectX 11
+// constant buffer has at most 4096 16-byte registers, and each array element takes at least one register.
+// Metal passes uniform variables with setVertexBytes and setFragmentBytes, which are for data smaller than
+// 4 KB, and each array element takes at least one byte.
+const maxArrayLength = 4096
+
 func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (shaderir.Type, bool) {
 	switch t := expr.(type) {
 	case *ast.Ident:
@@ -60,47 +69,32 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 			cs.addError(t.Pos(), "array length must be specified")
 			return shaderir.Type{}, false
 		}
-		var length int
-		if _, ok := t.Len.(*ast.Ellipsis); ok {
-			length = -1 // Determine the length later.
-		} else {
-			exprs, _, _, ok := cs.parseExpr(block, fname, t.Len, true)
-			if !ok {
-				return shaderir.Type{}, false
-			}
-			if len(exprs) != 1 {
-				cs.addError(t.Pos(), "invalid length of array")
-				return shaderir.Type{}, false
-			}
-			if exprs[0].Type != shaderir.NumberExpr {
-				cs.addError(t.Pos(), "length of array must be a constant number")
-				return shaderir.Type{}, false
-			}
-			l, ok := gconstant.Int64Val(exprs[0].Const)
-			if !ok {
-				cs.addError(t.Pos(), "length of array must be an integer")
-				return shaderir.Type{}, false
-			}
-			if l < 0 {
-				cs.addError(t.Pos(), fmt.Sprintf("invalid array length %d", l))
-				return shaderir.Type{}, false
-			}
-			length = int(l)
+		if isEllipsis(t.Len) {
+			cs.addError(t.Pos(), "invalid use of [...] array (outside a composite literal)")
+			return shaderir.Type{}, false
 		}
-
-		elm, ok := cs.parseType(block, fname, t.Elt)
+		exprs, _, _, ok := cs.parseExpr(block, fname, t.Len, true)
 		if !ok {
 			return shaderir.Type{}, false
 		}
-		if elm.Main == shaderir.Array {
-			cs.addError(t.Pos(), "array of array is forbidden")
+		if len(exprs) != 1 {
+			cs.addError(t.Pos(), "invalid length of array")
 			return shaderir.Type{}, false
 		}
-		return shaderir.Type{
-			Main:   shaderir.Array,
-			Sub:    []shaderir.Type{elm},
-			Length: length,
-		}, true
+		if exprs[0].Type != shaderir.NumberExpr {
+			cs.addError(t.Pos(), "length of array must be a constant number")
+			return shaderir.Type{}, false
+		}
+		l, ok := gconstant.Int64Val(exprs[0].Const)
+		if !ok {
+			cs.addError(t.Pos(), "length of array must be an integer")
+			return shaderir.Type{}, false
+		}
+		if l < 0 {
+			cs.addError(t.Pos(), fmt.Sprintf("invalid array length %d", l))
+			return shaderir.Type{}, false
+		}
+		return cs.parseArrayType(block, fname, t, l)
 	case *ast.StructType:
 		cs.addError(t.Pos(), "struct is not implemented")
 		return shaderir.Type{}, false
@@ -108,6 +102,32 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 		cs.addError(t.Pos(), fmt.Sprintf("unexpected type: %v", t))
 		return shaderir.Type{}, false
 	}
+}
+
+// parseArrayType parses the array type t whose length is the given length.
+func (cs *compileState) parseArrayType(block *block, fname string, t *ast.ArrayType, length int64) (shaderir.Type, bool) {
+	if length > maxArrayLength {
+		cs.addError(t.Pos(), fmt.Sprintf("array length %d exceeds the limit %d", length, maxArrayLength))
+		return shaderir.Type{}, false
+	}
+	elm, ok := cs.parseType(block, fname, t.Elt)
+	if !ok {
+		return shaderir.Type{}, false
+	}
+	if elm.Main == shaderir.Array {
+		cs.addError(t.Pos(), "array of array is forbidden")
+		return shaderir.Type{}, false
+	}
+	return shaderir.Type{
+		Main:   shaderir.Array,
+		Sub:    []shaderir.Type{elm},
+		Length: int(length),
+	}, true
+}
+
+func isEllipsis(expr ast.Expr) bool {
+	_, ok := expr.(*ast.Ellipsis)
+	return ok
 }
 
 func isFloat(expr shaderir.Expr, t shaderir.Type) bool {
@@ -158,7 +178,7 @@ func checkArgsForBoolBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	if args[0].Const != nil && args[0].Const.Kind() == gconstant.Bool {
 		return nil
 	}
-	return fmt.Errorf("invalid arguments for bool: (%s)", argts[0].String())
+	return fmt.Errorf("invalid arguments for bool: (%s)", typeString(argts[0], args[0].Const))
 }
 
 func checkArgsForIntBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
@@ -175,7 +195,7 @@ func checkArgsForIntBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) err
 	if args[0].Const != nil && gconstant.ToInt(args[0].Const).Kind() != gconstant.Unknown {
 		return nil
 	}
-	return fmt.Errorf("invalid arguments for int: (%s)", argts[0].String())
+	return fmt.Errorf("invalid arguments for int: (%s)", typeString(argts[0], args[0].Const))
 }
 
 func checkArgsForFloatBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
@@ -192,7 +212,7 @@ func checkArgsForFloatBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	if args[0].Const != nil && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
 		return nil
 	}
-	return fmt.Errorf("invalid arguments for float: (%s)", argts[0].String())
+	return fmt.Errorf("invalid arguments for float: (%s)", typeString(argts[0], args[0].Const))
 }
 
 func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
@@ -218,8 +238,8 @@ func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for vec2: (%s)", strings.Join(str, ", "))
 }
@@ -254,8 +274,8 @@ func checkArgsForVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for vec3: (%s)", strings.Join(str, ", "))
 }
@@ -303,8 +323,8 @@ func checkArgsForVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for vec4: (%s)", strings.Join(str, ", "))
 }
@@ -332,8 +352,8 @@ func checkArgsForIVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for ivec2: (%s)", strings.Join(str, ", "))
 }
@@ -368,8 +388,8 @@ func checkArgsForIVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for ivec3: (%s)", strings.Join(str, ", "))
 }
@@ -417,8 +437,8 @@ func checkArgsForIVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for ivec4: (%s)", strings.Join(str, ", "))
 }
@@ -456,8 +476,8 @@ func checkArgsForMat2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for mat2: (%s)", strings.Join(str, ", "))
 }
@@ -497,8 +517,8 @@ func checkArgsForMat3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for mat3: (%s)", strings.Join(str, ", "))
 }
@@ -539,8 +559,8 @@ func checkArgsForMat4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for mat4: (%s)", strings.Join(str, ", "))
 }

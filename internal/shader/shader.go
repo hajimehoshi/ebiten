@@ -15,6 +15,7 @@
 package shader
 
 import (
+	"bytes"
 	"fmt"
 	"go/ast"
 	gconstant "go/constant"
@@ -41,12 +42,18 @@ type constant struct {
 
 type function struct {
 	name string
+	pos  token.Pos
 
 	ir shaderir.Func
 }
 
 type compileState struct {
 	fs *token.FileSet
+
+	// internalRegionStart and internalRegionEnd are the byte offsets of the internal region in the source.
+	// The region is empty when the source has none.
+	internalRegionStart int
+	internalRegionEnd   int
 
 	vertexEntry   string
 	fragmentEntry string
@@ -86,19 +93,26 @@ func (cs *compileState) findUniformVariable(name string) (int, bool) {
 	return 0, false
 }
 
-type typ struct {
-	name string
-	ir   shaderir.Type
-}
-
 type block struct {
-	types      []typ
 	vars       []variable
 	unusedVars map[int]token.Pos
 	consts     []constant
 	outer      *block
 
+	// loop is true when the block is the scope of a for-statement.
+	loop bool
+
 	ir *shaderir.Block
+}
+
+// inLoop reports whether the block or one of its enclosing blocks belongs to a for-statement.
+func (b *block) inLoop() bool {
+	for ; b != nil; b = b.outer {
+		if b.loop {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *block) totalLocalVariableCount() int {
@@ -147,21 +161,6 @@ func (b *block) findLocalVariable(name string, markLocalVariableUsed bool) (int,
 	return 0, shaderir.Type{}, false
 }
 
-func (b *block) findLocalVariableByIndex(idx int) (shaderir.Type, bool) {
-	bs := []*block{b}
-	for outer := b.outer; outer != nil; outer = outer.outer {
-		bs = append(bs, outer)
-	}
-	for _, b := range slices.Backward(bs) {
-		if len(b.vars) <= idx {
-			idx -= len(b.vars)
-			continue
-		}
-		return b.vars[idx].typ, true
-	}
-	return shaderir.Type{}, false
-}
-
 func (b *block) findConstant(name string) (constant, bool) {
 	if name == "" || name == "_" {
 		panic("shader: constant name must be non-empty and non-underscore")
@@ -177,6 +176,24 @@ func (b *block) findConstant(name string) (constant, bool) {
 	}
 
 	return constant{}, false
+}
+
+// declared reports whether a variable in vars or a constant in consts is named name. A blank name is never reported.
+func declared(name string, vars []variable, consts []constant) bool {
+	if name == "_" {
+		return false
+	}
+	for _, v := range vars {
+		if v.name == name {
+			return true
+		}
+	}
+	for _, c := range consts {
+		if c.name == name {
+			return true
+		}
+	}
+	return false
 }
 
 type ParseError struct {
@@ -200,6 +217,20 @@ func (p *ParseError) Positions() []token.Position {
 	return ps
 }
 
+const internalRegionDirective = "//kage:internalregion"
+
+const (
+	// InternalRegionBegin is the line that begins the internal region.
+	InternalRegionBegin = internalRegionDirective + " begin"
+
+	// InternalRegionEnd is the line that ends the internal region.
+	InternalRegionEnd = internalRegionDirective + " end"
+)
+
+// Compile compiles a Kage source into an intermediate representation.
+//
+// A uniform variable whose name starts with __ can be declared only in the internal region, which is the
+// lines between [InternalRegionBegin] and [InternalRegionEnd]. A source can have at most one internal region.
 func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*shaderir.Program, error) {
 	fs := token.NewFileSet()
 	f, err := parser.ParseFile(fs, "", src, parser.AllErrors)
@@ -215,6 +246,10 @@ func Compile(src []byte, vertexEntry, fragmentEntry string, textureCount int) (*
 	s.ir.SourceID = shaderir.CalcSourceID(src)
 	s.ir.TextureCount = textureCount
 	s.global.ir = &shaderir.Block{}
+	s.parseInternalRegion(fs.File(f.Pos()), src)
+	if len(s.errs) > 0 {
+		return nil, &ParseError{s.errs}
+	}
 	s.parse(f)
 
 	if len(s.errs) > 0 {
@@ -236,7 +271,104 @@ func (s *compileState) addError(pos token.Pos, str string) {
 	})
 }
 
+// parseInternalRegion records the byte offsets of the internal region in src, the source of file, and
+// reports malformed internal region directives.
+func (cs *compileState) parseInternalRegion(file *token.File, src []byte) {
+	begin, end := -1, -1
+	var offset int
+	for line := range bytes.Lines(src) {
+		lineOffset := offset
+		offset += len(line)
+
+		directive := strings.TrimSpace(string(line))
+		arg, ok := strings.CutPrefix(directive, internalRegionDirective)
+		if !ok {
+			continue
+		}
+		// Skip another directive whose name merely starts with the same prefix.
+		if arg != "" && arg[0] != ' ' && arg[0] != '\t' {
+			continue
+		}
+		switch strings.TrimSpace(arg) {
+		case "begin":
+			if begin >= 0 {
+				cs.addError(file.Pos(lineOffset), "at most one internal region can exist in a shader")
+				return
+			}
+			begin = lineOffset
+		case "end":
+			if end >= 0 {
+				cs.addError(file.Pos(lineOffset), "at most one internal region can exist in a shader")
+				return
+			}
+			end = lineOffset
+		default:
+			cs.addError(file.Pos(lineOffset), fmt.Sprintf("invalid directive: %s", directive))
+			return
+		}
+	}
+
+	if begin < 0 && end < 0 {
+		return
+	}
+	if begin < 0 || end < 0 || end < begin {
+		cs.addError(file.Pos(max(begin, end)), fmt.Sprintf("%s and %s must appear in this order", InternalRegionBegin, InternalRegionEnd))
+		return
+	}
+	cs.internalRegionStart = begin
+	cs.internalRegionEnd = end
+}
+
+// inInternalRegion reports whether pos is in the internal region.
+func (cs *compileState) inInternalRegion(pos token.Pos) bool {
+	offset := cs.fs.Position(pos).Offset
+	return cs.internalRegionStart <= offset && offset < cs.internalRegionEnd
+}
+
+// checkPackageLevelNames reports an error and returns false if two package-level declarations in f have the same name.
+func (cs *compileState) checkPackageLevelNames(f *ast.File) bool {
+	names := map[string]struct{}{}
+	for _, d := range f.Decls {
+		var idents []*ast.Ident
+		switch d := d.(type) {
+		case *ast.GenDecl:
+			for _, s := range d.Specs {
+				switch s := s.(type) {
+				case *ast.TypeSpec:
+					idents = append(idents, s.Name)
+				case *ast.ValueSpec:
+					idents = append(idents, s.Names...)
+				}
+			}
+		case *ast.FuncDecl:
+			idents = append(idents, d.Name)
+		}
+		for _, n := range idents {
+			if n.Name == "_" {
+				continue
+			}
+			if _, ok := names[n.Name]; ok {
+				cs.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", n.Name))
+				return false
+			}
+			names[n.Name] = struct{}{}
+		}
+	}
+	return true
+}
+
 func (cs *compileState) parse(f *ast.File) {
+	for _, d := range f.Decls {
+		if d, ok := d.(*ast.FuncDecl); ok && d.Recv != nil {
+			cs.addError(d.Recv.Pos(), "method is not supported")
+			return
+		}
+	}
+
+	if !cs.checkPackageLevelNames(f) {
+		return
+	}
+
 	// Parse GenDecl for global variables, and then parse functions.
 	for _, d := range f.Decls {
 		if _, ok := d.(*ast.FuncDecl); !ok {
@@ -272,6 +404,7 @@ func (cs *compileState) parse(f *ast.File) {
 	var vertexInParams []variable
 	var vertexOutParams []variable
 	var fragmentInParams []variable
+	var fragmentInParamPositions []token.Pos
 	var fragmentOutParams []variable
 	var fragmentReturnType shaderir.Type
 	for _, d := range f.Decls {
@@ -280,13 +413,6 @@ func (cs *compileState) parse(f *ast.File) {
 			continue
 		}
 		n := fd.Name.Name
-
-		for _, f := range cs.funcs {
-			if f.name == n {
-				cs.addError(d.Pos(), fmt.Sprintf("redeclared function: %s", n))
-				return
-			}
-		}
 
 		inParams, outParams, ret := cs.parseFuncParams(&cs.global, n, fd)
 
@@ -301,6 +427,15 @@ func (cs *compileState) parse(f *ast.File) {
 			fragmentInParams = inParams
 			fragmentOutParams = outParams
 			fragmentReturnType = ret
+			for _, field := range fd.Type.Params.List {
+				if len(field.Names) == 0 {
+					fragmentInParamPositions = append(fragmentInParamPositions, field.Type.Pos())
+					continue
+				}
+				for _, name := range field.Names {
+					fragmentInParamPositions = append(fragmentInParamPositions, name.Pos())
+				}
+			}
 			continue
 		}
 
@@ -313,6 +448,7 @@ func (cs *compileState) parse(f *ast.File) {
 		}
 		cs.funcs = append(cs.funcs, function{
 			name: n,
+			pos:  d.Pos(),
 			ir: shaderir.Func{
 				Index:     len(cs.funcs),
 				InParams:  inT,
@@ -332,18 +468,25 @@ func (cs *compileState) parse(f *ast.File) {
 			}
 			t := fragmentInParams[i].typ
 			if !p.typ.Equal(&t) {
-				name := fragmentInParams[i].name
-				cs.addError(cs.fragmentEntryPos, fmt.Sprintf("fragment argument %s must be %s but was %s", name, p.typ.String(), t.String()))
+				arg := "fragment argument " + fragmentInParams[i].name
+				// A blank or unnamed argument has no name to identify it.
+				if fragmentInParams[i].name == "_" {
+					arg = fmt.Sprintf("the %s fragment argument", ordinal(i+1))
+				}
+				cs.addError(fragmentInParamPositions[i], fmt.Sprintf("%s must be %s but was %s", arg, p.typ.String(), t.String()))
 			}
 		}
 		if len(fragmentInParams) > len(vertexOutParams) {
 			cs.addError(cs.fragmentEntryPos, fmt.Sprintf("the number of the fragment arguments (%d) must not be greater than the number of the vertex returning values (%d)", len(fragmentInParams), len(vertexOutParams)))
 		}
-
+	}
+	if cs.vertexEntryPos.IsValid() {
 		// The first out-param is treated as gl_Position in GLSL.
-		if vertexOutParams[0].typ.Main != shaderir.Vec4 {
+		if len(vertexOutParams) == 0 || vertexOutParams[0].typ.Main != shaderir.Vec4 {
 			cs.addError(cs.vertexEntryPos, "vertex entry point must have at least one returning vec4 value for a position")
 		}
+	}
+	if cs.fragmentEntryPos.IsValid() {
 		if len(fragmentOutParams) != 0 || fragmentReturnType.Main != shaderir.Vec4 {
 			cs.addError(cs.fragmentEntryPos, "fragment entry point must have one returning vec4 value for a color")
 		}
@@ -380,9 +523,96 @@ func (cs *compileState) parse(f *ast.File) {
 		return
 	}
 
+	cs.checkRecursiveCalls()
+	if len(cs.errs) > 0 {
+		return
+	}
+
 	for _, f := range cs.funcs {
 		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
 	}
+}
+
+// ordinal returns n written as an English ordinal number.
+func ordinal(n int) string {
+	if n%100 >= 11 && n%100 <= 13 {
+		return fmt.Sprintf("%dth", n)
+	}
+	switch n % 10 {
+	case 1:
+		return fmt.Sprintf("%dst", n)
+	case 2:
+		return fmt.Sprintf("%dnd", n)
+	case 3:
+		return fmt.Sprintf("%drd", n)
+	}
+	return fmt.Sprintf("%dth", n)
+}
+
+// checkRecursiveCalls adds an error for each function that calls itself directly or indirectly (#3536).
+func (cs *compileState) checkRecursiveCalls() {
+	callees := make([][]int, len(cs.funcs))
+	for i, f := range cs.funcs {
+		callees[i] = calledFunctionIndices(f.ir.Block)
+	}
+	for i, f := range cs.funcs {
+		if callsFunction(callees, i, i) {
+			cs.addError(f.pos, fmt.Sprintf("function %s must not be called recursively", f.name))
+		}
+	}
+}
+
+// callsFunction reports whether the function at index from calls the function at index to directly or indirectly.
+// callees[i] holds the indices of the functions that the function at index i calls.
+func callsFunction(callees [][]int, from, to int) bool {
+	visited := make([]bool, len(callees))
+	stack := slices.Clone(callees[from])
+	for len(stack) > 0 {
+		i := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if i == to {
+			return true
+		}
+		if visited[i] {
+			continue
+		}
+		visited[i] = true
+		stack = append(stack, callees[i]...)
+	}
+	return false
+}
+
+// calledFunctionIndices returns the indices of the user-defined functions called in the block, without duplicates.
+func calledFunctionIndices(b *shaderir.Block) []int {
+	seen := map[int]struct{}{}
+	var indices []int
+	var walkExprs func(exprs []shaderir.Expr)
+	walkExprs = func(exprs []shaderir.Expr) {
+		for i := range exprs {
+			e := &exprs[i]
+			if e.Type == shaderir.FunctionExpr {
+				if _, ok := seen[e.Index]; !ok {
+					seen[e.Index] = struct{}{}
+					indices = append(indices, e.Index)
+				}
+			}
+			walkExprs(e.Exprs)
+		}
+	}
+	var walkBlock func(b *shaderir.Block)
+	walkBlock = func(b *shaderir.Block) {
+		if b == nil {
+			return
+		}
+		for i := range b.Stmts {
+			walkExprs(b.Stmts[i].Exprs)
+			for _, bb := range b.Stmts[i].Blocks {
+				walkBlock(bb)
+			}
+		}
+	}
+	walkBlock(b)
+	return indices
 }
 
 func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderir.Stmt, bool) {
@@ -392,25 +622,9 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 	case *ast.GenDecl:
 		switch d.Tok {
 		case token.TYPE:
-			// TODO: Parse other types
-			for _, s := range d.Specs {
-				s := s.(*ast.TypeSpec)
-				t, ok := cs.parseType(b, fname, s.Type)
-				if !ok {
-					return nil, false
-				}
-				n := s.Name.Name
-				for _, t := range b.types {
-					if t.name == n {
-						cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", n))
-						return nil, false
-					}
-				}
-				b.types = append(b.types, typ{
-					name: n,
-					ir:   t,
-				})
-			}
+			// TODO: Support type declarations (#1273, #2344).
+			cs.addError(d.Pos(), "type declaration is not supported")
+			return nil, false
 		case token.CONST:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
@@ -435,17 +649,12 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 						return nil, false
 					}
 
-					// TODO: Should rhs be ignored?
 					for i, v := range vs {
-						if !strings.HasPrefix(v.name, "__") {
+						// A uniform variable starting with __ is reserved for the internal region.
+						reserved := strings.HasPrefix(v.name, "__") && cs.inInternalRegion(s.Names[i].Pos())
+						if !reserved {
 							if v.name[0] < 'A' || 'Z' < v.name[0] {
 								cs.addError(s.Names[i].Pos(), fmt.Sprintf("global variables must be exposed: %s", v.name))
-							}
-						}
-						for _, name := range cs.ir.UniformNames {
-							if name == v.name {
-								cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-								return nil, false
 							}
 						}
 						cs.ir.UniformNames = append(cs.ir.UniformNames, v.name)
@@ -495,9 +704,10 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 		case cs.fragmentEntry:
 			cs.ir.FragmentFunc.Block = f.ir.Block
 		default:
-			// The function is already registered for their names.
+			// The function is already registered by the provisional parsing. A blank name can be declared more than once, so
+			// match the declaration by its position.
 			for i := range cs.funcs {
-				if cs.funcs[i].name == d.Name.Name {
+				if cs.funcs[i].pos == d.Pos() {
 					// Index is already determined by the provisional parsing.
 					f.ir.Index = cs.funcs[i].ir.Index
 					cs.funcs[i] = f
@@ -581,11 +791,11 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 				return nil, nil, nil, false
 			}
 			if len(es) == 0 || len(rts) == 0 {
-				s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+				s.addError(init.Pos(), "the right-hand side of the variable declaration has no value")
 				return nil, nil, nil, false
 			}
 			if len(es) > 1 || len(rts) > 1 {
-				s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+				s.addError(init.Pos(), "the numbers of lhs and rhs don't match")
 				return nil, nil, nil, false
 			}
 
@@ -595,10 +805,10 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					ts = rts
 				}
 				if len(ts) > 1 {
-					s.addError(vs.Pos(), "the numbers of lhs and rhs don't match")
+					s.addError(init.Pos(), "the numbers of lhs and rhs don't match")
 				}
 				if len(ts) == 0 {
-					s.addError(vs.Pos(), "the right-hand side of the variable declaration has no value")
+					s.addError(init.Pos(), "the right-hand side of the variable declaration has no value")
 					return nil, nil, nil, false
 				}
 				t = ts[0]
@@ -609,7 +819,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 			for i, rt := range rts {
 				if !canAssign(&t, &rt, es[i].Const) {
-					s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
+					s.addError(n.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", typeString(rt, es[i].Const), t.String()))
 				}
 				if es[i].Const != nil {
 					switch t.Main {
@@ -661,7 +871,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 			}
 
 			if !canAssign(&t, &inittypes[i], initexprs[i].Const) {
-				s.addError(vs.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", inittypes[i].String(), t.String()))
+				s.addError(n.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", inittypes[i].String(), t.String()))
 			}
 
 			// Add the same initexprs for each variable.
@@ -669,17 +879,9 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 		}
 
 		name := n.Name
-		for _, v := range append(block.vars, vars...) {
-			if v.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
-				return nil, nil, nil, false
-			}
-		}
-		for _, c := range block.consts {
-			if c.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
-				return nil, nil, nil, false
-			}
+		if declared(name, append(block.vars, vars...), block.consts) {
+			s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+			return nil, nil, nil, false
 		}
 		vars = append(vars, variable{
 			name: name,
@@ -692,18 +894,18 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSpec) ([]constant, bool) {
 	if len(vs.Names) > len(vs.Values) {
-		s.addError(vs.Pos(), "missing init expr for const declaration")
+		s.addError(vs.Names[len(vs.Values)].Pos(), "missing init expr for const declaration")
 		return nil, false
 	}
 	if len(vs.Names) < len(vs.Values) {
-		s.addError(vs.Pos(), "extra init expr for const declaration")
+		s.addError(vs.Values[len(vs.Names)].Pos(), "extra init expr for const declaration")
 		return nil, false
 	}
 
-	var t shaderir.Type
+	var declt shaderir.Type
 	if vs.Type != nil {
 		var ok bool
-		t, ok = s.parseType(block, fname, vs.Type)
+		declt, ok = s.parseType(block, fname, vs.Type)
 		if !ok {
 			return nil, false
 		}
@@ -712,17 +914,9 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 	var cs []constant
 	for i, n := range vs.Names {
 		name := n.Name
-		for _, c := range block.consts {
-			if c.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant name: %s", name))
-				return nil, false
-			}
-		}
-		for _, v := range block.vars {
-			if v.name == name {
-				s.addError(vs.Pos(), fmt.Sprintf("duplicated local constant/variable name: %s", name))
-				return nil, false
-			}
+		if declared(name, block.vars, append(block.consts, cs...)) {
+			s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+			return nil, false
 		}
 
 		es, ts, ss, ok := s.parseExpr(block, fname, vs.Values[i], false)
@@ -730,20 +924,25 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			return nil, false
 		}
 		if len(ss) > 0 {
-			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", name))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("invalid constant expression: %s", name))
 			return nil, false
 		}
 		if len(ts) != 1 || len(es) != 1 {
-			s.addError(vs.Pos(), fmt.Sprintf("invalid constant expression: %s", n))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("invalid constant expression: %s", n))
 			return nil, false
 		}
 		if es[0].Type != shaderir.NumberExpr {
-			s.addError(vs.Pos(), fmt.Sprintf("constant expression must be a number but not: %s", n))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("constant expression must be a number but not: %s", n))
 			return nil, false
 		}
 
+		t := declt
+		if vs.Type == nil {
+			// A constant without a declared type has the type of its value, which is none for an untyped value.
+			t = ts[0]
+		}
 		if !t.Equal(&shaderir.Type{}) && !canAssign(&t, &ts[0], es[0].Const) {
-			s.addError(vs.Pos(), fmt.Sprintf("cannot use %v as %s value in constant declaration", es[0].Const, t.String()))
+			s.addError(vs.Values[i].Pos(), fmt.Sprintf("cannot use %v as %s value in constant declaration", es[0].Const, t.String()))
 			return nil, false
 		}
 
@@ -769,12 +968,37 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 }
 
 func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncDecl) (in, out []variable, ret shaderir.Type) {
+	// Parameters and named results share one scope, so a name must not appear twice among them.
+	names := map[string]struct{}{}
+	checkName := func(n *ast.Ident) bool {
+		if n.Name == "_" {
+			return true
+		}
+		if _, ok := names[n.Name]; ok {
+			cs.addError(n.Pos(), fmt.Sprintf("duplicate argument %s", n.Name))
+			return false
+		}
+		names[n.Name] = struct{}{}
+		return true
+	}
+
 	for _, f := range d.Type.Params.List {
 		t, ok := cs.parseType(block, fname, f.Type)
 		if !ok {
 			return
 		}
+		if len(f.Names) == 0 {
+			// An unnamed parameter cannot be referred to, just like a blank identifier.
+			in = append(in, variable{
+				name: "_",
+				typ:  t,
+			})
+			continue
+		}
 		for _, n := range f.Names {
+			if !checkName(n) {
+				return
+			}
 			in = append(in, variable{
 				name: n.Name,
 				typ:  t,
@@ -798,6 +1022,9 @@ func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncD
 			})
 		} else {
 			for _, n := range f.Names {
+				if !checkName(n) {
+					return
+				}
 				out = append(out, variable{
 					name: n.Name,
 					typ:  t,
@@ -862,23 +1089,8 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 	}
 
 	if len(outParams) > 0 || returnType.Main != shaderir.None {
-		var hasReturn func(stmts []shaderir.Stmt) bool
-		hasReturn = func(stmts []shaderir.Stmt) bool {
-			for _, stmt := range stmts {
-				if stmt.Type == shaderir.Return {
-					return true
-				}
-				for _, b := range stmt.Blocks {
-					if hasReturn(b.Stmts) {
-						return true
-					}
-				}
-			}
-			return false
-		}
-
-		if !hasReturn(b.ir.Stmts) {
-			cs.addError(d.Pos(), fmt.Sprintf("function %s must have a return statement but does not", d.Name))
+		if !isTerminating(b.ir.Stmts) {
+			cs.addError(d.Body.Rbrace, fmt.Sprintf("function %s must end with a return statement on every path but does not", d.Name))
 			return function{}, false
 		}
 	}
@@ -893,6 +1105,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 	return function{
 		name: d.Name.Name,
+		pos:  d.Pos(),
 		ir: shaderir.Func{
 			InParams:  inT,
 			OutParams: outT,
@@ -942,6 +1155,29 @@ func (cs *compileState) checkIntConstRangeInStmts(pos token.Pos, stmts []shaderi
 		}
 	}
 	return ok
+}
+
+// isTerminating reports whether stmts ends in a statement that returns or discards on every path.
+func isTerminating(stmts []shaderir.Stmt) bool {
+	if len(stmts) == 0 {
+		return false
+	}
+	last := stmts[len(stmts)-1]
+	switch last.Type {
+	case shaderir.Return, shaderir.Discard:
+		return true
+	case shaderir.BlockStmt:
+		return isTerminating(last.Blocks[0].Stmts)
+	case shaderir.If:
+		// An if-statement without an else branch falls through when its condition is false.
+		if len(last.Blocks) != 2 {
+			return false
+		}
+		return isTerminating(last.Blocks[0].Stmts) && isTerminating(last.Blocks[1].Stmts)
+	}
+	// A for-statement never terminates. Every Kage loop has a condition or a range clause, either of which
+	// makes a loop non-terminating in Go.
+	return false
 }
 
 func (cs *compileState) parseBlock(outer *block, fname string, stmts []ast.Stmt, inParams, outParams []variable, returnType shaderir.Type, checkLocalVariableUsage bool) (*block, bool) {

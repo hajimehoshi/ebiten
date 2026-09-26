@@ -104,20 +104,6 @@ package gl
 //   return ((fn)(fnptr))(target);
 // }
 //
-// #cgo noescape glowClear
-// #cgo nocallback glowClear
-// static void glowClear(uintptr_t fnptr, GLbitfield mask) {
-//   typedef void (*fn)(GLbitfield mask);
-//   ((fn)(fnptr))(mask);
-// }
-//
-// #cgo noescape glowColorMask
-// #cgo nocallback glowColorMask
-// static void glowColorMask(uintptr_t fnptr, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
-//   typedef void (*fn)(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
-//   ((fn)(fnptr))(red, green, blue, alpha);
-// }
-//
 // #cgo noescape glowCompileShader
 // #cgo nocallback glowCompileShader
 // static void glowCompileShader(uintptr_t fnptr, GLuint shader) {
@@ -179,20 +165,6 @@ package gl
 // static void glowDeleteVertexArrays(uintptr_t fnptr, GLsizei n, const GLuint* arrays) {
 //   typedef void (*fn)(GLsizei n, const GLuint* arrays);
 //   ((fn)(fnptr))(n, arrays);
-// }
-//
-// #cgo noescape glowDisable
-// #cgo nocallback glowDisable
-// static void glowDisable(uintptr_t fnptr, GLenum cap) {
-//   typedef void (*fn)(GLenum cap);
-//   ((fn)(fnptr))(cap);
-// }
-//
-// #cgo noescape glowDisableVertexAttribArray
-// #cgo nocallback glowDisableVertexAttribArray
-// static void glowDisableVertexAttribArray(uintptr_t fnptr, GLuint index) {
-//   typedef void (*fn)(GLuint index);
-//   ((fn)(fnptr))(index);
 // }
 //
 // #cgo noescape glowDrawElements
@@ -489,72 +461,68 @@ import (
 )
 
 type defaultContext struct {
-	gpActiveTexture            C.uintptr_t
-	gpAttachShader             C.uintptr_t
-	gpBindAttribLocation       C.uintptr_t
-	gpBindBuffer               C.uintptr_t
-	gpBindFramebuffer          C.uintptr_t
-	gpBindTexture              C.uintptr_t
-	gpBindVertexArray          C.uintptr_t
-	gpBlendEquationSeparate    C.uintptr_t
-	gpBlendFuncSeparate        C.uintptr_t
-	gpBufferData               C.uintptr_t
-	gpBufferSubData            C.uintptr_t
-	gpCheckFramebufferStatus   C.uintptr_t
-	gpClear                    C.uintptr_t
-	gpColorMask                C.uintptr_t
-	gpCompileShader            C.uintptr_t
-	gpCreateProgram            C.uintptr_t
-	gpCreateShader             C.uintptr_t
-	gpDeleteBuffers            C.uintptr_t
-	gpDeleteFramebuffers       C.uintptr_t
-	gpDeleteProgram            C.uintptr_t
-	gpDeleteShader             C.uintptr_t
-	gpDeleteTextures           C.uintptr_t
-	gpDeleteVertexArrays       C.uintptr_t
-	gpDisable                  C.uintptr_t
-	gpDisableVertexAttribArray C.uintptr_t
-	gpDrawElements             C.uintptr_t
-	gpEnable                   C.uintptr_t
-	gpEnableVertexAttribArray  C.uintptr_t
-	gpFinish                   C.uintptr_t
-	gpFlush                    C.uintptr_t
-	gpFramebufferTexture2D     C.uintptr_t
-	gpGenBuffers               C.uintptr_t
-	gpGenFramebuffers          C.uintptr_t
-	gpGenTextures              C.uintptr_t
-	gpGenVertexArrays          C.uintptr_t
-	gpGetError                 C.uintptr_t
-	gpGetIntegerv              C.uintptr_t
-	gpGetProgramInfoLog        C.uintptr_t
-	gpGetProgramiv             C.uintptr_t
-	gpGetShaderInfoLog         C.uintptr_t
-	gpGetShaderiv              C.uintptr_t
-	gpGetUniformLocation       C.uintptr_t
-	gpIsProgram                C.uintptr_t
-	gpLinkProgram              C.uintptr_t
-	gpPixelStorei              C.uintptr_t
-	gpReadPixels               C.uintptr_t
-	gpScissor                  C.uintptr_t
-	gpShaderSource             C.uintptr_t
-	gpTexImage2D               C.uintptr_t
-	gpTexParameteri            C.uintptr_t
-	gpTexSubImage2D            C.uintptr_t
-	gpUniform1fv               C.uintptr_t
-	gpUniform1i                C.uintptr_t
-	gpUniform1iv               C.uintptr_t
-	gpUniform2fv               C.uintptr_t
-	gpUniform2iv               C.uintptr_t
-	gpUniform3fv               C.uintptr_t
-	gpUniform3iv               C.uintptr_t
-	gpUniform4fv               C.uintptr_t
-	gpUniform4iv               C.uintptr_t
-	gpUniformMatrix2fv         C.uintptr_t
-	gpUniformMatrix3fv         C.uintptr_t
-	gpUniformMatrix4fv         C.uintptr_t
-	gpUseProgram               C.uintptr_t
-	gpVertexAttribPointer      C.uintptr_t
-	gpViewport                 C.uintptr_t
+	gpActiveTexture           C.uintptr_t
+	gpAttachShader            C.uintptr_t
+	gpBindAttribLocation      C.uintptr_t
+	gpBindBuffer              C.uintptr_t
+	gpBindFramebuffer         C.uintptr_t
+	gpBindTexture             C.uintptr_t
+	gpBindVertexArray         C.uintptr_t
+	gpBlendEquationSeparate   C.uintptr_t
+	gpBlendFuncSeparate       C.uintptr_t
+	gpBufferData              C.uintptr_t
+	gpBufferSubData           C.uintptr_t
+	gpCheckFramebufferStatus  C.uintptr_t
+	gpCompileShader           C.uintptr_t
+	gpCreateProgram           C.uintptr_t
+	gpCreateShader            C.uintptr_t
+	gpDeleteBuffers           C.uintptr_t
+	gpDeleteFramebuffers      C.uintptr_t
+	gpDeleteProgram           C.uintptr_t
+	gpDeleteShader            C.uintptr_t
+	gpDeleteTextures          C.uintptr_t
+	gpDeleteVertexArrays      C.uintptr_t
+	gpDrawElements            C.uintptr_t
+	gpEnable                  C.uintptr_t
+	gpEnableVertexAttribArray C.uintptr_t
+	gpFinish                  C.uintptr_t
+	gpFlush                   C.uintptr_t
+	gpFramebufferTexture2D    C.uintptr_t
+	gpGenBuffers              C.uintptr_t
+	gpGenFramebuffers         C.uintptr_t
+	gpGenTextures             C.uintptr_t
+	gpGenVertexArrays         C.uintptr_t
+	gpGetError                C.uintptr_t
+	gpGetIntegerv             C.uintptr_t
+	gpGetProgramInfoLog       C.uintptr_t
+	gpGetProgramiv            C.uintptr_t
+	gpGetShaderInfoLog        C.uintptr_t
+	gpGetShaderiv             C.uintptr_t
+	gpGetUniformLocation      C.uintptr_t
+	gpIsProgram               C.uintptr_t
+	gpLinkProgram             C.uintptr_t
+	gpPixelStorei             C.uintptr_t
+	gpReadPixels              C.uintptr_t
+	gpScissor                 C.uintptr_t
+	gpShaderSource            C.uintptr_t
+	gpTexImage2D              C.uintptr_t
+	gpTexParameteri           C.uintptr_t
+	gpTexSubImage2D           C.uintptr_t
+	gpUniform1fv              C.uintptr_t
+	gpUniform1i               C.uintptr_t
+	gpUniform1iv              C.uintptr_t
+	gpUniform2fv              C.uintptr_t
+	gpUniform2iv              C.uintptr_t
+	gpUniform3fv              C.uintptr_t
+	gpUniform3iv              C.uintptr_t
+	gpUniform4fv              C.uintptr_t
+	gpUniform4iv              C.uintptr_t
+	gpUniformMatrix2fv        C.uintptr_t
+	gpUniformMatrix3fv        C.uintptr_t
+	gpUniformMatrix4fv        C.uintptr_t
+	gpUseProgram              C.uintptr_t
+	gpVertexAttribPointer     C.uintptr_t
+	gpViewport                C.uintptr_t
 
 	isES bool
 }
@@ -630,14 +598,6 @@ func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 	return uint32(ret)
 }
 
-func (c *defaultContext) Clear(mask uint32) {
-	C.glowClear(c.gpClear, C.GLbitfield(mask))
-}
-
-func (c *defaultContext) ColorMask(red bool, green bool, blue bool, alpha bool) {
-	C.glowColorMask(c.gpColorMask, C.GLboolean(boolToInt(red)), C.GLboolean(boolToInt(green)), C.GLboolean(boolToInt(blue)), C.GLboolean(boolToInt(alpha)))
-}
-
 func (c *defaultContext) CompileShader(shader uint32) {
 	C.glowCompileShader(c.gpCompileShader, C.GLuint(shader))
 }
@@ -702,14 +662,6 @@ func (c *defaultContext) DeleteTexture(texture uint32) {
 
 func (c *defaultContext) DeleteVertexArray(array uint32) {
 	C.glowDeleteVertexArrays(c.gpDeleteVertexArrays, 1, (*C.GLuint)(unsafe.Pointer(&array)))
-}
-
-func (c *defaultContext) Disable(cap uint32) {
-	C.glowDisable(c.gpDisable, C.GLenum(cap))
-}
-
-func (c *defaultContext) DisableVertexAttribArray(index uint32) {
-	C.glowDisableVertexAttribArray(c.gpDisableVertexAttribArray, C.GLuint(index))
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {
@@ -922,8 +874,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpBufferData = C.uintptr_t(g.get("glBufferData"))
 	c.gpBufferSubData = C.uintptr_t(g.get("glBufferSubData"))
 	c.gpCheckFramebufferStatus = C.uintptr_t(g.get("glCheckFramebufferStatus"))
-	c.gpClear = C.uintptr_t(g.get("glClear"))
-	c.gpColorMask = C.uintptr_t(g.get("glColorMask"))
 	c.gpCompileShader = C.uintptr_t(g.get("glCompileShader"))
 	c.gpCreateProgram = C.uintptr_t(g.get("glCreateProgram"))
 	c.gpCreateShader = C.uintptr_t(g.get("glCreateShader"))
@@ -933,8 +883,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteShader = C.uintptr_t(g.get("glDeleteShader"))
 	c.gpDeleteTextures = C.uintptr_t(g.get("glDeleteTextures"))
 	c.gpDeleteVertexArrays = C.uintptr_t(g.get("glDeleteVertexArrays"))
-	c.gpDisable = C.uintptr_t(g.get("glDisable"))
-	c.gpDisableVertexAttribArray = C.uintptr_t(g.get("glDisableVertexAttribArray"))
 	c.gpDrawElements = C.uintptr_t(g.get("glDrawElements"))
 	c.gpEnable = C.uintptr_t(g.get("glEnable"))
 	c.gpEnableVertexAttribArray = C.uintptr_t(g.get("glEnableVertexAttribArray"))

@@ -116,6 +116,23 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Foo(x float) float {
+	return x
+}
+
+func Foo(x vec2) vec2 {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
 }
 
 func TestSyntaxNoNewVariables(t *testing.T) {
@@ -2446,13 +2463,31 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 `)); err != nil {
 		t.Error(err)
 	}
-	// discard without return doesn't work so far.
-	// TODO: Allow discard without return.
 	if _, err := compileToIR([]byte(`package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	discard()
 	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	discard()
+}
+`)); err != nil {
+		t.Error(err)
+	}
+	if _, err := compileToIR([]byte(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	if dstPos.x > 0 {
+		discard()
+	} else {
+		return vec4(0)
+	}
 }
 `)); err != nil {
 		t.Error(err)
@@ -3565,30 +3600,42 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 }
 
-func TestSyntaxTypeRedeclaration(t *testing.T) {
+func TestSyntaxTypeDeclaration(t *testing.T) {
 	cases := []struct {
-		stmt string
-		err  bool
+		decls string
+		stmt  string
 	}{
-		{stmt: "type Foo int; type Foo int", err: true},
-		{stmt: "type Foo int; type Foo float", err: true},
-		{stmt: "type Foo int; { type Foo int }", err: false},
-		{stmt: "type Foo int; type Bar int", err: false},
+		{
+			decls: "type T float",
+		},
+		{
+			decls: "type (\n\tT float\n\tU int\n)",
+		},
+		{
+			decls: "type T = float",
+		},
+		{
+			stmt: "type T float",
+		},
+		{
+			stmt: "{ type T int }",
+		},
+		{
+			stmt: "type _ int",
+		},
 	}
 
 	for _, c := range cases {
-		stmt := c.stmt
 		src := fmt.Sprintf(`package main
+
+%s
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, stmt)
-		_, err := compileToIR([]byte(src))
-		if err == nil && c.err {
-			t.Errorf("%s must return an error but does not", stmt)
-		} else if err != nil && !c.err {
-			t.Errorf("%s must not return nil but returned %v", stmt, err)
+}`, c.decls, c.stmt)
+		if _, err := compileToIR([]byte(src)); err == nil {
+			t.Errorf("%s must return an error but does not", src)
 		}
 	}
 }
@@ -3747,7 +3794,7 @@ func TestSyntaxIntConstantRange(t *testing.T) {
 		{stmt: "a := vec2(1 << 40); _ = a", err: false},
 		{stmt: "a := 1.0 * 1099511627776; _ = a", err: false},
 		{stmt: "var a float; b := a + 2147483648; _ = b", err: false},
-		{stmt: "var a [2147483647]int; _ = a", err: false},
+		{stmt: "var a [4096]int; _ = a", err: false},
 	}
 
 	for _, c := range cases {
@@ -5594,6 +5641,1816 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			t.Errorf("%s with %d textures must return an error but does not", c.expr, c.textureCount)
 		} else if err != nil && !c.err {
 			t.Errorf("%s with %d textures must not return an error but returned %v", c.expr, c.textureCount, err)
+		}
+	}
+}
+
+func TestSyntaxDivisionByConstantZero(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "x := 1.0; y := x / 0.0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; y := x / 0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; y := x % 0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; y := x / (1.0 - 1.0); _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := vec2(1); y := x / 0.0; _ = y",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; x /= 0.0",
+			err:  true,
+		},
+		{
+			stmt: "x := 1; x %= 0",
+			err:  true,
+		},
+		{
+			stmt: "x := 1.0; y := x / 2.0; _ = y",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; y := x % 2; _ = y",
+			err:  false,
+		},
+		{
+			stmt: "x := 1.0; z := 0.0; y := x / z; _ = y",
+			err:  false,
+		},
+		{
+			stmt: "x := 1.0; x /= 2.0",
+			err:  false,
+		},
+		{
+			stmt: "x := 1; x %= 2",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxAssignToNonVariable(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := 1.0
+	abs = x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := 1.0
+	f = x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f += 1.0
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f(1.0) = 2.0
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f(1.0) += 2.0
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := vec2(1)
+	vec2(1) = x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := vec2(1)
+	vec2(1) += x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	__t0 = __t1
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	__t0 += __t1
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := f(1.0)
+	x = f(2.0)
+	x += f(3.0)
+	v := vec2(1)
+	v = vec2(2)
+	v += vec2(3)
+	return vec4(v, x, 1)
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return __texelAt(__t0, src0Pos) + __texelAt(__t1, src0Pos)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 2)
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+func TestSyntaxAssignToDuplicatedSwizzling(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "v := vec4(0); v.xx = vec2(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xyx += vec3(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xx++; _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := ivec4(0); v.rgr = ivec3(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "x := vec3(0); x.xxx.xy = vec2(1); _ = x",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.yy = vec2(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xx.x = 1; _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xy = vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.yx = vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.yx += vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.x = 1; _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.zw += vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.w++; _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); w := v.xx; _ = w",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); w := vec3(0); w = v.xyx; _ = w",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); w := vec3(0); w += v.xyx; _ = w",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxOperatorAssignValueCount(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "a, b := 1, 2; a, b += 1; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a := 1; a += 1, 2; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a, b := 1, 2; a, b += 1, 2; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a, b := 1, 2; a += 1; b += a; _, _ = a, b",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxOperatorAssignBool(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "b := true; c := false; b += c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b -= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b *= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b /= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b &= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "b := true; c := false; b |= c; _ = b",
+			err:  true,
+		},
+		{
+			stmt: "var a, b [2]float; a += b; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a := 1; b := 2; a += b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; b := 2.0; a *= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := vec2(1); b := vec2(2); a -= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := ivec2(1); b := ivec2(2); a &= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "a := mat2(1); b := mat2(2); a *= b; _ = a",
+			err:  false,
+		},
+		{
+			stmt: "b := true; c := false; b = b && c; _ = b",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxReturnVoidCall(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() float {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f())
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() (x float) {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f())
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() (float, float) {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := f()
+	return vec4(a + b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f() {
+	return g()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f()
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f() {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f()
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() {
+}
+
+func f(x float) float {
+	if x > 0 {
+		return g()
+	}
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(dstPos.x))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func h() (float, float) {
+	return 1, 2
+}
+
+func f() float {
+	return h()
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f())
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func g() float {
+	return 1
+}
+
+func h() (float, float) {
+	return 1, 2
+}
+
+func f() float {
+	return g()
+}
+
+func f2() (float, float) {
+	return h()
+}
+
+func f3() (x float) {
+	x = g()
+	return
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := f2()
+	return vec4(f() + a + b + f3())
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+func TestSyntaxBranchOutsideLoop(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "break",
+			err:  true,
+		},
+		{
+			stmt: "continue",
+			err:  true,
+		},
+		{
+			stmt: "if dstPos.x > 0 { break }",
+			err:  true,
+		},
+		{
+			stmt: "if dstPos.x > 0 { continue }",
+			err:  true,
+		},
+		{
+			stmt: "{ break }",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { }; break",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { break }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { continue }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { if i == 1 { break } }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { { if i == 1 { continue } } }",
+			err:  false,
+		},
+		{
+			stmt: "for i := range 2 { if i == 1 { break }; continue }",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxLabel(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { continue outer } }",
+			err:  true,
+		},
+		{
+			stmt: "for i := range 2 { if i == 1 { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "break outer",
+			err:  true,
+		},
+		{
+			stmt: "continue outer",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { continue outer } }",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := range 2 { if i == 1 { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := 0; i < 2; i++ { break }",
+			err:  true,
+		},
+		{
+			stmt: "outer: { }",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { break } }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { continue } }",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxReturnOnEveryPath(t *testing.T) {
+	cases := []struct {
+		fn  string
+		err bool
+	}{
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else if x < 0 {
+		return -1
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	for i := 0; i < 4; i++ {
+		return 1
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else {
+		return 0
+	}
+	x = 1
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) (y float) {
+	if x > 0 {
+		y = 1
+		return
+	}
+}`,
+			err: true,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else {
+		return 0
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	if x > 0 {
+		return 1
+	} else if x < 0 {
+		return -1
+	} else {
+		return 0
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	if y := x; y > 0 {
+		return 1
+	} else {
+		return 0
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	{
+		return x
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) (y float) {
+	if x > 0 {
+		y = 1
+		return
+	} else {
+		return
+	}
+}`,
+			err: false,
+		},
+		{
+			fn: `func f(x float) float {
+	for i := 0; i < 2; i++ {
+		if x > 0 {
+			return 1
+		}
+	}
+	return 0
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(dstPos.x))
+}`, c.fn)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.fn)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.fn, err)
+		}
+	}
+}
+
+func TestSyntaxDuplicatedEntryPoints(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(1)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Vertex(dstPos vec2, src0Pos vec2, color vec4) (vec4, vec2, vec4) {
+	return vec4(dstPos, 0, 1), src0Pos, color
+}
+
+func Vertex(dstPos vec2, src0Pos vec2, color vec4) (vec4, vec2, vec4) {
+	return vec4(dstPos, 0, 1), src0Pos, color
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Vertex(dstPos vec2, src0Pos vec2, color vec4) (vec4, vec2, vec4) {
+	return vec4(dstPos, 0, 1), src0Pos, color
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+func TestSyntaxUnnamedParams(t *testing.T) {
+	named, err := compileToIR([]byte(`package main
+
+func Vertex(dstPos vec2, src0Pos vec2, color vec4) (vec4, vec2, vec4) {
+	return vec4(dstPos, 0, 1), src0Pos, color
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	unnamed, err := compileToIR([]byte(`package main
+
+func Vertex(vec2, vec2, vec4) (vec4, vec2, vec4) {
+	return vec4(0), vec2(0), vec4(0)
+}
+
+func Fragment(vec4, vec2, vec4) vec4 {
+	return vec4(0)
+}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := len(unnamed.Attributes), len(named.Attributes); got != want {
+		t.Errorf("len(Attributes): got: %d, want: %d", got, want)
+	} else {
+		for i := range named.Attributes {
+			if got, want := unnamed.Attributes[i], named.Attributes[i]; !got.Equal(&want) {
+				t.Errorf("Attributes[%d]: got: %s, want: %s", i, got.String(), want.String())
+			}
+		}
+	}
+	if got, want := len(unnamed.Varyings), len(named.Varyings); got != want {
+		t.Errorf("len(Varyings): got: %d, want: %d", got, want)
+	} else {
+		for i := range named.Varyings {
+			if got, want := unnamed.Varyings[i], named.Varyings[i]; !got.Equal(&want) {
+				t.Errorf("Varyings[%d]: got: %s, want: %s", i, got.String(), want.String())
+			}
+		}
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func f(float, vec2) float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1, src0Pos))
+}`)); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSyntaxDuplicatedParamNames(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func f(x float) (x float) {
+	return
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float, x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1, 2))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) (y float, y float) {
+	return
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := f(1)
+	return vec4(a + b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Vertex(dstPos vec2, src0Pos vec2, color vec4) (dstPos vec4, src0Pos vec2, color vec4) {
+	return vec4(dstPos, 0, 1), src0Pos, color
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) (y float) {
+	y = x
+	return
+}
+
+func g(_ float, _ float) (_ float, _ float) {
+	return 1, 2
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := g(1, 2)
+	return vec4(f(1) + a + b)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+// Issue #3536
+func TestSyntaxRecursiveCall(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func f(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return g(x)
+}
+
+func g(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return g(x)
+}
+
+func g(x float) float {
+	return h(x)
+}
+
+func h(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	if x > 0 {
+		return f(x - 1)
+	}
+	return 0
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) {
+	f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func h(x float) float {
+	return x
+}
+
+func g(x float) float {
+	return h(x) + h(x)
+}
+
+func f(x float) float {
+	return g(x) + h(x)
+}
+
+func k(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(k(1) + f(2))
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+func TestSyntaxConstTypeFromValue(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "const c = int(1); var f float = c; _ = f",
+			err:  true,
+		},
+		{
+			stmt: "const c = float(1); var i int = c; _ = i",
+			err:  true,
+		},
+		{
+			stmt: "const c = int(1); _ = 1.5 + c",
+			err:  true,
+		},
+		{
+			stmt: "const c = int(1); var i int = c; _ = i",
+			err:  false,
+		},
+		{
+			stmt: "const c = float(1); var f float = c; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const c = 1; var f float = c; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const c = 1 << 2; var f float = c; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const a, b = int(1), 2.5; var f float = b; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const c = true; var b bool = c; _ = b",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxDuplicatedConstNames(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const b, b = 1, 2
+	return vec4(b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const a, b, a float = 1, 2, 3
+	return vec4(a, b, 0, 0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+const b, b = 1, 2
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const a, b = 1, 2
+	const _, _ = 3, 4
+	return vec4(a, b, 0, 0)
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+const a, b = 1, 2
+const _, _ = 3, 4
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(a, b, 0, 0)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+func TestSyntaxDuplicatedBlankNames(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const _ = 1
+	const _ = 2
+	return dstPos
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var _, _ float
+	var _ = 1.0
+	return dstPos
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func f() (float, float) {
+	return 1, 2
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var _, _ = f()
+	return dstPos
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const _ = 1
+	var _ float
+	const _ = 2
+	return dstPos
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+const (
+	_ = 1
+	_ = 2
+)
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func _() {
+}
+
+func _() {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func _() {
+}
+
+func _() float {
+	return true
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const b = 1
+	var b float
+	return vec4(b)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var b float
+	const b = 1
+	return vec4(b)
+}`,
+			err: true,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+func TestSyntaxForNonConstantInitialValue(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := dstPos.x
+	for i := x; i < 4; i++ {
+		_ = i
+	}
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := 1.0
+	for i := x; i < 4; i++ {
+		_ = i
+	}
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := int(dstPos.x)
+	for i := x; i < 4; i++ {
+		_ = i
+	}
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := 1
+	for i := x; i < 4; i++ {
+		_ = i
+	}
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	const x = 1
+	for i := x; i < 4; i++ {
+		_ = i
+	}
+	return vec4(0)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
+
+func TestSyntaxDuplicatedPackageLevelNames(t *testing.T) {
+	cases := []struct {
+		decls string
+		err   bool
+	}{
+		{
+			decls: "var A float\nconst A = 1",
+			err:   true,
+		},
+		{
+			decls: "const A = 1\nfunc A() {}",
+			err:   true,
+		},
+		{
+			decls: "func A() {}\nconst A = 1",
+			err:   true,
+		},
+		{
+			decls: "var A float\nfunc A() {}",
+			err:   true,
+		},
+		{
+			decls: "type A float\nconst A = 1",
+			err:   true,
+		},
+		{
+			decls: "const A = 1\ntype A float",
+			err:   true,
+		},
+		{
+			decls: "type A float\nvar A float",
+			err:   true,
+		},
+		{
+			decls: "var A float\ntype A float",
+			err:   true,
+		},
+		{
+			decls: "type A float\nfunc A() {}",
+			err:   true,
+		},
+		{
+			decls: "const Fragment = 1",
+			err:   true,
+		},
+		{
+			decls: "const A = 1\nvar B float\nfunc C() {}",
+			err:   false,
+		},
+		{
+			decls: "const _ = 1\nconst _ = 2",
+			err:   false,
+		},
+		{
+			decls: "const A = 1\nfunc f(A float) float {\n\tvar B = A\n\treturn B\n}\nvar B float",
+			err:   false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`, c.decls)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.decls)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.decls, err)
+		}
+	}
+}
+
+func TestSyntaxDuplicatedLocalNames(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "type T float; var T float; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "var T float; type T float; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "type T float; const T = 1",
+			err:  true,
+		},
+		{
+			stmt: "const T = 1; type T float",
+			err:  true,
+		},
+		{
+			stmt: "type T float; T := 1.0; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "T := 1.0; type T float; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "type T float; a, T := f(); _, _ = a, T",
+			err:  true,
+		},
+		{
+			stmt: "const c = 1; c := 2.0; _ = c",
+			err:  true,
+		},
+		{
+			stmt: "const c = 1; a, c := f(); _, _ = a, c",
+			err:  true,
+		},
+		{
+			stmt: "type color float",
+			err:  true,
+		},
+		{
+			stmt: "const c = 1; { c := 2.0; _ = c }",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func f() (float, float) {
+	return 1, 2
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxMethod(t *testing.T) {
+	cases := []struct {
+		decls string
+		err   bool
+	}{
+		{
+			decls: "type T float\n\nfunc (t T) M() float {\n\treturn 1\n}",
+			err:   true,
+		},
+		{
+			decls: "type T float\n\nfunc (T) M() {}",
+			err:   true,
+		},
+		{
+			decls: "func (x float) M() float {\n\treturn 1\n}",
+			err:   true,
+		},
+		{
+			decls: "func (vec2) M() {}\n\nfunc g() {\n\tM()\n}",
+			err:   true,
+		},
+		{
+			decls: "func M() float {\n\treturn 1\n}",
+			err:   false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`, c.decls)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.decls)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.decls, err)
+		}
+	}
+}
+
+func TestSyntaxShortVarRedeclaration(t *testing.T) {
+	cases := []struct {
+		decls string
+		stmt  string
+		err   bool
+	}{
+		{
+			stmt: "a := 1.0; _ = a; a, b := 2.0, 3.0; _, _ = a, b",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; _ = a; b, a := f(); _, _ = a, b",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; _ = a; a, b := 2, 3.0; _, _ = a, b",
+			err:  false,
+		},
+		{
+			stmt: "a := 1; _ = a; a, b := 1.5, 2.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a := 1; x := 2.0; _ = a; a, b := x, 3.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; a := 2.0; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a, b := 1.0, 2.0; _, _ = a, b; a, b := 3.0, 4.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a, a := 1.0, 2.0; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; a, a, b := 2.0, 3.0, 4.0; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "const c = 1; c, d := 2.0, 3.0; _, _ = c, d",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; { a, b := 2.0, 3.0; _, _ = a, b }",
+			err:  false,
+		},
+		{
+			stmt: "_, _ := 1.0, 2.0",
+			err:  true,
+		},
+		{
+			stmt: "a := 1.0; _ = a; _, a := 2.0, 3.0; _ = a",
+			err:  true,
+		},
+		{
+			decls: "func g(x float) float {\n\tx, y := 2.0, 3.0\n\treturn x + y\n}",
+			stmt:  "_ = g(1)",
+			err:   false,
+		},
+		{
+			decls: "func g() (r float) {\n\tr, y := 2.0, 3.0\n\t_ = y\n\treturn\n}",
+			stmt:  "_ = g()",
+			err:   false,
+		},
+		{
+			stmt: "a := 1.0; b := 2.0; a, b, c := b, a, 3.0; _, _, _ = a, b, c",
+			err:  false,
+		},
+		{
+			stmt: "a := 1.0; a, b := 2.0, 3.0; _ = b",
+			err:  true,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func f() (float, float) {
+	return 1, 2
+}
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.decls, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
+func TestSyntaxShortVarDeclRHSScope(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "x, y := 2.0, x; _, _ = x, y",
+			err:  true,
+		},
+		{
+			stmt: "x, y := 2.0, y; _, _ = x, y",
+			err:  true,
+		},
+		{
+			stmt: "x := 5.0; _ = x; { x, y := 1.0, x; _, _ = x, y }",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
 		}
 	}
 }

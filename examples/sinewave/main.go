@@ -16,6 +16,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"math"
 
@@ -41,6 +42,10 @@ type stream struct {
 // Read fills the data with sine wave samples.
 func (s *stream) Read(buf []byte) (int, error) {
 	const bytesPerSample = 8
+
+	if len(buf) > 0 && len(buf) < bytesPerSample {
+		return 0, io.ErrShortBuffer
+	}
 
 	n := len(buf) / bytesPerSample * bytesPerSample
 

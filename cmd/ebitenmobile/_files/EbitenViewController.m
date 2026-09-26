@@ -394,6 +394,8 @@
     explicitRendering_ = explicitRendering;
     if (explicitRendering_) {
       [displayLink_ setPaused:YES];
+    } else {
+      [displayLink_ setPaused:NO];
     }
   }
 }

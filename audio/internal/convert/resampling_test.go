@@ -1017,6 +1017,41 @@ func TestResamplingPartialReadThenSourceErrorThenRetry(t *testing.T) {
 	}
 }
 
+func TestResamplingSeekCurrentKeepsEOFBeyondUnknownEnd(t *testing.T) {
+	for _, bitDepthInBytes := range []int{2, 4} {
+		t.Run(fmt.Sprintf("bitDepthInBytes=%d", bitDepthInBytes), func(t *testing.T) {
+			inB := newSoundBytesForFrames(44100, 1000, bitDepthInBytes)
+			src := &seekCountingReader{
+				r: bytes.NewReader(inB),
+			}
+			r := convert.NewResampling(src, -1, 44100, 48000, bitDepthInBytes)
+
+			target := int64(1<<20) * int64(bitDepthInBytes*2)
+			if _, err := r.Seek(target, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if n, err := r.Read(make([]byte, 64)); n != 0 || !errors.Is(err, io.EOF) {
+				t.Fatalf("Read beyond the end: got (%d, %v), want (0, %v)", n, err, io.EOF)
+			}
+
+			seeks := src.seeks
+			pos, err := r.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if pos != target {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, target)
+			}
+			if n, err := r.Read(make([]byte, 64)); n != 0 || !errors.Is(err, io.EOF) {
+				t.Errorf("Read after Seek(0, io.SeekCurrent): got (%d, %v), want (0, %v)", n, err, io.EOF)
+			}
+			if src.seeks != seeks {
+				t.Errorf("Seek(0, io.SeekCurrent) and the Read after it sought the source %d times, want 0", src.seeks-seeks)
+			}
+		})
+	}
+}
+
 func readAllInChunksLimited(t *testing.T, r io.Reader, chunkSizeInBytes int, limitInBytes int) []byte {
 	t.Helper()
 

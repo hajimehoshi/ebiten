@@ -71,6 +71,7 @@ func onlyControlID(t *testing.T, c *vmaudio.Context) int64 {
 func TestControlReportsCreationAndChanges(t *testing.T) {
 	c := newContext(t, 48000)
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+	defer runtime.KeepAlive(p)
 
 	// A new player is reported once, not playing, at full volume.
 	controls := c.TakeControlChangesForTesting(nil)
@@ -101,6 +102,7 @@ func TestControlReportsCreationAndChanges(t *testing.T) {
 func TestCloseRemovesPlayerAndReportsRemoval(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -134,6 +136,7 @@ func TestReadStreamsSamples(t *testing.T) {
 	c := newContext(t, 8)
 	// 8 components = 4 stereo frames = 32 bytes.
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -162,6 +165,7 @@ func TestAbandonedPlayerIsReclaimed(t *testing.T) {
 	// Create and play a player, then drop every reference to it (it stays in a sub-scope).
 	id := func() int64 {
 		p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+		defer runtime.KeepAlive(p)
 		p.Play()
 		return onlyControlID(t, c) // consumes the creation control; p falls out of scope here
 	}()
@@ -188,6 +192,7 @@ func TestAbandonedPlayerIsReclaimed(t *testing.T) {
 func TestEOFKeepsPlayerAndAllowsReplay(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -224,7 +229,9 @@ func TestEOFKeepsPlayerAndAllowsReplay(t *testing.T) {
 func TestPlayersAreNotMixed(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(1, 1, 1, 1)))
+	defer runtime.KeepAlive(p)
 	q := c.NewPlayer(bytes.NewReader(pcmBytes(2, 2, 2, 2)))
+	defer runtime.KeepAlive(q)
 	q.SetVolume(0.25)
 	p.Play()
 	q.Play()
@@ -252,6 +259,7 @@ func TestPlayersAreNotMixed(t *testing.T) {
 func TestPausedReadsNothing(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+	defer runtime.KeepAlive(p)
 	id := onlyControlID(t, c)
 
 	// Not playing: a read yields no samples and is not finished.
@@ -280,6 +288,7 @@ func TestPauseAndStopReadingStopsReadingSource(t *testing.T) {
 	c := newContext(t, 8)
 	src := &countingReader{r: bytes.NewReader(pcmBytes(ramp(1, 8)...))}
 	p := c.NewPlayer(src)
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -316,6 +325,7 @@ func TestPauseAndStopReadingStopsReadingSource(t *testing.T) {
 func TestSuspendDoesNotConsume(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -338,6 +348,7 @@ func TestSuspendDoesNotConsume(t *testing.T) {
 func TestSeek(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(bytes.NewReader(pcmBytes(ramp(1, 8)...)))
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -371,6 +382,7 @@ func (r *chunkReader) Read(p []byte) (int, error) {
 func TestUnalignedReads(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(&chunkReader{data: pcmBytes(ramp(1, 8)...), chunk: 5})
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -403,6 +415,7 @@ func TestStallingSource(t *testing.T) {
 	c := newContext(t, 8)
 	// Two frames are available; the player keeps playing rather than finishing.
 	p := c.NewPlayer(&stallReader{data: pcmBytes(1, 2, 3, 4)})
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -432,6 +445,7 @@ func TestFailingSource(t *testing.T) {
 	c := newContext(t, 8)
 	wantErr := errors.New("source failed")
 	p := c.NewPlayer(&failReader{err: wantErr})
+	defer runtime.KeepAlive(p)
 	p.Play()
 	id := onlyControlID(t, c)
 
@@ -453,5 +467,11 @@ func TestFailingSource(t *testing.T) {
 	}
 	if err := p.Err(); !errors.Is(err, wantErr) {
 		t.Errorf("Err() after Seek = %v; want %v", err, wantErr)
+	}
+
+	// The host is told exactly once that the player stopped: neither the failure nor the seek makes it
+	// report playing again.
+	if controls := c.TakeControlChangesForTesting(nil); len(controls) != 1 || controls[0].Playing {
+		t.Errorf("controls = %+v; want exactly one control, not playing", controls)
 	}
 }
