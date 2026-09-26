@@ -42,6 +42,7 @@ type constant struct {
 
 type function struct {
 	name string
+	pos  token.Pos
 
 	ir shaderir.Func
 }
@@ -405,6 +406,7 @@ func (cs *compileState) parse(f *ast.File) {
 		}
 		cs.funcs = append(cs.funcs, function{
 			name: n,
+			pos:  d.Pos(),
 			ir: shaderir.Func{
 				Index:     len(cs.funcs),
 				InParams:  inT,
@@ -475,9 +477,80 @@ func (cs *compileState) parse(f *ast.File) {
 		return
 	}
 
+	cs.checkRecursiveCalls()
+	if len(cs.errs) > 0 {
+		return
+	}
+
 	for _, f := range cs.funcs {
 		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
 	}
+}
+
+// checkRecursiveCalls adds an error for each function that calls itself directly or indirectly (#3536).
+func (cs *compileState) checkRecursiveCalls() {
+	callees := make([][]int, len(cs.funcs))
+	for i, f := range cs.funcs {
+		callees[i] = calledFunctionIndices(f.ir.Block)
+	}
+	for i, f := range cs.funcs {
+		if callsFunction(callees, i, i) {
+			cs.addError(f.pos, fmt.Sprintf("function %s must not be called recursively", f.name))
+		}
+	}
+}
+
+// callsFunction reports whether the function at index from calls the function at index to directly or indirectly.
+// callees[i] holds the indices of the functions that the function at index i calls.
+func callsFunction(callees [][]int, from, to int) bool {
+	visited := make([]bool, len(callees))
+	stack := slices.Clone(callees[from])
+	for len(stack) > 0 {
+		i := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if i == to {
+			return true
+		}
+		if visited[i] {
+			continue
+		}
+		visited[i] = true
+		stack = append(stack, callees[i]...)
+	}
+	return false
+}
+
+// calledFunctionIndices returns the indices of the user-defined functions called in the block, without duplicates.
+func calledFunctionIndices(b *shaderir.Block) []int {
+	seen := map[int]struct{}{}
+	var indices []int
+	var walkExprs func(exprs []shaderir.Expr)
+	walkExprs = func(exprs []shaderir.Expr) {
+		for i := range exprs {
+			e := &exprs[i]
+			if e.Type == shaderir.FunctionExpr {
+				if _, ok := seen[e.Index]; !ok {
+					seen[e.Index] = struct{}{}
+					indices = append(indices, e.Index)
+				}
+			}
+			walkExprs(e.Exprs)
+		}
+	}
+	var walkBlock func(b *shaderir.Block)
+	walkBlock = func(b *shaderir.Block) {
+		if b == nil {
+			return
+		}
+		for i := range b.Stmts {
+			walkExprs(b.Stmts[i].Exprs)
+			for _, bb := range b.Stmts[i].Blocks {
+				walkBlock(bb)
+			}
+		}
+	}
+	walkBlock(b)
+	return indices
 }
 
 func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderir.Stmt, bool) {
@@ -1003,6 +1076,7 @@ func (cs *compileState) parseFunc(block *block, d *ast.FuncDecl) (function, bool
 
 	return function{
 		name: d.Name.Name,
+		pos:  d.Pos(),
 		ir: shaderir.Func{
 			InParams:  inT,
 			OutParams: outT,

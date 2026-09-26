@@ -6586,3 +6586,120 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+// Issue #3536
+func TestSyntaxRecursiveCall(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func f(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return g(x)
+}
+
+func g(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return g(x)
+}
+
+func g(x float) float {
+	return h(x)
+}
+
+func h(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	if x > 0 {
+		return f(x - 1)
+	}
+	return 0
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1))
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) {
+	f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func h(x float) float {
+	return x
+}
+
+func g(x float) float {
+	return h(x) + h(x)
+}
+
+func f(x float) float {
+	return g(x) + h(x)
+}
+
+func k(x float) float {
+	return f(x)
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(k(1) + f(2))
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := compileToIR([]byte(c.src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
