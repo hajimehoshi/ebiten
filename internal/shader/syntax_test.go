@@ -6443,3 +6443,62 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxUnnamedParams(t *testing.T) {
+	named, err := compileToIR([]byte(`package main
+
+func Vertex(dstPos vec2, src0Pos vec2, color vec4) (vec4, vec2, vec4) {
+	return vec4(dstPos, 0, 1), src0Pos, color
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	unnamed, err := compileToIR([]byte(`package main
+
+func Vertex(vec2, vec2, vec4) (vec4, vec2, vec4) {
+	return vec4(0), vec2(0), vec4(0)
+}
+
+func Fragment(vec4, vec2, vec4) vec4 {
+	return vec4(0)
+}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if got, want := len(unnamed.Attributes), len(named.Attributes); got != want {
+		t.Errorf("len(Attributes): got: %d, want: %d", got, want)
+	} else {
+		for i := range named.Attributes {
+			if got, want := unnamed.Attributes[i], named.Attributes[i]; !got.Equal(&want) {
+				t.Errorf("Attributes[%d]: got: %s, want: %s", i, got.String(), want.String())
+			}
+		}
+	}
+	if got, want := len(unnamed.Varyings), len(named.Varyings); got != want {
+		t.Errorf("len(Varyings): got: %d, want: %d", got, want)
+	} else {
+		for i := range named.Varyings {
+			if got, want := unnamed.Varyings[i], named.Varyings[i]; !got.Equal(&want) {
+				t.Errorf("Varyings[%d]: got: %s, want: %s", i, got.String(), want.String())
+			}
+		}
+	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func f(float, vec2) float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(f(1, src0Pos))
+}`)); err != nil {
+		t.Error(err)
+	}
+}

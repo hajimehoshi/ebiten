@@ -871,6 +871,14 @@ func (cs *compileState) parseFuncParams(block *block, fname string, d *ast.FuncD
 		if !ok {
 			return
 		}
+		if len(f.Names) == 0 {
+			// An unnamed parameter cannot be referred to, just like a blank identifier.
+			in = append(in, variable{
+				name: "_",
+				typ:  t,
+			})
+			continue
+		}
 		for _, n := range f.Names {
 			in = append(in, variable{
 				name: n.Name,
