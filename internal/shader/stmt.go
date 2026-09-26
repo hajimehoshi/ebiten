@@ -637,12 +637,6 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 							return nil, false
 						}
 					}
-					for _, t := range block.types {
-						if t.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-							return nil, false
-						}
-					}
 				}
 				ts, ok := cs.functionReturnTypes(block, rhs[i])
 				if !ok {
@@ -779,12 +773,6 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					for _, c := range block.consts {
 						if c.name == name {
 							cs.addError(e.Pos(), fmt.Sprintf("duplicated constant/variable name: %s", name))
-							return nil, false
-						}
-					}
-					for _, t := range block.types {
-						if t.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 							return nil, false
 						}
 					}

@@ -93,13 +93,7 @@ func (cs *compileState) findUniformVariable(name string) (int, bool) {
 	return 0, false
 }
 
-type typ struct {
-	name string
-	ir   shaderir.Type
-}
-
 type block struct {
-	types      []typ
 	vars       []variable
 	unusedVars map[int]token.Pos
 	consts     []constant
@@ -896,12 +890,6 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					return nil, nil, nil, false
 				}
 			}
-			for _, t := range block.types {
-				if t.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
-					return nil, nil, nil, false
-				}
-			}
 		}
 		vars = append(vars, variable{
 			name: name,
@@ -944,12 +932,6 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			for _, v := range block.vars {
 				if v.name == name {
 					s.addError(n.Pos(), fmt.Sprintf("duplicated constant/variable name: %s", name))
-					return nil, false
-				}
-			}
-			for _, t := range block.types {
-				if t.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 					return nil, false
 				}
 			}
