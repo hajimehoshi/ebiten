@@ -5899,3 +5899,42 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxOperatorAssignValueCount(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "a, b := 1, 2; a, b += 1; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a := 1; a += 1, 2; _ = a",
+			err:  true,
+		},
+		{
+			stmt: "a, b := 1, 2; a, b += 1, 2; _, _ = a, b",
+			err:  true,
+		},
+		{
+			stmt: "a, b := 1, 2; a += 1; b += a; _, _ = a, b",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

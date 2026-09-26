@@ -61,6 +61,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 		case token.ADD_ASSIGN, token.SUB_ASSIGN, token.MUL_ASSIGN, token.QUO_ASSIGN, token.REM_ASSIGN, token.AND_ASSIGN, token.OR_ASSIGN, token.XOR_ASSIGN, token.AND_NOT_ASSIGN, token.SHL_ASSIGN, token.SHR_ASSIGN:
+			if len(stmt.Lhs) != 1 || len(stmt.Rhs) != 1 {
+				cs.addError(stmt.Pos(), "single-value context and multiple-value context cannot be mixed")
+				return nil, false
+			}
+
 			rhs, rts, ss, ok := cs.parseExpr(block, fname, stmt.Rhs[0], true)
 			if !ok {
 				return nil, false
