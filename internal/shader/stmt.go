@@ -511,6 +511,10 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 	case *ast.BranchStmt:
 		switch stmt.Tok {
 		case token.BREAK:
+			if stmt.Label != nil {
+				cs.addError(stmt.Pos(), "break with a label is not supported")
+				return nil, false
+			}
 			if !block.inLoop() {
 				cs.addError(stmt.Pos(), "break is not in a loop")
 				return nil, false
@@ -519,6 +523,10 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				Type: shaderir.Break,
 			})
 		case token.CONTINUE:
+			if stmt.Label != nil {
+				cs.addError(stmt.Pos(), "continue with a label is not supported")
+				return nil, false
+			}
 			if !block.inLoop() {
 				cs.addError(stmt.Pos(), "continue is not in a loop")
 				return nil, false
@@ -530,6 +538,10 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), fmt.Sprintf("invalid token: %s", stmt.Tok))
 			return nil, false
 		}
+
+	case *ast.LabeledStmt:
+		cs.addError(stmt.Pos(), "labeled statement is not supported")
+		return nil, false
 
 	case *ast.ExprStmt:
 		if _, ok := stmt.X.(*ast.CallExpr); !ok {

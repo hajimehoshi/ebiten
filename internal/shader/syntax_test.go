@@ -6255,6 +6255,77 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestSyntaxLabel(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { continue outer } }",
+			err:  true,
+		},
+		{
+			stmt: "for i := range 2 { if i == 1 { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "break outer",
+			err:  true,
+		},
+		{
+			stmt: "continue outer",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { continue outer } }",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := range 2 { if i == 1 { break outer } }",
+			err:  true,
+		},
+		{
+			stmt: "outer: for i := 0; i < 2; i++ { break }",
+			err:  true,
+		},
+		{
+			stmt: "outer: { }",
+			err:  true,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { break } }",
+			err:  false,
+		},
+		{
+			stmt: "for i := 0; i < 2; i++ { for j := 0; j < 2; j++ { continue } }",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
+
 func TestSyntaxReturnOnEveryPath(t *testing.T) {
 	cases := []struct {
 		fn  string
