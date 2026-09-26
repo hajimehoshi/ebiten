@@ -116,7 +116,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 		if !reEvent.MatchString(ent.Name()) {
 			continue
 		}
-		if err := g.openGamepad(gamepads, filepath.Join(dirName, ent.Name())); err != nil {
+		if err := g.openDevice(gamepads, filepath.Join(dirName, ent.Name())); err != nil {
 			return err
 		}
 	}
@@ -124,10 +124,19 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 	return nil
 }
 
-func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
-	if gamepads.find(func(gamepad *Gamepad) bool {
-		return gamepad.native.(*nativeGamepadImpl).path == path
-	}) != nil {
+// isOpen reports whether the node at path is already open as a gamepad or as the touch surface of a
+// gamepad.
+func (g *nativeGamepadsImpl) isOpen(gamepads *gamepads, path string) bool {
+	return gamepads.find(func(gamepad *Gamepad) bool {
+		n := gamepad.native.(*nativeGamepadImpl)
+		return n.path == path || (n.touch != nil && n.touch.path == path)
+	}) != nil
+}
+
+// openDevice opens the event node at path and, by what it is, adds it as a gamepad, attaches it as
+// the touch surface of its gamepad, or closes it again.
+func (g *nativeGamepadsImpl) openDevice(gamepads *gamepads, path string) error {
+	if g.isOpen(gamepads, path) {
 		return nil
 	}
 
@@ -161,41 +170,26 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 		}
 	}()
 
-	evBits := make([]byte, (unix.EV_CNT+7)/8)
-	keyBits := make([]byte, (_KEY_CNT+7)/8)
-	absBits := make([]byte, (_ABS_CNT+7)/8)
-	var id input_id
 	// The device can be removed between the open and the ioctls below. Such a
 	// device is skipped; the deferred Close releases the fd.
-	if err := ioctl(fd, _EVIOCGBIT(0, uint(len(evBits))), unsafe.Pointer(&evBits[0])); err != nil {
+	info, err := readEvdevInfo(fd)
+	if err != nil {
 		if isDisconnectError(err) {
 			return nil
 		}
-		return fmt.Errorf("gamepad: ioctl for evBits failed: %w", err)
+		return err
 	}
-	if err := ioctl(fd, _EVIOCGBIT(unix.EV_KEY, uint(len(keyBits))), unsafe.Pointer(&keyBits[0])); err != nil {
-		if isDisconnectError(err) {
-			return nil
-		}
-		return fmt.Errorf("gamepad: ioctl for keyBits failed: %w", err)
-	}
-	if err := ioctl(fd, _EVIOCGBIT(unix.EV_ABS, uint(len(absBits))), unsafe.Pointer(&absBits[0])); err != nil {
-		if isDisconnectError(err) {
-			return nil
-		}
-		return fmt.Errorf("gamepad: ioctl for absBits failed: %w", err)
-	}
-	if err := ioctl(fd, _EVIOCGID(), unsafe.Pointer(&id)); err != nil {
-		if isDisconnectError(err) {
-			return nil
-		}
-		return fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
-	}
-
-	if !isBitSet(evBits, unix.EV_ABS) {
+	if info.kind == evdevKindOther {
 		owned = false
 		return unix.Close(fd)
 	}
+	if info.kind == evdevKindTouchSurface {
+		if attachTouch(gamepads, fd, path, info) {
+			owned = false
+		}
+		return nil
+	}
+	id := info.id
 
 	cname := make([]byte, 256)
 	name := "Unknown"
@@ -222,7 +216,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	}
 
 	supportsRumble := false
-	if writable && isBitSet(evBits, unix.EV_FF) {
+	if writable && isBitSet(info.evBits, unix.EV_FF) {
 		ffBits := make([]byte, (_FF_CNT+7)/8)
 		if err := ioctl(fd, _EVIOCGBIT(unix.EV_FF, uint(len(ffBits))), unsafe.Pointer(&ffBits[0])); err == nil {
 			supportsRumble = isBitSet(ffBits, _FF_RUMBLE)
@@ -232,6 +226,8 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 	n := &nativeGamepadImpl{
 		path:           path,
 		fdPlus1:        fd + 1,
+		uniq:           info.uniq,
+		id:             id,
 		supportsRumble: supportsRumble,
 		effectID:       -1,
 	}
@@ -246,14 +242,14 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 		n.absMap[i] = -1
 	}
 	for code := _BTN_MISC; code < _KEY_CNT; code++ {
-		if !isBitSet(keyBits, code) {
+		if !isBitSet(info.keyBits, code) {
 			continue
 		}
 		n.keyMap[code-_BTN_MISC] = buttonCount
 		buttonCount++
 	}
 	for code := 0; code < _ABS_CNT; code++ {
-		if !isBitSet(absBits, code) {
+		if !isBitSet(info.absBits, code) {
 			continue
 		}
 		if code >= _ABS_HAT0X && code <= _ABS_HAT3Y {
@@ -262,7 +258,7 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 			// An even (X) code claims its Y neighbor so that both share one hat index,
 			// and the iteration for that claimed Y code is skipped. A lone odd (Y) code
 			// gets its own index and must not overwrite or skip the following code.
-			if code%2 == 1 && isBitSet(absBits, code-1) {
+			if code%2 == 1 && isBitSet(info.absBits, code-1) {
 				continue
 			}
 			n.absMap[code] = hatCount
@@ -302,7 +298,151 @@ func (*nativeGamepadsImpl) openGamepad(gamepads *gamepads, path string) error {
 		n.close()
 	}, n)
 
+	// The gamepad's touch surface node may have been seen, and closed, before the gamepad node.
+	if info.uniq != "" {
+		g.openTouchSurfaces(gamepads)
+	}
+
 	return nil
+}
+
+// openTouchSurfaces opens the event nodes that are touch surfaces of open gamepads without one.
+func (g *nativeGamepadsImpl) openTouchSurfaces(gamepads *gamepads) {
+	ents, err := os.ReadDir(dirName)
+	if err != nil {
+		return
+	}
+	for _, ent := range ents {
+		if ent.IsDir() || !reEvent.MatchString(ent.Name()) {
+			continue
+		}
+		g.openTouchSurface(gamepads, filepath.Join(dirName, ent.Name()))
+	}
+}
+
+// openTouchSurface opens the event node at path if it is the touch surface of an open gamepad
+// without one. A node that fails to open is ignored, as the gamepad works without it.
+func (g *nativeGamepadsImpl) openTouchSurface(gamepads *gamepads, path string) {
+	if g.isOpen(gamepads, path) {
+		return
+	}
+	fd, err := openDevice(path, unix.O_RDONLY|unix.O_NONBLOCK|unix.O_CLOEXEC)
+	if err != nil {
+		return
+	}
+	info, err := readEvdevInfo(fd)
+	if err != nil || info.kind != evdevKindTouchSurface || !attachTouch(gamepads, fd, path, info) {
+		_ = unix.Close(fd)
+	}
+}
+
+// attachTouch makes the opened touch surface node at fd the touch surface of the open gamepad of
+// the same controller, and reports whether it did. A touch surface is used only as the touch
+// surface of an open gamepad: one opened before its gamepad is not kept, and is opened again with
+// the gamepad. A node that fails to open is ignored, as the gamepad works without it. The caller
+// keeps ownership of fd if attachTouch returns false.
+func attachTouch(gamepads *gamepads, fd int, path string, info evdevInfo) bool {
+	if info.uniq == "" {
+		return false
+	}
+	gp := gamepads.find(func(gamepad *Gamepad) bool {
+		n := gamepad.native.(*nativeGamepadImpl)
+		return n.touch == nil && n.uniq == info.uniq && n.id.vendor == info.id.vendor && n.id.product == info.id.product
+	})
+	if gp == nil {
+		return false
+	}
+	t, err := newTouchNode(fd, path)
+	if err != nil {
+		return false
+	}
+	withNative(gp, func(n *nativeGamepadImpl) {
+		n.touch = t
+	})
+	return true
+}
+
+// evdevInfo is what an event node reports about itself.
+type evdevInfo struct {
+	evBits  []byte
+	keyBits []byte
+	absBits []byte
+	id      input_id
+	kind    evdevKind
+
+	// uniq is the controller's address on the kernel drivers of interest, which ties a touch
+	// surface node to its gamepad node. Many devices have none. It is read only for a node whose
+	// kind is not evdevKindOther.
+	uniq string
+}
+
+// readEvdevInfo reads the capabilities, the ID, and the uniq string of the opened event node at fd,
+// and classifies it.
+func readEvdevInfo(fd int) (evdevInfo, error) {
+	info := evdevInfo{
+		evBits:  make([]byte, (unix.EV_CNT+7)/8),
+		keyBits: make([]byte, (_KEY_CNT+7)/8),
+		absBits: make([]byte, (_ABS_CNT+7)/8),
+	}
+	if err := ioctl(fd, _EVIOCGBIT(0, uint(len(info.evBits))), unsafe.Pointer(&info.evBits[0])); err != nil {
+		return evdevInfo{}, fmt.Errorf("gamepad: ioctl for evBits failed: %w", err)
+	}
+	if err := ioctl(fd, _EVIOCGBIT(unix.EV_KEY, uint(len(info.keyBits))), unsafe.Pointer(&info.keyBits[0])); err != nil {
+		return evdevInfo{}, fmt.Errorf("gamepad: ioctl for keyBits failed: %w", err)
+	}
+	if err := ioctl(fd, _EVIOCGBIT(unix.EV_ABS, uint(len(info.absBits))), unsafe.Pointer(&info.absBits[0])); err != nil {
+		return evdevInfo{}, fmt.Errorf("gamepad: ioctl for absBits failed: %w", err)
+	}
+	if err := ioctl(fd, _EVIOCGID(), unsafe.Pointer(&info.id)); err != nil {
+		return evdevInfo{}, fmt.Errorf("gamepad: ioctl for an ID failed: %w", err)
+	}
+	kind, err := classifyEvdev(info.evBits, info.keyBits, info.absBits, func() ([]byte, error) {
+		propBits := make([]byte, (_INPUT_PROP_CNT+7)/8)
+		if err := ioctl(fd, _EVIOCGPROP(uint(len(propBits))), unsafe.Pointer(&propBits[0])); err != nil {
+			return nil, fmt.Errorf("gamepad: ioctl for propBits failed: %w", err)
+		}
+		return propBits, nil
+	})
+	if err != nil {
+		return evdevInfo{}, err
+	}
+	info.kind = kind
+	if kind == evdevKindOther {
+		return info, nil
+	}
+
+	cuniq := make([]byte, 256)
+	if err := ioctl(fd, _EVIOCGUNIQ(uint(len(cuniq))), unsafe.Pointer(&cuniq[0])); err == nil {
+		info.uniq = unix.ByteSliceToString(cuniq)
+	}
+	return info, nil
+}
+
+// removeDevice drops the node at path, whichever of a gamepad or an attached touch surface it is
+// open as.
+func (g *nativeGamepadsImpl) removeDevice(gamepads *gamepads, path string) {
+	if gp := gamepads.find(func(gamepad *Gamepad) bool {
+		return gamepad.native.(*nativeGamepadImpl).path == path
+	}); gp != nil {
+		// Lock the gamepad so the close cannot race with a
+		// concurrent Vibrate using the file descriptor.
+		withNative(gp, func(n *nativeGamepadImpl) {
+			n.close()
+		})
+		gamepads.remove(func(gamepad *Gamepad) bool {
+			return gamepad == gp
+		})
+		return
+	}
+	if gp := gamepads.find(func(gamepad *Gamepad) bool {
+		n := gamepad.native.(*nativeGamepadImpl)
+		return n.touch != nil && n.touch.path == path
+	}); gp != nil {
+		withNative(gp, func(n *nativeGamepadImpl) {
+			n.touch.close()
+			n.touch = nil
+		})
+	}
 }
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
@@ -341,24 +481,13 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 
 		path := filepath.Join(dirName, name)
 		if e.Mask&(unix.IN_CREATE|unix.IN_ATTRIB) != 0 {
-			if err := g.openGamepad(gamepads, path); err != nil {
+			if err := g.openDevice(gamepads, path); err != nil {
 				return err
 			}
 			continue
 		}
 		if e.Mask&unix.IN_DELETE != 0 {
-			if gp := gamepads.find(func(gamepad *Gamepad) bool {
-				return gamepad.native.(*nativeGamepadImpl).path == path
-			}); gp != nil {
-				// Lock the gamepad so the close cannot race with a
-				// concurrent Vibrate using the file descriptor.
-				withNative(gp, func(n *nativeGamepadImpl) {
-					n.close()
-				})
-				gamepads.remove(func(gamepad *Gamepad) bool {
-					return gamepad == gp
-				})
-			}
+			g.removeDevice(gamepads, path)
 			continue
 		}
 	}
@@ -366,9 +495,42 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
+// readInputEvent reads one event from an event node. ok is false when no event is pending.
+func readInputEvent(fd int) (e input_event, ok bool, err error) {
+	buf := make([]byte, unsafe.Sizeof(input_event{}))
+	// TODO: Should the returned byte count be cared about?
+	if _, err := unix.Read(fd, buf); err != nil {
+		// EINTR means no event was read. Retry at the next update instead of
+		// treating this as an error and dropping the device.
+		if err == unix.EAGAIN || err == unix.EINTR {
+			return input_event{}, false, nil
+		}
+		return input_event{}, false, fmt.Errorf("gamepad: Read failed: %w", err)
+	}
+
+	const (
+		offsetTyp   = unsafe.Offsetof(input_event{}.typ)
+		offsetCode  = unsafe.Offsetof(input_event{}.code)
+		offsetValue = unsafe.Offsetof(input_event{}.value)
+	)
+	// time is not used.
+	return input_event{
+		typ:   uint16(buf[offsetTyp]) | uint16(buf[offsetTyp+1])<<8,
+		code:  uint16(buf[offsetCode]) | uint16(buf[offsetCode+1])<<8,
+		value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
+	}, true, nil
+}
+
 type nativeGamepadImpl struct {
 	fdPlus1 int
 	path    string
+
+	// uniq and id identify the controller; a touch surface node with the same values is the
+	// controller's touchpad. touch is that node once it is paired, or nil.
+	uniq  string
+	id    input_id
+	touch *touchNode
+
 	keyMap  [_KEY_CNT - _BTN_MISC]int
 	absMap  [_ABS_CNT]int
 	absInfo [_ABS_CNT]input_absinfo
@@ -393,6 +555,10 @@ type nativeGamepadImpl struct {
 
 func (g *nativeGamepadImpl) close() {
 	g.cleanup.Stop()
+	if g.touch != nil {
+		g.touch.close()
+		g.touch = nil
+	}
 	if g.fdPlus1 == 0 {
 		return
 	}
@@ -418,27 +584,12 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 	}()
 
 	for {
-		buf := make([]byte, unsafe.Sizeof(input_event{}))
-		// TODO: Should the returned byte count be cared about?
-		if _, err := unix.Read(g.fdPlus1-1, buf); err != nil {
-			// EINTR means no event was read. Retry at the next update instead of
-			// treating this as an error and dropping the gamepad.
-			if err == unix.EAGAIN || err == unix.EINTR {
-				break
-			}
-			return fmt.Errorf("gamepad: Read failed: %w", err)
+		e, ok, err := readInputEvent(g.fdPlus1 - 1)
+		if err != nil {
+			return err
 		}
-
-		const (
-			offsetTyp   = unsafe.Offsetof(input_event{}.typ)
-			offsetCode  = unsafe.Offsetof(input_event{}.code)
-			offsetValue = unsafe.Offsetof(input_event{}.value)
-		)
-		// time is not used.
-		e := input_event{
-			typ:   uint16(buf[offsetTyp]) | uint16(buf[offsetTyp+1])<<8,
-			code:  uint16(buf[offsetCode]) | uint16(buf[offsetCode+1])<<8,
-			value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
+		if !ok {
+			break
 		}
 
 		if e.typ == unix.EV_SYN && e.code == _SYN_DROPPED {
@@ -469,6 +620,15 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 			}
 		case unix.EV_ABS:
 			g.handleAbsEvent(int(e.code), e.value)
+		}
+	}
+
+	// The touch surface is an extra: a failure on its node costs the surface, not the gamepad. Its
+	// removal drops it from the list either way.
+	if g.touch != nil {
+		if err := g.touch.update(); err != nil {
+			g.touch.close()
+			g.touch = nil
 		}
 	}
 	return nil
