@@ -229,6 +229,9 @@ type Gamepad struct {
 	// up from 1 and are never reused within the gamepad's lifetime.
 	touches     [][]touch
 	lastTouchID TouchID
+
+	// touchUsed reports that the game has used the touch API on the gamepad.
+	touchUsed bool
 }
 
 type mappingInput interface {

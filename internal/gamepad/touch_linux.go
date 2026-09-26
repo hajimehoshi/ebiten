@@ -36,18 +36,18 @@ const (
 	// evdevKindGamepad is a node with absolute axes that is polled for buttons, axes, and hats.
 	evdevKindGamepad
 
-	// evdevKindTouchSurface is a multitouch device without gamepad buttons: the touchpad of a
-	// controller, which the kernel registers as a node of its own next to the gamepad node.
+	// evdevKindTouchSurface is a multitouch device without gamepad buttons, like the touchpad of a
+	// controller, which the kernel registers as a node of its own next to the gamepad node. Such a
+	// node is used only as the touch surface of an open gamepad of the same controller.
 	evdevKindTouchSurface
 )
 
-// classifyEvdev decides what an event node is from its event, key, absolute axis, and property bits.
-func classifyEvdev(evBits, keyBits, absBits, propBits []byte) evdevKind {
+// classifyEvdev decides what an event node is from its event, key, and absolute axis bits. The
+// property bits tell a gamepad from the motion sensors of a controller, so props, which reads them,
+// is called only for a node that could be a gamepad, and its error is returned.
+func classifyEvdev(evBits, keyBits, absBits []byte, props func() ([]byte, error)) (evdevKind, error) {
 	if !isBitSet(evBits, unix.EV_ABS) {
-		return evdevKindOther
-	}
-	if isBitSet(propBits, _INPUT_PROP_ACCELEROMETER) {
-		return evdevKindOther
+		return evdevKindOther, nil
 	}
 	if isBitSet(absBits, _ABS_MT_SLOT) && isBitSet(absBits, _ABS_MT_POSITION_X) &&
 		isBitSet(absBits, _ABS_MT_POSITION_Y) && isBitSet(absBits, _ABS_MT_TRACKING_ID) {
@@ -65,10 +65,17 @@ func classifyEvdev(evBits, keyBits, absBits, propBits []byte) evdevKind {
 			}
 		}
 		if !hasGamepadButton {
-			return evdevKindTouchSurface
+			return evdevKindTouchSurface, nil
 		}
 	}
-	return evdevKindGamepad
+	propBits, err := props()
+	if err != nil {
+		return evdevKindOther, err
+	}
+	if isBitSet(propBits, _INPUT_PROP_ACCELEROMETER) {
+		return evdevKindOther, nil
+	}
+	return evdevKindGamepad, nil
 }
 
 // maxTouchSlots bounds the slots read from a touch surface node, whatever it reports.
@@ -82,11 +89,6 @@ type touchNode struct {
 	path    string
 	fdPlus1 int
 
-	// uniq and id identify the controller the node belongs to; the gamepad node of the same
-	// controller carries the same values.
-	uniq string
-	id   input_id
-
 	xInfo, yInfo input_absinfo
 	slots        []touchContact
 	current      int
@@ -94,12 +96,10 @@ type touchNode struct {
 }
 
 // newTouchNode reads the slot layout and the current contacts of an opened touch surface node.
-func newTouchNode(fd int, path, uniq string, id input_id) (*touchNode, error) {
+func newTouchNode(fd int, path string) (*touchNode, error) {
 	t := &touchNode{
 		path:    path,
 		fdPlus1: fd + 1,
-		uniq:    uniq,
-		id:      id,
 	}
 	var slotInfo input_absinfo
 	if err := ioctl(fd, uint(_EVIOCGABS(_ABS_MT_SLOT)), unsafe.Pointer(&slotInfo)); err != nil {

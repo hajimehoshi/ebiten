@@ -102,6 +102,13 @@ func (g *Gamepad) updateTouches() {
 		g.touches = nil
 		return
 	}
+	// A backend whose device reports its touch surfaces only after a change that affects other
+	// applications reading the device makes the change only for a game that uses the touch API.
+	// enableTouch is called at every update once the game has used the touch API on the gamepad, and
+	// must do nothing once the touch surfaces are enabled.
+	if e, ok := n.(interface{ enableTouch() }); ok && g.touchUsed {
+		e.enableTouch()
+	}
 
 	surfaceCount := n.touchSurfaceCount()
 	if len(g.touches) != surfaceCount {
@@ -135,6 +142,7 @@ func (g *Gamepad) TouchSurfaceCount() int {
 	g.m.Lock()
 	defer g.m.Unlock()
 
+	g.touchUsed = true
 	return len(g.touches)
 }
 
@@ -146,6 +154,7 @@ func (g *Gamepad) AppendTouchIDs(surface int, ids []TouchID) []TouchID {
 	g.m.Lock()
 	defer g.m.Unlock()
 
+	g.touchUsed = true
 	if surface < 0 || surface >= len(g.touches) {
 		return ids
 	}
@@ -165,6 +174,7 @@ func (g *Gamepad) TouchPosition(id TouchID) (x, y float64) {
 	g.m.Lock()
 	defer g.m.Unlock()
 
+	g.touchUsed = true
 	if id == 0 {
 		return 0, 0
 	}

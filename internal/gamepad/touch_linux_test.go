@@ -17,6 +17,7 @@
 package gamepad_test
 
 import (
+	"errors"
 	"testing"
 
 	"golang.org/x/sys/unix"
@@ -36,34 +37,99 @@ var (
 )
 
 func TestClassifyEvdev(t *testing.T) {
+	// The property bits are read only for a node that could be a gamepad.
 	tests := []struct {
-		name  string
-		evs   []int
-		keys  []int
-		abs   []int
-		props []int
-		want  gamepad.EvdevKind
+		name          string
+		evs           []int
+		keys          []int
+		abs           []int
+		props         []int
+		want          gamepad.EvdevKind
+		wantPropsRead bool
 	}{
 		{
-			name: "gamepad node",
-			evs:  []int{unix.EV_KEY, unix.EV_ABS, unix.EV_FF},
-			keys: []int{gamepad.BTN_SOUTH},
-			abs:  []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_RZ, gamepad.ABS_HAT0X, gamepad.ABS_HAT0Y},
-			want: gamepad.EvdevKindGamepad,
+			name:          "gamepad node",
+			evs:           []int{unix.EV_KEY, unix.EV_ABS, unix.EV_FF},
+			keys:          []int{gamepad.BTN_SOUTH},
+			abs:           []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_RZ, gamepad.ABS_HAT0X, gamepad.ABS_HAT0Y},
+			want:          gamepad.EvdevKindGamepad,
+			wantPropsRead: true,
 		},
 		{
-			name: "touchpad node",
-			evs:  []int{unix.EV_KEY, unix.EV_ABS},
-			keys: dualSenseTouchKeys,
-			abs:  dualSenseTouchAbs,
-			want: gamepad.EvdevKindTouchSurface,
+			name:          "touchpad node",
+			evs:           []int{unix.EV_KEY, unix.EV_ABS},
+			keys:          dualSenseTouchKeys,
+			abs:           dualSenseTouchAbs,
+			want:          gamepad.EvdevKindTouchSurface,
+			wantPropsRead: false,
 		},
 		{
-			name:  "motion sensors node",
-			evs:   []int{unix.EV_ABS},
-			abs:   []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_RZ},
-			props: []int{gamepad.INPUT_PROP_ACCELEROMETER},
-			want:  gamepad.EvdevKindOther,
+			name:          "motion sensors node",
+			evs:           []int{unix.EV_ABS},
+			abs:           []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_RZ},
+			props:         []int{gamepad.INPUT_PROP_ACCELEROMETER},
+			want:          gamepad.EvdevKindOther,
+			wantPropsRead: true,
+		},
+		{
+			name:          "keyboard",
+			evs:           []int{unix.EV_KEY},
+			keys:          []int{gamepad.BTN_LEFT},
+			want:          gamepad.EvdevKindOther,
+			wantPropsRead: false,
+		},
+		{
+			// A device with both gamepad buttons and multitouch axes is a gamepad.
+			name:          "gamepad with multitouch axes",
+			evs:           []int{unix.EV_KEY, unix.EV_ABS},
+			keys:          []int{gamepad.BTN_SOUTH, gamepad.BTN_TOUCH},
+			abs:           dualSenseTouchAbs,
+			want:          gamepad.EvdevKindGamepad,
+			wantPropsRead: true,
+		},
+		{
+			// Multitouch needs the tracking id to tell contacts apart.
+			name:          "multitouch without tracking id",
+			evs:           []int{unix.EV_KEY, unix.EV_ABS},
+			keys:          dualSenseTouchKeys,
+			abs:           []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_MT_SLOT, gamepad.ABS_MT_POSITION_X, gamepad.ABS_MT_POSITION_Y},
+			want:          gamepad.EvdevKindGamepad,
+			wantPropsRead: true,
+		},
+	}
+	for _, test := range tests {
+		got, propsRead, err := gamepad.ClassifyEvdevForTest(test.evs, test.keys, test.abs, test.props, nil)
+		if err != nil {
+			t.Errorf("%s: %v", test.name, err)
+			continue
+		}
+		if got != test.want {
+			t.Errorf("%s: classified as %d; want %d", test.name, got, test.want)
+		}
+		if propsRead != test.wantPropsRead {
+			t.Errorf("%s: property bits read: %t; want %t", test.name, propsRead, test.wantPropsRead)
+		}
+	}
+}
+
+func TestClassifyEvdevPropsError(t *testing.T) {
+	// A failure to read the property bits fails the classification of a node that could be a
+	// gamepad, and never reaches a node that cannot.
+	propsErr := errors.New("props failed")
+	tests := []struct {
+		name    string
+		evs     []int
+		keys    []int
+		abs     []int
+		want    gamepad.EvdevKind
+		wantErr error
+	}{
+		{
+			name:    "gamepad node",
+			evs:     []int{unix.EV_KEY, unix.EV_ABS},
+			keys:    []int{gamepad.BTN_SOUTH},
+			abs:     []int{gamepad.ABS_X, gamepad.ABS_Y},
+			wantErr: propsErr,
 		},
 		{
 			name: "keyboard",
@@ -72,24 +138,20 @@ func TestClassifyEvdev(t *testing.T) {
 			want: gamepad.EvdevKindOther,
 		},
 		{
-			// A device with both gamepad buttons and multitouch axes is a gamepad.
-			name: "gamepad with multitouch axes",
-			evs:  []int{unix.EV_KEY, unix.EV_ABS},
-			keys: []int{gamepad.BTN_SOUTH, gamepad.BTN_TOUCH},
-			abs:  dualSenseTouchAbs,
-			want: gamepad.EvdevKindGamepad,
-		},
-		{
-			// Multitouch needs the tracking id to tell contacts apart.
-			name: "multitouch without tracking id",
+			name: "touchpad node",
 			evs:  []int{unix.EV_KEY, unix.EV_ABS},
 			keys: dualSenseTouchKeys,
-			abs:  []int{gamepad.ABS_X, gamepad.ABS_Y, gamepad.ABS_MT_SLOT, gamepad.ABS_MT_POSITION_X, gamepad.ABS_MT_POSITION_Y},
-			want: gamepad.EvdevKindGamepad,
+			abs:  dualSenseTouchAbs,
+			want: gamepad.EvdevKindTouchSurface,
 		},
 	}
 	for _, test := range tests {
-		if got := gamepad.ClassifyEvdevForTest(test.evs, test.keys, test.abs, test.props); got != test.want {
+		got, _, err := gamepad.ClassifyEvdevForTest(test.evs, test.keys, test.abs, nil, propsErr)
+		if !errors.Is(err, test.wantErr) {
+			t.Errorf("%s: err = %v; want %v", test.name, err, test.wantErr)
+			continue
+		}
+		if err == nil && got != test.want {
 			t.Errorf("%s: classified as %d; want %d", test.name, got, test.want)
 		}
 	}

@@ -413,6 +413,50 @@ func TestTouchSlotLayoutChange(t *testing.T) {
 	checkDistinctTouchIDs(t, append(before, after...)...)
 }
 
+func TestTouchEnabledOnFirstUse(t *testing.T) {
+	uses := []struct {
+		name string
+		use  func(g *gamepad.Gamepad)
+	}{
+		{
+			name: "TouchSurfaceCount",
+			use: func(g *gamepad.Gamepad) {
+				g.TouchSurfaceCount()
+			},
+		},
+		{
+			name: "AppendTouchIDs",
+			use: func(g *gamepad.Gamepad) {
+				g.AppendTouchIDs(0, nil)
+			},
+		},
+		{
+			name: "TouchPosition",
+			use: func(g *gamepad.Gamepad) {
+				g.TouchPosition(1)
+			},
+		},
+	}
+	for _, u := range uses {
+		g := gamepad.NewGamepadForTest("")
+
+		// The backend is not asked to enable its touch surfaces before the game uses them.
+		g.UpdateForTest()
+		g.UpdateForTest()
+		if got := g.TouchEnabledCountForTest(); got != 0 {
+			t.Errorf("%s: touch enabled at %d updates before use; want 0", u.name, got)
+		}
+
+		// Once used, every update asks, so the backend may enable them whenever it can.
+		u.use(g)
+		g.UpdateForTest()
+		g.UpdateForTest()
+		if got := g.TouchEnabledCountForTest(); got != 2 {
+			t.Errorf("%s: touch enabled at %d updates after use; want 2", u.name, got)
+		}
+	}
+}
+
 func TestVirtualGamepadHasNoTouchSurface(t *testing.T) {
 	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
 		{

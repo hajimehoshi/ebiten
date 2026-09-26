@@ -32,6 +32,23 @@ type nativeGamepadForTest struct {
 	// axisButtons is the gamepad's own standard layout: each standard button reads a raw axis, as an
 	// analog trigger on a backend that reports triggers as axes does.
 	axisButtons map[gamepaddb.StandardButton]int
+
+	// touchEnabled counts the updates that asked the backend to enable its touch surfaces.
+	touchEnabled int
+}
+
+func (g *nativeGamepadForTest) enableTouch() {
+	g.touchEnabled++
+}
+
+// TouchEnabledCountForTest returns the number of updates that asked the backend to enable its touch
+// surfaces.
+func (g *Gamepad) TouchEnabledCountForTest() int {
+	var count int
+	withNative(g, func(n *nativeGamepadForTest) {
+		count = n.touchEnabled
+	})
+	return count
 }
 
 func (g *nativeGamepadForTest) hasOwnStandardLayoutMapping() bool {

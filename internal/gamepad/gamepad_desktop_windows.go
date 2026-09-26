@@ -603,8 +603,8 @@ type nativeGamepadDesktop struct {
 	xinputState _XINPUT_STATE
 
 	// sonyInput supplies the input of a PlayStation controller in place of the
-	// DirectInput state, which stops updating over Bluetooth once rumble is
-	// used. It is nil for every other device. The DirectInput device is still
+	// DirectInput state, which stops updating over Bluetooth once rumble or
+	// the touchpad is used. It is nil for every other device. The DirectInput device is still
 	// polled to detect disconnection. See sonyhid.Device.
 	sonyInput *sonyhid.Device
 
@@ -823,6 +823,12 @@ func (g *nativeGamepadDesktop) applySonyInputState(state sonyhid.InputState) {
 
 // The touchpad of a PlayStation controller is its one touch surface, read
 // from the same reports as its input state.
+
+func (g *nativeGamepadDesktop) enableTouch() {
+	if g.sonyInput != nil {
+		g.sonyInput.EnableTouchpad()
+	}
+}
 
 func (g *nativeGamepadDesktop) touchSurfaceCount() int {
 	if g.sonyInput == nil {

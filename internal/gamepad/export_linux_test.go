@@ -67,13 +67,21 @@ func bitmapForTest(count int, bits []int) []byte {
 }
 
 // ClassifyEvdevForTest classifies a node from the lists of its event types, key codes, absolute
-// axis codes, and property bits.
-func ClassifyEvdevForTest(evs, keys, abs, props []int) EvdevKind {
-	return classifyEvdev(
+// axis codes, and property bits. Reading the property bits fails with propsErr if it is not nil.
+// propsRead reports whether the property bits were read.
+func ClassifyEvdevForTest(evs, keys, abs, props []int, propsErr error) (kind EvdevKind, propsRead bool, err error) {
+	kind, err = classifyEvdev(
 		bitmapForTest(unix.EV_CNT, evs),
 		bitmapForTest(_KEY_CNT, keys),
 		bitmapForTest(_ABS_CNT, abs),
-		bitmapForTest(_INPUT_PROP_CNT, props))
+		func() ([]byte, error) {
+			propsRead = true
+			if propsErr != nil {
+				return nil, propsErr
+			}
+			return bitmapForTest(_INPUT_PROP_CNT, props), nil
+		})
+	return kind, propsRead, err
 }
 
 type TouchNode = touchNode
