@@ -224,9 +224,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 	case *ast.CallExpr:
 		var (
-			args  []shaderir.Expr
-			argts []shaderir.Type
-			stmts []shaderir.Stmt
+			args         []shaderir.Expr
+			argts        []shaderir.Type
+			argPositions []token.Pos
+			stmts        []shaderir.Stmt
 		)
 
 		// Parse the argument first for the order of the statements.
@@ -247,6 +248,9 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			}
 			args = append(args, es...)
 			argts = append(argts, ts...)
+			for range es {
+				argPositions = append(argPositions, a.Pos())
+			}
 			stmts = append(stmts, ss...)
 		}
 
@@ -874,7 +878,11 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		for i, p := range f.ir.InParams {
 			if !canAssign(&p, &argts[i], args[i].Const) {
-				cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in argument", argts[i].String(), p.String()))
+				arg := fmt.Sprintf("argument to %s", e.Fun)
+				if len(args) > 1 {
+					arg = fmt.Sprintf("the %s argument to %s", ordinal(i+1), e.Fun)
+				}
+				cs.addError(argPositions[i], fmt.Sprintf("cannot use type %s as type %s in %s", argts[i].String(), p.String(), arg))
 				return nil, nil, nil, false
 			}
 

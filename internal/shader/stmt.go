@@ -392,6 +392,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 		var exprs []shaderir.Expr
 		var types []shaderir.Type
+		var positions []token.Pos
 		for _, r := range stmt.Results {
 			es, ts, ss, ok := cs.parseExpr(block, fname, r, true)
 			if !ok {
@@ -417,6 +418,9 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 
 			exprs = append(exprs, es...)
 			types = append(types, ts...)
+			for range es {
+				positions = append(positions, r.Pos())
+			}
 		}
 
 		if len(stmt.Results) > 0 {
@@ -443,24 +447,28 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			} else {
 				outT = outParams[i].typ
 			}
+			result := "return argument"
+			if len(types) > 1 {
+				result = fmt.Sprintf("the %s return argument", ordinal(i+1))
+			}
 			if expr.Const != nil {
 				switch outT.Main {
 				case shaderir.Bool:
 					if expr.Const.Kind() != gconstant.Bool {
-						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
 						return nil, false
 					}
 					t = shaderir.Type{Main: shaderir.Bool}
 				case shaderir.Int:
 					if gconstant.ToInt(expr.Const).Kind() == gconstant.Unknown {
-						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
 						return nil, false
 					}
 					expr.Const = gconstant.ToInt(expr.Const)
 					t = shaderir.Type{Main: shaderir.Int}
 				case shaderir.Float:
 					if gconstant.ToFloat(expr.Const).Kind() == gconstant.Unknown {
-						cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
 						return nil, false
 					}
 					expr.Const = gconstant.ToFloat(expr.Const)
@@ -469,7 +477,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 
 			if !t.Equal(&outT) {
-				cs.addError(stmt.Pos(), fmt.Sprintf("cannot use type %s as type %s in return argument", t.String(), &outT))
+				cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
 				return nil, false
 			}
 

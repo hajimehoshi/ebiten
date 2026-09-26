@@ -364,6 +364,7 @@ func (cs *compileState) parse(f *ast.File) {
 	var vertexInParams []variable
 	var vertexOutParams []variable
 	var fragmentInParams []variable
+	var fragmentInParamPositions []token.Pos
 	var fragmentOutParams []variable
 	var fragmentReturnType shaderir.Type
 	funcNames := map[string]struct{}{}
@@ -394,6 +395,15 @@ func (cs *compileState) parse(f *ast.File) {
 			fragmentInParams = inParams
 			fragmentOutParams = outParams
 			fragmentReturnType = ret
+			for _, field := range fd.Type.Params.List {
+				if len(field.Names) == 0 {
+					fragmentInParamPositions = append(fragmentInParamPositions, field.Type.Pos())
+					continue
+				}
+				for _, name := range field.Names {
+					fragmentInParamPositions = append(fragmentInParamPositions, name.Pos())
+				}
+			}
 			continue
 		}
 
@@ -426,8 +436,12 @@ func (cs *compileState) parse(f *ast.File) {
 			}
 			t := fragmentInParams[i].typ
 			if !p.typ.Equal(&t) {
-				name := fragmentInParams[i].name
-				cs.addError(cs.fragmentEntryPos, fmt.Sprintf("fragment argument %s must be %s but was %s", name, p.typ.String(), t.String()))
+				arg := "fragment argument " + fragmentInParams[i].name
+				// A blank or unnamed argument has no name to identify it.
+				if fragmentInParams[i].name == "_" {
+					arg = fmt.Sprintf("the %s fragment argument", ordinal(i+1))
+				}
+				cs.addError(fragmentInParamPositions[i], fmt.Sprintf("%s must be %s but was %s", arg, p.typ.String(), t.String()))
 			}
 		}
 		if len(fragmentInParams) > len(vertexOutParams) {
@@ -485,6 +499,22 @@ func (cs *compileState) parse(f *ast.File) {
 	for _, f := range cs.funcs {
 		cs.ir.Funcs = append(cs.ir.Funcs, f.ir)
 	}
+}
+
+// ordinal returns n written as an English ordinal number.
+func ordinal(n int) string {
+	if n%100 >= 11 && n%100 <= 13 {
+		return fmt.Sprintf("%dth", n)
+	}
+	switch n % 10 {
+	case 1:
+		return fmt.Sprintf("%dst", n)
+	case 2:
+		return fmt.Sprintf("%dnd", n)
+	case 3:
+		return fmt.Sprintf("%drd", n)
+	}
+	return fmt.Sprintf("%dth", n)
 }
 
 // checkRecursiveCalls adds an error for each function that calls itself directly or indirectly (#3536).
