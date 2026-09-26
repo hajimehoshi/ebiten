@@ -900,10 +900,10 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 		return nil, false
 	}
 
-	var t shaderir.Type
+	var declt shaderir.Type
 	if vs.Type != nil {
 		var ok bool
-		t, ok = s.parseType(block, fname, vs.Type)
+		declt, ok = s.parseType(block, fname, vs.Type)
 		if !ok {
 			return nil, false
 		}
@@ -942,6 +942,11 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			return nil, false
 		}
 
+		t := declt
+		if vs.Type == nil {
+			// A constant without a declared type has the type of its value, which is none for an untyped value.
+			t = ts[0]
+		}
 		if !t.Equal(&shaderir.Type{}) && !canAssign(&t, &ts[0], es[0].Const) {
 			s.addError(vs.Pos(), fmt.Sprintf("cannot use %v as %s value in constant declaration", es[0].Const, t.String()))
 			return nil, false

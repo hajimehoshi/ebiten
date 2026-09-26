@@ -6774,3 +6774,62 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxConstTypeFromValue(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "const c = int(1); var f float = c; _ = f",
+			err:  true,
+		},
+		{
+			stmt: "const c = float(1); var i int = c; _ = i",
+			err:  true,
+		},
+		{
+			stmt: "const c = int(1); _ = 1.5 + c",
+			err:  true,
+		},
+		{
+			stmt: "const c = int(1); var i int = c; _ = i",
+			err:  false,
+		},
+		{
+			stmt: "const c = float(1); var f float = c; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const c = 1; var f float = c; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const c = 1 << 2; var f float = c; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const a, b = int(1), 2.5; var f float = b; _ = f",
+			err:  false,
+		},
+		{
+			stmt: "const c = true; var b bool = c; _ = b",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}
