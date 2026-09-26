@@ -3583,30 +3583,42 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	}
 }
 
-func TestSyntaxTypeRedeclaration(t *testing.T) {
+func TestSyntaxTypeDeclaration(t *testing.T) {
 	cases := []struct {
-		stmt string
-		err  bool
+		decls string
+		stmt  string
 	}{
-		{stmt: "type Foo int; type Foo int", err: true},
-		{stmt: "type Foo int; type Foo float", err: true},
-		{stmt: "type Foo int; { type Foo int }", err: false},
-		{stmt: "type Foo int; type Bar int", err: false},
+		{
+			decls: "type T float",
+		},
+		{
+			decls: "type (\n\tT float\n\tU int\n)",
+		},
+		{
+			decls: "type T = float",
+		},
+		{
+			stmt: "type T float",
+		},
+		{
+			stmt: "{ type T int }",
+		},
+		{
+			stmt: "type _ int",
+		},
 	}
 
 	for _, c := range cases {
-		stmt := c.stmt
 		src := fmt.Sprintf(`package main
+
+%s
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	%s
 	return dstPos
-}`, stmt)
-		_, err := compileToIR([]byte(src))
-		if err == nil && c.err {
-			t.Errorf("%s must return an error but does not", stmt)
-		} else if err != nil && !c.err {
-			t.Errorf("%s must not return nil but returned %v", stmt, err)
+}`, c.decls, c.stmt)
+		if _, err := compileToIR([]byte(src)); err == nil {
+			t.Errorf("%s must return an error but does not", src)
 		}
 	}
 }
@@ -7117,7 +7129,7 @@ func TestSyntaxDuplicatedPackageLevelNames(t *testing.T) {
 			err:   true,
 		},
 		{
-			decls: "const A = 1\ntype B float\nvar C float\nfunc D() {}",
+			decls: "const A = 1\nvar B float\nfunc C() {}",
 			err:   false,
 		},
 		{
@@ -7193,23 +7205,7 @@ func TestSyntaxDuplicatedLocalNames(t *testing.T) {
 			err:  true,
 		},
 		{
-			stmt: "type T float; { var T float; _ = T }",
-			err:  false,
-		},
-		{
-			stmt: "var T float; _ = T; { type T int }",
-			err:  false,
-		},
-		{
 			stmt: "const c = 1; { c := 2.0; _ = c }",
-			err:  false,
-		},
-		{
-			stmt: "type T float; for T := 0; T < 1; T++ {}",
-			err:  false,
-		},
-		{
-			stmt: "var _ float; const _ = 1; type _ int",
 			err:  false,
 		},
 	}

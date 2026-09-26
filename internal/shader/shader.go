@@ -633,39 +633,9 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 	case *ast.GenDecl:
 		switch d.Tok {
 		case token.TYPE:
-			// TODO: Parse other types
-			for _, s := range d.Specs {
-				s := s.(*ast.TypeSpec)
-				t, ok := cs.parseType(b, fname, s.Type)
-				if !ok {
-					return nil, false
-				}
-				n := s.Name.Name
-				for _, t := range b.types {
-					if t.name == n {
-						cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", n))
-						return nil, false
-					}
-				}
-				if n != "_" {
-					for _, v := range b.vars {
-						if v.name == n {
-							cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", n))
-							return nil, false
-						}
-					}
-					for _, c := range b.consts {
-						if c.name == n {
-							cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", n))
-							return nil, false
-						}
-					}
-				}
-				b.types = append(b.types, typ{
-					name: n,
-					ir:   t,
-				})
-			}
+			// TODO: Support type declarations (#1273, #2344).
+			cs.addError(d.Pos(), "type declaration is not supported")
+			return nil, false
 		case token.CONST:
 			for _, s := range d.Specs {
 				s := s.(*ast.ValueSpec)
