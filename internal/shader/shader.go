@@ -880,13 +880,13 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 		if name != "_" {
 			for _, v := range append(block.vars, vars...) {
 				if v.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("duplicated variable name: %s", name))
+					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 					return nil, nil, nil, false
 				}
 			}
 			for _, c := range block.consts {
 				if c.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("duplicated constant/variable name: %s", name))
+					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 					return nil, nil, nil, false
 				}
 			}
@@ -925,13 +925,13 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 		if name != "_" {
 			for _, c := range append(block.consts, cs...) {
 				if c.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("duplicated constant name: %s", name))
+					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 					return nil, false
 				}
 			}
 			for _, v := range block.vars {
 				if v.name == name {
-					s.addError(n.Pos(), fmt.Sprintf("duplicated constant/variable name: %s", name))
+					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 					return nil, false
 				}
 			}

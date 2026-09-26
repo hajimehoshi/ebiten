@@ -627,13 +627,13 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				if name != "_" {
 					for _, v := range block.vars {
 						if v.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
+							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 							return nil, false
 						}
 					}
 					for _, c := range block.consts {
 						if c.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("duplicated constant/variable name: %s", name))
+							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 							return nil, false
 						}
 					}
@@ -766,13 +766,13 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				if name != "_" {
 					for _, v := range block.vars {
 						if v.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("duplicated local variable name: %s", name))
+							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 							return nil, false
 						}
 					}
 					for _, c := range block.consts {
 						if c.name == name {
-							cs.addError(e.Pos(), fmt.Sprintf("duplicated constant/variable name: %s", name))
+							cs.addError(e.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 							return nil, false
 						}
 					}
