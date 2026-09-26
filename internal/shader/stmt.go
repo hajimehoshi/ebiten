@@ -81,8 +81,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 			stmts = append(stmts, ss...)
 
-			if isUniformVariableRef(&lhs[0]) {
-				cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
+			if !cs.checkAssignmentTarget(stmt.Pos(), &lhs[0]) {
 				return nil, false
 			}
 
@@ -333,8 +332,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			cs.addError(stmt.Pos(), fmt.Sprintf("the operand of %s must be a single value", stmt.Tok))
 			return nil, false
 		}
-		if isUniformVariableRef(&exprs[0]) {
-			cs.addError(stmt.Pos(), "a uniform variable cannot be assigned")
+		if !cs.checkAssignmentTarget(stmt.Pos(), &exprs[0]) {
 			return nil, false
 		}
 		stmts = append(stmts, ss...)
@@ -609,8 +607,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				continue
 			}
 
-			if isUniformVariableRef(&l[0]) {
-				cs.addError(pos, "a uniform variable cannot be assigned")
+			if !cs.checkAssignmentTarget(pos, &l[0]) {
 				return nil, false
 			}
 			allblank = false
@@ -726,8 +723,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				continue
 			}
 
-			if isUniformVariableRef(&l[0]) {
-				cs.addError(pos, "a uniform variable cannot be assigned")
+			if !cs.checkAssignmentTarget(pos, &l[0]) {
 				return nil, false
 			}
 			allblank = false
@@ -750,6 +746,31 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	}
 
 	return stmts, true
+}
+
+// checkAssignmentTarget reports whether e can be assigned, and adds an error if not.
+func (cs *compileState) checkAssignmentTarget(pos token.Pos, e *shaderir.Expr) bool {
+	switch e.Type {
+	case shaderir.LocalVariable:
+		return true
+	case shaderir.UniformVariable:
+		cs.addError(pos, "a uniform variable cannot be assigned")
+		return false
+	case shaderir.TextureVariable:
+		cs.addError(pos, "a texture variable cannot be assigned")
+		return false
+	case shaderir.FieldSelector, shaderir.Index:
+		return cs.checkAssignmentTarget(pos, &e.Exprs[0])
+	case shaderir.FunctionExpr, shaderir.BuiltinFuncExpr:
+		cs.addError(pos, "a function cannot be assigned")
+		return false
+	case shaderir.Call:
+		cs.addError(pos, "a function call cannot be assigned")
+		return false
+	default:
+		cs.addError(pos, "a non-variable expression cannot be assigned")
+		return false
+	}
 }
 
 // isConstZero reports whether v is a numeric constant equal to zero.
@@ -775,17 +796,6 @@ func toDefaultType(v gconstant.Value) shaderir.Type {
 	}
 	// TODO: Should this be an error?
 	return shaderir.Type{}
-}
-
-// isUniformVariableRef reports whether e is a uniform variable, or a swizzle or an index of one.
-func isUniformVariableRef(e *shaderir.Expr) bool {
-	switch e.Type {
-	case shaderir.UniformVariable:
-		return true
-	case shaderir.FieldSelector, shaderir.Index:
-		return isUniformVariableRef(&e.Exprs[0])
-	}
-	return false
 }
 
 func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {

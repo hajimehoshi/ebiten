@@ -5668,3 +5668,147 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxAssignToNonVariable(t *testing.T) {
+	cases := []struct {
+		src string
+		err bool
+	}{
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := 1.0
+	abs = x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := 1.0
+	f = x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f() float {
+	return 1
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f += 1.0
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f(1.0) = 2.0
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f(1.0) += 2.0
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := vec2(1)
+	vec2(1) = x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := vec2(1)
+	vec2(1) += x
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	__t0 = __t1
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	__t0 += __t1
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
+func f(x float) float {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	x := f(1.0)
+	x = f(2.0)
+	x += f(3.0)
+	v := vec2(1)
+	v = vec2(2)
+	v += vec2(3)
+	return vec4(v, x, 1)
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return __texelAt(__t0, src0Pos) + __texelAt(__t1, src0Pos)
+}`,
+			err: false,
+		},
+	}
+
+	for _, c := range cases {
+		_, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 2)
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.src)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.src, err)
+		}
+	}
+}
