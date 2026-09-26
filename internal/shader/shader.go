@@ -361,6 +361,13 @@ func (cs *compileState) checkPackageLevelNames(f *ast.File) bool {
 }
 
 func (cs *compileState) parse(f *ast.File) {
+	for _, d := range f.Decls {
+		if d, ok := d.(*ast.FuncDecl); ok && d.Recv != nil {
+			cs.addError(d.Recv.Pos(), "method is not supported")
+			return
+		}
+	}
+
 	if !cs.checkPackageLevelNames(f) {
 		return
 	}

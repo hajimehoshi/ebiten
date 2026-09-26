@@ -7233,3 +7233,47 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxMethod(t *testing.T) {
+	cases := []struct {
+		decls string
+		err   bool
+	}{
+		{
+			decls: "type T float\n\nfunc (t T) M() float {\n\treturn 1\n}",
+			err:   true,
+		},
+		{
+			decls: "type T float\n\nfunc (T) M() {}",
+			err:   true,
+		},
+		{
+			decls: "func (x float) M() float {\n\treturn 1\n}",
+			err:   true,
+		},
+		{
+			decls: "func (vec2) M() {}\n\nfunc g() {\n\tM()\n}",
+			err:   true,
+		},
+		{
+			decls: "func M() float {\n\treturn 1\n}",
+			err:   false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`, c.decls)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.decls)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.decls, err)
+		}
+	}
+}
