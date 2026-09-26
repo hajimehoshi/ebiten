@@ -7146,3 +7146,90 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxDuplicatedLocalNames(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "type T float; var T float; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "var T float; type T float; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "type T float; const T = 1",
+			err:  true,
+		},
+		{
+			stmt: "const T = 1; type T float",
+			err:  true,
+		},
+		{
+			stmt: "type T float; T := 1.0; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "T := 1.0; type T float; _ = T",
+			err:  true,
+		},
+		{
+			stmt: "type T float; a, T := f(); _, _ = a, T",
+			err:  true,
+		},
+		{
+			stmt: "const c = 1; c := 2.0; _ = c",
+			err:  true,
+		},
+		{
+			stmt: "const c = 1; a, c := f(); _, _ = a, c",
+			err:  true,
+		},
+		{
+			stmt: "type color float",
+			err:  true,
+		},
+		{
+			stmt: "type T float; { var T float; _ = T }",
+			err:  false,
+		},
+		{
+			stmt: "var T float; _ = T; { type T int }",
+			err:  false,
+		},
+		{
+			stmt: "const c = 1; { c := 2.0; _ = c }",
+			err:  false,
+		},
+		{
+			stmt: "type T float; for T := 0; T < 1; T++ {}",
+			err:  false,
+		},
+		{
+			stmt: "var _ float; const _ = 1; type _ int",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func f() (float, float) {
+	return 1, 2
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

@@ -640,6 +640,20 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 						return nil, false
 					}
 				}
+				if n != "_" {
+					for _, v := range b.vars {
+						if v.name == n {
+							cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", n))
+							return nil, false
+						}
+					}
+					for _, c := range b.consts {
+						if c.name == n {
+							cs.addError(s.Pos(), fmt.Sprintf("%s redeclared in this block", n))
+							return nil, false
+						}
+					}
+				}
 				b.types = append(b.types, typ{
 					name: n,
 					ir:   t,
@@ -918,6 +932,12 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 					return nil, nil, nil, false
 				}
 			}
+			for _, t := range block.types {
+				if t.name == name {
+					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
+					return nil, nil, nil, false
+				}
+			}
 		}
 		vars = append(vars, variable{
 			name: name,
@@ -960,6 +980,12 @@ func (s *compileState) parseConstant(block *block, fname string, vs *ast.ValueSp
 			for _, v := range block.vars {
 				if v.name == name {
 					s.addError(n.Pos(), fmt.Sprintf("duplicated constant/variable name: %s", name))
+					return nil, false
+				}
+			}
+			for _, t := range block.types {
+				if t.name == name {
+					s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))
 					return nil, false
 				}
 			}
