@@ -410,20 +410,12 @@ func (cs *compileState) parse(f *ast.File) {
 	var fragmentInParamPositions []token.Pos
 	var fragmentOutParams []variable
 	var fragmentReturnType shaderir.Type
-	funcNames := map[string]struct{}{}
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.FuncDecl)
 		if !ok {
 			continue
 		}
 		n := fd.Name.Name
-
-		// The entry points are not registered in cs.funcs, so check the names separately.
-		if _, ok := funcNames[n]; ok {
-			cs.addError(d.Pos(), fmt.Sprintf("redeclared function: %s", n))
-			return
-		}
-		funcNames[n] = struct{}{}
 
 		inParams, outParams, ret := cs.parseFuncParams(&cs.global, n, fd)
 
@@ -716,9 +708,10 @@ func (cs *compileState) parseDecl(b *block, fname string, d ast.Decl) ([]shaderi
 		case cs.fragmentEntry:
 			cs.ir.FragmentFunc.Block = f.ir.Block
 		default:
-			// The function is already registered for their names.
+			// The function is already registered by the provisional parsing. A blank name can be declared more than once, so
+			// match the declaration by its position.
 			for i := range cs.funcs {
-				if cs.funcs[i].name == d.Name.Name {
+				if cs.funcs[i].pos == d.Pos() {
 					// Index is already determined by the provisional parsing.
 					f.ir.Index = cs.funcs[i].ir.Index
 					cs.funcs[i] = f

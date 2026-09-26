@@ -19,12 +19,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/msl"
@@ -1293,5 +1295,32 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 				t.Errorf("CompileShader must not return an error but returned %v", err)
 			}
 		})
+	}
+}
+
+func TestCompileBlankFunctions(t *testing.T) {
+	compile := func(name0, name1 string) []shaderir.Func {
+		src := fmt.Sprintf(`package main
+
+func %s() float {
+	return 1
+}
+
+func %s() int {
+	x := 2
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`, name0, name1)
+		p, err := shader.Compile([]byte(src), "Vertex", "Fragment", 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return p.Funcs
+	}
+	if got, want := compile("_", "_"), compile("a", "b"); !reflect.DeepEqual(got, want) {
+		t.Errorf("got: %v, want: %v", got, want)
 	}
 }

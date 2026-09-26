@@ -6977,6 +6977,35 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		{
 			src: `package main
 
+func _() {
+}
+
+func _() {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`,
+			err: false,
+		},
+		{
+			src: `package main
+
+func _() {
+}
+
+func _() float {
+	return true
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`,
+			err: true,
+		},
+		{
+			src: `package main
+
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	const b = 1
 	var b float
