@@ -328,7 +328,43 @@ func (cs *compileState) inInternalRegion(pos token.Pos) bool {
 	return cs.internalRegionStart <= offset && offset < cs.internalRegionEnd
 }
 
+// checkPackageLevelNames reports an error and returns false if two package-level declarations in f have the same name.
+func (cs *compileState) checkPackageLevelNames(f *ast.File) bool {
+	names := map[string]struct{}{}
+	for _, d := range f.Decls {
+		var idents []*ast.Ident
+		switch d := d.(type) {
+		case *ast.GenDecl:
+			for _, s := range d.Specs {
+				switch s := s.(type) {
+				case *ast.TypeSpec:
+					idents = append(idents, s.Name)
+				case *ast.ValueSpec:
+					idents = append(idents, s.Names...)
+				}
+			}
+		case *ast.FuncDecl:
+			idents = append(idents, d.Name)
+		}
+		for _, n := range idents {
+			if n.Name == "_" {
+				continue
+			}
+			if _, ok := names[n.Name]; ok {
+				cs.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", n.Name))
+				return false
+			}
+			names[n.Name] = struct{}{}
+		}
+	}
+	return true
+}
+
 func (cs *compileState) parse(f *ast.File) {
+	if !cs.checkPackageLevelNames(f) {
+		return
+	}
+
 	// Parse GenDecl for global variables, and then parse functions.
 	for _, d := range f.Decls {
 		if _, ok := d.(*ast.FuncDecl); !ok {

@@ -7070,3 +7070,79 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxDuplicatedPackageLevelNames(t *testing.T) {
+	cases := []struct {
+		decls string
+		err   bool
+	}{
+		{
+			decls: "var A float\nconst A = 1",
+			err:   true,
+		},
+		{
+			decls: "const A = 1\nfunc A() {}",
+			err:   true,
+		},
+		{
+			decls: "func A() {}\nconst A = 1",
+			err:   true,
+		},
+		{
+			decls: "var A float\nfunc A() {}",
+			err:   true,
+		},
+		{
+			decls: "type A float\nconst A = 1",
+			err:   true,
+		},
+		{
+			decls: "const A = 1\ntype A float",
+			err:   true,
+		},
+		{
+			decls: "type A float\nvar A float",
+			err:   true,
+		},
+		{
+			decls: "var A float\ntype A float",
+			err:   true,
+		},
+		{
+			decls: "type A float\nfunc A() {}",
+			err:   true,
+		},
+		{
+			decls: "const Fragment = 1",
+			err:   true,
+		},
+		{
+			decls: "const A = 1\ntype B float\nvar C float\nfunc D() {}",
+			err:   false,
+		},
+		{
+			decls: "const _ = 1\nconst _ = 2",
+			err:   false,
+		},
+		{
+			decls: "const A = 1\nfunc f(A float) float {\n\tvar B = A\n\treturn B\n}\nvar B float",
+			err:   false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+%s
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return dstPos
+}`, c.decls)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.decls)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.decls, err)
+		}
+	}
+}
