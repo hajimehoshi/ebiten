@@ -5812,3 +5812,90 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxAssignToDuplicatedSwizzling(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "v := vec4(0); v.xx = vec2(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xyx += vec3(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xx++; _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := ivec4(0); v.rgr = ivec3(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "x := vec3(0); x.xxx.xy = vec2(1); _ = x",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.yy = vec2(1); _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xx.x = 1; _ = v",
+			err:  true,
+		},
+		{
+			stmt: "v := vec4(0); v.xy = vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.yx = vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.yx += vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.xy.x = 1; _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.zw += vec2(1); _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); v.w++; _ = v",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); w := v.xx; _ = w",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); w := vec3(0); w = v.xyx; _ = w",
+			err:  false,
+		},
+		{
+			stmt: "v := vec4(0); w := vec3(0); w += v.xyx; _ = w",
+			err:  false,
+		},
+	}
+
+	for _, c := range cases {
+		src := fmt.Sprintf(`package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	%s
+	return dstPos
+}`, c.stmt)
+		_, err := compileToIR([]byte(src))
+		if err == nil && c.err {
+			t.Errorf("%s must return an error but does not", c.stmt)
+		} else if err != nil && !c.err {
+			t.Errorf("%s must not return an error but returned %v", c.stmt, err)
+		}
+	}
+}

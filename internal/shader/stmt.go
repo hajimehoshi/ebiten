@@ -759,7 +759,13 @@ func (cs *compileState) checkAssignmentTarget(pos token.Pos, e *shaderir.Expr) b
 	case shaderir.TextureVariable:
 		cs.addError(pos, "a texture variable cannot be assigned")
 		return false
-	case shaderir.FieldSelector, shaderir.Index:
+	case shaderir.FieldSelector:
+		if s := e.Exprs[1]; s.Type == shaderir.SwizzlingExpr && hasDuplicatedSwizzlingComponent(s.Swizzling) {
+			cs.addError(pos, fmt.Sprintf("cannot assign to a swizzling with a duplicated component: %s", s.SourceSwizzling()))
+			return false
+		}
+		return cs.checkAssignmentTarget(pos, &e.Exprs[0])
+	case shaderir.Index:
 		return cs.checkAssignmentTarget(pos, &e.Exprs[0])
 	case shaderir.FunctionExpr, shaderir.BuiltinFuncExpr:
 		cs.addError(pos, "a function cannot be assigned")
@@ -771,6 +777,15 @@ func (cs *compileState) checkAssignmentTarget(pos token.Pos, e *shaderir.Expr) b
 		cs.addError(pos, "a non-variable expression cannot be assigned")
 		return false
 	}
+}
+
+func hasDuplicatedSwizzlingComponent(swizzling string) bool {
+	for i := range len(swizzling) {
+		if strings.IndexByte(swizzling[i+1:], swizzling[i]) >= 0 {
+			return true
+		}
+	}
+	return false
 }
 
 // isConstZero reports whether v is a numeric constant equal to zero.
