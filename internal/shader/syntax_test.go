@@ -116,6 +116,23 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 `)); err == nil {
 		t.Errorf("error must be non-nil but was nil")
 	}
+
+	if _, err := compileToIR([]byte(`package main
+
+func Foo(x float) float {
+	return x
+}
+
+func Foo(x vec2) vec2 {
+	return x
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(0)
+}
+`)); err == nil {
+		t.Errorf("error must be non-nil but was nil")
+	}
 }
 
 func TestSyntaxNoNewVariables(t *testing.T) {
