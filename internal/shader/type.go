@@ -178,7 +178,7 @@ func checkArgsForBoolBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	if args[0].Const != nil && args[0].Const.Kind() == gconstant.Bool {
 		return nil
 	}
-	return fmt.Errorf("invalid arguments for bool: (%s)", argts[0].String())
+	return fmt.Errorf("invalid arguments for bool: (%s)", typeString(argts[0], args[0].Const))
 }
 
 func checkArgsForIntBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
@@ -195,7 +195,7 @@ func checkArgsForIntBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) err
 	if args[0].Const != nil && gconstant.ToInt(args[0].Const).Kind() != gconstant.Unknown {
 		return nil
 	}
-	return fmt.Errorf("invalid arguments for int: (%s)", argts[0].String())
+	return fmt.Errorf("invalid arguments for int: (%s)", typeString(argts[0], args[0].Const))
 }
 
 func checkArgsForFloatBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
@@ -212,7 +212,7 @@ func checkArgsForFloatBuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	if args[0].Const != nil && gconstant.ToFloat(args[0].Const).Kind() != gconstant.Unknown {
 		return nil
 	}
-	return fmt.Errorf("invalid arguments for float: (%s)", argts[0].String())
+	return fmt.Errorf("invalid arguments for float: (%s)", typeString(argts[0], args[0].Const))
 }
 
 func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) error {
@@ -238,8 +238,8 @@ func checkArgsForVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for vec2: (%s)", strings.Join(str, ", "))
 }
@@ -274,8 +274,8 @@ func checkArgsForVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for vec3: (%s)", strings.Join(str, ", "))
 }
@@ -323,8 +323,8 @@ func checkArgsForVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for vec4: (%s)", strings.Join(str, ", "))
 }
@@ -352,8 +352,8 @@ func checkArgsForIVec2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for ivec2: (%s)", strings.Join(str, ", "))
 }
@@ -388,8 +388,8 @@ func checkArgsForIVec3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for ivec3: (%s)", strings.Join(str, ", "))
 }
@@ -437,8 +437,8 @@ func checkArgsForIVec4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) e
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for ivec4: (%s)", strings.Join(str, ", "))
 }
@@ -476,8 +476,8 @@ func checkArgsForMat2BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for mat2: (%s)", strings.Join(str, ", "))
 }
@@ -517,8 +517,8 @@ func checkArgsForMat3BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for mat3: (%s)", strings.Join(str, ", "))
 }
@@ -559,8 +559,8 @@ func checkArgsForMat4BuiltinFunc(args []shaderir.Expr, argts []shaderir.Type) er
 	}
 
 	var str []string
-	for _, t := range argts {
-		str = append(str, t.String())
+	for i, t := range argts {
+		str = append(str, typeString(t, args[i].Const))
 	}
 	return fmt.Errorf("invalid arguments for mat4: (%s)", strings.Join(str, ", "))
 }

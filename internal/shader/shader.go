@@ -809,7 +809,7 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 
 			for i, rt := range rts {
 				if !canAssign(&t, &rt, es[i].Const) {
-					s.addError(n.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", rt.String(), t.String()))
+					s.addError(n.Pos(), fmt.Sprintf("cannot use type %s as type %s in variable declaration", typeString(rt, es[i].Const), t.String()))
 				}
 				if es[i].Const != nil {
 					switch t.Main {

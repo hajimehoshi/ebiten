@@ -157,7 +157,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				case shaderir.Int, shaderir.IVec2, shaderir.IVec3, shaderir.IVec4:
 					if rts[0].Main != shaderir.Int {
 						if !rts[0].Equal(&shaderir.Type{}) {
-							cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+							cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), typeString(rts[0], rhs[0].Const)))
 							return nil, false
 						}
 						if !cs.forceToInt(stmt, &rhs[0]) {
@@ -172,7 +172,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 						gconstant.ToFloat(rhs[0].Const).Kind() != gconstant.Unknown {
 						rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
 					} else {
-						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), typeString(rts[0], rhs[0].Const)))
 						return nil, false
 					}
 				case shaderir.Vec2, shaderir.Vec3, shaderir.Vec4, shaderir.Mat2, shaderir.Mat3, shaderir.Mat4:
@@ -199,11 +199,11 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 							rhs[0].Const = gconstant.ToFloat(rhs[0].Const)
 						}
 					} else {
-						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+						cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), typeString(rts[0], rhs[0].Const)))
 						return nil, false
 					}
 				default:
-					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), rts[0].String()))
+					cs.addError(stmt.Pos(), fmt.Sprintf("invalid operation: mismatched types %s and %s", lts[0].String(), typeString(rts[0], rhs[0].Const)))
 					return nil, false
 				}
 			}
@@ -297,7 +297,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			return nil, false
 		}
 		if !(ts[0].Main == shaderir.Bool || (ts[0].Main == shaderir.None && exprs[0].Const != nil && exprs[0].Const.Kind() == gconstant.Bool)) {
-			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %s", ts[0].String()))
+			cs.addError(stmt.Pos(), fmt.Sprintf("if-condition must be bool but: %s", typeString(ts[0], exprs[0].Const)))
 			return nil, false
 		}
 		stmts = append(stmts, ss...)
@@ -455,20 +455,20 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				switch outT.Main {
 				case shaderir.Bool:
 					if expr.Const.Kind() != gconstant.Bool {
-						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
+						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", typeString(t, expr.Const), &outT, result))
 						return nil, false
 					}
 					t = shaderir.Type{Main: shaderir.Bool}
 				case shaderir.Int:
 					if gconstant.ToInt(expr.Const).Kind() == gconstant.Unknown {
-						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
+						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", typeString(t, expr.Const), &outT, result))
 						return nil, false
 					}
 					expr.Const = gconstant.ToInt(expr.Const)
 					t = shaderir.Type{Main: shaderir.Int}
 				case shaderir.Float:
 					if gconstant.ToFloat(expr.Const).Kind() == gconstant.Unknown {
-						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
+						cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", typeString(t, expr.Const), &outT, result))
 						return nil, false
 					}
 					expr.Const = gconstant.ToFloat(expr.Const)
@@ -477,7 +477,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			}
 
 			if !t.Equal(&outT) {
-				cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", t.String(), &outT, result))
+				cs.addError(positions[i], fmt.Sprintf("cannot use type %s as type %s in %s", typeString(t, expr.Const), &outT, result))
 				return nil, false
 			}
 
@@ -667,7 +667,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 
 			for i := range lts {
 				if !canAssign(&lts[i], &rts[i], r[i].Const) {
-					cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in assignment", rts[i].String(), lts[i].String()))
+					cs.addError(e.Pos(), fmt.Sprintf("cannot use type %s as type %s in assignment", typeString(rts[i], r[i].Const), lts[i].String()))
 					return nil, false
 				}
 				switch lts[0].Main {
@@ -864,6 +864,17 @@ func toDefaultType(v gconstant.Value) shaderir.Type {
 	}
 	// TODO: Should this be an error?
 	return shaderir.Type{}
+}
+
+// typeString returns the name of t, the type of an expression whose constant value is c.
+// For an untyped constant, the name is "untyped " followed by the name of the constant's default type.
+func typeString(t shaderir.Type, c gconstant.Value) string {
+	if t.Main == shaderir.None && c != nil {
+		if d := toDefaultType(c); d.Main != shaderir.None {
+			return "untyped " + d.String()
+		}
+	}
+	return t.String()
 }
 
 func canAssign(lt *shaderir.Type, rt *shaderir.Type, rc gconstant.Value) bool {

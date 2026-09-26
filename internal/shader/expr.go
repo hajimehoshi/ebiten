@@ -138,8 +138,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		// Resolve untyped constants.
 		l, r, ok := shaderir.ResolveUntypedConstsForBinaryOp(op2, lhs[0].Const, rhs[0].Const, lhst, rhst)
 		if !ok {
-			// TODO: Show a better type name for untyped constants.
-			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
+			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", typeString(lhst, lhs[0].Const), op, typeString(rhst, rhs[0].Const)))
 			return nil, nil, nil, false
 		}
 		lhs[0].Const, rhs[0].Const = l, r
@@ -171,8 +170,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 
 		t, ok := shaderir.TypeFromBinaryOp(op2, lhst, rhst, lhs[0].Const, rhs[0].Const)
 		if !ok {
-			// TODO: Show a better type name for untyped constants.
-			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", lhst.String(), op, rhst.String()))
+			cs.addError(e.Pos(), fmt.Sprintf("types don't match: %s %s %s", typeString(lhst, lhs[0].Const), op, typeString(rhst, rhs[0].Const)))
 			return nil, nil, nil, false
 		}
 
@@ -270,7 +268,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 					return nil, nil, nil, false
 				}
 				if argts[0].Main != shaderir.Array {
-					cs.addError(e.Pos(), fmt.Sprintf("%s takes an array but %s", callee.BuiltinFunc, argts[0].String()))
+					cs.addError(e.Pos(), fmt.Sprintf("%s takes an array but %s", callee.BuiltinFunc, typeString(argts[0], args[0].Const)))
 					return nil, nil, nil, false
 				}
 				return []shaderir.Expr{
@@ -882,7 +880,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 				if len(args) > 1 {
 					arg = fmt.Sprintf("the %s argument to %s", ordinal(i+1), e.Fun)
 				}
-				cs.addError(argPositions[i], fmt.Sprintf("cannot use type %s as type %s in %s", argts[i].String(), p.String(), arg))
+				cs.addError(argPositions[i], fmt.Sprintf("cannot use type %s as type %s in %s", typeString(argts[i], args[i].Const), p.String(), arg))
 				return nil, nil, nil, false
 			}
 
@@ -1269,7 +1267,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			case t.IsMatrix():
 				length = t.MatrixSize()
 			default:
-				cs.addError(e.Pos(), fmt.Sprintf("index operator cannot be applied to the type %s", t.String()))
+				cs.addError(e.Pos(), fmt.Sprintf("index operator cannot be applied to the type %s", typeString(t, x.Const)))
 				return nil, nil, nil, false
 			}
 			v, ok := gconstant.Int64Val(gconstant.ToInt(idx.Const))
@@ -1298,7 +1296,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		case shaderir.Array:
 			typ = t.Sub[0]
 		default:
-			cs.addError(e.Pos(), fmt.Sprintf("index operator cannot be applied to the type %s", t.String()))
+			cs.addError(e.Pos(), fmt.Sprintf("index operator cannot be applied to the type %s", typeString(t, x.Const)))
 			return nil, nil, nil, false
 		}
 
