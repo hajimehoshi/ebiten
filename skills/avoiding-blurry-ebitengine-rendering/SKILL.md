@@ -166,8 +166,6 @@ explicit if performance requires lower-resolution effects or game layers.
 
 Use the target version's godoc and source for API and platform behavior.
 
-- [Mixed-resolution gist](https://gist.github.com/hajimehoshi/03699d000944797b08db2c45567c10d5):
-  the optional offscreen-layer approach extended here.
 - [Display scaling guide](https://github.com/tinne26/etxt/blob/main/docs/display-scaling.md):
   UI sizing and game-relative text scaling; its renderer examples use `etxt`.
 - [Layout and presentation contracts](../../run.go): `LayoutFer`,
