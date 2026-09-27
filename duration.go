@@ -56,6 +56,11 @@ func (d Duration) Seconds() float64 {
 // The value changes only at the start of an update and is rounded down to whole Duration units.
 // Changing TPS preserves elapsed time but discards any fraction smaller than one unit.
 //
+// Prefer DurationTime to [time.Now] or [time.Since] for game timing:
+// it is deterministic with positive TPS and stops during engine-controlled pauses.
+// With [SyncWithFPS], it follows real time like those functions, except during pauses.
+// For virtual time that assigns a fixed duration to each Update regardless of real time or TPS, use [Tick].
+//
 // DurationTime is concurrent-safe.
 func DurationTime() Duration {
 	return Duration(clock.DurationTime())

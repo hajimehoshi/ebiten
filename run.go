@@ -803,6 +803,11 @@ type AbsPather interface {
 // Tick returns the current tick count.
 // The tick count starts with 0 and is incremented by one on every Update call.
 //
+// Tick is useful for virtual time that assigns a fixed duration to each Update, regardless of real time or TPS.
+// For elapsed game time in duration units, use [DurationTime].
+// With [SyncWithFPS], DurationTime follows real time, while ticks have no fixed duration in seconds.
+// Unlike [time.Now] and [time.Since], Tick does not advance while Update calls are suspended.
+//
 // Tick is concurrent-safe.
 func Tick() int64 {
 	return ui.Get().Tick()
