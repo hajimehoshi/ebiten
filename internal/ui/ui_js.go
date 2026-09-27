@@ -491,12 +491,17 @@ func (u *UserInterface) init() error {
 	}
 
 	if !document.Get("body").Truthy() {
-		ch := make(chan struct{})
-		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) any {
-			close(ch)
-			return nil
-		}))
-		<-ch
+		// A listener added after the load event already fired never runs,
+		// so only wait while the document is still loading. readyState is
+		// "loading" before load, and "interactive" or "complete" after it.
+		if document.Get("readyState").String() == "loading" {
+			ch := make(chan struct{})
+			window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) any {
+				close(ch)
+				return nil
+			}))
+			<-ch
+		}
 	}
 
 	u.setWindowEventHandlers(window)
