@@ -25,6 +25,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -128,6 +129,7 @@ type userInterfaceImpl struct {
 
 func (u *UserInterface) SetForeground(foreground bool) error {
 	u.foreground.Store(foreground)
+	clock.SetDurationSuspended(!foreground)
 
 	if foreground {
 		return hook.ResumeAudio()

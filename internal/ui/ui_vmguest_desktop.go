@@ -810,6 +810,7 @@ func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, o
 		return err
 	}
 
+	clock.UpdateDurationTime()
 	c.readInputStateForTick(ui)
 
 	if err := hook.RunBeforeUpdateHooks(); err != nil {

@@ -1423,6 +1423,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 			break
 		}
 
+		clock.SetDurationSuspended(true)
 		if err := hook.SuspendAudio(); err != nil {
 			return 0, 0, 0, 0, err
 		}
@@ -1433,6 +1434,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		}
 	}
 
+	clock.SetDurationSuspended(false)
 	if err := hook.ResumeAudio(); err != nil {
 		return 0, 0, 0, 0, err
 	}
