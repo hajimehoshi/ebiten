@@ -21,13 +21,13 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const infTick = math.MaxInt64
+const infTime ebiten.Duration = math.MaxInt64
 
 type cacheValue[Value any] struct {
 	value Value
 
 	// atime is the last time when the value was accessed.
-	atime int64
+	atime ebiten.Duration
 }
 
 type cache[Key comparable, Value any] struct {
@@ -37,7 +37,7 @@ type cache[Key comparable, Value any] struct {
 	values map[Key]*cacheValue[Value]
 
 	// atime is the last time when the cache was accessed.
-	atime int64
+	atime ebiten.Duration
 
 	m sync.Mutex
 }
@@ -49,7 +49,7 @@ func newCache[Key comparable, Value any](softLimit int) *cache[Key, Value] {
 }
 
 func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Value {
-	n := ebiten.Tick()
+	n := ebiten.DurationTime()
 
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -67,7 +67,7 @@ func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Va
 	ent, canExpire := create()
 	e = &cacheValue[Value]{
 		value: ent,
-		atime: infTick,
+		atime: infTime,
 	}
 	if canExpire {
 		e.atime = n
@@ -81,8 +81,7 @@ func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Va
 		// but this is fine.
 		if len(c.values) > c.softLimit {
 			for key, e := range c.values {
-				// 60 is an arbitrary number.
-				if e.atime >= n-60 {
+				if e.atime >= n-ebiten.DurationSecond {
 					continue
 				}
 				delete(c.values, key)
