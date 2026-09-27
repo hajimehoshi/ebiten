@@ -24,8 +24,8 @@ import (
 )
 
 func TestDurationConversion(t *testing.T) {
-	for _, d := range []time.Duration{0, 1, -1, 11111, -11111, 11112, -11112, time.Millisecond, -time.Millisecond, time.Second / 60, time.Hour, math.MaxInt64, math.MinInt64} {
-		want := new(big.Int).Mul(big.NewInt(int64(d)), big.NewInt(90_000))
+	for _, d := range []time.Duration{0, 1, -1, 1388, -1388, 1389, -1389, time.Millisecond, -time.Millisecond, time.Second / 60, time.Hour, math.MaxInt64, math.MinInt64} {
+		want := new(big.Int).Mul(big.NewInt(int64(d)), big.NewInt(720_000))
 		want.Quo(want, big.NewInt(int64(time.Second)))
 		if got := ebiten.DurationFromTime(d); int64(got) != want.Int64() {
 			t.Errorf("DurationFromTime(%d): got %d, want %s", d, got, want)
@@ -35,7 +35,7 @@ func TestDurationConversion(t *testing.T) {
 	min := ebiten.DurationFromTime(time.Duration(math.MinInt64))
 	for _, d := range []ebiten.Duration{0, 1, -1, ebiten.DurationMillisecond, -ebiten.DurationMillisecond, ebiten.DurationSecond, ebiten.DurationHour, max - 1, max, max + 1, min - 1, min, min + 1, math.MaxInt64, math.MinInt64} {
 		want := new(big.Int).Mul(big.NewInt(int64(d)), big.NewInt(int64(time.Second)))
-		want.Quo(want, big.NewInt(90_000))
+		want.Quo(want, big.NewInt(720_000))
 		if want.Cmp(big.NewInt(math.MaxInt64)) > 0 {
 			want.SetInt64(math.MaxInt64)
 		}

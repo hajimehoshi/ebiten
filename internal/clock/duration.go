@@ -21,10 +21,13 @@ import (
 	"time"
 )
 
-// Duration represents elapsed time in units of 1/90,000 second.
+// Duration represents elapsed time in units of 1/720,000 second.
+//
+// 720,000 is a multiple of common media rates such as 50, 60, 100, 120, 144, 240, 1,000, and 48,000 Hz,
+// so their frame and sample durations can be represented exactly as whole units.
 type Duration int64
 
-const Second Duration = 90_000
+const Second Duration = 720_000
 
 // DurationFromTime converts d to Duration, truncating toward zero.
 func DurationFromTime(d time.Duration) Duration {

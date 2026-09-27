@@ -20,11 +20,14 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 )
 
-// Duration represents elapsed time in units of 1/90,000 second.
+// Duration represents elapsed time in units of 1/720,000 second.
+//
+// 720,000 is a multiple of common media rates such as 50, 60, 100, 120, 144, 240, 1,000, and 48,000 Hz,
+// so their frame and sample durations can be represented exactly as whole units.
 type Duration int64
 
 const (
-	DurationMillisecond Duration = 90
+	DurationMillisecond Duration = DurationSecond / 1000
 	DurationSecond      Duration = Duration(clock.Second)
 	DurationMinute               = 60 * DurationSecond
 	DurationHour                 = 60 * DurationMinute

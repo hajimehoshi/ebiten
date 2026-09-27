@@ -25,7 +25,7 @@ import (
 )
 
 func TestDurationFixedTPS(t *testing.T) {
-	for _, tps := range []int{1, 50, 60, 64, 100, 120, 144, 240, 90_001} {
+	for _, tps := range []int{1, 50, 60, 64, 100, 120, 144, 240, 1_000, 48_000, 720_001} {
 		t.Run(fmt.Sprint(tps), func(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				var c clock.DurationClock
@@ -59,7 +59,7 @@ func TestDurationSyncWithFPS(t *testing.T) {
 		c.SetTPS(clock.SyncWithFPS)
 		c.Update()
 		var previous time.Duration
-		for _, elapsed := range []time.Duration{time.Nanosecond, time.Microsecond, 11111 * time.Nanosecond, 11112 * time.Nanosecond, time.Second / 60, time.Second, 3 * time.Second} {
+		for _, elapsed := range []time.Duration{time.Nanosecond, time.Microsecond, 1388 * time.Nanosecond, 1389 * time.Nanosecond, time.Second / 60, time.Second, 3 * time.Second} {
 			time.Sleep(elapsed - previous)
 			previous = elapsed
 			c.Update()
@@ -197,23 +197,23 @@ func TestDurationPauseBetweenUpdates(t *testing.T) {
 
 func TestDurationFractionOnTPSChange(t *testing.T) {
 	var c clock.DurationClock
-	c.SetTPS(64)
+	c.SetTPS(512)
 	c.Update()
 	c.Update()
-	c.SetTPS(64)
+	c.SetTPS(512)
 	for range 3 {
 		c.Update()
 	}
-	if got, want := c.Time(), clock.Second/16; got != want {
+	if got, want := c.Time(), clock.Second/128; got != want {
 		t.Errorf("unchanged TPS lost fractional carry: got %d, want %d", got, want)
 	}
 	c.Update()
 	before := c.Time()
-	c.SetTPS(128)
+	c.SetTPS(1024)
 	c.Update()
 	c.Update()
 	c.Update()
-	if got, want := c.Time(), before+3*clock.Second/128; got != want {
+	if got, want := c.Time(), before+3*clock.Second/1024; got != want {
 		t.Errorf("changed TPS retained old fraction: got %d, want %d", got, want)
 	}
 }
