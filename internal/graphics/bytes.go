@@ -135,6 +135,10 @@ func (b *bytesPool) put(bs []byte) {
 
 	// GC the pool. The size limitation is arbitrary.
 	for len(b.pool) >= 32 || b.totalSize() >= 1024*1024*1024 {
+		// The vacated slot must be cleared: re-slicing keeps the backing
+		// array, so the evicted buffer would stay reachable and its
+		// memory would never be reclaimed.
+		b.pool[0] = nil
 		b.pool = b.pool[1:]
 	}
 }
