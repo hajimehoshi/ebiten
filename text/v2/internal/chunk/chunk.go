@@ -41,14 +41,16 @@ import (
 // Chunk is a byte range [Start, End) within the original text, plus the
 // bidi embedding level to compose the range with.
 //
-// Level is the level of the range's first codepoint. It is the level a caller
-// needs for UAX #9 L2, which reverses a contiguous run of characters at or
-// above a pass level, so it is enough to compare against the highest and the
-// lowest odd level of the line. It is not the level of every codepoint in the
-// range: the bidi package segments a line into runs of one direction, so a
-// range can hold a deeper embedding than Level, e.g. a nested LRE under an LTR
-// paragraph. Treating a chunk as a single character at Level is still the right
-// model for L2, but a range is not a single bidi level.
+// Level is the containing bidi run's leading level, stamped on every chunk
+// cut from the run, not the resolved level of the range's first codepoint:
+// the pure-LTR fast path of [AppendChunks] treats the whole line as a single
+// run at the paragraph level, so a range can hold a deeper embedding than
+// Level, e.g. an LRE under an LTR paragraph. Level is still the level a
+// caller needs for UAX #9 L2, which reverses a contiguous run of characters
+// at or above a pass level, so it is enough to compare against the highest
+// and the lowest odd level of the line. Treating a chunk as a single
+// character at Level is still the right model for L2, but a range is not a
+// single bidi level.
 type Chunk struct {
 	Start int
 	End   int
