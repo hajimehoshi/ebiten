@@ -55,7 +55,13 @@ func (m *ManagedBytes) GetAndRelease() ([]byte, func()) {
 	bs := m.bytes
 	m.bytes = nil
 	return bs, func() {
+		// A repeated call must not put the same slice into the pool twice, as two ManagedBytes would
+		// then share one backing array.
+		if bs == nil {
+			return
+		}
 		m.pool.put(bs)
+		bs = nil
 		m.cleanup.Stop()
 	}
 }
