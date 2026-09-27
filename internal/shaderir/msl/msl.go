@@ -388,10 +388,23 @@ func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shad
 	t := p.LocalVariableType(topBlock, block, index)
 
 	var lines []string
-	if decl {
-		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.varDecl(p, &t, name, false), c.varInit(p, &t)))
-	} else {
-		lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, name, c.varInit(p, &t)))
+	switch t.Main {
+	case shaderir.Array:
+		if decl {
+			lines = append(lines, fmt.Sprintf("%s%s;", idt, c.varDecl(p, &t, name, false)))
+		}
+		init := c.varInit(p, &t.Sub[0])
+		for i := 0; i < t.Length; i++ {
+			lines = append(lines, fmt.Sprintf("%s%s[%d] = %s;", idt, name, i, init))
+		}
+	case shaderir.None:
+		// The type is None e.g., when the variable is a for-loop counter.
+	default:
+		if decl {
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, c.varDecl(p, &t, name, false), c.varInit(p, &t)))
+		} else {
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, name, c.varInit(p, &t)))
+		}
 	}
 	return lines
 }
@@ -505,7 +518,17 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			lines = append(lines, c.block(p, topBlock, s.Blocks[0], level+1)...)
 			lines = append(lines, idt+"}")
 		case shaderir.Assign:
-			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, expr(&s.Exprs[0]), expr(&s.Exprs[1])))
+			lhs := s.Exprs[0]
+			rhs := s.Exprs[1]
+			if lhs.Type == shaderir.LocalVariable {
+				if t := p.LocalVariableType(topBlock, block, lhs.Index); t.Main == shaderir.Array {
+					for i := 0; i < t.Length; i++ {
+						lines = append(lines, fmt.Sprintf("%[1]s%[2]s[%[3]d] = %[4]s[%[3]d];", idt, expr(&lhs), i, expr(&rhs)))
+					}
+					continue
+				}
+			}
+			lines = append(lines, fmt.Sprintf("%s%s = %s;", idt, expr(&lhs), expr(&rhs)))
 		case shaderir.Init:
 			init := true
 			if topBlock == p.VertexFunc.Block {
