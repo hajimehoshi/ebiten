@@ -128,8 +128,7 @@ type glfwBackend struct {
 	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
 
-	cachedCurrentMonitor     *Monitor
-	cachedCurrentMonitorTime int64
+	currentMonitorCache windowPropertyCache[*Monitor]
 
 	// Window states are updated by callbacks and native operations, with periodic queries
 	// to recover from missed notifications (#3318). Access is confined to the main thread.
@@ -1972,16 +1971,15 @@ func (u *glfwBackend) minimumWindowWidth() (int, error) {
 //
 // currentMonitor must be called on the main thread.
 func (u *glfwBackend) currentMonitor() (*Monitor, error) {
-	if u.cachedCurrentMonitor != nil && u.cachedCurrentMonitorTime > u.Tick()-int64(clock.TPS()) && theMonitors.contains(u.cachedCurrentMonitor) {
-		return u.cachedCurrentMonitor, nil
+	if m, ok := u.currentMonitorCache.get(time.Now()); ok && m != nil && theMonitors.contains(m) {
+		return m, nil
 	}
 
 	m, err := u.currentMonitorImpl()
 	if err != nil {
 		return nil, err
 	}
-	u.cachedCurrentMonitor = m
-	u.cachedCurrentMonitorTime = u.Tick()
+	u.currentMonitorCache.set(m, time.Now())
 	return m, nil
 }
 
