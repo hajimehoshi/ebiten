@@ -1324,3 +1324,182 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
+
+func TestCompileTextureVariable(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		err  bool
+	}{
+		{
+			name: "short variable declaration",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	t := __t0
+	_ = t
+	return imageSrc0At(src0Pos)
+}`,
+			err: true,
+		},
+		{
+			name: "variable declaration",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var t = __t0
+	_ = t
+	return imageSrc0At(src0Pos)
+}`,
+			err: true,
+		},
+		{
+			name: "multiple short variable declaration",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, b := __t0, __t1
+	_, _ = a, b
+	return imageSrc0At(src0Pos)
+}`,
+			err: true,
+		},
+		{
+			name: "multiple variable declaration",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a, b = __t0, __t1
+	_, _ = a, b
+	return imageSrc0At(src0Pos)
+}`,
+			err: true,
+		},
+		{
+			name: "blank short variable declaration",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a, _ := 1, __t0
+	_ = a
+	return imageSrc0At(src0Pos)
+}`,
+			err: true,
+		},
+		{
+			name: "blank variable declaration",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var _ = __t0
+	return imageSrc0At(src0Pos)
+}`,
+			err: true,
+		},
+		{
+			name: "argument",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	f(__t0)
+	return imageSrc0At(src0Pos)
+}`,
+			err: true,
+		},
+		{
+			name: "blank assignment",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	_ = __t0
+	return imageSrc0At(src0Pos)
+}`,
+			err: false,
+		},
+		{
+			name: "texture read",
+			src: `//kage:unit pixels
+
+package main
+
+func f(x vec4) {
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos)
+}`,
+			err: false,
+		},
+		{
+			name: "return value",
+			src: `//kage:unit pixels
+
+package main
+
+func f() vec4 {
+	return __t0
+}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return f()
+}`,
+			err: true,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			s, err := graphics.CompileShader([]byte(c.src))
+			if err == nil && c.err {
+				t.Errorf("CompileShader must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("CompileShader must not return an error but returned %v", err)
+			}
+			if err != nil {
+				return
+			}
+			glsl.Compile(s, glsl.GLSLVersionDefault)
+			hlsl.Compile(s)
+			msl.Compile(s)
+		})
+	}
+}
