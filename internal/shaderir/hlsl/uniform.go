@@ -95,7 +95,12 @@ func UniformVariableOffsetsInDwords(program *shaderir.Program) []int {
 			case shaderir.Mat4:
 				n = 16
 			}
-			headInDwords += (u.Length - 1) * align(n)
+			// A zero-length array must not move the head backwards. parseType accepts
+			// a length of 0, and a negative stride here would move every later offset
+			// into the variables before it.
+			if u.Length > 1 {
+				headInDwords += (u.Length - 1) * align(n)
+			}
 			// The last element is not followed by padding.
 			headInDwords += n
 		case shaderir.Struct:
