@@ -457,7 +457,7 @@ func TestTouchEnabledOnFirstUse(t *testing.T) {
 	}
 }
 
-func TestVirtualGamepadHasNoTouchSurface(t *testing.T) {
+func TestVirtualGamepadWithoutTouchSurfaces(t *testing.T) {
 	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
 		{
 			ID:      0,
@@ -478,4 +478,104 @@ func TestVirtualGamepadHasNoTouchSurface(t *testing.T) {
 		t.Errorf("AppendTouchIDs(0) = %v; want none", got)
 	}
 	checkTouchPosition(t, g, 1, 0, 0)
+}
+
+func virtualTouch(id int, x, y float64) gamepad.VirtualGamepadTouch {
+	return gamepad.VirtualGamepadTouch{
+		ID: id,
+		X:  x,
+		Y:  y,
+	}
+}
+
+func updateVirtualTouches(t *testing.T, surfaces ...[]gamepad.VirtualGamepadTouch) *gamepad.Gamepad {
+	t.Helper()
+	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
+		{
+			ID:            0,
+			Name:          "Pad",
+			TouchSurfaces: surfaces,
+		},
+	})
+	g := gamepad.Get(0)
+	if g == nil {
+		t.Fatal("gamepad 0 is not connected")
+	}
+	return g
+}
+
+func TestVirtualGamepadTouches(t *testing.T) {
+	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
+
+	g := updateVirtualTouches(t, nil, []gamepad.VirtualGamepadTouch{
+		virtualTouch(1, 0.25, 0.5),
+	})
+	if got := g.TouchSurfaceCount(); got != 2 {
+		t.Errorf("TouchSurfaceCount() = %d; want 2", got)
+	}
+	checkTouchCount(t, g, 0, 0)
+	first := onlyTouchID(t, g, 1)
+	checkTouchPosition(t, g, first, 0.25, 0.5)
+
+	updateVirtualTouches(t, nil, []gamepad.VirtualGamepadTouch{
+		virtualTouch(1, 0.5, 0.75),
+	})
+	checkTouchKept(t, g, 1, first)
+	checkTouchPosition(t, g, first, 0.5, 0.75)
+
+	updateVirtualTouches(t, []gamepad.VirtualGamepadTouch{
+		virtualTouch(2, 0, 1),
+	}, []gamepad.VirtualGamepadTouch{
+		virtualTouch(1, 0.5, 0.75),
+		virtualTouch(3, 1, 0),
+	})
+	second := onlyTouchID(t, g, 0)
+	checkTouchCount(t, g, 1, 2)
+	if got := findTouchID(t, g, 1, 0.5, 0.75); got != first {
+		t.Errorf("the held touch on surface 1 has ID %d; want %d", got, first)
+	}
+	third := findTouchID(t, g, 1, 1, 0)
+	checkDistinctTouchIDs(t, first, second, third)
+	checkTouchPosition(t, g, second, 0, 1)
+
+	updateVirtualTouches(t, []gamepad.VirtualGamepadTouch{
+		virtualTouch(2, 0, 1),
+	}, []gamepad.VirtualGamepadTouch{
+		virtualTouch(4, 0.5, 0.75),
+		virtualTouch(3, 1, 0),
+	})
+	checkTouchKept(t, g, 0, second)
+	checkTouchCount(t, g, 1, 2)
+	fourth := findTouchID(t, g, 1, 0.5, 0.75)
+	if got := findTouchID(t, g, 1, 1, 0); got != third {
+		t.Errorf("the held touch on surface 1 has ID %d; want %d", got, third)
+	}
+	checkDistinctTouchIDs(t, first, second, third, fourth)
+	checkTouchRetired(t, g, 1, first)
+
+	updateVirtualTouches(t)
+	if got := g.TouchSurfaceCount(); got != 0 {
+		t.Errorf("TouchSurfaceCount() = %d; want 0", got)
+	}
+	for _, id := range []gamepad.TouchID{first, second, third, fourth} {
+		checkTouchPosition(t, g, id, 0, 0)
+	}
+}
+
+func TestVirtualGamepadHeldTouchesKeepIDs(t *testing.T) {
+	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
+
+	var touches []gamepad.VirtualGamepadTouch
+	var ids []gamepad.TouchID
+	for i := range 4 {
+		touches = append(touches, virtualTouch(i, float64(i)/4, 0))
+		g := updateVirtualTouches(t, touches)
+		for j, id := range ids {
+			if got := findTouchID(t, g, 0, float64(j)/4, 0); got != id {
+				t.Errorf("after %d touches, touch %d has ID %d; want %d", i+1, j, got, id)
+			}
+		}
+		ids = append(ids, findTouchID(t, g, 0, float64(i)/4, 0))
+		checkDistinctTouchIDs(t, ids...)
+	}
 }
