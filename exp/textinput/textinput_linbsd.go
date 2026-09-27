@@ -141,3 +141,29 @@ func (t *textInputImpl) updateIMEState(bounds image.Rectangle) (discarded bool) 
 	})
 	return discard
 }
+
+// x11IMESpotLocation is the XNSpotLocation value, and x11SpotLocationName is
+// the XNSpotLocation key. Both live at package level because the nested list
+// handed to XSetICValues stores pointers to them, so they must stay valid
+// beyond the XVaCreateNestedList call. Both are used on the main thread only.
+var (
+	x11IMESpotLocation  xPoint
+	x11SpotLocationName = []byte("spotLocation\x00")
+)
+
+// setIMESpotLocation sets the XIM spot location of the given X input context:
+// the position the input method places its preedit and candidate windows at.
+//
+// setIMESpotLocation must be called from the main thread.
+func setIMESpotLocation(ic uintptr, x, y int) {
+	if ic == 0 || !ensureX11() {
+		return
+	}
+	x11IMESpotLocation = xPoint{x: int16(x), y: int16(y)}
+	list := xVaCreateNestedList(0, &x11SpotLocationName[0], &x11IMESpotLocation, 0)
+	if list == 0 {
+		return
+	}
+	xSetICValues(ic, "preeditAttributes", list, 0)
+	xFree(list)
+}
