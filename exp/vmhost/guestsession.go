@@ -1162,11 +1162,6 @@ type GamepadState struct {
 	// as in [ebiten.AppendGamepadTouchIDs]; a surface without touches still counts. The guest tracks at
 	// most 16 touches per surface at once and ignores any more until one of them ends. A change in the
 	// number of surfaces makes every touch of the gamepad a new touch.
-	//
-	// On Windows, reading a PlayStation controller's touches through the ebiten touch API switches a
-	// controller connected over Bluetooth to a report that other applications using DirectInput cannot
-	// read, until it reconnects. A host forwarding its own gamepads should read their touches only when
-	// its guest needs them.
 	TouchSurfaces [][]GamepadTouchState
 }
 
