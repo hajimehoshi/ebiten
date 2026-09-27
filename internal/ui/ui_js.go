@@ -768,7 +768,8 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Blur
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
-		u.inputState.releaseAllButtons(u.inputState.nextInputTime())
+		// The browser might not dispatch touchend or touchcancel for the touches that are down.
+		u.releaseAllInputs()
 		return nil
 	}))
 }

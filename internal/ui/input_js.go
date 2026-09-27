@@ -244,9 +244,20 @@ func (u *UserInterface) recoverCursorPosition() {
 	u.cursorYInClient = u.origCursorYInClient
 }
 
-func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
+// clearTouches ends all the touches that are down.
+func (u *UserInterface) clearTouches() {
 	u.touchesInClient = u.touchesInClient[:0]
 	u.touchIDs.nextTouches()
+}
+
+// releaseAllInputs releases all the buttons and touches that are down.
+func (u *UserInterface) releaseAllInputs() {
+	u.inputState.releaseAllButtons(u.inputState.nextInputTime())
+	u.clearTouches()
+}
+
+func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
+	u.clearTouches()
 
 	touches := e.Get("targetTouches")
 	for i := 0; i < touches.Length(); i++ {
