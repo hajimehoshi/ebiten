@@ -52,7 +52,12 @@ func ParseKageUnitDirective(src []byte) (string, error) {
 // writeShaderBridge writes to w the Kage source appended to a user's fragment shader, bridging the user's
 // builtin functions to the engine's __-prefixed uniforms and textures. The bridge operates in the pixel
 // unit: the region uniforms hold pixels, and __texelAt fetches a texel by its integer pixel coordinates.
+// The bridge is an internal region, where the __-prefixed uniform variables can be declared.
 func writeShaderBridge(w io.Writer) error {
+	if _, err := io.WriteString(w, "\n"+shader.InternalRegionBegin+"\n"); err != nil {
+		return err
+	}
+
 	if _, err := fmt.Fprintf(w, `
 var __imageDstTextureSize vec2
 
@@ -192,6 +197,10 @@ func __vertex(dstPos vec2, srcPos vec2, color vec4, custom vec4) (vec4, vec2, ve
 	return __projectionMatrix * vec4(dstPos, 0, 1), srcPos, color, custom
 }
 `); err != nil {
+		return err
+	}
+
+	if _, err := io.WriteString(w, shader.InternalRegionEnd+"\n"); err != nil {
 		return err
 	}
 

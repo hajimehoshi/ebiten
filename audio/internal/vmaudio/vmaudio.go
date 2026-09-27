@@ -185,7 +185,7 @@ func (c *Context) takeControlChanges(controls []vmprotocol.AudioControl) []vmpro
 }
 
 // read reads player id's samples into buf and reports whether its source has ended. The player is kept
-// until Close, so a finished source can be sought back and replayed.
+// until Close, so a source that reached its end can be sought back and replayed.
 func (c *Context) read(id int64, buf []byte) (n int, eof bool) {
 	p, suspended := c.playerForRead(id)
 	if p == nil {
@@ -231,7 +231,9 @@ type Player struct {
 	playing bool
 	volume  float64
 	eof     bool
-	err     error
+
+	// err is the first error the source returned other than io.EOF.
+	err error
 
 	// buf holds bytes read from the source but not yet returned (a short or unaligned source read can
 	// leave a partial frame behind).
@@ -307,7 +309,8 @@ func (p *Player) Close() error {
 }
 
 // Seek seeks the source, which must be an io.Seeker, and discards the bytes buffered from the old
-// position.
+// position. A player at the end of its source can be played again after Seek, while a player whose source
+// failed stays finished.
 func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -382,8 +385,9 @@ func (p *Player) read(buf []byte, suspended bool) (n int, eof bool) {
 	return n, p.finishedLocked()
 }
 
-// finishedLocked reports whether the player can produce no more samples until a Seek: its source failed,
-// or ended with too little buffered to form a frame. p.mu must be held.
+// finishedLocked reports whether the player can produce no more samples: its source failed, which no Seek
+// recovers from, or the source ended with too little buffered to form a frame, which a Seek can undo.
+// p.mu must be held.
 func (p *Player) finishedLocked() bool {
 	return p.err != nil || (p.eof && len(p.buf) < 8)
 }

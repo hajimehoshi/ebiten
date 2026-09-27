@@ -164,6 +164,10 @@ type GamepadState struct {
 	// standard axis or button is available.
 	StandardAxes    map[gamepaddb.StandardAxis]float64
 	StandardButtons map[gamepaddb.StandardButton]GamepadStandardButtonState
+
+	// TouchSurfaces holds the current touches of each touch surface; a surface without touches still
+	// counts.
+	TouchSurfaces [][]GamepadTouchState
 }
 
 // GamepadStandardButtonState is one standard-layout button's state: its pressed flag and its analog
@@ -171,6 +175,18 @@ type GamepadState struct {
 type GamepadStandardButtonState struct {
 	Pressed bool
 	Value   float64
+}
+
+// GamepadTouchState is one touch on a gamepad's touch surface.
+type GamepadTouchState struct {
+	// ID is the host's ID for the touch. A touch the previous HostMessageKindUpdateGamepads reported on
+	// the same gamepad and surface with the same ID is the same touch; any other touch is a new one.
+	ID int
+
+	// X and Y are the touch's position, each in 0..1, with (0, 0) at the top left of the surface and
+	// (1, 1) at its bottom right.
+	X float64
+	Y float64
 }
 
 // GuestMessageKind discriminates the messages a guest sends to the host.

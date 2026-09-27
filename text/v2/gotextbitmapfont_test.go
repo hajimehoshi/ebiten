@@ -16,6 +16,7 @@ package text_test
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"testing"
 
@@ -115,8 +116,8 @@ func rotateClockwise(rows string) string {
 	lines := strings.Split(strings.TrimSuffix(rows, "\n"), "\n")
 	var sb strings.Builder
 	for x := range len(lines[0]) {
-		for y := len(lines) - 1; y >= 0; y-- {
-			sb.WriteByte(lines[y][x])
+		for _, line := range slices.Backward(lines) {
+			sb.WriteByte(line[x])
 		}
 		sb.WriteByte('\n')
 	}

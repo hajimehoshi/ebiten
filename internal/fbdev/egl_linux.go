@@ -89,10 +89,15 @@ type Context struct {
 }
 
 // NewContext creates an OpenGL ES 3 context covering the display.
-func NewContext(d *Display) (*Context, error) {
+func NewContext(d *Display) (_ *Context, err error) {
 	c := &Context{
 		swapInterval: -1,
 	}
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, c.Close())
+		}
+	}()
 
 	if err := c.loadEGL(); err != nil {
 		return nil, err
@@ -110,17 +115,16 @@ func NewContext(d *Display) (*Context, error) {
 	}
 
 	if !c.egl.BindAPI(_EGL_OPENGL_ES_API) {
-		err := fmt.Errorf("fbdev: eglBindAPI failed: %w", c.lastError())
-		return nil, errors.Join(err, c.Close())
+		return nil, fmt.Errorf("fbdev: eglBindAPI failed: %w", c.lastError())
 	}
 
 	config, err := c.chooseConfig(d)
 	if err != nil {
-		return nil, errors.Join(err, c.Close())
+		return nil, err
 	}
 
 	if err := c.createWindow(d); err != nil {
-		return nil, errors.Join(err, c.Close())
+		return nil, err
 	}
 
 	// The native window type is what the drivers here disagree on: some read
@@ -136,20 +140,17 @@ func NewContext(d *Display) (*Context, error) {
 		}
 	}
 	if c.surface == 0 {
-		err := fmt.Errorf("fbdev: eglCreateWindowSurface failed: %w", c.lastError())
-		return nil, errors.Join(err, c.Close())
+		return nil, fmt.Errorf("fbdev: eglCreateWindowSurface failed: %w", c.lastError())
 	}
 
 	// The surface's own size is the one to render at: it is created without a
 	// size wherever the driver takes no window.
 	var width, height int32
 	if !c.egl.QuerySurface(c.display, c.surface, _EGL_WIDTH, &width) || !c.egl.QuerySurface(c.display, c.surface, _EGL_HEIGHT, &height) {
-		err := fmt.Errorf("fbdev: eglQuerySurface failed: %w", c.lastError())
-		return nil, errors.Join(err, c.Close())
+		return nil, fmt.Errorf("fbdev: eglQuerySurface failed: %w", c.lastError())
 	}
 	if width <= 0 || height <= 0 {
-		err := fmt.Errorf("fbdev: the EGL surface reported an empty size %dx%d", width, height)
-		return nil, errors.Join(err, c.Close())
+		return nil, fmt.Errorf("fbdev: the EGL surface reported an empty size %dx%d", width, height)
 	}
 	c.width = int(width)
 	c.height = int(height)
@@ -158,8 +159,7 @@ func NewContext(d *Display) (*Context, error) {
 	attribs = []int32{_EGL_CONTEXT_CLIENT_VERSION, 3, _EGL_NONE}
 	c.context = c.egl.CreateContext(c.display, config, 0, &attribs[0])
 	if c.context == 0 {
-		err := fmt.Errorf("fbdev: eglCreateContext failed: %w", c.lastError())
-		return nil, errors.Join(err, c.Close())
+		return nil, fmt.Errorf("fbdev: eglCreateContext failed: %w", c.lastError())
 	}
 
 	return c, nil
@@ -292,7 +292,7 @@ func (c *Context) SwapBuffers() error {
 	return nil
 }
 
-// Close releases the context and its surface.
+// Close releases the context, its surface, and the EGL library.
 func (c *Context) Close() error {
 	if c.display != 0 {
 		if c.context != 0 || c.surface != 0 {
@@ -310,15 +310,22 @@ func (c *Context) Close() error {
 		c.display = 0
 	}
 
+	var err error
 	if c.window != nil {
-		if err := unix.Munmap(c.window); err != nil {
-			c.window = nil
-			return fmt.Errorf("fbdev: failed to release the native window: %w", err)
+		if munmapErr := unix.Munmap(c.window); munmapErr != nil {
+			err = fmt.Errorf("fbdev: failed to release the native window: %w", munmapErr)
 		}
 		c.window = nil
 	}
 
-	return nil
+	if c.lib != 0 {
+		if closeErr := purego.Dlclose(c.lib); closeErr != nil {
+			err = errors.Join(err, fmt.Errorf("fbdev: failed to unload libEGL: %w", closeErr))
+		}
+		c.lib = 0
+	}
+
+	return err
 }
 
 // eglError is an error reported by the EGL implementation.

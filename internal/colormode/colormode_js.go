@@ -25,6 +25,9 @@ func systemColorMode() ColorMode {
 		return Unknown
 	}
 	media := matchMedia.Invoke("(prefers-color-scheme: dark)")
+	if media.Type() != js.TypeObject {
+		return Unknown
+	}
 	if media.Get("matches").Bool() {
 		return Dark
 	}

@@ -30,8 +30,18 @@ const (
 )
 
 type compileContext struct {
-	structNames map[string]string
-	structTypes []shaderir.Type
+	structNames        map[string]string
+	structTypes        []shaderir.Type
+	assignedAttributes []bool
+
+	// vertexFuncIndices is the set of the indices of the functions reachable from the vertex entry point.
+	// Metal allows [[front_facing]] only in fragment functions, so these functions do not take front_facing.
+	vertexFuncIndices map[int]struct{}
+}
+
+func (c *compileContext) isVertexFunc(index int) bool {
+	_, ok := c.vertexFuncIndices[index]
+	return ok
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -85,8 +95,18 @@ const (
 
 func Compile(p *shaderir.Program) (shader string) {
 	c := &compileContext{
-		structNames: map[string]string{},
+		structNames:        map[string]string{},
+		assignedAttributes: p.AssignedAttributes(),
+		vertexFuncIndices:  map[int]struct{}{},
 	}
+	if p.VertexFunc.Block != nil {
+		for _, f := range p.ReachableFuncsFromBlock(p.VertexFunc.Block) {
+			c.vertexFuncIndices[f.Index] = struct{}{}
+		}
+	}
+
+	hasVertex := p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0
+	hasFragment := p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0
 
 	var lines []string
 	lines = append(lines, strings.Split(Prelude(), "\n")...)
@@ -101,7 +121,8 @@ func Compile(p *shaderir.Program) (shader string) {
 		lines = append(lines, "};")
 	}
 
-	if len(p.Attributes) > 0 {
+	// The entry functions refer to Attributes and Varyings even when these have no members.
+	if len(p.Attributes) > 0 || hasVertex {
 		lines = append(lines, "")
 		lines = append(lines, "struct Attributes {")
 		for i, a := range p.Attributes {
@@ -110,7 +131,7 @@ func Compile(p *shaderir.Program) (shader string) {
 		lines = append(lines, "};")
 	}
 
-	if len(p.Varyings) > 0 {
+	if len(p.Varyings) > 0 || hasVertex || hasFragment {
 		lines = append(lines, "")
 		lines = append(lines, "struct Varyings {")
 		lines = append(lines, "\tfloat4 Position [[position]];")
@@ -133,7 +154,7 @@ func Compile(p *shaderir.Program) (shader string) {
 		}
 	}
 
-	if p.VertexFunc.Block != nil && len(p.VertexFunc.Block.Stmts) > 0 {
+	if hasVertex {
 		lines = append(lines, "")
 		lines = append(lines,
 			fmt.Sprintf("vertex Varyings %s(", VertexName),
@@ -149,6 +170,12 @@ func Compile(p *shaderir.Program) (shader string) {
 		}
 		lines[len(lines)-1] += ") {"
 		lines = append(lines, fmt.Sprintf("\tVaryings %s = {};", vertexOut))
+		for i, a := range p.Attributes {
+			if !c.assignedAttributes[i] {
+				continue
+			}
+			lines = append(lines, fmt.Sprintf("\t%s = %s;", c.varDecl(p, &a, attributeCopyName(i), false), attributeName(i)))
+		}
 		lines = append(lines, c.block(p, p.VertexFunc.Block, p.VertexFunc.Block, 0)...)
 		if last := fmt.Sprintf("\treturn %s;", vertexOut); lines[len(lines)-1] != last {
 			lines = append(lines, last)
@@ -156,7 +183,7 @@ func Compile(p *shaderir.Program) (shader string) {
 		lines = append(lines, "}")
 	}
 
-	if p.FragmentFunc.Block != nil && len(p.FragmentFunc.Block.Stmts) > 0 {
+	if hasFragment {
 		lines = append(lines, "")
 		lines = append(lines,
 			fmt.Sprintf("fragment float4 %s(", FragmentName),
@@ -259,7 +286,9 @@ func (c *compileContext) function(p *shaderir.Program, f *shaderir.Func, prototy
 	for i := 0; i < p.TextureCount; i++ {
 		args = append(args, fmt.Sprintf("texture2d<float> T%d", i))
 	}
-	args = append(args, "bool front_facing")
+	if !c.isVertexFunc(f.Index) {
+		args = append(args, "bool front_facing")
+	}
 
 	var idx int
 	for _, t := range f.InParams {
@@ -310,14 +339,27 @@ func constantToNumberLiteral(v constant.Value) string {
 	return fmt.Sprintf("?(unexpected literal: %s)", v)
 }
 
-func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
+func attributeName(idx int) string {
+	return fmt.Sprintf("attributes[vid].M%d", idx)
+}
+
+// attributeCopyName returns the name of the local variable that holds a copy of an assigned attribute.
+// An attribute itself is read-only as it is accessed through a const pointer.
+func attributeCopyName(idx int) string {
+	return fmt.Sprintf("a%d", idx)
+}
+
+func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) string {
 	switch topBlock {
 	case p.VertexFunc.Block:
 		na := len(p.Attributes)
 		nv := len(p.Varyings)
 		switch {
 		case idx < na:
-			return fmt.Sprintf("attributes[vid].M%d", idx)
+			if c.assignedAttributes[idx] {
+				return attributeCopyName(idx)
+			}
+			return attributeName(idx)
 		case idx == na:
 			return fmt.Sprintf("%s.Position", vertexOut)
 		case idx < na+nv+1:
@@ -342,7 +384,7 @@ func localVariableName(p *shaderir.Program, topBlock *shaderir.Block, idx int) s
 
 func (c *compileContext) initVariable(p *shaderir.Program, topBlock, block *shaderir.Block, index int, decl bool, level int) []string {
 	idt := strings.Repeat("\t", level+1)
-	name := localVariableName(p, topBlock, index)
+	name := c.localVariableName(p, topBlock, index)
 	t := p.LocalVariableType(topBlock, block, index)
 
 	var lines []string
@@ -379,7 +421,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 		case shaderir.TextureVariable:
 			return fmt.Sprintf("T%d", e.Index)
 		case shaderir.LocalVariable:
-			return localVariableName(p, topBlock, e.Index)
+			return c.localVariableName(p, topBlock, e.Index)
 		case shaderir.StructMember:
 			return fmt.Sprintf("M%d", e.Index)
 		case shaderir.BuiltinFuncExpr:
@@ -422,7 +464,9 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 				for i := 0; i < p.TextureCount; i++ {
 					args = append(args, fmt.Sprintf("T%d", i))
 				}
-				args = append(args, "front_facing")
+				if !c.isVertexFunc(callee.Index) {
+					args = append(args, "front_facing")
+				}
 			}
 			for _, exp := range e.Exprs[1:] {
 				args = append(args, expr(&exp))
@@ -485,7 +529,7 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 			}
 			lines = append(lines, fmt.Sprintf("%s}", idt))
 		case shaderir.For:
-			v := localVariableName(p, topBlock, s.ForVarIndex)
+			v := c.localVariableName(p, topBlock, s.ForVarIndex)
 			var delta string
 			switch val, _ := constant.Float64Val(s.ForDelta); val {
 			case 0:

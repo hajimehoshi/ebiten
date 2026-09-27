@@ -126,22 +126,6 @@ func (d *DebugContext) CheckFramebufferStatus(arg0 uint32) uint32 {
 	return out0
 }
 
-func (d *DebugContext) Clear(arg0 uint32) {
-	d.Context.Clear(arg0)
-	fmt.Fprintln(os.Stderr, "Clear")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at Clear", e))
-	}
-}
-
-func (d *DebugContext) ColorMask(arg0 bool, arg1 bool, arg2 bool, arg3 bool) {
-	d.Context.ColorMask(arg0, arg1, arg2, arg3)
-	fmt.Fprintln(os.Stderr, "ColorMask")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at ColorMask", e))
-	}
-}
-
 func (d *DebugContext) CompileShader(arg0 uint32) {
 	d.Context.CompileShader(arg0)
 	fmt.Fprintln(os.Stderr, "CompileShader")
@@ -249,22 +233,6 @@ func (d *DebugContext) DeleteVertexArray(arg0 uint32) {
 	fmt.Fprintln(os.Stderr, "DeleteVertexArray")
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at DeleteVertexArray", e))
-	}
-}
-
-func (d *DebugContext) Disable(arg0 uint32) {
-	d.Context.Disable(arg0)
-	fmt.Fprintln(os.Stderr, "Disable")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at Disable", e))
-	}
-}
-
-func (d *DebugContext) DisableVertexAttribArray(arg0 uint32) {
-	d.Context.DisableVertexAttribArray(arg0)
-	fmt.Fprintln(os.Stderr, "DisableVertexAttribArray")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at DisableVertexAttribArray", e))
 	}
 }
 

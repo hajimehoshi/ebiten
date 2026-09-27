@@ -231,3 +231,80 @@ func TestInt16BytesReaderClipsOutOfRange(t *testing.T) {
 		}
 	}
 }
+
+// f32errorReader returns its values together with errSourceRead.
+type f32errorReader struct {
+	data []float32
+}
+
+func (f *f32errorReader) Read(buf []float32) (int, error) {
+	n := copy(buf, f.data)
+	f.data = f.data[n:]
+	return n, errSourceRead
+}
+
+func TestInt16BytesReaderErrorWithData(t *testing.T) {
+	in := []float32{0.1, -0.2, 0.3, -0.4}
+	r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32errorReader{
+		data: in,
+	}, 2)
+
+	buf := make([]byte, 64)
+	n, err := r.Read(buf)
+	if !errors.Is(err, errSourceRead) {
+		t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+	}
+
+	want := make([]byte, len(in)*2)
+	for i, f := range in {
+		s := int16(f * (1<<15 - 1))
+		want[2*i] = byte(s)
+		want[2*i+1] = byte(s >> 8)
+	}
+	if got := buf[:n]; !bytes.Equal(got, want) {
+		t.Errorf("Read: got %v, want %v", got, want)
+	}
+}
+
+func TestInt16ShortBufferEOFAndData(t *testing.T) {
+	for _, channels := range []int{1, 2} {
+		for _, data := range [][]float32{nil, {0.1, 0.2, 0.3, 0.4}} {
+			for size := 1; size < 2*channels; size++ {
+				r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32eofReader{
+					data: data,
+				}, channels)
+				wantErr := io.ErrShortBuffer
+				if len(data) == 0 {
+					wantErr = io.EOF
+				}
+				if n, err := r.Read(make([]byte, size)); n != 0 || !errors.Is(err, wantErr) {
+					t.Errorf("short Read = (%d, %v), want %v", n, err, wantErr)
+				}
+				got, err := io.ReadAll(r)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want, err := io.ReadAll(vorbis.NewInt16BytesReaderFromFloat32Reader(&f32eofReader{
+					data: data,
+				}, channels))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Errorf("ReadAll after short Read = %x, want %x", got, want)
+				}
+			}
+		}
+		r := vorbis.NewInt16BytesReaderFromFloat32Reader(&f32errorReader{
+			data: []float32{0.1, 0.2},
+		}, channels)
+		if n, err := r.Read(make([]byte, 1)); n != 0 || !errors.Is(err, errSourceRead) {
+			t.Errorf("short Read with source error = (%d, %v)", n, err)
+		}
+		buf := make([]byte, 4)
+		n, _ := r.Read(buf)
+		if n == 0 {
+			t.Error("buffered audio lost after source error")
+		}
+	}
+}

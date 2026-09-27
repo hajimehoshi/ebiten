@@ -15,6 +15,7 @@
 package text
 
 import (
+	"fmt"
 	"image"
 	"math"
 	"slices"
@@ -136,6 +137,8 @@ var theDrawGlyphEntriesPool = sync.Pool{
 // If the vertical alignment is top, the rendering region's top Y comes to the destination image's origin (0, 0).
 // If the vertical alignment is center, the rendering region's middle Y comes to the origin.
 // If the vertical alignment is bottom, the rendering region's bottom Y comes to the origin.
+//
+// Draw panics if the face's direction or an alignment in options is invalid.
 func Draw(dst *ebiten.Image, text string, face Face, options *DrawOptions) {
 	var layoutOp LayoutOptions
 	var drawOp ebiten.DrawImageOptions
@@ -512,6 +515,19 @@ const (
 )
 
 func calcAligns(direction Direction, primaryAlign, secondaryAlign Align) (horizontalAlign, verticalAlign) {
+	switch direction {
+	case DirectionLeftToRight, DirectionRightToLeft, DirectionTopToBottomAndLeftToRight, DirectionTopToBottomAndRightToLeft:
+	default:
+		panic(fmt.Sprintf("text: invalid direction: %d", direction))
+	}
+	for _, align := range [...]Align{primaryAlign, secondaryAlign} {
+		switch align {
+		case AlignStart, AlignCenter, AlignEnd:
+		default:
+			panic(fmt.Sprintf("text: invalid align: %d", align))
+		}
+	}
+
 	var h horizontalAlign
 	var v verticalAlign
 

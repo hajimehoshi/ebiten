@@ -17,23 +17,19 @@ func terminate() error {
 	// callbacks from firing during teardown.
 	_glfw.callbacks.monitor = nil
 
-	if err := destroyWindows(); err != nil {
-		return err
-	}
+	// Run every step even when one fails so that the later resources are still released.
+	var err error
 
-	if err := destroyCursors(); err != nil {
-		return err
-	}
+	err = errors.Join(err, destroyWindows())
+	err = errors.Join(err, destroyCursors())
 
 	_glfw.monitors = nil
 
-	if err := platformTerminate(); err != nil {
-		return err
-	}
+	err = errors.Join(err, platformTerminate())
 
 	_glfw.initialized = false
 
-	return nil
+	return err
 }
 
 // destroyWindows destroys every window. [Window.Destroy] removes the window

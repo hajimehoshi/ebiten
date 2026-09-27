@@ -229,10 +229,10 @@ func (g *graphicsInfraResources) releaseResources() {
 // Releasing them is the caller's responsibility.
 //
 // warpForDX12 is valid only for DirectX 12.
-func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) (_ []*_IDXGIAdapter1, ferr error) {
+func (g *graphicsInfra) appendAdapters(adapters []*_IDXGIAdapter1, warpForDX12 bool) (_ []*_IDXGIAdapter1, err error) {
 	origLen := len(adapters)
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			for _, a := range adapters[origLen:] {
 				a.Release()
 			}
@@ -277,7 +277,7 @@ func (g *graphicsInfra) isSwapChainInited() bool {
 	return g.swapChain != nil
 }
 
-func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, window windows.HWND) (ferr error) {
+func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, window windows.HWND) (err error) {
 	if g.swapChain != nil {
 		return fmt.Errorf("directx: swap chain must not be initialized at initSwapChain, but is already done")
 	}
@@ -342,7 +342,7 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	}
 
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			g.release()
 		}
 	}()
@@ -427,13 +427,13 @@ func (g *graphicsInfra) supportsComposition(device unsafe.Pointer) bool {
 // initSwapChainComposition creates a composition swap chain and sets up a DirectComposition visual
 // tree that presents it in the given window. On success, it stores the swap chain and the
 // DirectComposition objects in g.
-func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsafe.Pointer, window windows.HWND) (ferr error) {
+func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsafe.Pointer, window windows.HWND) (err error) {
 	swapChain, err := g.createCompositionSwapChain(width, height, device)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			swapChain.Release()
 		}
 	}()
@@ -443,7 +443,7 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 		return err
 	}
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			dcompDevice.Release()
 		}
 	}()
@@ -453,7 +453,7 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 		return err
 	}
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			dcompTarget.Release()
 		}
 	}()
@@ -463,7 +463,7 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 		return err
 	}
 	defer func() {
-		if ferr != nil {
+		if err != nil {
 			dcompVisual.Release()
 		}
 	}()

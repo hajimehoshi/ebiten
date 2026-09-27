@@ -15,6 +15,8 @@
 package atlas
 
 import (
+	"weak"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -73,15 +75,22 @@ func (i *Image) EnsureIsolatedFromSourceForTesting(backends []*backend) {
 	i.ensureIsolatedFromSource(backends)
 }
 
-var FlushDeferredForTesting = flushDeferred
+func FlushDeferredForTesting() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	flushDeferred()
+}
+
+func (i *Image) IsDeallocatedFuncForTesting() func() bool {
+	impl := i.imageImpl
+	return func() bool {
+		backendsM.Lock()
+		defer backendsM.Unlock()
+		return impl.backend == nil
+	}
+}
 
 var FloorPowerOf2 = floorPowerOf2
-
-func DeferredFuncCountForTesting() int {
-	deferredM.Lock()
-	defer deferredM.Unlock()
-	return len(deferred)
-}
 
 func BackendCountForTesting() int {
 	backendsM.Lock()
@@ -97,8 +106,34 @@ func (s *Shader) SourceIDForTesting() shaderir.SourceID {
 	return s.ir.SourceID
 }
 
-func ShaderCountWithInternalShaderForTesting() int {
-	theShadersWithInternalShader.m.Lock()
-	defer theShadersWithInternalShader.m.Unlock()
-	return len(theShadersWithInternalShader.shaders)
+func (s *Shader) IsRegisteredFuncForTesting() func() bool {
+	shader := weak.Make(s)
+	return func() bool {
+		theShadersWithInternalShader.m.Lock()
+		defer theShadersWithInternalShader.m.Unlock()
+		_, ok := theShadersWithInternalShader.shaders[shader]
+		return ok
+	}
+}
+
+type GPUResourcesState = gpuResourcesState
+
+func (a *gpuResourcesState) RequestToSaveGPUResources() bool {
+	return a.requestToSaveGPUResources()
+}
+
+func (a *gpuResourcesState) FinishSavingGPUResources(succeeded bool) bool {
+	return a.finishSavingGPUResources(succeeded)
+}
+
+func (a *gpuResourcesState) AreGPUResourcesSaved() bool {
+	return a.areGPUResourcesSaved()
+}
+
+func (a *gpuResourcesState) RequestToRestoreGPUResources() bool {
+	return a.requestToRestoreGPUResources()
+}
+
+func (a *gpuResourcesState) StartRestoringGPUResourcesIfNeeded() bool {
+	return a.startRestoringGPUResourcesIfNeeded()
 }

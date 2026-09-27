@@ -74,6 +74,12 @@ type remoteBackend struct {
 	// subsystem is always virtual rather than polling real devices.
 	gamepadStates []gamepad.VirtualGamepadState
 
+	// gamepadTouchIDs issues the IDs of the host's gamepad touches from every snapshot the host sends,
+	// one allocator per gamepad and touch surface, so that a host ID missing from a snapshot is a new
+	// touch when it comes back, even if no tick reads that snapshot. The allocators are kept after their
+	// surfaces are gone, so that their IDs are never reused. It is owned by the serve goroutine.
+	gamepadTouchIDs map[gamepadTouchSurface]*touchIDAllocator
+
 	// vibrationsBuf is reused to drain the gamepad vibrations requested during a tick; wireVibrationsBuf
 	// is reused to hold their wire-typed copy for the message. gob encodes the latter synchronously, so it
 	// can be overwritten on the next flush. Both are owned by the serve goroutine.
@@ -123,6 +129,7 @@ func newRemoteBackend(u *UserInterface, endpoint string) *remoteBackend {
 	r.monitor = &Monitor{virtual: r}
 	r.scale = 1
 	r.gamepadStates = []gamepad.VirtualGamepadState{}
+	r.gamepadTouchIDs = map[gamepadTouchSurface]*touchIDAllocator{}
 	// A guest forwards the device vibration its game requests to the host, so start recording it. This is
 	// reached only for an actual guest, so non-guest builds keep vibrate's recording off.
 	vibrate.EnableRecording()
@@ -615,6 +622,9 @@ func (r *remoteBackend) updateGamepads(states []vmprotocol.GamepadState) {
 	// so the aliases stay valid — and the buffer may be reused across ticks. It is kept non-nil so the
 	// subsystem stays virtual.
 	r.gamepadStates = r.gamepadStates[:0]
+	for _, a := range r.gamepadTouchIDs {
+		a.nextTouches()
+	}
 	for i := range states {
 		s := &states[i]
 		r.gamepadStates = append(r.gamepadStates, gamepad.VirtualGamepadState{
@@ -625,8 +635,43 @@ func (r *remoteBackend) updateGamepads(states []vmprotocol.GamepadState) {
 			Buttons:         s.Buttons,
 			StandardAxes:    s.StandardAxes,
 			StandardButtons: virtualStandardButtons(s.StandardButtons),
+			TouchSurfaces:   r.virtualTouchSurfaces(s.ID, s.TouchSurfaces),
 		})
 	}
+}
+
+// gamepadTouchSurface identifies one touch surface of one of the host's gamepads.
+type gamepadTouchSurface struct {
+	gamepad int
+	surface int
+}
+
+// virtualTouchSurfaces returns the touch surfaces of the host's gamepad (id) in the snapshot
+// updateGamepads is applying, with the IDs issued for the host's touches.
+func (r *remoteBackend) virtualTouchSurfaces(id int, surfaces [][]vmprotocol.GamepadTouchState) [][]gamepad.VirtualGamepadTouch {
+	if len(surfaces) == 0 {
+		return nil
+	}
+	vs := make([][]gamepad.VirtualGamepadTouch, len(surfaces))
+	for i, touches := range surfaces {
+		key := gamepadTouchSurface{
+			gamepad: id,
+			surface: i,
+		}
+		a, ok := r.gamepadTouchIDs[key]
+		if !ok {
+			a = &touchIDAllocator{}
+			r.gamepadTouchIDs[key] = a
+		}
+		for _, t := range touches {
+			vs[i] = append(vs[i], gamepad.VirtualGamepadTouch{
+				ID: int(a.id(t.ID)),
+				X:  t.X,
+				Y:  t.Y,
+			})
+		}
+	}
+	return vs
 }
 
 func virtualStandardButtons(buttons map[gamepaddb.StandardButton]vmprotocol.GamepadStandardButtonState) map[gamepaddb.StandardButton]gamepad.VirtualStandardGamepadButton {

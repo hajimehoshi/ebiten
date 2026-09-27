@@ -40,6 +40,19 @@ const (
 	_ABS_MAX   = 0x3f
 	_ABS_CNT   = _ABS_MAX + 1
 
+	_ABS_MT_SLOT        = 0x2f
+	_ABS_MT_POSITION_X  = 0x35
+	_ABS_MT_POSITION_Y  = 0x36
+	_ABS_MT_TRACKING_ID = 0x39
+
+	_INPUT_PROP_ACCELEROMETER = 0x06
+	_INPUT_PROP_CNT           = 0x20
+
+	// BTN_JOYSTICK up to BTN_DIGI are the buttons of joysticks and gamepads; the digitizer codes
+	// that follow are those of touch devices.
+	_BTN_JOYSTICK = 0x120
+	_BTN_DIGI     = 0x140
+
 	_BTN_MISC       = 0x100
 	_BTN_GAMEPAD    = 0x130
 	_BTN_A          = 0x130
@@ -117,6 +130,18 @@ func _EVIOCGID() uint {
 
 func _EVIOCGNAME(len uint) uint {
 	return _IOC(_IOC_READ, 'E', 0x06, len)
+}
+
+func _EVIOCGUNIQ(len uint) uint {
+	return _IOC(_IOC_READ, 'E', 0x08, len)
+}
+
+func _EVIOCGPROP(len uint) uint {
+	return _IOC(_IOC_READ, 'E', 0x09, len)
+}
+
+func _EVIOCGMTSLOTS(len uint) uint {
+	return _IOC(_IOC_READ, 'E', 0x0a, len)
 }
 
 func _EVIOCSFF() uint {

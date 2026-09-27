@@ -272,6 +272,7 @@ func init() {
 // result is never affected.
 //
 // When the given image img is disposed, DrawImage panics.
+// When the given Filter is invalid, DrawImage panics.
 // When the image i is disposed and img is not, DrawImage does nothing.
 //
 // When the given image is as same as i, DrawImage panics.
@@ -585,7 +586,9 @@ const MaxVertexCount = graphicscommand.MaxVertexCount
 //
 // The rule in which DrawTriangles works effectively is the same as DrawImage's.
 //
-// When the given image is disposed, DrawTriangles panics.
+// When the given image is nil or disposed, DrawTriangles panics.
+//
+// When the given Filter, Address, ColorScaleMode, or FillRule is invalid, DrawTriangles panics.
 //
 // When the image i is disposed and the given image is not, DrawTriangles does nothing.
 func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, options *DrawTrianglesOptions) {
@@ -615,13 +618,18 @@ func (i *Image) DrawTriangles(vertices []Vertex, indices []uint16, img *Image, o
 //
 // The rule in which DrawTriangles32 works effectively is the same as DrawImage's.
 //
-// When the given image is disposed, DrawTriangles32 panics.
+// When the given image is nil or disposed, DrawTriangles32 panics.
+//
+// When the given Filter, Address, ColorScaleMode, or FillRule is invalid, DrawTriangles32 panics.
 //
 // When the image i is disposed and the given image is not, DrawTriangles32 does nothing.
 func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image, options *DrawTrianglesOptions) {
 	i.copyCheck()
 
-	if img != nil && img.isDisposed() {
+	if img == nil {
+		panic("ebiten: the given image to DrawTriangles must not be nil")
+	}
+	if img.isDisposed() {
 		panic("ebiten: the given image to DrawTriangles must not be disposed")
 	}
 	if i.isDisposed() {
@@ -630,6 +638,14 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 
 	if len(indices) == 0 {
 		return
+	}
+
+	if options != nil {
+		switch options.ColorScaleMode {
+		case ColorScaleModeStraightAlpha, ColorScaleModePremultipliedAlpha:
+		default:
+			panic(fmt.Sprintf("ebiten: invalid color scale mode: %d", options.ColorScaleMode))
+		}
 	}
 
 	if options != nil && (options.FillRule != FillRuleFillAll || options.AntiAlias) && !i.Bounds().Empty() {
@@ -803,6 +819,8 @@ var _ [len(DrawTrianglesShaderOptions{}.Images) - graphics.ShaderSrcImageCount]s
 //
 // When the given shader is disposed, DrawTrianglesShader panics.
 //
+// When the given FillRule is invalid, DrawTrianglesShader panics.
+//
 // When a specified image is non-nil and is disposed, DrawTrianglesShader panics.
 //
 // If a specified uniform variable's length or type doesn't match with an expected one, DrawTrianglesShader panics.
@@ -838,6 +856,8 @@ func (i *Image) DrawTrianglesShader(vertices []Vertex, indices []uint16, shader 
 // If a value in indices is out of range of vertices, or is not less than MaxVertexCount, DrawTrianglesShader32 panics.
 //
 // When the given shader is disposed, DrawTrianglesShader32 panics.
+//
+// When the given FillRule is invalid, DrawTrianglesShader32 panics.
 //
 // When a specified image is non-nil and is disposed, DrawTrianglesShader32 panics.
 //
@@ -1025,6 +1045,7 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderSrcImageCo
 //
 // For the details about the shader, see https://ebitengine.org/en/documents/shader.html.
 //
+// When width or height is not positive, DrawRectShader panics.
 // When the given shader is disposed, DrawRectShader panics.
 // When one of the specified images is non-nil and its size is different from (width, height), DrawRectShader panics.
 // When one of the specified images is non-nil and is disposed, DrawRectShader panics.
@@ -1048,6 +1069,9 @@ var _ [len(DrawRectShaderOptions{}.Images)]struct{} = [graphics.ShaderSrcImageCo
 func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawRectShaderOptions) {
 	i.copyCheck()
 
+	if width <= 0 || height <= 0 {
+		panic("ebiten: width and height must be positive")
+	}
 	if shader.isDisposed() {
 		panic("ebiten: the given shader to DrawRectShader must not be disposed")
 	}

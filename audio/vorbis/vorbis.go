@@ -24,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/convert"
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 const (
@@ -39,6 +40,9 @@ type Stream struct {
 }
 
 // Read is an implementation of io.Reader's Read.
+//
+// Read returns only whole samples (4 bytes each in the 16-bit integer format, 8 bytes each in the 32-bit float format).
+// For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.readSeeker.Read(p)
 }
@@ -46,6 +50,9 @@ func (s *Stream) Read(p []byte) (int, error) {
 // Seek is an implementation of io.Seeker's Seek.
 //
 // Note that Seek can take long since decoding is a relatively heavy task.
+//
+// The returned position can differ from the requested one with a nil error: a position in the middle of a sample is
+// rounded down to a sample boundary.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	return s.readSeeker.Seek(offset, whence)
 }
@@ -119,10 +126,7 @@ func (s *i16Stream) Read(b []byte) (int, error) {
 	l := int64(len(b))
 retry:
 	n, err := s.i16Reader.Read(b[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
-	if n == 0 && l > 0 && err != io.EOF {
+	if n == 0 && l > 0 && err == nil {
 		// When l is too small, decoder's Read might return 0 for a while. Let's retry.
 		goto retry
 	}
@@ -135,19 +139,26 @@ func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 		return 0, fmt.Errorf("vorbis: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
 
-	var next int64
+	var base int64
 	switch whence {
 	case io.SeekStart:
-		next = offset
 	case io.SeekCurrent:
-		next = int64(s.posInBytes) + offset
+		// A query does not seek the decoder, which decodes again from the page before the position.
+		if offset == 0 {
+			return s.posInBytes, nil
+		}
+		base = s.posInBytes
 	case io.SeekEnd:
-		next = int64(s.totalBytes()) + offset
+		if s.totalBytes() == 0 {
+			return 0, fmt.Errorf("vorbis: seeking from the end is not possible when the length is unknown: %w", errors.ErrUnsupported)
+		}
+		base = s.totalBytes()
 	default:
 		return 0, fmt.Errorf("vorbis: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if next < 0 {
-		return 0, fmt.Errorf("vorbis: position must be >= 0 but was %d", next)
+	next, ok := mathutil.AddForSeek(base, offset)
+	if !ok {
+		return 0, fmt.Errorf("vorbis: invalid seek position")
 	}
 	sampleSize := int64(s.vorbisReader.Channels()) * bitDepthInBytesInt16
 	pos := next / sampleSize * sampleSize
@@ -225,7 +236,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 
 // DecodeWithSampleRate decodes Ogg/Vorbis data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// DecodeWithSampleRate returns error when decoding fails or IO error happens.
+// DecodeWithSampleRate returns error when decoding fails or IO error happens, or when sampleRate is not positive.
 //
 // DecodeWithSampleRate automatically resamples the stream to fit with sampleRate if necessary.
 //
@@ -237,6 +248,9 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 // Resampling can be a very heavy task. Stream has a cache for resampling, but the size is limited.
 // Do not expect that Stream has a resampling cache even after whole data is played.
 func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
+	if sampleRate <= 0 {
+		return nil, fmt.Errorf("vorbis: sample rate must be positive but was %d", sampleRate)
+	}
 	i16Stream, err := decodeI16(src)
 	if err != nil {
 		return nil, err

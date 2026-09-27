@@ -62,6 +62,10 @@ type Device struct {
 	vib    bool
 	vibEnd time.Time
 
+	// written reports that an output report has been requested, which
+	// switches a controller connected over Bluetooth to its full input report.
+	written bool
+
 	// rbuf is the reused ReadFile buffer. Its length is the device's maximum
 	// input report length, which ReadFile requires. The kernel owns it while
 	// a read is pending.
@@ -220,6 +224,22 @@ func Open(path string, vid, pid uint16) *Device {
 	return s
 }
 
+// EnableTouchpad makes a controller connected over Bluetooth report its
+// touchpad. Such a controller sends its simplified input report, which has no
+// touchpad data, until it receives any output report, and then sends the full
+// report until it reconnects. DirectInput reads only the simplified report, so
+// the switch takes the controller's input away from other applications using
+// DirectInput, and it is made only when the touchpad is used. A rumble report
+// with the motors off switches the controller without changing anything the
+// user can notice. EnableTouchpad does nothing once any output report has
+// been requested, or once the device is closed.
+func (s *Device) EnableTouchpad() {
+	if !s.bt || s.written || s.handle == 0 {
+		return
+	}
+	s.write(0, 0)
+}
+
 // Vibrate runs the motors for the duration with magnitudes clamped to 0 to 1.
 func (s *Device) Vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	strongMagnitude = mathutil.Clamp01(strongMagnitude)
@@ -251,6 +271,7 @@ func (s *Device) Update() {
 }
 
 func (s *Device) write(strong, weak byte) {
+	s.written = true
 	if s.wpending && !s.pollWrite() {
 		// The pending write is superseded; ask it to conclude. Cancellation
 		// completes asynchronously, so the new state cannot be written until
@@ -333,7 +354,7 @@ func (s *Device) UpdateInput() bool {
 			s.inputLost = true
 			return false
 		}
-		if state, ok := inputStateFromReport(s.model, s.bt, s.rbuf[:min(int(n), len(s.rbuf))]); ok {
+		if state, ok := inputStateFromReport(s.model, s.bt, s.rbuf[:min(int(n), len(s.rbuf))], s.input); ok {
 			s.input = state
 		}
 	}

@@ -40,15 +40,15 @@ func newEGL(nativeWindowHandle uintptr) (_ *egl, err error) {
 	if e.display == 0 {
 		return nil, fmt.Errorf("opengl: eglGetDisplay failed")
 	}
-
-	if r := C.eglInitialize(e.display, nil, nil); r == 0 {
-		return nil, fmt.Errorf("opengl: eglInitialize failed")
-	}
 	defer func() {
 		if err != nil {
 			C.eglTerminate(e.display)
 		}
 	}()
+
+	if r := C.eglInitialize(e.display, nil, nil); r == 0 {
+		return nil, fmt.Errorf("opengl: eglInitialize failed")
+	}
 
 	configAttribs := []C.EGLint{
 		C.EGL_RENDERABLE_TYPE, C.EGL_OPENGL_BIT,

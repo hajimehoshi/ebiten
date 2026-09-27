@@ -16,6 +16,7 @@ package gamepad
 
 import (
 	"maps"
+	"slices"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
@@ -35,6 +36,9 @@ type VirtualGamepadState struct {
 
 	StandardAxes    map[gamepaddb.StandardAxis]float64
 	StandardButtons map[gamepaddb.StandardButton]VirtualStandardGamepadButton
+
+	// TouchSurfaces holds the current touches of each touch surface.
+	TouchSurfaces [][]VirtualGamepadTouch
 }
 
 // VirtualStandardGamepadButton is one standard-layout button's pressed flag and its analog value in
@@ -42,6 +46,18 @@ type VirtualGamepadState struct {
 type VirtualStandardGamepadButton struct {
 	Pressed bool
 	Value   float64
+}
+
+// VirtualGamepadTouch is one touch on a virtual gamepad's touch surface.
+type VirtualGamepadTouch struct {
+	// ID identifies the touch. It stays the same while the touch is held, and a later touch on the
+	// surface never has the ID of an earlier one.
+	ID int
+
+	// X and Y are the touch's position, each in 0..1, with (0, 0) at the top left of the surface and
+	// (1, 1) at its bottom right.
+	X float64
+	Y float64
 }
 
 // VirtualGamepadVibration is a vibration requested by a virtual gamepad: which gamepad (ID), its
@@ -144,6 +160,7 @@ func (g *Gamepad) setVirtualState(s *VirtualGamepadState) {
 		n.buttons = append(n.buttons[:0], s.Buttons...)
 		n.standardAxes = copyMap(n.standardAxes, s.StandardAxes)
 		n.standardButtons = copyMap(n.standardButtons, s.StandardButtons)
+		n.setTouches(s.TouchSurfaces)
 	})
 }
 
@@ -173,12 +190,20 @@ func (nativeGamepadsVirtual) update(gamepads *gamepads) error {
 	return nil
 }
 
+// virtualTouchSlotCount is the number of touches a virtual gamepad's touch surface tracks at once,
+// the same bound the Linux backend puts on the slots of a touch surface node. It is fixed because a
+// change in a surface's slot count would give the held touches new IDs.
+const virtualTouchSlotCount = 16
+
 type nativeGamepadVirtual struct {
 	axes    []float64
 	buttons []bool
 
 	standardAxes    map[gamepaddb.StandardAxis]float64
 	standardButtons map[gamepaddb.StandardButton]VirtualStandardGamepadButton
+
+	// touchSurfaces holds the slots of each touch surface. A touch stays in its slot while it is held.
+	touchSurfaces [][virtualTouchSlotCount]touchContact
 
 	// vibration holds the latest vibration the game requested; vibrationPending reports that it has not
 	// been drained yet. A device has a single current rumble state, so a later request within the same
@@ -268,6 +293,58 @@ func (g *nativeGamepadVirtual) vibrate(duration time.Duration, strongMagnitude f
 		weakMagnitude:   mathutil.Clamp01(weakMagnitude),
 	}
 	g.vibrationPending = true
+}
+
+// setTouches places the touches in the surfaces' slots. A touch whose ID holds a slot keeps it; a new
+// touch takes a free slot, and is ignored while there is none.
+func (g *nativeGamepadVirtual) setTouches(surfaces [][]VirtualGamepadTouch) {
+	if len(g.touchSurfaces) != len(surfaces) {
+		g.touchSurfaces = make([][virtualTouchSlotCount]touchContact, len(surfaces))
+	}
+	for i, touches := range surfaces {
+		slots := g.touchSurfaces[i][:]
+		for j := range slots {
+			if !slots[j].active {
+				continue
+			}
+			if !slices.ContainsFunc(touches, func(t VirtualGamepadTouch) bool { return t.ID == slots[j].id }) {
+				slots[j] = touchContact{}
+			}
+		}
+		for _, t := range touches {
+			j := slices.IndexFunc(slots, func(c touchContact) bool { return c.active && c.id == t.ID })
+			if j < 0 {
+				j = slices.IndexFunc(slots, func(c touchContact) bool { return !c.active })
+			}
+			if j < 0 {
+				continue
+			}
+			slots[j] = touchContact{
+				active: true,
+				id:     t.ID,
+				x:      t.X,
+				y:      t.Y,
+			}
+		}
+	}
+}
+
+func (g *nativeGamepadVirtual) touchSurfaceCount() int {
+	return len(g.touchSurfaces)
+}
+
+func (g *nativeGamepadVirtual) touchSlotCount(surface int) int {
+	if surface < 0 || surface >= len(g.touchSurfaces) {
+		return 0
+	}
+	return virtualTouchSlotCount
+}
+
+func (g *nativeGamepadVirtual) touchContactAt(surface, slot int) touchContact {
+	if surface < 0 || surface >= len(g.touchSurfaces) || slot < 0 || slot >= virtualTouchSlotCount {
+		return touchContact{}
+	}
+	return g.touchSurfaces[surface][slot]
 }
 
 // virtualStandardAxisMapping presents a forwarded standard axis value (in -1..1) through the

@@ -93,6 +93,7 @@ type controllerProperty struct {
 	hasDualShockTouchpad bool
 	hasXboxPaddles       bool
 	hasXboxShareButton   bool
+	touchSlots           [gcTouchSlotMax]gcTouchSlotKind
 }
 
 // controllerState holds the current input state of a controller.
@@ -151,6 +152,14 @@ var (
 	sel_count                                      objc.SEL
 	sel_objectAtIndex                              objc.SEL
 	sel_supportsHIDDevice                          objc.SEL
+	sel_dpads                                      objc.SEL
+	sel_touchpads                                  objc.SEL
+	sel_touchSurface                               objc.SEL
+	sel_touchState                                 objc.SEL
+	sel_setValueChangedHandler                     objc.SEL
+	sel_setTouchDown                               objc.SEL
+	sel_setTouchMoved                              objc.SEL
+	sel_setTouchUp                                 objc.SEL
 	sel_retain                                     objc.SEL
 	sel_release                                    objc.SEL
 )
@@ -165,6 +174,8 @@ var (
 	gcInputXboxPaddleThree                objc.ID
 	gcInputXboxPaddleFour                 objc.ID
 	gcInputXboxShareButton                objc.ID // "Button Share"
+	gcInputDualShockTouchpadOne           objc.ID
+	gcInputDualShockTouchpadTwo           objc.ID
 )
 
 func init() {
@@ -219,6 +230,14 @@ func init() {
 	sel_count = objc.RegisterName("count")
 	sel_objectAtIndex = objc.RegisterName("objectAtIndex:")
 	sel_supportsHIDDevice = objc.RegisterName("supportsHIDDevice:")
+	sel_dpads = objc.RegisterName("dpads")
+	sel_touchpads = objc.RegisterName("touchpads")
+	sel_touchSurface = objc.RegisterName("touchSurface")
+	sel_touchState = objc.RegisterName("touchState")
+	sel_setValueChangedHandler = objc.RegisterName("setValueChangedHandler:")
+	sel_setTouchDown = objc.RegisterName("setTouchDown:")
+	sel_setTouchMoved = objc.RegisterName("setTouchMoved:")
+	sel_setTouchUp = objc.RegisterName("setTouchUp:")
 	sel_retain = objc.RegisterName("retain")
 	sel_release = objc.RegisterName("release")
 
@@ -247,6 +266,8 @@ func init() {
 	gcInputXboxPaddleTwo = loadNSStringSymbol("GCInputXboxPaddleTwo")
 	gcInputXboxPaddleThree = loadNSStringSymbol("GCInputXboxPaddleThree")
 	gcInputXboxPaddleFour = loadNSStringSymbol("GCInputXboxPaddleFour")
+	gcInputDualShockTouchpadOne = loadNSStringSymbol("GCInputDualShockTouchpadOne")
+	gcInputDualShockTouchpadTwo = loadNSStringSymbol("GCInputDualShockTouchpadTwo")
 
 	// GCInputXboxShareButton is not an official constant; use "Button Share".
 	classNSString := objc.GetClass("NSString")
@@ -373,6 +394,7 @@ func getControllerPropertyFromController(controller objc.ID) controllerProperty 
 						prop.nButtons++
 					}
 				}
+				prop.touchSlots = discoverGCTouchSlots(profile)
 			}
 		}
 
@@ -604,10 +626,13 @@ func (g *gamepads) addGCGamepad(controller uintptr, prop controllerProperty) {
 		hasDualShockTouchpad: prop.hasDualShockTouchpad,
 		hasXboxPaddles:       prop.hasXboxPaddles,
 		hasXboxShareButton:   prop.hasXboxShareButton,
+		touchSlots:           prop.touchSlots,
+		touches:              make([]touchContact, gcTouchSlotCount(prop.touchSlots)),
 		leftMotor:            createGCRumbleMotor(controller, 0),
 		rightMotor:           createGCRumbleMotor(controller, 1),
 	}
 	gp.native = n
+	n.startTouchTracking()
 	n.cleanup = runtime.AddCleanup(gp, func(n *nativeGamepadGC) {
 		n.close()
 	}, n)
@@ -712,6 +737,8 @@ func (g *nativeGamepadGC) updateGCGamepad() {
 	if len(g.hats) > 0 {
 		g.hats[0] = int(state.hat)
 	}
+
+	g.updateTouches()
 }
 
 // gcHIDDeviceRegistryIDs returns the registry IDs of a controller's underlying HID devices

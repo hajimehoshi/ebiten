@@ -20,75 +20,71 @@ import (
 )
 
 type defaultContext struct {
-	fnActiveTexture            js.Value
-	fnAttachShader             js.Value
-	fnBindAttribLocation       js.Value
-	fnBindBuffer               js.Value
-	fnBindFramebuffer          js.Value
-	fnBindTexture              js.Value
-	fnBindVertexArray          js.Value
-	fnBlendEquationSeparate    js.Value
-	fnBlendFuncSeparate        js.Value
-	fnBufferData               js.Value
-	fnBufferSubData            js.Value
-	fnCheckFramebufferStatus   js.Value
-	fnClear                    js.Value
-	fnColorMask                js.Value
-	fnCompileShader            js.Value
-	fnCreateBuffer             js.Value
-	fnCreateFramebuffer        js.Value
-	fnCreateProgram            js.Value
-	fnCreateShader             js.Value
-	fnCreateTexture            js.Value
-	fnCreateVertexArray        js.Value
-	fnDeleteBuffer             js.Value
-	fnDeleteFramebuffer        js.Value
-	fnDeleteProgram            js.Value
-	fnDeleteShader             js.Value
-	fnDeleteTexture            js.Value
-	fnDeleteVertexArray        js.Value
-	fnDisable                  js.Value
-	fnDisableVertexAttribArray js.Value
-	fnDrawElements             js.Value
-	fnEnable                   js.Value
-	fnEnableVertexAttribArray  js.Value
-	fnFinish                   js.Value
-	fnFramebufferTexture2D     js.Value
-	fnFlush                    js.Value
-	fnGetError                 js.Value
-	fnGetExtension             js.Value
-	fnGetParameter             js.Value
-	fnGetProgramInfoLog        js.Value
-	fnGetProgramParameter      js.Value
-	fnGetShaderInfoLog         js.Value
-	fnGetShaderParameter       js.Value
-	fnGetUniformLocation       js.Value
-	fnIsBuffer                 js.Value
-	fnIsProgram                js.Value
-	fnIsVertexArray            js.Value
-	fnLinkProgram              js.Value
-	fnPixelStorei              js.Value
-	fnReadPixels               js.Value
-	fnScissor                  js.Value
-	fnShaderSource             js.Value
-	fnTexImage2D               js.Value
-	fnTexSubImage2D            js.Value
-	fnTexParameteri            js.Value
-	fnUniform1fv               js.Value
-	fnUniform1i                js.Value
-	fnUniform1iv               js.Value
-	fnUniform2fv               js.Value
-	fnUniform2iv               js.Value
-	fnUniform3fv               js.Value
-	fnUniform3iv               js.Value
-	fnUniform4fv               js.Value
-	fnUniform4iv               js.Value
-	fnUniformMatrix2fv         js.Value
-	fnUniformMatrix3fv         js.Value
-	fnUniformMatrix4fv         js.Value
-	fnUseProgram               js.Value
-	fnVertexAttribPointer      js.Value
-	fnViewport                 js.Value
+	fnActiveTexture           js.Value
+	fnAttachShader            js.Value
+	fnBindAttribLocation      js.Value
+	fnBindBuffer              js.Value
+	fnBindFramebuffer         js.Value
+	fnBindTexture             js.Value
+	fnBindVertexArray         js.Value
+	fnBlendEquationSeparate   js.Value
+	fnBlendFuncSeparate       js.Value
+	fnBufferData              js.Value
+	fnBufferSubData           js.Value
+	fnCheckFramebufferStatus  js.Value
+	fnCompileShader           js.Value
+	fnCreateBuffer            js.Value
+	fnCreateFramebuffer       js.Value
+	fnCreateProgram           js.Value
+	fnCreateShader            js.Value
+	fnCreateTexture           js.Value
+	fnCreateVertexArray       js.Value
+	fnDeleteBuffer            js.Value
+	fnDeleteFramebuffer       js.Value
+	fnDeleteProgram           js.Value
+	fnDeleteShader            js.Value
+	fnDeleteTexture           js.Value
+	fnDeleteVertexArray       js.Value
+	fnDrawElements            js.Value
+	fnEnable                  js.Value
+	fnEnableVertexAttribArray js.Value
+	fnFinish                  js.Value
+	fnFramebufferTexture2D    js.Value
+	fnFlush                   js.Value
+	fnGetError                js.Value
+	fnGetExtension            js.Value
+	fnGetParameter            js.Value
+	fnGetProgramInfoLog       js.Value
+	fnGetProgramParameter     js.Value
+	fnGetShaderInfoLog        js.Value
+	fnGetShaderParameter      js.Value
+	fnGetUniformLocation      js.Value
+	fnIsBuffer                js.Value
+	fnIsProgram               js.Value
+	fnIsVertexArray           js.Value
+	fnLinkProgram             js.Value
+	fnPixelStorei             js.Value
+	fnReadPixels              js.Value
+	fnScissor                 js.Value
+	fnShaderSource            js.Value
+	fnTexImage2D              js.Value
+	fnTexSubImage2D           js.Value
+	fnTexParameteri           js.Value
+	fnUniform1fv              js.Value
+	fnUniform1i               js.Value
+	fnUniform1iv              js.Value
+	fnUniform2fv              js.Value
+	fnUniform2iv              js.Value
+	fnUniform3fv              js.Value
+	fnUniform3iv              js.Value
+	fnUniform4fv              js.Value
+	fnUniform4iv              js.Value
+	fnUniformMatrix2fv        js.Value
+	fnUniformMatrix3fv        js.Value
+	fnUniformMatrix4fv        js.Value
+	fnUseProgram              js.Value
+	fnVertexAttribPointer     js.Value
+	fnViewport                js.Value
 
 	buffers      values
 	framebuffers values
@@ -142,75 +138,71 @@ func NewDefaultContext(v js.Value) (Context, error) {
 	// Passing a Go string to the JS world is expensive. This causes conversion to UTF-16 (#1438).
 	// In order to reduce the cost when calling functions, create the function objects by bind and use them.
 	g := &defaultContext{
-		fnActiveTexture:            v.Get("activeTexture").Call("bind", v),
-		fnAttachShader:             v.Get("attachShader").Call("bind", v),
-		fnBindAttribLocation:       v.Get("bindAttribLocation").Call("bind", v),
-		fnBindBuffer:               v.Get("bindBuffer").Call("bind", v),
-		fnBindFramebuffer:          v.Get("bindFramebuffer").Call("bind", v),
-		fnBindTexture:              v.Get("bindTexture").Call("bind", v),
-		fnBindVertexArray:          v.Get("bindVertexArray").Call("bind", v),
-		fnBlendEquationSeparate:    v.Get("blendEquationSeparate").Call("bind", v),
-		fnBlendFuncSeparate:        v.Get("blendFuncSeparate").Call("bind", v),
-		fnBufferData:               v.Get("bufferData").Call("bind", v),
-		fnBufferSubData:            v.Get("bufferSubData").Call("bind", v),
-		fnCheckFramebufferStatus:   v.Get("checkFramebufferStatus").Call("bind", v),
-		fnClear:                    v.Get("clear").Call("bind", v),
-		fnColorMask:                v.Get("colorMask").Call("bind", v),
-		fnCompileShader:            v.Get("compileShader").Call("bind", v),
-		fnCreateBuffer:             v.Get("createBuffer").Call("bind", v),
-		fnCreateFramebuffer:        v.Get("createFramebuffer").Call("bind", v),
-		fnCreateProgram:            v.Get("createProgram").Call("bind", v),
-		fnCreateShader:             v.Get("createShader").Call("bind", v),
-		fnCreateTexture:            v.Get("createTexture").Call("bind", v),
-		fnCreateVertexArray:        v.Get("createVertexArray").Call("bind", v),
-		fnDeleteBuffer:             v.Get("deleteBuffer").Call("bind", v),
-		fnDeleteFramebuffer:        v.Get("deleteFramebuffer").Call("bind", v),
-		fnDeleteProgram:            v.Get("deleteProgram").Call("bind", v),
-		fnDeleteShader:             v.Get("deleteShader").Call("bind", v),
-		fnDeleteTexture:            v.Get("deleteTexture").Call("bind", v),
-		fnDeleteVertexArray:        v.Get("deleteVertexArray").Call("bind", v),
-		fnDisable:                  v.Get("disable").Call("bind", v),
-		fnDisableVertexAttribArray: v.Get("disableVertexAttribArray").Call("bind", v),
-		fnDrawElements:             v.Get("drawElements").Call("bind", v),
-		fnEnable:                   v.Get("enable").Call("bind", v),
-		fnEnableVertexAttribArray:  v.Get("enableVertexAttribArray").Call("bind", v),
-		fnFinish:                   v.Get("finish").Call("bind", v),
-		fnFramebufferTexture2D:     v.Get("framebufferTexture2D").Call("bind", v),
-		fnFlush:                    v.Get("flush").Call("bind", v),
-		fnGetError:                 v.Get("getError").Call("bind", v),
-		fnGetExtension:             v.Get("getExtension").Call("bind", v),
-		fnGetParameter:             v.Get("getParameter").Call("bind", v),
-		fnGetProgramInfoLog:        v.Get("getProgramInfoLog").Call("bind", v),
-		fnGetProgramParameter:      v.Get("getProgramParameter").Call("bind", v),
-		fnGetShaderInfoLog:         v.Get("getShaderInfoLog").Call("bind", v),
-		fnGetShaderParameter:       v.Get("getShaderParameter").Call("bind", v),
-		fnGetUniformLocation:       v.Get("getUniformLocation").Call("bind", v),
-		fnIsBuffer:                 v.Get("isBuffer").Call("bind", v),
-		fnIsProgram:                v.Get("isProgram").Call("bind", v),
-		fnIsVertexArray:            v.Get("isVertexArray").Call("bind", v),
-		fnLinkProgram:              v.Get("linkProgram").Call("bind", v),
-		fnPixelStorei:              v.Get("pixelStorei").Call("bind", v),
-		fnReadPixels:               v.Get("readPixels").Call("bind", v),
-		fnScissor:                  v.Get("scissor").Call("bind", v),
-		fnShaderSource:             v.Get("shaderSource").Call("bind", v),
-		fnTexImage2D:               v.Get("texImage2D").Call("bind", v),
-		fnTexSubImage2D:            v.Get("texSubImage2D").Call("bind", v),
-		fnTexParameteri:            v.Get("texParameteri").Call("bind", v),
-		fnUniform1fv:               v.Get("uniform1fv").Call("bind", v),
-		fnUniform1i:                v.Get("uniform1i").Call("bind", v),
-		fnUniform1iv:               v.Get("uniform1iv").Call("bind", v),
-		fnUniform2fv:               v.Get("uniform2fv").Call("bind", v),
-		fnUniform2iv:               v.Get("uniform2iv").Call("bind", v),
-		fnUniform3fv:               v.Get("uniform3fv").Call("bind", v),
-		fnUniform3iv:               v.Get("uniform3iv").Call("bind", v),
-		fnUniform4fv:               v.Get("uniform4fv").Call("bind", v),
-		fnUniform4iv:               v.Get("uniform4iv").Call("bind", v),
-		fnUniformMatrix2fv:         v.Get("uniformMatrix2fv").Call("bind", v),
-		fnUniformMatrix3fv:         v.Get("uniformMatrix3fv").Call("bind", v),
-		fnUniformMatrix4fv:         v.Get("uniformMatrix4fv").Call("bind", v),
-		fnUseProgram:               v.Get("useProgram").Call("bind", v),
-		fnVertexAttribPointer:      v.Get("vertexAttribPointer").Call("bind", v),
-		fnViewport:                 v.Get("viewport").Call("bind", v),
+		fnActiveTexture:           v.Get("activeTexture").Call("bind", v),
+		fnAttachShader:            v.Get("attachShader").Call("bind", v),
+		fnBindAttribLocation:      v.Get("bindAttribLocation").Call("bind", v),
+		fnBindBuffer:              v.Get("bindBuffer").Call("bind", v),
+		fnBindFramebuffer:         v.Get("bindFramebuffer").Call("bind", v),
+		fnBindTexture:             v.Get("bindTexture").Call("bind", v),
+		fnBindVertexArray:         v.Get("bindVertexArray").Call("bind", v),
+		fnBlendEquationSeparate:   v.Get("blendEquationSeparate").Call("bind", v),
+		fnBlendFuncSeparate:       v.Get("blendFuncSeparate").Call("bind", v),
+		fnBufferData:              v.Get("bufferData").Call("bind", v),
+		fnBufferSubData:           v.Get("bufferSubData").Call("bind", v),
+		fnCheckFramebufferStatus:  v.Get("checkFramebufferStatus").Call("bind", v),
+		fnCompileShader:           v.Get("compileShader").Call("bind", v),
+		fnCreateBuffer:            v.Get("createBuffer").Call("bind", v),
+		fnCreateFramebuffer:       v.Get("createFramebuffer").Call("bind", v),
+		fnCreateProgram:           v.Get("createProgram").Call("bind", v),
+		fnCreateShader:            v.Get("createShader").Call("bind", v),
+		fnCreateTexture:           v.Get("createTexture").Call("bind", v),
+		fnCreateVertexArray:       v.Get("createVertexArray").Call("bind", v),
+		fnDeleteBuffer:            v.Get("deleteBuffer").Call("bind", v),
+		fnDeleteFramebuffer:       v.Get("deleteFramebuffer").Call("bind", v),
+		fnDeleteProgram:           v.Get("deleteProgram").Call("bind", v),
+		fnDeleteShader:            v.Get("deleteShader").Call("bind", v),
+		fnDeleteTexture:           v.Get("deleteTexture").Call("bind", v),
+		fnDeleteVertexArray:       v.Get("deleteVertexArray").Call("bind", v),
+		fnDrawElements:            v.Get("drawElements").Call("bind", v),
+		fnEnable:                  v.Get("enable").Call("bind", v),
+		fnEnableVertexAttribArray: v.Get("enableVertexAttribArray").Call("bind", v),
+		fnFinish:                  v.Get("finish").Call("bind", v),
+		fnFramebufferTexture2D:    v.Get("framebufferTexture2D").Call("bind", v),
+		fnFlush:                   v.Get("flush").Call("bind", v),
+		fnGetError:                v.Get("getError").Call("bind", v),
+		fnGetExtension:            v.Get("getExtension").Call("bind", v),
+		fnGetParameter:            v.Get("getParameter").Call("bind", v),
+		fnGetProgramInfoLog:       v.Get("getProgramInfoLog").Call("bind", v),
+		fnGetProgramParameter:     v.Get("getProgramParameter").Call("bind", v),
+		fnGetShaderInfoLog:        v.Get("getShaderInfoLog").Call("bind", v),
+		fnGetShaderParameter:      v.Get("getShaderParameter").Call("bind", v),
+		fnGetUniformLocation:      v.Get("getUniformLocation").Call("bind", v),
+		fnIsBuffer:                v.Get("isBuffer").Call("bind", v),
+		fnIsProgram:               v.Get("isProgram").Call("bind", v),
+		fnIsVertexArray:           v.Get("isVertexArray").Call("bind", v),
+		fnLinkProgram:             v.Get("linkProgram").Call("bind", v),
+		fnPixelStorei:             v.Get("pixelStorei").Call("bind", v),
+		fnReadPixels:              v.Get("readPixels").Call("bind", v),
+		fnScissor:                 v.Get("scissor").Call("bind", v),
+		fnShaderSource:            v.Get("shaderSource").Call("bind", v),
+		fnTexImage2D:              v.Get("texImage2D").Call("bind", v),
+		fnTexSubImage2D:           v.Get("texSubImage2D").Call("bind", v),
+		fnTexParameteri:           v.Get("texParameteri").Call("bind", v),
+		fnUniform1fv:              v.Get("uniform1fv").Call("bind", v),
+		fnUniform1i:               v.Get("uniform1i").Call("bind", v),
+		fnUniform1iv:              v.Get("uniform1iv").Call("bind", v),
+		fnUniform2fv:              v.Get("uniform2fv").Call("bind", v),
+		fnUniform2iv:              v.Get("uniform2iv").Call("bind", v),
+		fnUniform3fv:              v.Get("uniform3fv").Call("bind", v),
+		fnUniform3iv:              v.Get("uniform3iv").Call("bind", v),
+		fnUniform4fv:              v.Get("uniform4fv").Call("bind", v),
+		fnUniform4iv:              v.Get("uniform4iv").Call("bind", v),
+		fnUniformMatrix2fv:        v.Get("uniformMatrix2fv").Call("bind", v),
+		fnUniformMatrix3fv:        v.Get("uniformMatrix3fv").Call("bind", v),
+		fnUniformMatrix4fv:        v.Get("uniformMatrix4fv").Call("bind", v),
+		fnUseProgram:              v.Get("useProgram").Call("bind", v),
+		fnVertexAttribPointer:     v.Get("vertexAttribPointer").Call("bind", v),
+		fnViewport:                v.Get("viewport").Call("bind", v),
 	}
 
 	return g, nil
@@ -277,14 +269,6 @@ func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
 
 func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 	return uint32(c.fnCheckFramebufferStatus.Invoke(target).Int())
-}
-
-func (c *defaultContext) Clear(mask uint32) {
-	c.fnClear.Invoke(mask)
-}
-
-func (c *defaultContext) ColorMask(red, green, blue, alpha bool) {
-	c.fnColorMask.Invoke(red, green, blue, alpha)
 }
 
 func (c *defaultContext) CompileShader(shader uint32) {
@@ -359,14 +343,6 @@ func (c *defaultContext) DeleteVertexArray(array uint32) {
 		c.fnDeleteVertexArray.Invoke(v)
 	}
 	c.vertexArrays.delete(array)
-}
-
-func (c *defaultContext) Disable(cap uint32) {
-	c.fnDisable.Invoke(cap)
-}
-
-func (c *defaultContext) DisableVertexAttribArray(index uint32) {
-	c.fnDisableVertexAttribArray.Invoke(index)
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {

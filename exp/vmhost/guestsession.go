@@ -1157,6 +1157,12 @@ type GamepadState struct {
 	// any standard layout it likes.
 	StandardAxes    map[ebiten.StandardGamepadAxis]float64
 	StandardButtons map[ebiten.StandardGamepadButton]GamepadStandardButtonState
+
+	// TouchSurfaces holds the current touches of each of the gamepad's touch surfaces, indexed by surface
+	// as in [ebiten.AppendGamepadTouchIDs]; a surface without touches still counts. The guest tracks at
+	// most 16 touches per surface at once and ignores any more until one of them ends. A change in the
+	// number of surfaces makes every touch of the gamepad a new touch.
+	TouchSurfaces [][]GamepadTouchState
 }
 
 // GamepadStandardButtonState is one standard-layout button's pressed flag and its analog value in
@@ -1164,6 +1170,19 @@ type GamepadState struct {
 type GamepadStandardButtonState struct {
 	Pressed bool
 	Value   float64
+}
+
+// GamepadTouchState is one touch on a gamepad's touch surface.
+type GamepadTouchState struct {
+	// ID identifies the touch across [GuestSession.UpdateGamepads] calls: a touch the previous call
+	// reported on the same surface with the same ID is the same touch, and any other touch is a new
+	// one. The guest assigns each touch its own [ebiten.GamepadTouchID].
+	ID ebiten.GamepadTouchID
+
+	// X and Y are the touch's position, each in 0..1, with (0, 0) at the top left of the surface and
+	// (1, 1) at its bottom right.
+	X float64
+	Y float64
 }
 
 // UpdateGamepads injects the complete set of connected gamepads; a gamepad absent from states is
@@ -1204,6 +1223,29 @@ func appendGamepadStatesToProtocol(dst []vmprotocol.GamepadState, states []Gamep
 		d.Buttons = append(d.Buttons[:0], s.Buttons...)
 		d.StandardAxes = copyStandardAxesToProtocol(d.StandardAxes, s.StandardAxes)
 		d.StandardButtons = copyStandardButtonsToProtocol(d.StandardButtons, s.StandardButtons)
+		d.TouchSurfaces = copyTouchSurfacesToProtocol(d.TouchSurfaces, s.TouchSurfaces)
+	}
+	return dst
+}
+
+// copyTouchSurfacesToProtocol copies src into dst in its protocol form and returns the result, reusing
+// dst's surfaces and their touch slices within capacity.
+func copyTouchSurfacesToProtocol(dst [][]vmprotocol.GamepadTouchState, src [][]GamepadTouchState) [][]vmprotocol.GamepadTouchState {
+	if n := len(src); n <= cap(dst) {
+		dst = dst[:n]
+	} else {
+		dst = slices.Grow(dst[:cap(dst)], n-cap(dst))[:n]
+	}
+	for i, touches := range src {
+		d := dst[i][:0]
+		for _, t := range touches {
+			d = append(d, vmprotocol.GamepadTouchState{
+				ID: int(t.ID),
+				X:  t.X,
+				Y:  t.Y,
+			})
+		}
+		dst[i] = d
 	}
 	return dst
 }

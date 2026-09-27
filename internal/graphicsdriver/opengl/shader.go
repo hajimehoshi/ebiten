@@ -52,7 +52,11 @@ func (s *Shader) ID() graphicsdriver.ShaderID {
 }
 
 func (s *Shader) Dispose() {
-	s.graphics.deleteProgram(s.p)
+	// A name of a deleted program can be reused for a new program, so s.p must be cleared.
+	if s.p != 0 {
+		s.graphics.deleteProgram(s.p)
+		s.p = 0
+	}
 	s.graphics.removeShader(s)
 }
 

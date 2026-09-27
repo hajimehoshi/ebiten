@@ -240,3 +240,62 @@ func TestParseSVGColorEmptyComponent(t *testing.T) {
 		}
 	}
 }
+
+func TestClassesResolveByStylesheetOrder(t *testing.T) {
+	// Equal-specificity class declarations must be resolved by their order in
+	// the stylesheet, independently of the order the names appear in the class
+	// attribute. Here .b comes after .a, so fill must always be blue.
+	const style = `<style>.a{fill:#ff0000}.b{fill:#0000ff}</style>`
+	for _, class := range []string{"a b", "b a"} {
+		svg := `<svg xmlns="http://www.w3.org/2000/svg"><defs>` + style + `</defs>` +
+			`<rect x="0" y="0" width="10" height="10" class="` + class + `"/></svg>`
+
+		icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(icon.SVGPaths) != 1 {
+			t.Fatalf("len(SVGPaths) = %d, want 1 (class %q)", len(icon.SVGPaths), class)
+		}
+		if got, want := icon.SVGPaths[0].GetFillColor(), (color.NRGBA{0x00, 0x00, 0xff, 0xff}); got != want {
+			t.Errorf("GetFillColor (class %q) = %v, want %v", class, got, want)
+		}
+	}
+}
+
+func TestClassesOpacityNotCompounded(t *testing.T) {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg"><defs>` +
+		`<style>.a{fill-opacity:0.5}.b{fill-opacity:0.5}</style></defs>` +
+		`<rect x="0" y="0" width="10" height="10" class="a b"/></svg>`
+
+	icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(icon.SVGPaths) != 1 {
+		t.Fatalf("len(SVGPaths) = %d, want 1", len(icon.SVGPaths))
+	}
+	// Both classes declare the same property; the winning value (0.5) must be
+	// applied once rather than multiplied into 0.25.
+	if got, want := icon.SVGPaths[0].FillOpacity, 0.5; got != want {
+		t.Errorf("FillOpacity = %v, want %v", got, want)
+	}
+}
+
+func TestClassesRepeatedName(t *testing.T) {
+	const svg = `<svg xmlns="http://www.w3.org/2000/svg"><defs>` +
+		`<style>.a{fill-opacity:0.5}</style></defs>` +
+		`<rect x="0" y="0" width="10" height="10" class="a a"/></svg>`
+
+	icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(icon.SVGPaths) != 1 {
+		t.Fatalf("len(SVGPaths) = %d, want 1", len(icon.SVGPaths))
+	}
+	// A repeated class name must be applied only once, not compounded.
+	if got, want := icon.SVGPaths[0].FillOpacity, 0.5; got != want {
+		t.Errorf("FillOpacity = %v, want %v", got, want)
+	}
+}

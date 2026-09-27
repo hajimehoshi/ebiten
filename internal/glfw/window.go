@@ -91,7 +91,7 @@ func (w *Window) inputWindowMonitor(monitor *Monitor) {
 	w.hasMonitor.Store(monitor != nil)
 }
 
-func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (window *Window, ferr error) {
+func CreateWindow(width, height int, title string, monitor *Monitor, share *Window) (window *Window, err error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized
 	}
@@ -142,7 +142,7 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	}
 	window.inputWindowMonitor(monitor)
 	defer func(window *Window) {
-		if ferr != nil {
+		if err != nil {
 			_ = window.Destroy()
 		}
 	}(window)

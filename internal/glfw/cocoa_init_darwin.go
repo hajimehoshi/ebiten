@@ -426,8 +426,27 @@ var (
 	class_GLFWApplicationDelegate objc.Class
 )
 
+// checkWindowServerAccess returns an error if the process is denied access to the window server.
+func checkWindowServerAccess() error {
+	// Without access, the application never finishes launching and NSApplication's run blocks forever.
+	// The service name is undocumented, so only a definite denial is an error.
+	// Any other failure, such as an unknown service, is left to AppKit.
+	var port uint32
+	switch bootstrapLookUp(*bootstrapPort, "com.apple.windowserver.active", &port) {
+	case _KERN_SUCCESS:
+		machPortDeallocate(*machTaskSelf, port)
+	case _BOOTSTRAP_NOT_PRIVILEGED:
+		return fmt.Errorf("glfw: access to the window server is denied: %w", PlatformError)
+	}
+	return nil
+}
+
 // platformInit performs the full macOS platform initialization.
 func platformInit() error {
+	if err := checkWindowServerAccess(); err != nil {
+		return err
+	}
+
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 

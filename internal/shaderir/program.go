@@ -137,9 +137,11 @@ type Expr struct {
 	Exprs       []Expr
 	Const       constant.Value
 	BuiltinFunc BuiltinFunc
-	Swizzling   string
-	Index       int
-	Op          Op
+	// Swizzling is spelled in the xyzw set regardless of [Expr.SwizzlingSet].
+	Swizzling    string
+	SwizzlingSet SwizzlingSet
+	Index        int
+	Op           Op
 }
 
 type ExprType int
@@ -374,6 +376,34 @@ func ParseBuiltinFunc(str string) (BuiltinFunc, bool) {
 	return "", false
 }
 
+// SwizzlingSet is the naming set of vector components a swizzle is written in.
+type SwizzlingSet int
+
+const (
+	SwizzlingSetXYZW SwizzlingSet = iota
+	SwizzlingSetRGBA
+	SwizzlingSetSTPQ
+)
+
+// SourceSwizzling returns the swizzle of a [SwizzlingExpr] spelled in [Expr.SwizzlingSet].
+func (e Expr) SourceSwizzling() string {
+	var names string
+	switch e.SwizzlingSet {
+	case SwizzlingSetRGBA:
+		names = "rgba"
+	case SwizzlingSetSTPQ:
+		names = "stpq"
+	default:
+		return e.Swizzling
+	}
+	return strings.Map(func(r rune) rune {
+		if i := strings.IndexRune("xyzw", r); i >= 0 {
+			return rune(names[i])
+		}
+		return r
+	}, e.Swizzling)
+}
+
 func IsValidSwizzling(s string) bool {
 	if len(s) < 1 || 4 < len(s) {
 		return false
@@ -440,6 +470,34 @@ func (p *Program) ReachableFuncsFromBlock(block *Block) []*Func {
 		funcs = append(funcs, indexToFunc[i])
 	}
 	return funcs
+}
+
+// AssignedAttributes reports, for each attribute, whether the vertex entry point assigns to the whole attribute or a part of it.
+func (p *Program) AssignedAttributes() []bool {
+	assigned := make([]bool, len(p.Attributes))
+	var walk func(block *Block)
+	walk = func(block *Block) {
+		if block == nil {
+			return
+		}
+		for _, s := range block.Stmts {
+			if s.Type == Assign {
+				// Attributes are the first in-params, whose indices are never reused by local variables.
+				e := &s.Exprs[0]
+				for e.Type == FieldSelector || e.Type == Index {
+					e = &e.Exprs[0]
+				}
+				if e.Type == LocalVariable && e.Index < len(assigned) {
+					assigned[e.Index] = true
+				}
+			}
+			for _, b := range s.Blocks {
+				walk(b)
+			}
+		}
+	}
+	walk(p.VertexFunc.Block)
+	return assigned
 }
 
 func walkExprs(f func(expr *Expr), block *Block) {

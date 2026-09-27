@@ -71,6 +71,8 @@ func (t Type) String() string {
 		return "mat3"
 	case Mat4:
 		return "mat4"
+	case Texture:
+		return "texture"
 	case Array:
 		return fmt.Sprintf("[%d]%s", t.Length, t.Sub[0].String())
 	case Struct:

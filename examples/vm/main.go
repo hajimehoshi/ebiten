@@ -142,6 +142,9 @@ type Game struct {
 	gamepadIDsBuf    []ebiten.GamepadID
 	gamepadStatesBuf []vmhost.GamepadState
 
+	// gamepadTouchIDsBuf is reused each tick by gamepadState.
+	gamepadTouchIDsBuf []ebiten.GamepadTouchID
+
 	// keyBuf and runeBuf are reused each tick by forwardInput.
 	keyBuf  []ebiten.Key
 	runeBuf []rune
@@ -499,7 +502,7 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		g.gamepadStatesBuf = slices.Grow(g.gamepadStatesBuf[:cap(g.gamepadStatesBuf)], n-cap(g.gamepadStatesBuf))[:n]
 	}
 	for i, id := range g.gamepadIDsBuf {
-		gamepadState(id, &g.gamepadStatesBuf[i])
+		g.gamepadState(id, &g.gamepadStatesBuf[i])
 	}
 	s.UpdateGamepads(g.gamepadStatesBuf)
 
@@ -528,7 +531,7 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 
 // gamepadState reads the current state of one host gamepad through the public ebiten API into state,
 // reusing state's slices and maps.
-func gamepadState(id ebiten.GamepadID, state *vmhost.GamepadState) {
+func (g *Game) gamepadState(id ebiten.GamepadID, state *vmhost.GamepadState) {
 	state.ID = id
 	state.SDLID = ebiten.GamepadSDLID(id)
 	state.Name = ebiten.GamepadName(id)
@@ -540,6 +543,27 @@ func gamepadState(id ebiten.GamepadID, state *vmhost.GamepadState) {
 	state.Buttons = state.Buttons[:0]
 	for b := 0; b < ebiten.GamepadButtonCount(id); b++ {
 		state.Buttons = append(state.Buttons, ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton(b)))
+	}
+
+	// The surfaces are resliced through their capacity so the elements there keep their buffers.
+	surfaceCount := ebiten.GamepadTouchSurfaceCount(id)
+	if surfaceCount <= cap(state.TouchSurfaces) {
+		state.TouchSurfaces = state.TouchSurfaces[:surfaceCount]
+	} else {
+		state.TouchSurfaces = slices.Grow(state.TouchSurfaces[:cap(state.TouchSurfaces)], surfaceCount-cap(state.TouchSurfaces))[:surfaceCount]
+	}
+	for surface := range state.TouchSurfaces {
+		g.gamepadTouchIDsBuf = ebiten.AppendGamepadTouchIDs(id, surface, g.gamepadTouchIDsBuf[:0])
+		touches := state.TouchSurfaces[surface][:0]
+		for _, t := range g.gamepadTouchIDsBuf {
+			x, y := ebiten.GamepadTouchPosition(id, t)
+			touches = append(touches, vmhost.GamepadTouchState{
+				ID: t,
+				X:  x,
+				Y:  y,
+			})
+		}
+		state.TouchSurfaces[surface] = touches
 	}
 
 	// An emptied map means no standard layout, like a nil one, so the maps are kept for reuse.

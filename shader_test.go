@@ -3309,3 +3309,50 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		})
 	}
 }
+
+func TestShaderDrawRectWithNonPositiveSize(t *testing.T) {
+	const w, h = 16, 16
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, size := range []struct {
+		width  int
+		height int
+	}{
+		{
+			width:  0,
+			height: h,
+		},
+		{
+			width:  w,
+			height: 0,
+		},
+		{
+			width:  -1,
+			height: h,
+		},
+		{
+			width:  w,
+			height: -1,
+		},
+	} {
+		t.Run(fmt.Sprintf("%dx%d", size.width, size.height), func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("DrawRectShader(%d, %d) must panic but not", size.width, size.height)
+				}
+			}()
+			dst := ebiten.NewImage(w, h)
+			dst.DrawRectShader(size.width, size.height, s, nil)
+		})
+	}
+}

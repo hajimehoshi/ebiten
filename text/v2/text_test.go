@@ -1543,3 +1543,50 @@ func TestGoXFaceConcurrentMetricsAndDraw(t *testing.T) {
 	close(start)
 	wg.Wait()
 }
+
+func TestDrawWithInvalidLayoutOptions(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name      string
+		direction text.Direction
+		options   text.LayoutOptions
+	}{
+		{
+			name:      "InvalidDirection",
+			direction: text.Direction(99),
+		},
+		{
+			name: "InvalidPrimaryAlign",
+			options: text.LayoutOptions{
+				PrimaryAlign: text.Align(99),
+			},
+		},
+		{
+			name: "InvalidSecondaryAlign",
+			options: text.LayoutOptions{
+				SecondaryAlign: text.Align(99),
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("Draw must panic but not")
+				}
+			}()
+			face := &text.GoTextFace{
+				Source:    source,
+				Size:      24,
+				Direction: tc.direction,
+			}
+			dst := ebiten.NewImage(64, 64)
+			op := &text.DrawOptions{}
+			op.LayoutOptions = tc.options
+			text.Draw(dst, "Hi", face, op)
+		})
+	}
+}
