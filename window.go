@@ -136,6 +136,10 @@ func SetWindowTitle(title string) {
 //
 // If len(iconImages) is 0, SetWindowIcon reverts the icon to the default one.
 //
+// The pixels of the given images are read while a frame is running, as an image can be an
+// [Image], whose pixels cannot be read outside a frame. The images must therefore not be disposed
+// until the icon has been set. If an image is disposed before that, reading its pixels panics.
+//
 // For desktops, see the document of glfwSetWindowIcon of GLFW 3.2:
 //
 //	This function sets the icon of the specified window.

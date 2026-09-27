@@ -16,10 +16,10 @@ package glfw
  * This module converts keysym values into the corresponding ISO 10646
  * (UCS, Unicode) values.
  *
- * The array keysymtab[] contains pairs of X11 keysym values for graphical
- * characters and the corresponding Unicode value. The function
- * _glfwKeySym2Unicode() maps a keysym onto a Unicode value using a binary
- * search, therefore keysymtab[] must remain SORTED by keysym value.
+ * The table keysymtab maps X11 keysym values for graphical characters to
+ * the corresponding Unicode value. The function keySym2Unicode() maps a
+ * keysym onto a Unicode value by looking keysymtab up, so the order of its
+ * entries does not matter.
  *
  * We allow to represent any UCS character in the range U-00000000 to
  * U-00FFFFFF by a keysym value in the range 0x01000000 to 0x01ffffff.

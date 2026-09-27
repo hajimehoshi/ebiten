@@ -61,6 +61,9 @@ func (g *GeoM) elements32() (a, b, c, d, tx, ty float32) {
 }
 
 // Element returns a value of a matrix at (i, j).
+//
+// i must be in the range [0, GeoMDim-2] and j must be in the range [0, GeoMDim-1].
+// Otherwise, Element panics.
 func (g *GeoM) Element(i, j int) float64 {
 	switch {
 	case i == 0 && j == 0:
@@ -199,6 +202,9 @@ func (g *GeoM) Invert() {
 }
 
 // SetElement sets an element at (i, j).
+//
+// i must be in the range [0, GeoMDim-2] and j must be in the range [0, GeoMDim-1].
+// Otherwise, SetElement panics.
 func (g *GeoM) SetElement(i, j int, element float64) {
 	e := element
 	switch {

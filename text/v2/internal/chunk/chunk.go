@@ -38,11 +38,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/textutil"
 )
 
-// Chunk is a byte range [Start, End) within the original text, plus
-// the bidi embedding level of every codepoint in the range. The level
-// is constant across the range — chunks never span a bidi-level
-// transition, so visual composition can apply UAX #9 L2 by treating
-// each chunk as a single character at the given level.
+// Chunk is a byte range [Start, End) within the original text, plus the
+// bidi embedding level to compose the range with.
+//
+// Level is the level of the range's first codepoint. It is the level a caller
+// needs for UAX #9 L2, which reverses a contiguous run of characters at or
+// above a pass level, so it is enough to compare against the highest and the
+// lowest odd level of the line. It is not the level of every codepoint in the
+// range: the bidi package segments a line into runs of one direction, so a
+// range can hold a deeper embedding than Level, e.g. a nested LRE under an LTR
+// paragraph. Treating a chunk as a single character at Level is still the right
+// model for L2, but a range is not a single bidi level.
 type Chunk struct {
 	Start int
 	End   int
@@ -119,10 +125,10 @@ func AppendChunks(dst []Chunk, text string, paragraphLevel bidi.Level) []Chunk {
 }
 
 // appendChunksForRun appends sentence-terminator chunks for one
-// single-level bidi run to dst and returns the extended slice. text is
-// the run's bytes, level is the bidi level stamped on every appended
-// chunk, paragraphLevel is the paragraph base level (used to decide
-// whether this run agrees with the paragraph direction), and
+// same-direction bidi run to dst and returns the extended slice. text is
+// the run's bytes, level is the run's leading bidi level, stamped on
+// every appended chunk, paragraphLevel is the paragraph base level (used to
+// decide whether this run agrees with the paragraph direction), and
 // byteOffset is added to each chunk's Start/End so the result is in
 // source-text coordinates.
 //

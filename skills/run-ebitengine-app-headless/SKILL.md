@@ -18,7 +18,7 @@ allowed-tools: Read, Edit, Write, Bash
 
 # run-ebitengine-app-headless skill
 
-*Targets ebiten commit `a884b6732` (2026-07-14), verified against it.
+*Targets ebiten commit `7de1780bd` (2026-09-27), verified against it.
 `exp/vmhost` is experimental, so if its API has moved since, the driver and
 the snippets here may need updating.*
 

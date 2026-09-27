@@ -66,7 +66,12 @@ const (
 	// Deprecated: as of v2.5. Use BlendLighter instead.
 	CompositeModeLighter
 
-	// Deprecated: as of v2.5. Use Blend with BlendFactorDestinationColor and BlendFactorZero instead.
+	// Deprecated: as of v2.5. Use Blend with all the four factors set:
+	// BlendFactorSourceRGB and BlendFactorSourceAlpha to
+	// BlendFactorDestinationColor, and BlendFactorDestinationRGB and
+	// BlendFactorDestinationAlpha to BlendFactorZero. Leaving the alpha factors
+	// at their default composites the alpha source-over instead of multiplying
+	// it.
 	CompositeModeMultiply
 )
 

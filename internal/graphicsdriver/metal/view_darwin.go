@@ -64,7 +64,7 @@ type view struct {
 	// queuedPresents is the number of drawables that are queued for presentation and not presented yet.
 	// While vsync is disabled on macOS, this is used to skip a frame instead of blocking until a
 	// drawable is available (see nextDrawable). This is also used to wait for all the queued
-	// presentations before switching to transaction-synced presentation (see updatePresentsWithTransaction).
+	// presentations before switching to transaction-synced presentation (see updatePresentationState).
 	// queuedPresents is incremented on the rendering thread and decremented on Metal's presentation thread.
 	queuedPresents atomic.Int32
 

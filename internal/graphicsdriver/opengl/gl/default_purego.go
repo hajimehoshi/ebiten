@@ -494,8 +494,9 @@ func (c *defaultContext) LoadFunctions() error {
 // cStr takes a Go string (with or without null-termination)
 // and returns the C counterpart.
 //
-// The returned free function must be called once you are done using the string
-// in order to free the memory.
+// The bytes are Go-managed memory, so the returned function frees nothing. It
+// must be called once the string is no longer used, as it keeps it alive until
+// then.
 func cStr(str string) (cstr *byte, free func()) {
 	bs := []byte(str)
 	if len(bs) == 0 || bs[len(bs)-1] != 0 {

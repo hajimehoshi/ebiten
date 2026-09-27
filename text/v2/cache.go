@@ -36,7 +36,9 @@ type cache[Key comparable, Value any] struct {
 
 	values map[Key]*cacheValue[Value]
 
-	// atime is the last time when the cache was accessed.
+	// atime is the tick of the last cache miss. A hit returns before reaching
+	// the clean-up, so this only moves when a new key is created and the
+	// clean-up runs at most once per tick.
 	atime int64
 
 	m sync.Mutex

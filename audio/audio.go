@@ -516,6 +516,8 @@ func (p *Player) IsPlaying() bool {
 // Rewind rewinds the current position to the start.
 //
 // The passed source to NewPlayer must be io.Seeker, or Rewind panics.
+// Rewind does not panic before Play is called, as it needs no source access
+// to rewind a player that has not read the source yet.
 //
 // Rewind returns error when seeking the source stream returns error.
 func (p *Player) Rewind() error {
@@ -526,6 +528,8 @@ func (p *Player) Rewind() error {
 // SetPosition sets the position with the given offset.
 //
 // The passed source to NewPlayer must be io.Seeker, or SetPosition panics.
+// A zero offset does not panic before Play is called, as it needs no source
+// access to reset a player that has not read the source yet.
 //
 // SetPosition returns error when seeking the source stream returns an error.
 // SetPosition returns an error for a negative offset.
@@ -633,8 +637,8 @@ func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals the new one, ResampleReader returns source as it is.
-// Otherwise, the returned value's Read returns only whole samples (4 bytes each), and its Seek rounds a position in
+// If the original sample rate equals the new one, ResampleReader returns source as it is and does not apply length.
+// When the rates differ, the returned value's Read returns only whole samples (4 bytes each), and its Seek rounds a position in
 // the middle of a sample down to a sample boundary.
 // For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 //
@@ -657,8 +661,8 @@ func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals the new one, ResampleReaderF32 returns source as it is.
-// Otherwise, the returned value's Read returns only whole samples (8 bytes each), and its Seek rounds a position in
+// If the original sample rate equals the new one, ResampleReaderF32 returns source as it is and does not apply length.
+// When the rates differ, the returned value's Read returns only whole samples (8 bytes each), and its Seek rounds a position in
 // the middle of a sample down to a sample boundary.
 // For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 //
@@ -681,8 +685,8 @@ func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals the new one, Resample returns source as it is.
-// Otherwise, the returned value's Read returns only whole samples (4 bytes each), and its Seek rounds a position in
+// If the original sample rate equals the new one, Resample returns source as it is and does not apply length.
+// When the rates differ, the returned value's Read returns only whole samples (4 bytes each), and its Seek rounds a position in
 // the middle of a sample down to a sample boundary.
 // For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 //
@@ -703,8 +707,8 @@ func Resample(source io.ReadSeeker, length int64, from, to int) io.ReadSeeker {
 //
 // If the source ends before length bytes, the remainder of the result is silence.
 //
-// If the original sample rate equals the new one, ResampleF32 returns source as it is.
-// Otherwise, the returned value's Read returns only whole samples (8 bytes each), and its Seek rounds a position in
+// If the original sample rate equals the new one, ResampleF32 returns source as it is and does not apply length.
+// When the rates differ, the returned value's Read returns only whole samples (8 bytes each), and its Seek rounds a position in
 // the middle of a sample down to a sample boundary.
 // For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 //

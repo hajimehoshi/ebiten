@@ -255,6 +255,9 @@ func GamepadAxis(id GamepadID, axis GamepadAxisType) float64 {
 
 // GamepadButtonCount returns the number of the buttons of the given gamepad (id).
 //
+// The count includes button representations for hats when the backend exposes them.
+// The exact number and button IDs depend on the backend.
+//
 // GamepadButtonCount returns 0 before the game starts.
 //
 // GamepadButtonCount is concurrent-safe.
@@ -264,7 +267,7 @@ func GamepadButtonCount(id GamepadID) int {
 		return 0
 	}
 
-	// For backward compatibility, hats are treated as buttons in GLFW.
+	// For backward compatibility, hats are treated as buttons.
 	return g.ButtonCountWithHats()
 }
 
@@ -284,7 +287,9 @@ func GamepadButtonNum(id GamepadID) int {
 //
 // IsGamepadButtonPressed is concurrent-safe.
 //
-// The relationships between physical buttons and button IDs depend on environments.
+// Hat state may be exposed as buttons by the backend. The exact mapping and
+// button IDs depend on the environment.
+//
 // There can be differences even between Chrome and Firefox.
 func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	g := gamepad.Get(id)
@@ -292,7 +297,7 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 		return false
 	}
 
-	// For backward compatibility, hats are treated as buttons in GLFW.
+	// For backward compatibility, hats are treated as buttons.
 	return g.IsButtonPressedWithHats(int(button))
 }
 
@@ -436,7 +441,7 @@ func IsStandardGamepadButtonAvailable(id GamepadID, button StandardGamepadButton
 // UpdateStandardGamepadLayoutMappings parses the specified string mappings in SDL_GameControllerDB format and
 // updates the gamepad layout definitions.
 //
-// UpdateStandardGamepadLayoutMappings reports whether the mappings were applied,
+// UpdateStandardGamepadLayoutMappings reports whether the mappings were parsed successfully,
 // and returns an error if any occur while parsing the mappings.
 //
 // One or more input definitions can be provided separated by newlines.

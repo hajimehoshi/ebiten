@@ -243,9 +243,7 @@ type imageImpl struct {
 	// The type is int64 instead of int to avoid overflow when comparing the limitation.
 	//
 	// usedAsSourceCount is increased if the image is used as a rendering source, or set to 0 if the image is
-	// modified.
-	//
-	// WritePixels doesn't affect this value since WritePixels can be done on images on an atlas.
+	// modified. WritePixels also resets this value.
 	usedAsSourceCount int64
 
 	// usedAsDestinationCount represents how many times an image is used as a rendering destination at DrawTriangles.
