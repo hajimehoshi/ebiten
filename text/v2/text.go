@@ -344,9 +344,7 @@ func Advance(text string, face Face) float64 {
 // first line break onward is ignored, and an indexInBytes that falls on or
 // past the first line break is treated as the end of the first line.
 //
-// AdvanceAt(text, 0, face) is 0 when text starts with a left-to-right cluster.
-// When text starts with a right-to-left cluster, it is that cluster's right
-// side, following the bidirectional convention below.
+// AdvanceAt(text, 0, face) is 0.
 // AdvanceAt(text, len(text), face) is the total visual line width, the same
 // value as the deprecated [Advance].
 //
@@ -355,9 +353,9 @@ func Advance(text string, face Face) float64 {
 // returned value is snapped to the cluster's leading-edge position in logical
 // order.
 //
-// For bidirectional text, AdvanceAt uses a leading-edge convention: the
-// returned value is the leading edge of the cluster that starts at
-// indexInBytes — the left side of the cluster for left-to-right runs, the
+// For bidirectional text, except at the endpoints, AdvanceAt uses a
+// leading-edge convention: the returned value is the leading edge of the cluster that starts at
+// indexInBytes: the left side of the cluster for left-to-right runs, the
 // right side for right-to-left runs. A logical position on a bidi level
 // boundary has two visually valid caret positions, and this single-value API
 // returns one of them; affinity-aware positioning is not exposed.
@@ -368,6 +366,9 @@ func Advance(text string, face Face) float64 {
 func AdvanceAt(text string, indexInBytes int, face Face) float64 {
 	if indexInBytes < 0 || indexInBytes > len(text) {
 		panic(fmt.Sprintf("text: indexInBytes %d is out of range [0, %d] at AdvanceAt", indexInBytes, len(text)))
+	}
+	if indexInBytes == 0 {
+		return 0
 	}
 	return face.advanceAt(text, indexInBytes)
 }

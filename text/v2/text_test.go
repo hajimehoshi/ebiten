@@ -17,6 +17,7 @@ package text_test
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -923,6 +924,48 @@ func TestAdvanceAt(t *testing.T) {
 	}
 }
 
+func TestAdvanceAtEndpoints(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.MPlus1pRegular_ttf))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, direction := range []text.Direction{text.DirectionLeftToRight, text.DirectionRightToLeft} {
+		face := &text.GoTextFace{
+			Source:    source,
+			Size:      24,
+			Direction: direction,
+		}
+		limited := text.NewLimitedFace(face)
+		limited.AddUnicodeRange('א', 'ג')
+		multi, err := text.NewMultiFace(limited, face)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for name, f := range map[string]text.Face{
+			"GoTextFace":  face,
+			"LimitedFace": limited,
+			"MultiFace":   multi,
+			"GoXFace":     text.NewGoXFace(bitmapfont.Face),
+		} {
+			t.Run(fmt.Sprintf("%d/%s", direction, name), func(t *testing.T) {
+				for _, str := range []string{"", "abc", "אבג דהו זח", "אבג abc", "abc אבג", "אב. גד.", "اب۔ كد۔"} {
+					t.Run(str, func(t *testing.T) {
+						start := text.AdvanceAt(str, 0, f)
+						if start != 0 {
+							t.Errorf("AdvanceAt(_, 0, _) = %v, want 0", start)
+						}
+						end := text.AdvanceAt(str, len(str), f)
+						width, _ := text.Measure(str, f, 0)
+						if got := end - start; got != width {
+							t.Errorf("endpoint difference = %v, want line width %v", got, width)
+						}
+					})
+				}
+			})
+		}
+	}
+}
+
 func TestAdvanceAtBidi(t *testing.T) {
 	const eps = 1.0 / (1 << 6)
 
@@ -1078,17 +1121,14 @@ func TestAdvanceAtRTLLineUnderChunker(t *testing.T) {
 	//   א=0 ב=2 .=4 ' '=5 ג=6 ד=8 .=10
 	const s = "אב. גד."
 
-	leadAlef := text.AdvanceAt(s, 0, face)  // leading edge of א
+	start := text.AdvanceAt(s, 0, face)
 	leadBet := text.AdvanceAt(s, 2, face)   // leading edge of ב
 	leadDaled := text.AdvanceAt(s, 8, face) // leading edge of ד
 
-	// א is logically before ב, which is before ד, within the RTL run,
-	// so each sits visually to the right of the next. Under the
-	// leading-edge convention for RTL, the leading edges must therefore
-	// decrease strictly in logical order, including at index 0.
-	if !(leadAlef > leadBet+eps) {
-		t.Errorf("RTL layout: leading(א)=%v should be > leading(ב)=%v", leadAlef, leadBet)
+	if start != 0 {
+		t.Errorf("AdvanceAt(_, 0, _) = %v, want 0", start)
 	}
+	// Interior leading edges decrease in logical order within the RTL run.
 	if !(leadBet > leadDaled+eps) {
 		t.Errorf("RTL layout: leading(ב)=%v should be > leading(ד)=%v", leadBet, leadDaled)
 	}
