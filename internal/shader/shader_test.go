@@ -1047,6 +1047,89 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestCompileZeroLengthArray(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+		err  bool
+	}{
+		{
+			name: "uniform variable",
+			src: `package main
+
+var Z [0]float
+var F float
+var V vec4
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(float(len(Z)) + F + V.x)
+}`,
+			err: true,
+		},
+		{
+			name: "local variable",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [0]float
+	return vec4(float(len(a)))
+}`,
+			err: true,
+		},
+		{
+			name: "negative length",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [-1]float
+	return vec4(float(len(a)))
+}`,
+			err: true,
+		},
+		{
+			name: "composite literal",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	_ = [0]float{}
+	return vec4(1)
+}`,
+			err: true,
+		},
+		{
+			name: "composite literal with an ellipsis",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	a := [...]float{}
+	return vec4(float(len(a)))
+}`,
+			err: true,
+		},
+		{
+			name: "one element",
+			src: `package main
+
+var U [1]float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(U[0])
+}`,
+			err: false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 0)
+			if err == nil && c.err {
+				t.Errorf("Compile must return an error but does not")
+			} else if err != nil && !c.err {
+				t.Errorf("Compile must not return an error but returned %v", err)
+			}
+		})
+	}
+}
+
 func TestCompileEntryPointTypesWithNoFragmentArguments(t *testing.T) {
 	cases := []struct {
 		name string

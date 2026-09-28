@@ -95,7 +95,11 @@ func UniformVariableOffsetsInDwords(program *shaderir.Program) []int {
 			case shaderir.Mat4:
 				n = 16
 			}
-			headInDwords += (u.Length - 1) * align(n)
+			// Kage rejects a zero-length array, but even if one reaches here, the head must not
+			// move backwards.
+			if u.Length > 1 {
+				headInDwords += (u.Length - 1) * align(n)
+			}
 			// The last element is not followed by padding.
 			headInDwords += n
 		case shaderir.Struct:

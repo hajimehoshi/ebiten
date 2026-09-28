@@ -4902,7 +4902,7 @@ func TestSyntaxTooManyElementsAtInitialization(t *testing.T) {
 		{stmt: "_ = [-1]int{0}", err: true},
 		{stmt: "_ = [-1]int{0, 0}", err: true},
 		{stmt: "_ = [-1]int{0, 0, 0}", err: true},
-		{stmt: "_ = [0]int{}", err: false},
+		{stmt: "_ = [0]int{}", err: true},
 		{stmt: "_ = [0]int{0}", err: true},
 		{stmt: "_ = [0]int{0, 0}", err: true},
 		{stmt: "_ = [0]int{0, 0, 0}", err: true},
@@ -4938,17 +4938,6 @@ func TestSyntaxArrayOutOfBounds(t *testing.T) {
 		stmt string
 		err  bool
 	}{
-		{stmt: "a := [0]int{}; _ = a[-1]", err: true},
-		{stmt: "a := [0]int{}; _ = a[0]", err: true},
-		{stmt: "a := [0]int{}; _ = a[1]", err: true},
-		{stmt: "a := [0]int{}; _ = a[2]", err: true},
-		{stmt: "a := [0]int{}; _ = a[3]", err: true},
-		{stmt: "a := [0]int{}; b := -1; _ = a[b]", err: false},
-		{stmt: "a := [0]int{}; b := 0; _ = a[b]", err: false},
-		{stmt: "a := [0]int{}; b := 1; _ = a[b]", err: false},
-		{stmt: "a := [0]int{}; b := 2; _ = a[b]", err: false},
-		{stmt: "a := [0]int{}; b := 3; _ = a[b]", err: false},
-
 		{stmt: "a := [1]int{}; _ = a[-1]", err: true},
 		{stmt: "a := [1]int{}; _ = a[0]", err: false},
 		{stmt: "a := [1]int{}; _ = a[1]", err: true},
