@@ -31,10 +31,23 @@ func TestHandleEventsSkipsKeyEventsBufferedBeforeRecovery(t *testing.T) {
 	}
 
 	events := []gamepad.InputEventForTest{
-		{Typ: unix.EV_SYN, Code: gamepad.SYN_DROPPED},
-		{Typ: unix.EV_SYN, Code: gamepad.SYN_REPORT},
-		{Typ: unix.EV_KEY, Code: gamepad.BTN_SOUTH, Value: 1},
-		{Typ: unix.EV_SYN, Code: gamepad.SYN_REPORT},
+		{
+			Typ:  unix.EV_SYN,
+			Code: gamepad.SYN_DROPPED,
+		},
+		{
+			Typ:  unix.EV_SYN,
+			Code: gamepad.SYN_REPORT,
+		},
+		{
+			Typ:   unix.EV_KEY,
+			Code:  gamepad.BTN_SOUTH,
+			Value: 1,
+		},
+		{
+			Typ:  unix.EV_SYN,
+			Code: gamepad.SYN_REPORT,
+		},
 	}
 	if err := g.HandleEventsForTest(events, restoreDeviceState); err != nil {
 		t.Fatalf("HandleEventsForTest failed: %v", err)
@@ -44,8 +57,15 @@ func TestHandleEventsSkipsKeyEventsBufferedBeforeRecovery(t *testing.T) {
 	}
 
 	events = []gamepad.InputEventForTest{
-		{Typ: unix.EV_KEY, Code: gamepad.BTN_SOUTH, Value: 1},
-		{Typ: unix.EV_SYN, Code: gamepad.SYN_REPORT},
+		{
+			Typ:   unix.EV_KEY,
+			Code:  gamepad.BTN_SOUTH,
+			Value: 1,
+		},
+		{
+			Typ:  unix.EV_SYN,
+			Code: gamepad.SYN_REPORT,
+		},
 	}
 	if err := g.HandleEventsForTest(events, restoreDeviceState); err != nil {
 		t.Fatalf("HandleEventsForTest for the later batch failed: %v", err)
