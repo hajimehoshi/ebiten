@@ -24,14 +24,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
 
-// TestHandleEventsSkipsKeyEventsBufferedBeforeRecovery tests that the key events left in the batch
-// that ends a SYN_DROPPED recovery are not applied on top of the restored state, and that a later
-// batch is applied normally. The kernel flushes the queued key events when it returns the key
-// state, so an already-buffered press is older than the snapshot and would leave the button stuck.
 func TestHandleEventsSkipsKeyEventsBufferedBeforeRecovery(t *testing.T) {
 	g := gamepad.NewNativeGamepadForTest(gamepad.BTN_SOUTH)
-	// The snapshot the recovery takes reports the button released, which is the state the kernel
-	// flushed the queued press with.
 	restoreDeviceState := func() error {
 		return nil
 	}
@@ -46,10 +40,9 @@ func TestHandleEventsSkipsKeyEventsBufferedBeforeRecovery(t *testing.T) {
 		t.Fatalf("HandleEventsForTest failed: %v", err)
 	}
 	if g.IsButtonPressedForTest(0) {
-		t.Errorf("button 0: got: pressed, want: not pressed (a key event buffered before the key state snapshot must be skipped)")
+		t.Errorf("button 0: got: pressed, want: not pressed (the snapshot flushed the queued release, so the press already in this batch is stale and must be skipped)")
 	}
 
-	// A key event in a later batch is newer than the snapshot and must be applied.
 	events = []gamepad.InputEventForTest{
 		{Typ: unix.EV_KEY, Code: gamepad.BTN_SOUTH, Value: 1},
 		{Typ: unix.EV_SYN, Code: gamepad.SYN_REPORT},
@@ -58,6 +51,6 @@ func TestHandleEventsSkipsKeyEventsBufferedBeforeRecovery(t *testing.T) {
 		t.Fatalf("HandleEventsForTest for the later batch failed: %v", err)
 	}
 	if !g.IsButtonPressedForTest(0) {
-		t.Errorf("button 0: got: not pressed, want: pressed (a later batch must not be skipped)")
+		t.Errorf("button 0: got: not pressed, want: pressed (a key event in a later batch is newer than the snapshot and must not be skipped)")
 	}
 }

@@ -517,9 +517,26 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
+const inputEventSize = int(unsafe.Sizeof(input_event{}))
+
+// decodeInputEvent decodes the input event at the start of b, which must hold at least
+// inputEventSize bytes. time is not used.
+func decodeInputEvent(b []byte) input_event {
+	const (
+		offsetTyp   = int(unsafe.Offsetof(input_event{}.typ))
+		offsetCode  = int(unsafe.Offsetof(input_event{}.code))
+		offsetValue = int(unsafe.Offsetof(input_event{}.value))
+	)
+	return input_event{
+		typ:   uint16(b[offsetTyp]) | uint16(b[offsetTyp+1])<<8,
+		code:  uint16(b[offsetCode]) | uint16(b[offsetCode+1])<<8,
+		value: int32(b[offsetValue]) | int32(b[offsetValue+1])<<8 | int32(b[offsetValue+2])<<16 | int32(b[offsetValue+3])<<24,
+	}
+}
+
 // readInputEvent reads one event from an event node. ok is false when no event is pending.
 func readInputEvent(fd int) (e input_event, ok bool, err error) {
-	buf := make([]byte, unsafe.Sizeof(input_event{}))
+	buf := make([]byte, inputEventSize)
 	// TODO: Should the returned byte count be cared about?
 	if _, err := unix.Read(fd, buf); err != nil {
 		// EINTR means no event was read. Retry at the next update instead of
@@ -530,17 +547,7 @@ func readInputEvent(fd int) (e input_event, ok bool, err error) {
 		return input_event{}, false, fmt.Errorf("gamepad: Read failed: %w", err)
 	}
 
-	const (
-		offsetTyp   = unsafe.Offsetof(input_event{}.typ)
-		offsetCode  = unsafe.Offsetof(input_event{}.code)
-		offsetValue = unsafe.Offsetof(input_event{}.value)
-	)
-	// time is not used.
-	return input_event{
-		typ:   uint16(buf[offsetTyp]) | uint16(buf[offsetTyp+1])<<8,
-		code:  uint16(buf[offsetCode]) | uint16(buf[offsetCode+1])<<8,
-		value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
-	}, true, nil
+	return decodeInputEvent(buf), true, nil
 }
 
 type nativeGamepadImpl struct {
@@ -605,12 +612,8 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 		}
 	}()
 
-	const (
-		eventSize     = unsafe.Sizeof(input_event{})
-		numReadEvents = 64
-	)
-	// Read multiple events at once to reduce the number of the read syscalls.
-	var buf [numReadEvents * eventSize]byte
+	const numReadEvents = 64
+	var buf [numReadEvents * inputEventSize]byte
 
 	restoreDeviceState := func() error {
 		if err := g.pollAbsState(); err != nil {
@@ -653,28 +656,16 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 // contain full input_event structures. restoreDeviceState restores the device
 // state after a SYN_DROPPED event.
 func (g *nativeGamepadImpl) handleEvents(buf []byte, restoreDeviceState func() error) error {
-	const (
-		eventSize   = unsafe.Sizeof(input_event{})
-		offsetTyp   = int(unsafe.Offsetof(input_event{}.typ))
-		offsetCode  = int(unsafe.Offsetof(input_event{}.code))
-		offsetValue = int(unsafe.Offsetof(input_event{}.value))
-	)
-
-	// The events restored by restoreDeviceState are newer than the events left
-	// in this buffer. The kernel flushes the queued key events when the key
-	// state is queried (evdev_handle_get_val in drivers/input/evdev.c), but it
-	// cannot flush the events already read into buf. Applying such a stale key
-	// event after the restore would resurrect an outdated button state, so
-	// skip the remaining key events in this buffer.
+	// The state restored by restoreDeviceState is newer than the events left in
+	// this buffer. The kernel flushes the queued key events when the key state
+	// is queried (evdev_handle_get_val in drivers/input/evdev.c), but it cannot
+	// flush the events already read into buf. Applying such a stale key event
+	// after the restore would resurrect an outdated button state, so skip the
+	// remaining key events in this buffer.
 	skipKeyEvents := false
 
-	for off := 0; off+int(eventSize) <= len(buf); off += int(eventSize) {
-		// time is not used.
-		e := input_event{
-			typ:   uint16(buf[off+offsetTyp]) | uint16(buf[off+offsetTyp+1])<<8,
-			code:  uint16(buf[off+offsetCode]) | uint16(buf[off+offsetCode+1])<<8,
-			value: int32(buf[off+offsetValue]) | int32(buf[off+offsetValue+1])<<8 | int32(buf[off+offsetValue+2])<<16 | int32(buf[off+offsetValue+3])<<24,
-		}
+	for off := 0; off+inputEventSize <= len(buf); off += inputEventSize {
+		e := decodeInputEvent(buf[off:])
 
 		if e.typ == unix.EV_SYN && e.code == _SYN_DROPPED {
 			g.dropped = true

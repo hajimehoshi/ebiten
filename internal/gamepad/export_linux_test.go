@@ -71,7 +71,7 @@ func (g *NativeGamepad) HandleEventsForTest(evs []InputEventForTest, restoreDevi
 	}
 	var buf []byte
 	if len(es) > 0 {
-		buf = unsafe.Slice((*byte)(unsafe.Pointer(&es[0])), len(es)*int(unsafe.Sizeof(input_event{})))
+		buf = unsafe.Slice((*byte)(unsafe.Pointer(&es[0])), len(es)*inputEventSize)
 	}
 	return g.handleEvents(buf, restoreDeviceState)
 }
