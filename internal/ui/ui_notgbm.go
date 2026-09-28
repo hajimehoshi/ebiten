@@ -20,8 +20,14 @@ import (
 	"errors"
 )
 
+type gbmBackend struct{}
+
 // maybeNewGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
 // concept.
-func maybeNewGBMBackend(u *UserInterface) (uiBackend, error) {
+func maybeNewGBMBackend(u *UserInterface) (*gbmBackend, error) {
 	return nil, errors.New("ui: a DRM/KMS GBM display is not available in this environment")
+}
+
+func (b *gbmBackend) run(game Game, options *RunOptions) error {
+	return errors.New("ui: a DRM/KMS GBM display is not available in this environment")
 }
