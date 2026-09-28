@@ -12,32 +12,37 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build js
-
-package ui
+package ui_test
 
 import (
 	"syscall/js"
 	"testing"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // fakeWindowDocument is a stand-in for a window and a document. A test controls readyState and
-// body, and fires the load event when it wants to.
+// body, and when the load event is fired.
 type fakeWindowDocument struct {
 	window   js.Value
 	document js.Value
 
-	// listeners are the load listeners registered on the window.
-	listeners []js.Value
+	// loadBody is the body the document has when the load event is fired.
+	loadBody js.Value
 
-	// loadListenerRegistered receives a signal when a load listener is registered.
-	loadListenerRegistered chan struct{}
+	// loadDelay is how long after a load listener was registered the load event is fired.
+	// A negative value means that the load event is not fired anymore, as it was already fired
+	// before the listener was registered.
+	loadDelay time.Duration
+
+	// numLoadListeners is the number of the load listeners registered on the window.
+	numLoadListeners int
 }
 
 func newFakeWindowDocument(readyState string, body js.Value) *fakeWindowDocument {
 	f := &fakeWindowDocument{
-		loadListenerRegistered: make(chan struct{}, 1),
+		loadDelay: -1,
 	}
 	f.document = js.Global().Get("Object").New()
 	f.document.Set("readyState", readyState)
@@ -47,87 +52,95 @@ func newFakeWindowDocument(readyState string, body js.Value) *fakeWindowDocument
 		if args[0].String() != "load" {
 			return nil
 		}
-		f.listeners = append(f.listeners, args[1])
-		select {
-		case f.loadListenerRegistered <- struct{}{}:
-		default:
+		f.numLoadListeners++
+		if f.loadDelay < 0 {
+			return nil
 		}
+		listener := args[1]
+		body := f.loadBody
+		// The load event is fired in a task, as a load event that is queued but not fired yet is.
+		js.Global().Get("setTimeout").Invoke(js.FuncOf(func(this js.Value, args []js.Value) any {
+			f.document.Set("body", body)
+			listener.Invoke()
+			return nil
+		}), float64(f.loadDelay/time.Millisecond))
 		return nil
 	}))
 	return f
 }
 
-// numLoadListeners returns the number of the load listeners registered on the window.
-func (f *fakeWindowDocument) numLoadListeners() int {
-	return len(f.listeners)
-}
-
-// fireLoad gives the document the given body and fires the load event, as a page whose load handler
-// restores the body does.
-func (f *fakeWindowDocument) fireLoad(body js.Value) {
-	f.document.Set("body", body)
-	// Fire a copy of the listeners: firing one unblocks the goroutine that registered it, and the
-	// test might be over before this loop continues.
-	listeners := append([]js.Value(nil), f.listeners...)
-	for _, l := range listeners {
-		l.Invoke()
-	}
+// loadAt makes the window fire the load event, which gives the document the given body, after the
+// given duration once a load listener was registered.
+func (f *fakeWindowDocument) loadAt(body js.Value, d time.Duration) {
+	f.loadBody = body
+	f.loadDelay = d
 }
 
 // TestWaitForBodyWaitsForAPendingLoadEvent tests that a document without its body is waited for
-// while the load event can still be fired, which is the case until the load event is fired. A page
-// can restore its body in a load handler, so the initialization must not go on without the body
-// before the load event is fired.
+// until the load event is fired while the load event has not been fired yet, which is the case
+// while readyState is "loading" or "interactive". A page can give its body in a load handler, and
+// waiting only for a moment would lose that body.
 func TestWaitForBodyWaitsForAPendingLoadEvent(t *testing.T) {
+	const delay = 100 * time.Millisecond
+
 	for _, readyState := range []string{"loading", "interactive"} {
 		t.Run(readyState, func(t *testing.T) {
 			f := newFakeWindowDocument(readyState, js.Null())
-			body := js.Global().Get("Object").New()
+			f.loadAt(js.Global().Get("Object").New(), delay)
 
-			errs := make(chan error, 1)
-			go func() {
-				errs <- waitForBody(f.window, f.document)
-			}()
-
-			select {
-			case <-f.loadListenerRegistered:
-			case <-time.After(10 * time.Second):
-				t.Fatalf("waitForBody with readyState %q did not register a load listener", readyState)
-			}
-			f.fireLoad(body)
-
-			select {
-			case err := <-errs:
-				if err != nil {
-					t.Errorf("waitForBody with readyState %q and with the body restored by a load handler failed: %v", readyState, err)
-				}
-			case <-time.After(10 * time.Second):
-				t.Fatalf("waitForBody with readyState %q did not return even after the load event was fired", readyState)
-			}
-
-			if got := f.numLoadListeners(); got != 1 {
-				t.Errorf("waitForBody with readyState %q registered %d load listeners; want 1", readyState, got)
+			if err := ui.WaitForBodyForTest(f.window, f.document); err != nil {
+				t.Errorf("waitForBody with readyState %q and with a load handler giving the body failed: %v", readyState, err)
 			}
 			if !f.document.Get("body").Truthy() {
-				t.Errorf("waitForBody with readyState %q: document.body is not restored", readyState)
+				t.Errorf("waitForBody with readyState %q: document.body is not the body the load event gave", readyState)
+			}
+			if got := f.numLoadListeners; got != 1 {
+				t.Errorf("waitForBody with readyState %q registered %d load listeners; want 1", readyState, got)
 			}
 		})
 	}
 }
 
-// TestWaitForBodyWithoutAPendingLoadEvent tests that a document without its body is not waited for
-// after the load event was fired, for a load listener added after the event was fired is never
-// fired and waiting for it would wait forever. The nil body must not be used either, so an error
-// is reported instead.
-func TestWaitForBodyWithoutAPendingLoadEvent(t *testing.T) {
+// TestWaitForBodyWithAQueuedLoadEvent tests that the load event is waited for even after readyState
+// became "complete", for readyState becomes "complete" before the load event is fired, and the load
+// event can still be queued when waitForBody is called, as when it is called from a
+// readystatechange handler.
+func TestWaitForBodyWithAQueuedLoadEvent(t *testing.T) {
 	f := newFakeWindowDocument("complete", js.Null())
+	// The load event is fired as a task queued by the steps making readyState "complete", so it
+	// is fired before any task added afterwards.
+	f.loadAt(js.Global().Get("Object").New(), 0)
 
-	if err := waitForBody(f.window, f.document); err == nil {
-		t.Error("waitForBody with a document that has no body succeeded; want an error")
+	if err := ui.WaitForBodyForTest(f.window, f.document); err != nil {
+		t.Errorf("waitForBody with the load event queued failed: %v", err)
 	}
-	if got := f.numLoadListeners(); got != 0 {
-		t.Errorf("waitForBody with a document that has no body registered %d load listeners; want 0", got)
+	if !f.document.Get("body").Truthy() {
+		t.Error("waitForBody with the load event queued: document.body is not the body the load event gave")
 	}
+}
+
+// TestWaitForBodyWithoutAPendingLoadEvent tests that the load event is not waited for once it was
+// fired, for a load listener added after the event was fired is never invoked and waiting for it
+// would wait forever. The nil body must not be used, either, so an error is reported.
+func TestWaitForBodyWithoutAPendingLoadEvent(t *testing.T) {
+	t.Run("no load event", func(t *testing.T) {
+		f := newFakeWindowDocument("complete", js.Null())
+
+		if err := ui.WaitForBodyForTest(f.window, f.document); err == nil {
+			t.Error("waitForBody with a document that has no body succeeded; want an error")
+		}
+	})
+
+	t.Run("load event fired later", func(t *testing.T) {
+		f := newFakeWindowDocument("complete", js.Null())
+		// The load event is fired long after the task that tells that the load event was
+		// already fired, so it is a load event that waitForBody must not wait for.
+		f.loadAt(js.Global().Get("Object").New(), 200*time.Millisecond)
+
+		if err := ui.WaitForBodyForTest(f.window, f.document); err == nil {
+			t.Error("waitForBody with a document that has no body succeeded; want an error")
+		}
+	})
 }
 
 // TestWaitForBodyWithBody tests that a document that has its body is not waited for whatever its
@@ -137,22 +150,24 @@ func TestWaitForBodyWithBody(t *testing.T) {
 		t.Run(readyState, func(t *testing.T) {
 			f := newFakeWindowDocument(readyState, js.Global().Get("Object").New())
 
-			if err := waitForBody(f.window, f.document); err != nil {
+			if err := ui.WaitForBodyForTest(f.window, f.document); err != nil {
 				t.Errorf("waitForBody with readyState %q and with a body failed: %v", readyState, err)
 			}
-			if got := f.numLoadListeners(); got != 0 {
+			if got := f.numLoadListeners; got != 0 {
 				t.Errorf("waitForBody with readyState %q and with a body registered %d load listeners; want 0", readyState, got)
 			}
 		})
 	}
 }
 
-// TestInitWithNilBody tests that the initialization with a nil body reports an error after the
-// document was loaded. The initialization panics if the nil body is used, and waits forever if a
-// load event that was already fired is waited for.
+// TestInitWithNilBody tests that the initialization of a document that has no body reports an
+// error after the load event was fired. The initialization panics if it uses the nil body, and
+// waits forever if it waits for a load event that was already fired. The reported error makes the
+// program stop at the package initialization, for no game is running yet to receive an error.
 func TestInitWithNilBody(t *testing.T) {
-	// While the load event can still be fired, a document without its body is just a document
+	// While the load event has not been fired yet, a document without its body is just a document
 	// that is still being loaded, and nothing can be told about it.
+	document := js.Global().Get("document")
 	if document.Get("readyState").String() != "complete" {
 		t.Skip("the document has not been loaded yet")
 	}
@@ -170,8 +185,8 @@ func TestInitWithNilBody(t *testing.T) {
 		js.Global().Get("Reflect").Call("deleteProperty", document, "body")
 	})
 
-	u := &UserInterface{}
-	if err := u.init(); err == nil {
+	u := &ui.UserInterface{}
+	if err := u.InitForTest(); err == nil {
 		t.Error("init with a nil body succeeded; want an error")
 	}
 }

@@ -14,6 +14,16 @@
 
 package ui
 
+import "syscall/js"
+
 func IsShortcutChordForTest(ctrl, alt, meta, altGraph, isApple bool) bool {
 	return isShortcutChord(ctrl, alt, meta, altGraph, isApple)
+}
+
+func WaitForBodyForTest(w, d js.Value) error {
+	return waitForBody(w, d)
+}
+
+func (u *UserInterface) InitForTest() error {
+	return u.init()
 }
