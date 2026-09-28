@@ -12,67 +12,47 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gbm
+//go:build linux && (amd64 || arm64) && !android
+
+package gbm_test
 
 import (
 	"testing"
-	"unsafe"
-)
 
-const (
-	pointerSize                     = unsafe.Sizeof(uintptr(0))
-	drmModeResSize                  = unsafe.Sizeof(drmModeRes{})
-	drmModeResCountConnectorsOffset = unsafe.Offsetof(drmModeRes{}.countConnectors)
-	drmModeResConnectorsOffset      = unsafe.Offsetof(drmModeRes{}.connectors)
-	drmModeConnectorSize            = unsafe.Sizeof(drmModeConnector{})
-	drmModeConnectorModesOffset     = unsafe.Offsetof(drmModeConnector{}.modes)
-	drmModeModeInfoSize             = unsafe.Sizeof(drmModeModeInfo{})
-	drmModeModeInfoVRefreshOffset   = unsafe.Offsetof(drmModeModeInfo{}.vrefresh)
-
-	wantDRMModeResSize                  = 8*pointerSize + 16
-	wantDRMModeResCountConnectorsOffset = 4 * pointerSize
-	wantDRMModeResConnectorsOffset      = 5 * pointerSize
-	wantDRMModeConnectorSize            = 7*pointerSize + 32
-	wantDRMModeConnectorModesOffset     = pointerSize + 32
-)
-
-// Compile-time libdrm ABI checks.
-var (
-	_ [0]byte = [wantDRMModeResSize - drmModeResSize]byte{}
-	_ [0]byte = [wantDRMModeResCountConnectorsOffset - drmModeResCountConnectorsOffset]byte{}
-	_ [0]byte = [wantDRMModeResConnectorsOffset - drmModeResConnectorsOffset]byte{}
-	_ [0]byte = [wantDRMModeConnectorSize - drmModeConnectorSize]byte{}
-	_ [0]byte = [wantDRMModeConnectorModesOffset - drmModeConnectorModesOffset]byte{}
-	_ [0]byte = [68 - drmModeModeInfoSize]byte{}
-	_ [0]byte = [24 - drmModeModeInfoVRefreshOffset]byte{}
+	"github.com/hajimehoshi/ebiten/v2/internal/gbm"
 )
 
 func TestCRTCForEncoder(t *testing.T) {
 	crtcs := []uint32{10, 20, 30}
 	for _, test := range []struct {
-		name string
-		enc  drmModeEncoder
-		want uint32
+		name             string
+		crtcID, possible uint32
+		want             uint32
 	}{
-		{
-			name: "current CRTC",
-			enc:  drmModeEncoder{crtcID: 40},
-			want: 40,
-		},
-		{
-			name: "first compatible CRTC",
-			enc:  drmModeEncoder{possibleCrtcs: 1 << 1},
-			want: 20,
-		},
-		{
-			name: "no compatible CRTC",
-			enc:  drmModeEncoder{},
-			want: 0,
-		},
+		{"current CRTC", 40, 0, 40},
+		{"first compatible CRTC", 0, 1 << 1, 20},
+		{"no compatible CRTC", 0, 0, 0},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			if got := crtcForEncoder(&test.enc, crtcs); got != test.want {
-				t.Errorf("crtcForEncoder(...) = %d, want %d", got, test.want)
+			if got := gbm.CRTCForEncoderForTesting(test.crtcID, test.possible, crtcs); got != test.want {
+				t.Errorf("CRTCForEncoderForTesting(...) = %d, want %d", got, test.want)
+			}
+		})
+	}
+}
+
+func TestPreferredMode(t *testing.T) {
+	for _, test := range []struct {
+		name  string
+		types []uint32
+		want  int
+	}{
+		{"preferred", []uint32{0, 1 << 3, 0}, 1},
+		{"first when none preferred", []uint32{0, 0}, 0},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if got := gbm.PreferredModeIndexForTesting(test.types); got != test.want {
+				t.Errorf("PreferredModeIndexForTesting(...) = %d, want %d", got, test.want)
 			}
 		})
 	}

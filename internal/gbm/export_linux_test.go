@@ -12,16 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !linux || (!amd64 && !arm64) || android || nintendosdk || playstation5
+//go:build linux && (amd64 || arm64) && !android
 
-package ui
+package gbm
 
-import (
-	"errors"
-)
+func CRTCForEncoderForTesting(crtcID, possibleCrtcs uint32, crtcs []uint32) uint32 {
+	return crtcForEncoder(&drmModeEncoder{crtcID: crtcID, possibleCrtcs: possibleCrtcs}, crtcs)
+}
 
-// maybeNewGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
-// concept.
-func maybeNewGBMBackend(u *UserInterface) (uiBackend, error) {
-	return nil, errors.New("ui: a DRM/KMS GBM display is not available in this environment")
+func PreferredModeIndexForTesting(types []uint32) int {
+	modes := make([]drmModeModeInfo, len(types))
+	for i, typ := range types {
+		modes[i].clock = uint32(i + 1)
+		modes[i].typ = typ
+	}
+	return int(preferredMode(modes).clock) - 1
 }

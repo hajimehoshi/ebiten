@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !linux || (!amd64 && !arm64) || android || nintendosdk || playstation5
+package egl
 
-package ui
-
-import (
-	"errors"
-)
-
-// maybeNewGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
-// concept.
-func maybeNewGBMBackend(u *UserInterface) (uiBackend, error) {
-	return nil, errors.New("ui: a DRM/KMS GBM display is not available in this environment")
+func NewChooseConfigsTestContext(choose func(display uintptr, attribList *int32, configs *uintptr, configSize int32, numConfig *int32) bool) *Context {
+	return &Context{
+		display: 1,
+		api:     api{ChooseConfig: choose},
+	}
 }

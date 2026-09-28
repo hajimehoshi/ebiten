@@ -65,6 +65,11 @@
 // to dump all the internal images. This is valid only when the build tag
 // 'ebitenginedebug' is specified. This works only on desktops and browsers.
 //
+// The `EBITENGINE_DRM_DEVICE` environment variable selects a DRM/KMS device
+// (for example, /dev/dri/card1) when running without a window system on
+// Linux amd64 and arm64. By default, Ebitengine searches /dev/dri/card*
+// for a connected display.
+//
 // The `EBITENGINE_GRAPHICS_LIBRARY` environment variable specifies the graphics library.
 // If the specified graphics library is not available, RunGame returns an error.
 // This environment variable works when RunGame is called or RunGameWithOptions is called with GraphicsLibraryAuto.

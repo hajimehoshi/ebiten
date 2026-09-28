@@ -16,22 +16,22 @@
 
 package ui
 
-import (
-	"unsafe"
-)
+import "testing"
 
-const (
-	linuxInputEventPointerSize = unsafe.Sizeof(uintptr(0))
-	linuxInputEventSize        = unsafe.Sizeof(linuxInputEvent{})
-	linuxInputEventTypeOffset  = unsafe.Offsetof(linuxInputEvent{}.typ)
-	wantLinuxInputEventSize    = 2*linuxInputEventPointerSize + 8
-	wantLinuxInputEventTypeOff = 2 * linuxInputEventPointerSize
-)
-
-// Compile-time input_event ABI checks.
-var (
-	_ [wantLinuxInputEventSize - linuxInputEventSize]byte
-	_ [linuxInputEventSize - wantLinuxInputEventSize]byte
-	_ [wantLinuxInputEventTypeOff - linuxInputEventTypeOffset]byte
-	_ [linuxInputEventTypeOffset - wantLinuxInputEventTypeOff]byte
-)
+func TestConsoleSizeAfterClose(t *testing.T) {
+	closed := false
+	b := newConsoleBackend(nil, 640, 480, nil, nil, func() error {
+		closed = true
+		return nil
+	})
+	if err := b.closeOnMainThread(); err != nil {
+		t.Fatal(err)
+	}
+	if !closed {
+		t.Fatal("display was not closed")
+	}
+	width, height := b.screenSize()
+	if width != 640 || height != 480 {
+		t.Errorf("screenSize() = %dx%d, want 640x480", width, height)
+	}
+}

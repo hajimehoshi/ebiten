@@ -20,16 +20,8 @@ import (
 	"errors"
 )
 
-// fbdevBackend is never instantiated here. It exists so that Run can name the
-// same type on every system.
-type fbdevBackend struct{}
-
 // maybeNewFbdevBackend never returns a backend: a framebuffer device is a Linux
 // concept.
-func maybeNewFbdevBackend(u *UserInterface) (*fbdevBackend, error) {
+func maybeNewFbdevBackend(u *UserInterface) (uiBackend, error) {
 	return nil, errors.New("a framebuffer device is a Linux feature")
-}
-
-func (b *fbdevBackend) run(game Game, options *RunOptions) error {
-	return errors.New("ui: a framebuffer device is not available in this environment")
 }

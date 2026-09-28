@@ -17,6 +17,7 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -119,12 +120,13 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	}
 	// No window system: prefer a DRM/KMS display driven with GBM (Mali and
 	// Mesa/panfrost-class GPUs), then fall back to a plain framebuffer device.
-	if gb, err := maybeNewGBMBackend(u); err == nil {
+	gb, gbErr := maybeNewGBMBackend(u)
+	if gbErr == nil {
 		return gb.run(game, options)
 	}
 	fb, err := maybeNewFbdevBackend(u)
 	if err != nil {
-		return fmt.Errorf("ui: no window system is available: %w", err)
+		return fmt.Errorf("ui: no window system is available: %w", errors.Join(gbErr, err))
 	}
 	return fb.run(game, options)
 }

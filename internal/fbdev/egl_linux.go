@@ -36,7 +36,7 @@ type nativeWindow struct {
 
 // Context is an EGL context presenting to a framebuffer device.
 type Context struct {
-	*egl.Context
+	eglContext *egl.Context
 
 	// Drivers can retain this pointer until the surface is destroyed.
 	window []byte
@@ -48,7 +48,7 @@ func NewContext(d *Display) (*Context, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Context{Context: e}
+	c := &Context{eglContext: e}
 	fail := func(err error) (*Context, error) {
 		return nil, errors.Join(fmt.Errorf("fbdev: %w", err), c.Close())
 	}
@@ -129,9 +129,21 @@ func (c *Context) nativeWindowPointer() uintptr {
 	return uintptr(unsafe.Pointer(&c.window[0]))
 }
 
+func (c *Context) Size() (int, int) { return c.eglContext.Size() }
+
+func (c *Context) MakeContextCurrent() error { return c.eglContext.MakeContextCurrent() }
+
+func (c *Context) SwapInterval(interval int) error { return c.eglContext.SwapInterval(interval) }
+
+func (c *Context) SwapBuffers() error { return c.eglContext.SwapBuffers() }
+
 // Close releases EGL before freeing the memory a driver may have retained.
 func (c *Context) Close() error {
-	err := c.Context.Close()
+	if c.eglContext == nil {
+		return nil
+	}
+	err := c.eglContext.Close()
+	c.eglContext = nil
 	if c.window != nil {
 		err = errors.Join(err, unix.Munmap(c.window))
 		c.window = nil

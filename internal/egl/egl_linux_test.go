@@ -12,18 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package egl
+package egl_test
 
 import (
 	"testing"
 	"unsafe"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/egl"
 )
 
 func TestChooseConfigs(t *testing.T) {
 	const count = 40
-	c := &Context{display: 1}
 	queries := 0
-	c.api.ChooseConfig = func(display uintptr, attribList *int32, configs *uintptr, configSize int32, numConfig *int32) bool {
+	c := egl.NewChooseConfigsTestContext(func(display uintptr, attribList *int32, configs *uintptr, configSize int32, numConfig *int32) bool {
 		queries++
 		if queries == 1 {
 			if configs != nil || configSize != 0 {
@@ -41,8 +42,8 @@ func TestChooseConfigs(t *testing.T) {
 		}
 		*numConfig = count
 		return true
-	}
-	configs, err := c.ChooseConfigs([]int32{None})
+	})
+	configs, err := c.ChooseConfigs([]int32{egl.None})
 	if err != nil {
 		t.Fatal(err)
 	}

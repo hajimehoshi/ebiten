@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build linux && (amd64 || arm64) && !android
+
 package gbm
 
 import (
@@ -34,7 +36,7 @@ const (
 
 // Context presents an EGL frame through GBM and KMS.
 type Context struct {
-	*egl.Context
+	eglContext *egl.Context
 	d          *Display
 	gbmSurface uintptr
 
@@ -43,6 +45,8 @@ type Context struct {
 	asyncPageFlipUnsupported bool
 	prevBo                   uintptr
 	prevFB                   uint32
+	pendingBo                uintptr
+	pendingFB                uint32
 	eventBuf                 [64]byte
 }
 
@@ -51,15 +55,22 @@ func NewContext(d *Display) (*Context, error) {
 	if err != nil {
 		return nil, err
 	}
-	c := &Context{Context: e, d: d, swapInterval: -1}
+	c := &Context{eglContext: e, d: d, swapInterval: -1}
 	fail := func(err error) (*Context, error) {
 		return nil, errors.Join(fmt.Errorf("gbm: %w", err), c.Close())
 	}
+	var display uintptr
 	var getPlatformDisplay func(platform uint32, nativeDisplay uintptr, attribList *int) uintptr
-	if err := e.RegisterFunc(&getPlatformDisplay, "eglGetPlatformDisplay"); err != nil {
-		return fail(err)
+	if err := e.RegisterFunc(&getPlatformDisplay, "eglGetPlatformDisplay"); err == nil {
+		display = getPlatformDisplay(_EGL_PLATFORM_GBM, d.gbmDev, nil)
+	} else {
+		var getPlatformDisplayEXT func(platform uint32, nativeDisplay uintptr, attribList *int32) uintptr
+		if extErr := e.RegisterProcFunc(&getPlatformDisplayEXT, "eglGetPlatformDisplayEXT"); extErr != nil {
+			return fail(errors.Join(err, extErr))
+		}
+		display = getPlatformDisplayEXT(_EGL_PLATFORM_GBM, d.gbmDev, nil)
 	}
-	if err := e.Initialize(getPlatformDisplay(_EGL_PLATFORM_GBM, d.gbmDev, nil)); err != nil {
+	if err := e.Initialize(display); err != nil {
 		return fail(err)
 	}
 	config, err := c.chooseConfig()
@@ -87,30 +98,54 @@ func (c *Context) chooseConfig() (uintptr, error) {
 		egl.RedSize, 8, egl.GreenSize, 8, egl.BlueSize, 8, egl.AlphaSize, 0,
 		egl.None,
 	}
-	configs, err := c.Context.ChooseConfigs(attribs)
+	configs, err := c.eglContext.ChooseConfigs(attribs)
 	if err != nil {
 		return 0, err
 	}
 	// Mesa needs the config's native visual ID to match the GBM format.
 	for _, config := range configs {
-		vis, err := c.Context.ConfigAttrib(config, egl.NativeVisualID)
+		vis, err := c.eglContext.ConfigAttrib(config, egl.NativeVisualID)
 		if err == nil && uint32(vis) == gbmFormatXRGB8888 {
 			return config, nil
 		}
 	}
-	return configs[0], nil
+	return 0, fmt.Errorf("gbm: no EGL config has the XRGB8888 native visual")
 }
 
 func (c *Context) SwapInterval(interval int) error {
-	if err := c.Context.SwapInterval(interval); err != nil {
-		return err
-	}
 	c.swapInterval = interval
 	return nil
 }
 
+func (c *Context) Size() (int, int) { return c.eglContext.Size() }
+
+func (c *Context) MakeContextCurrent() error { return c.eglContext.MakeContextCurrent() }
+
+// Probe verifies that the selected buffer can be scanned out before the UI
+// commits to this backend. The previous CRTC state is restored immediately.
+func (c *Context) Probe() error {
+	if err := c.MakeContextCurrent(); err != nil {
+		return err
+	}
+	defer c.eglContext.Unbind()
+	if err := c.SwapBuffers(); err != nil {
+		return err
+	}
+	if err := c.d.restoreCRTC(); err != nil {
+		return err
+	}
+	c.modesetDone = false
+	if r := drml.RmFB(c.d.fd, c.prevFB); r != 0 {
+		return fmt.Errorf("gbm: removing probe framebuffer failed: %d", r)
+	}
+	gbml.ReleaseBuffer(c.gbmSurface, c.prevBo)
+	c.prevFB = 0
+	c.prevBo = 0
+	return nil
+}
+
 func (c *Context) SwapBuffers() error {
-	if err := c.Context.SwapBuffers(); err != nil {
+	if err := c.eglContext.SwapBuffers(); err != nil {
 		return err
 	}
 	bo := gbml.LockFront(c.gbmSurface)
@@ -149,6 +184,8 @@ func (c *Context) SwapBuffers() error {
 			return fmt.Errorf("gbm: drmModePageFlip failed: %d", r)
 		}
 		if _, err := unix.Read(int(c.d.fd), c.eventBuf[:]); err != nil {
+			c.pendingBo = bo
+			c.pendingFB = fb
 			return fmt.Errorf("gbm: waiting for page flip failed: %w", err)
 		}
 	}
@@ -165,13 +202,16 @@ func (c *Context) SwapBuffers() error {
 func (c *Context) addFB(bo uintptr) (uint32, error) {
 	handle := uint32(gbml.BoGetHandle(bo))
 	stride := gbml.BoGetStride(bo)
-	mod := gbml.BoGetModifier(bo)
+	var mod uint64
+	if gbml.BoGetModifier != nil {
+		mod = gbml.BoGetModifier(bo)
+	}
 	handles := [4]uint32{handle}
 	pitches := [4]uint32{stride}
 	offsets := [4]uint32{0}
 	var fb uint32
 	var r int32
-	if mod != 0 && mod != _DRM_FORMAT_MOD_INVALID {
+	if drml.AddFB2WithMods != nil && gbml.BoGetModifier != nil && mod != 0 && mod != _DRM_FORMAT_MOD_INVALID {
 		mods := [4]uint64{mod}
 		r = drml.AddFB2WithMods(c.d.fd, uint32(c.d.width), uint32(c.d.height), gbmFormatXRGB8888, &handles[0], &pitches[0], &offsets[0], &mods[0], &fb, _DRM_MODE_FB_MODIFIERS)
 	} else {
@@ -184,13 +224,33 @@ func (c *Context) addFB(bo uintptr) (uint32, error) {
 }
 
 func (c *Context) Close() error {
-	c.Context.Unbind()
+	if c.eglContext == nil {
+		return nil
+	}
+	c.eglContext.Unbind()
+	var err error
+	if c.modesetDone {
+		err = errors.Join(err, c.d.restoreCRTC())
+		c.modesetDone = false
+	}
 	if c.prevBo != 0 {
-		drml.RmFB(c.d.fd, c.prevFB)
+		if r := drml.RmFB(c.d.fd, c.prevFB); r != 0 {
+			err = errors.Join(err, fmt.Errorf("gbm: removing framebuffer failed: %d", r))
+		}
 		gbml.ReleaseBuffer(c.gbmSurface, c.prevBo)
 		c.prevBo = 0
+		c.prevFB = 0
 	}
-	err := c.Context.Close()
+	if c.pendingBo != 0 {
+		if r := drml.RmFB(c.d.fd, c.pendingFB); r != 0 {
+			err = errors.Join(err, fmt.Errorf("gbm: removing pending framebuffer failed: %d", r))
+		}
+		gbml.ReleaseBuffer(c.gbmSurface, c.pendingBo)
+		c.pendingBo = 0
+		c.pendingFB = 0
+	}
+	err = errors.Join(err, c.eglContext.Close())
+	c.eglContext = nil
 	if c.gbmSurface != 0 {
 		gbml.SurfaceDestroy(c.gbmSurface)
 		c.gbmSurface = 0

@@ -124,6 +124,21 @@ func (c *Context) RegisterFunc(ptr any, name string) error {
 	return nil
 }
 
+// RegisterProcFunc loads an EGL extension entry point through eglGetProcAddress.
+func (c *Context) RegisterProcFunc(ptr any, name string) error {
+	var getProcAddress func(*byte) uintptr
+	if err := c.RegisterFunc(&getProcAddress, "eglGetProcAddress"); err != nil {
+		return err
+	}
+	nameBytes := append([]byte(name), 0)
+	sym := getProcAddress(&nameBytes[0])
+	if sym == 0 {
+		return fmt.Errorf("egl: %s not found through eglGetProcAddress", name)
+	}
+	purego.RegisterFunc(ptr, sym)
+	return nil
+}
+
 func (c *Context) Initialize(display uintptr) error {
 	if display == 0 {
 		return fmt.Errorf("egl: no display: %w", c.LastError())
