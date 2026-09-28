@@ -197,11 +197,8 @@ func (v *view) updateMetalDisplayLink() {
 		defer b.Release()
 		v.metalDisplayLinkRunLoop.PerformBlock(b)
 
-		// A delegate callback might be blocked until the drawable usage finishes, preventing the run loop
-		// from executing the block above. Receive drawables and notify the callbacks until the display link
-		// is invalidated. The notification never blocks as the callback sends a drawable without blocking.
-		// New delegate callbacks return without sending a drawable as vsyncDisabled or liveResizing is
-		// already true, so this loop always terminates.
+		// Wait for invalidation, acknowledging any drawables handed off by callbacks
+		// that passed the state check before vsyncDisabled or liveResizing became true.
 	loop:
 		for {
 			select {
