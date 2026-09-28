@@ -34,36 +34,58 @@ type int16BytesReader struct {
 }
 
 func (r *int16BytesReader) Read(buf []byte) (int, error) {
-	if r.eof {
+	channels := r.channels
+	if r.eof && len(r.fbuf) < channels {
 		return 0, io.EOF
 	}
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	// A buffer shorter than one frame cannot receive any converted data.
-	if len(buf) < 2*r.channels {
+	// Buffer at least one frame to distinguish EOF from a short destination buffer.
+	l := max(len(buf)/2/channels, 1) * channels
+	var readErr error
+	for len(r.fbuf) < l && !r.eof {
+		origLen := len(r.fbuf)
+		if cap(r.fbuf) < l {
+			r.fbuf = append(r.fbuf, make([]float32, l-origLen)...)
+		}
+		n, err := r.r.Read(r.fbuf[origLen:l])
+		r.fbuf = r.fbuf[:origLen+n]
+		if err != nil && err != io.EOF {
+			readErr = err
+			break
+		}
+		if err == io.EOF {
+			r.eof = true
+		}
+		if len(r.fbuf) >= channels || n == 0 {
+			break
+		}
+	}
+	if len(buf) < 2*channels {
+		if readErr != nil {
+			return 0, readErr
+		}
+		if r.eof && len(r.fbuf) < channels {
+			return 0, io.EOF
+		}
 		return 0, io.ErrShortBuffer
 	}
-
-	l := len(buf) / 2 / r.channels * r.channels
-	if cap(r.fbuf) < l {
-		r.fbuf = make([]float32, l)
-	}
-
-	n, err := r.r.Read(r.fbuf[:l])
-	if err != nil && err != io.EOF {
-		return 0, err
-	}
-	if err == io.EOF {
-		r.eof = true
-	}
-
+	n := min(len(r.fbuf)/channels, len(buf)/2/channels) * channels
 	for i := range n {
 		f := min(max(r.fbuf[i], -1), 1)
 		s := int16(f * (1<<15 - 1))
 		buf[2*i] = byte(s)
 		buf[2*i+1] = byte(s >> 8)
 	}
+	copy(r.fbuf, r.fbuf[n:])
+	r.fbuf = r.fbuf[:len(r.fbuf)-n]
 
-	return n * 2, err
+	if readErr != nil {
+		return n * 2, readErr
+	}
+	if r.eof {
+		return n * 2, io.EOF
+	}
+	return n * 2, nil
 }

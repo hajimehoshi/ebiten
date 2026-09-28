@@ -222,6 +222,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 
 	// Update the game.
 	for range updateCount {
+		clock.UpdateDurationTime()
 		c.readInputStateForTick(ui)
 
 		if err := hook.RunBeforeUpdateHooks(); err != nil {

@@ -34,6 +34,7 @@ const (
 
 type Game struct {
 	gamepadIDsBuf  []ebiten.GamepadID
+	touchIDsBuf    []ebiten.GamepadTouchID
 	gamepadIDs     map[ebiten.GamepadID]struct{}
 	axes           map[ebiten.GamepadID][]string
 	pressedButtons map[ebiten.GamepadID][]string
@@ -188,6 +189,20 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			str += fmt.Sprintf("  Name:    %s\n", ebiten.GamepadName(id))
 			str += fmt.Sprintf("  Axes:    %s\n", strings.Join(g.axes[id], ", "))
 			str += fmt.Sprintf("  Buttons: %s\n", strings.Join(g.pressedButtons[id], ", "))
+			touchSurfaceCount := ebiten.GamepadTouchSurfaceCount(id)
+			str += fmt.Sprintf("  Touch surfaces: %d\n", touchSurfaceCount)
+			for surface := range touchSurfaceCount {
+				g.touchIDsBuf = ebiten.AppendGamepadTouchIDs(id, surface, g.touchIDsBuf[:0])
+				str += fmt.Sprintf("    Surface %d:", surface)
+				if len(g.touchIDsBuf) == 0 {
+					str += " no touches"
+				}
+				for _, touchID := range g.touchIDsBuf {
+					x, y := ebiten.GamepadTouchPosition(id, touchID)
+					str += fmt.Sprintf(" ID: %d (X: %0.2f, Y: %0.2f)", touchID, x, y)
+				}
+				str += "\n"
+			}
 			if ebiten.IsStandardGamepadLayoutAvailable(id) {
 				str += "\n"
 				str += standardMap(id) + "\n"

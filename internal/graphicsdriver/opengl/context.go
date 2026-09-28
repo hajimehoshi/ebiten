@@ -254,16 +254,6 @@ func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rec
 	return nil
 }
 
-func (c *context) framebufferPixelsToBuffer(f *framebuffer, buffer buffer, width, height int) {
-	c.ctx.Flush()
-
-	c.bindFramebuffer(f.native)
-
-	c.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(buffer))
-	c.ctx.ReadPixels(nil, 0, 0, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE)
-	c.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, 0)
-}
-
 func (c *context) deleteTexture(t textureNative) {
 	if c.lastTexture == t {
 		c.lastTexture = 0

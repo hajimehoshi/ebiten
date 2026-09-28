@@ -15,6 +15,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"math"
 	"sync"
@@ -76,6 +77,10 @@ func (s *SineWave) Read(buf []byte) (int, error) {
 	defer s.m.Unlock()
 
 	const bytesPerSample = 8
+
+	if len(buf) > 0 && len(buf) < bytesPerSample {
+		return 0, io.ErrShortBuffer
+	}
 
 	n := len(buf) / bytesPerSample * bytesPerSample
 	buf = buf[:n]

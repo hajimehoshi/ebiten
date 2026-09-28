@@ -11,6 +11,7 @@ import (
 	"image/color"
 	"log"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/srwiley/rasterx"
@@ -49,7 +50,9 @@ func (c *IconCursor) ReadGradURL(v string, defaultColor any) (grad rasterx.Gradi
 func (c *IconCursor) ReadGradAttr(attr xml.Attr) (err error) {
 	switch attr.Name.Local {
 	case "gradientTransform":
-		c.grad.Matrix, err = c.parseTransform(attr.Value)
+		// A gradient transform lives in its own coordinate space: starting
+		// from the ancestor matrix would apply it twice.
+		c.grad.Matrix, err = c.parseTransformFrom(rasterx.Identity, attr.Value)
 	case "gradientUnits":
 		switch strings.TrimSpace(attr.Value) {
 		case "userSpaceOnUse":
@@ -89,15 +92,14 @@ func (c *IconCursor) PushStyle(attrs []xml.Attr) error {
 	// Make a copy of the top style
 	curStyle := c.StyleStack[len(c.StyleStack)-1]
 	for _, pair := range pairs {
-		kv := strings.Split(pair, ":")
-		if len(kv) >= 2 {
-			k := strings.ToLower(kv[0])
-			k = strings.TrimSpace(k)
-			v := strings.TrimSpace(kv[1])
-			err := c.readStyleAttr(&curStyle, k, v)
-			if err != nil {
-				return err
-			}
+		k, v, ok := strings.Cut(pair, ":")
+		if !ok {
+			continue
+		}
+		k = strings.ToLower(strings.TrimSpace(k))
+		v = strings.TrimSpace(v)
+		if err := c.readStyleAttr(&curStyle, k, v); err != nil {
+			return err
 		}
 	}
 	if err := c.adaptClasses(&curStyle, className); err != nil {
@@ -167,8 +169,12 @@ func (c *IconCursor) readTransformAttr(m1 rasterx.Matrix2D, k string) (rasterx.M
 }
 
 func (c *IconCursor) parseTransform(v string) (rasterx.Matrix2D, error) {
+	return c.parseTransformFrom(c.StyleStack[len(c.StyleStack)-1].mAdder.M, v)
+}
+
+func (c *IconCursor) parseTransformFrom(base rasterx.Matrix2D, v string) (rasterx.Matrix2D, error) {
 	ts := strings.Split(v, ")")
-	m1 := c.StyleStack[len(c.StyleStack)-1].mAdder.M
+	m1 := base
 	for _, t := range ts {
 		t = strings.TrimSpace(t)
 		if len(t) == 0 {
@@ -300,6 +306,7 @@ func (c *IconCursor) readStyleAttr(curStyle *PathStyle, k, v string) error {
 			curStyle.Dash = dList
 			break
 		}
+		curStyle.Dash = nil
 	case "opacity", "stroke-opacity", "fill-opacity":
 		op, err := parseFloat(v, 64)
 		if err != nil {
@@ -376,7 +383,33 @@ func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) error 
 	if className == "" || len(c.icon.classes) == 0 {
 		return nil
 	}
-	for k, v := range c.icon.classes[className] {
+	// A class attribute can hold several space-separated classes. Collect the
+	// names into a set so that repeated names are applied only once.
+	names := map[string]struct{}{}
+	for _, name := range strings.Fields(className) {
+		names[name] = struct{}{}
+	}
+	// Resolve the winning declaration for each property by walking the
+	// stylesheet rules in order. Later rules override earlier ones regardless of
+	// the order the class names appear in the attribute, matching the CSS
+	// cascade, and each property is applied exactly once so that declarations
+	// which multiply (such as opacity) override rather than compound.
+	var attrs styleAttribute
+	for _, rule := range c.icon.classes {
+		if !slices.ContainsFunc(rule.classes, func(name string) bool {
+			_, ok := names[name]
+			return ok
+		}) {
+			continue
+		}
+		if attrs == nil {
+			attrs = styleAttribute{}
+		}
+		for k, v := range rule.attrs {
+			attrs[k] = v
+		}
+	}
+	for k, v := range attrs {
 		if err := c.readStyleAttr(pathStyle, k, v); err != nil {
 			return err
 		}

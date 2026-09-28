@@ -56,8 +56,17 @@ func splitOnCommaOrSpace(s string) []string {
 		})
 }
 
-func parseClasses(data string) (map[string]styleAttribute, error) {
-	res := map[string]styleAttribute{}
+// styleRule is a single stylesheet rule: the classes it selects and the
+// declarations it applies. Rules are kept in the order they appear in the
+// stylesheet so that equal-specificity conflicts can be resolved by order of
+// appearance, matching the CSS cascade.
+type styleRule struct {
+	classes []string
+	attrs   styleAttribute
+}
+
+func parseClasses(data string) ([]styleRule, error) {
+	var rules []styleRule
 	arr := strings.SplitSeq(data, "}")
 	for v := range arr {
 		v = strings.TrimSpace(v)
@@ -66,27 +75,29 @@ func parseClasses(data string) (map[string]styleAttribute, error) {
 		}
 		classesStr, attrStr, ok := strings.Cut(v, "{")
 		if !ok || attrStr == "" {
-			return res, errors.New(v + "}: invalid map format in class definitions")
+			return rules, errors.New(v + "}: invalid map format in class definitions")
 		}
 		attrMap, err := parseAttrs(attrStr)
 		if err != nil {
-			return res, err
+			return rules, err
 		}
+		var names []string
 		classes := strings.SplitSeq(classesStr, ",")
 		for class := range classes {
 			class = strings.TrimSpace(class)
 			if len(class) > 0 && class[0] == '.' {
 				class = class[1:]
 			}
-			for attrKey, attrVal := range attrMap {
-				if res[class] == nil {
-					res[class] = make(styleAttribute, len(attrMap))
-				}
-				res[class][attrKey] = attrVal
+			if len(class) > 0 {
+				names = append(names, class)
 			}
 		}
+		if len(names) == 0 {
+			continue
+		}
+		rules = append(rules, styleRule{classes: names, attrs: attrMap})
 	}
-	return res, nil
+	return rules, nil
 }
 
 func parseAttrs(attrStr string) (styleAttribute, error) {

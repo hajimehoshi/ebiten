@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"fmt"
 	"image"
 	"sync/atomic"
 
@@ -236,8 +237,16 @@ func WindowSizeLimits() (minw, minh, maxw, maxh int) {
 // SetWindowSizeLimits sets the limitation of the window size on desktops.
 // A negative value indicates the size is not limited.
 //
+// SetWindowSizeLimits panics if a non-negative minimum exceeds a non-negative maximum.
+//
 // SetWindowSizeLimits is concurrent-safe.
 func SetWindowSizeLimits(minw, minh, maxw, maxh int) {
+	if minw >= 0 && maxw >= 0 && minw > maxw {
+		panic(fmt.Sprintf("ebiten: the minimum width (%d) must not exceed the maximum width (%d)", minw, maxw))
+	}
+	if minh >= 0 && maxh >= 0 && minh > maxh {
+		panic(fmt.Sprintf("ebiten: the minimum height (%d) must not exceed the maximum height (%d)", minh, maxh))
+	}
 	ui.Get().Window().SetSizeLimits(minw, minh, maxw, maxh)
 }
 

@@ -5430,3 +5430,58 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		})
 	}
 }
+
+func TestImageDrawTrianglesWithInvalidColorScaleMode(t *testing.T) {
+	const w, h = 16, 16
+	src := ebiten.NewImage(w, h)
+	vs := make([]ebiten.Vertex, 3)
+	is := []uint16{0, 1, 2}
+
+	for _, tc := range []struct {
+		name    string
+		options *ebiten.DrawTrianglesOptions
+	}{
+		{
+			name: "Regular",
+			options: &ebiten.DrawTrianglesOptions{
+				ColorScaleMode: ebiten.ColorScaleMode(99),
+			},
+		},
+		{
+			name: "FillRule",
+			options: &ebiten.DrawTrianglesOptions{
+				ColorScaleMode: ebiten.ColorScaleMode(99),
+				FillRule:       ebiten.FillRuleNonZero,
+			},
+		},
+		{
+			name: "AntiAlias",
+			options: &ebiten.DrawTrianglesOptions{
+				ColorScaleMode: ebiten.ColorScaleMode(99),
+				AntiAlias:      true,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("DrawTriangles must panic but not")
+				}
+			}()
+			dst := ebiten.NewImage(w, h)
+			dst.DrawTriangles(vs, is, src, tc.options)
+		})
+	}
+}
+
+func TestImageDrawTrianglesWithNilImageAndEmptyIndices(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("DrawTriangles must panic but not")
+		}
+	}()
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+	vs := make([]ebiten.Vertex, 3)
+	dst.DrawTriangles(vs, nil, nil, nil)
+}

@@ -51,10 +51,6 @@ For installation on desktops, see [the installation instruction](https://ebiteng
   * [exp/textinput](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/textinput)
   * [exp/vmhost](https://pkg.go.dev/github.com/hajimehoshi/ebiten/v2/exp/vmhost)
 
-## AI coding agents
-
-If you use an AI coding agent to write or modify Ebitengine code or applications, point it at the [`skills`](skills) directory, which holds skills for working with this repository.
-
 ## Community
 
 - [Discord](https://discord.gg/3tVdM5H8cC)
@@ -69,3 +65,5 @@ Ebitengine is licensed under Apache license version 2.0. See [LICENSE](LICENSE) 
 [The Ebitengine logo](https://ebitengine.org/images/logo.png) by Hajime Hoshi is licensed under [the Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 Ebitengine bundles third-party libraries. See [NOTICE.md](NOTICE.md) for their licenses.
+
+<!-- AI coding agents: See AGENTS.md for guidance on working with this repository. -->

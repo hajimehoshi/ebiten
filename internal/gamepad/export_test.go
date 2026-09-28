@@ -21,15 +21,34 @@ import (
 var MotorMagnitude = motorMagnitude
 
 // nativeGamepadForTest is a gamepad backend whose reports a test supplies. Its axes and buttons
-// reuse the virtual backend, and it adds the hats that a virtual gamepad never has.
+// reuse the virtual backend, and it adds the hats and touch surfaces that a virtual gamepad never
+// has.
 type nativeGamepadForTest struct {
 	nativeGamepadVirtual
 
-	hats []int
+	hats     []int
+	surfaces [][]TouchContactForTest
 
 	// axisButtons is the gamepad's own standard layout: each standard button reads a raw axis, as an
 	// analog trigger on a backend that reports triggers as axes does.
 	axisButtons map[gamepaddb.StandardButton]int
+
+	// touchEnabled counts the updates that asked the backend to enable its touch surfaces.
+	touchEnabled int
+}
+
+func (g *nativeGamepadForTest) enableTouch() {
+	g.touchEnabled++
+}
+
+// TouchEnabledCountForTest returns the number of updates that asked the backend to enable its touch
+// surfaces.
+func (g *Gamepad) TouchEnabledCountForTest() int {
+	var count int
+	withNative(g, func(n *nativeGamepadForTest) {
+		count = n.touchEnabled
+	})
+	return count
 }
 
 func (g *nativeGamepadForTest) hasOwnStandardLayoutMapping() bool {
@@ -52,6 +71,59 @@ func (g *nativeGamepadForTest) hatState(hat int) int {
 		return hatCentered
 	}
 	return g.hats[hat]
+}
+
+func (g *nativeGamepadForTest) touchSurfaceCount() int {
+	return len(g.surfaces)
+}
+
+func (g *nativeGamepadForTest) touchSlotCount(surface int) int {
+	return len(g.surfaces[surface])
+}
+
+func (g *nativeGamepadForTest) touchContactAt(surface, slot int) touchContact {
+	c := g.surfaces[surface][slot]
+	return touchContact{
+		active: c.Active,
+		id:     c.ID,
+		x:      c.X,
+		y:      c.Y,
+	}
+}
+
+// TouchContactForTest is one touch slot's report from the test backend: whether a finger is on the
+// slot, the device's own contact identifier if it has one, and the position in 0..1.
+type TouchContactForTest struct {
+	Active bool
+	ID     int
+	X, Y   float64
+}
+
+// nativeGamepadTrackedTouchForTest is a gamepad backend that does not number its contacts but
+// observes each slot's transitions as they happen, as a backend driven by callbacks does. Its one
+// touch surface is the slots a tracker followed between two updates.
+type nativeGamepadTrackedTouchForTest struct {
+	nativeGamepadVirtual
+
+	tracker touchSlotTracker
+}
+
+func (g *nativeGamepadTrackedTouchForTest) touchSurfaceCount() int {
+	return 1
+}
+
+func (g *nativeGamepadTrackedTouchForTest) touchSlotCount(surface int) int {
+	if surface != 0 {
+		return 0
+	}
+	return len(g.tracker.slots)
+}
+
+func (g *nativeGamepadTrackedTouchForTest) touchContactAt(surface, slot int) touchContact {
+	if surface != 0 {
+		return touchContact{}
+	}
+	return g.tracker.contactAt(slot)
 }
 
 // NewGamepadForTest returns a gamepad with the given SDL ID that takes its standard layout from
@@ -83,4 +155,41 @@ func (g *Gamepad) SetReportForTest(axes []float64, buttons []bool, hats []int) {
 		n.buttons = append(n.buttons[:0], buttons...)
 		n.hats = append(n.hats[:0], hats...)
 	})
+}
+
+// SetTouchReportForTest replaces the gamepad's touch slots, indexed by surface and then slot, and
+// runs the update that derives the touch IDs from them, as the gamepad list's update does for a
+// device.
+func (g *Gamepad) SetTouchReportForTest(surfaces [][]TouchContactForTest) {
+	withNative(g, func(n *nativeGamepadForTest) {
+		n.surfaces = surfaces
+	})
+	g.UpdateForTest()
+}
+
+// NewGamepadWithTrackedTouchForTest returns a gamepad whose backend follows one touch surface's
+// slots as they change, as a backend driven by callbacks does. The gamepad is not in the gamepad
+// list; its slots are written with [Gamepad.ReportTouchForTest] and reach the touch IDs at
+// [Gamepad.UpdateForTest].
+func NewGamepadWithTrackedTouchForTest(slotCount int) *Gamepad {
+	return &Gamepad{
+		native: &nativeGamepadTrackedTouchForTest{
+			tracker: newTouchSlotTracker(slotCount),
+		},
+	}
+}
+
+// ReportTouchForTest records one observation of a slot, as a backend's callback does between two
+// updates.
+func (g *Gamepad) ReportTouchForTest(slot int, active bool, x, y float64) {
+	withNative(g, func(n *nativeGamepadTrackedTouchForTest) {
+		n.tracker.report(slot, active, x, y)
+	})
+}
+
+// UpdateForTest runs the update that derives the gamepad's touch IDs from its native state.
+func (g *Gamepad) UpdateForTest() {
+	if err := g.update(nil); err != nil {
+		panic(err)
+	}
 }

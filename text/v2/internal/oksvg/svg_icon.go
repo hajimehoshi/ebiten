@@ -17,7 +17,7 @@ type SvgIcon struct {
 	Defs         map[string][]definition
 	SVGPaths     []SvgPath
 	Transform    rasterx.Matrix2D
-	classes      map[string]styleAttribute
+	classes      []styleRule
 }
 
 // Draw the compiled SVG icon into the GraphicContext.

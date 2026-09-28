@@ -80,6 +80,8 @@ type DrawPathOptions struct {
 }
 
 // FillPath fills the specified path with the specified options.
+//
+// An invalid FillRule in fillOptions causes a panic.
 func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathOptions *DrawPathOptions) {
 	if drawPathOptions == nil {
 		drawPathOptions = &DrawPathOptions{}
@@ -636,6 +638,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			if err != nil {
 				panic(fmt.Sprintf("vector: failed to create stencil buffer even-odd shader: %v", err))
 			}
+		default:
+			panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
 		}
 		dst2 := dst
 		var recycle bool

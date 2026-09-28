@@ -106,6 +106,13 @@ var (
 )
 
 func builtinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
+	if filter < 0 || filter >= builtinshader.FilterCount {
+		panic(fmt.Sprintf("ebiten: invalid filter: %d", filter))
+	}
+	if address < 0 || address >= builtinshader.AddressCount {
+		panic(fmt.Sprintf("ebiten: invalid address: %d", address))
+	}
+
 	var c int
 	if useColorM {
 		c = 1

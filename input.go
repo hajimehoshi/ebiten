@@ -296,6 +296,60 @@ func IsGamepadButtonPressed(id GamepadID, button GamepadButton) bool {
 	return g.IsButtonPressedWithHats(int(button))
 }
 
+// GamepadTouchID represents a touch on a gamepad's touch surface.
+type GamepadTouchID = gamepad.TouchID
+
+// GamepadTouchSurfaceCount returns the number of touch surfaces of the gamepad (id),
+// like the touchpad of a DualShock 4 or DualSense. 0 means the gamepad has no touch surface.
+//
+// GamepadTouchSurfaceCount returns 0 before the game starts.
+//
+// GamepadTouchSurfaceCount is concurrent-safe.
+func GamepadTouchSurfaceCount(id GamepadID) int {
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0
+	}
+	return g.TouchSurfaceCount()
+}
+
+// AppendGamepadTouchIDs appends the IDs of the current touches on the touch surface (surface) of the gamepad (id)
+// to touchIDs, and returns the extended buffer.
+// Giving a slice that already has enough capacity works efficiently.
+//
+// surface is in the range [0, GamepadTouchSurfaceCount(id)). Nothing is appended for any other value.
+//
+// A touch ID is unique among the touches of the gamepad and stays the same while the finger is held.
+// Lifting the finger retires the ID, and a new touch gets a new ID.
+//
+// AppendGamepadTouchIDs appends nothing before the game starts.
+//
+// AppendGamepadTouchIDs is concurrent-safe.
+func AppendGamepadTouchIDs(id GamepadID, surface int, touchIDs []GamepadTouchID) []GamepadTouchID {
+	g := gamepad.Get(id)
+	if g == nil {
+		return touchIDs
+	}
+	return g.AppendTouchIDs(surface, touchIDs)
+}
+
+// GamepadTouchPosition returns the position of the touch (touchID) on the gamepad (id).
+// Each coordinate is in the range [0.0 - 1.0], where (0.0, 0.0) is the top-left corner of the touch surface
+// and (1.0, 1.0) is the bottom-right corner.
+//
+// If the touch of the specified ID is not present, GamepadTouchPosition returns (0, 0).
+//
+// GamepadTouchPosition returns (0, 0) before the game starts.
+//
+// GamepadTouchPosition is concurrent-safe.
+func GamepadTouchPosition(id GamepadID, touchID GamepadTouchID) (float64, float64) {
+	g := gamepad.Get(id)
+	if g == nil {
+		return 0, 0
+	}
+	return g.TouchPosition(touchID)
+}
+
 // StandardGamepadAxisValue returns a float value [-1.0 - 1.0] of the given gamepad (id)'s standard axis (axis).
 // For a horizontal axis, -1.0 means left and 1.0 means right.
 // For a vertical axis, -1.0 means up and 1.0 means down.

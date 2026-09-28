@@ -15,6 +15,7 @@
 package colorm_test
 
 import (
+	"fmt"
 	"image/color"
 	"math"
 	"testing"
@@ -272,5 +273,28 @@ func TestColorMConcat(t *testing.T) {
 	a.Concat(b)
 	if got, want := a.Element(1, 2), -1.0; got != want {
 		t.Errorf("got: %f, want: %f", got, want)
+	}
+}
+
+func TestColorMInvertWithZeroScale(t *testing.T) {
+	for _, scale := range [][4]float64{
+		{0, 1, 1, 1},
+		{1, 0, 1, 1},
+		{1, 1, 0, 1},
+		{1, 1, 1, 0},
+	} {
+		t.Run(fmt.Sprint(scale), func(t *testing.T) {
+			var c colorm.ColorM
+			c.Scale(scale[0], scale[1], scale[2], scale[3])
+			if c.IsInvertible() {
+				t.Errorf("IsInvertible() must be false but true")
+			}
+			defer func() {
+				if r := recover(); r == nil {
+					t.Errorf("Invert must panic but not")
+				}
+			}()
+			c.Invert()
+		})
 	}
 }

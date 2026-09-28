@@ -23,29 +23,12 @@ import (
 	"image"
 	"image/color"
 	"sync"
-	"sync/atomic"
 
 	"golang.org/x/image/font"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/hook"
 )
-
-var (
-	monotonicClock atomic.Int64
-)
-
-func now() int64 {
-	return monotonicClock.Load()
-}
-
-func init() {
-	hook.AppendHookOnBeforeUpdate(func() error {
-		monotonicClock.Add(1)
-		return nil
-	})
-}
 
 func fixed26_6ToFloat64(x fixed.Int26_6) float64 {
 	return float64(x>>6) + float64(x&((1<<6)-1))/float64(1<<6)
@@ -81,7 +64,7 @@ type glyphImageCacheKey struct {
 
 type glyphImageCacheEntry struct {
 	image *ebiten.Image
-	atime int64
+	atime ebiten.Duration
 }
 
 var (
@@ -98,7 +81,7 @@ func getGlyphImage(face *faceWithCache, r rune, offset fixed.Point26_6) *ebiten.
 		xoffset: offset.X,
 	}
 	if e, ok := glyphImageCache[face][key]; ok {
-		e.atime = now()
+		e.atime = ebiten.DurationTime()
 		return e.image
 	}
 
@@ -107,7 +90,7 @@ func getGlyphImage(face *faceWithCache, r rune, offset fixed.Point26_6) *ebiten.
 	if w == 0 || h == 0 {
 		glyphImageCache[face][key] = &glyphImageCacheEntry{
 			image: nil,
-			atime: now(),
+			atime: ebiten.DurationTime(),
 		}
 		return nil
 	}
@@ -135,7 +118,7 @@ func getGlyphImage(face *faceWithCache, r rune, offset fixed.Point26_6) *ebiten.
 	img := ebiten.NewImageFromImage(rgba)
 	glyphImageCache[face][key] = &glyphImageCacheEntry{
 		image: img,
-		atime: now(),
+		atime: ebiten.DurationTime(),
 	}
 
 	return img
@@ -255,9 +238,9 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 
 	// Clean up the cache.
 	if len(glyphImageCache[fc]) > cacheSoftLimit {
+		now := ebiten.DurationTime()
 		for r, e := range glyphImageCache[fc] {
-			// 60 is an arbitrary number.
-			if e.atime < now()-60 {
+			if e.atime < now-ebiten.DurationSecond {
 				delete(glyphImageCache[fc], r)
 			}
 		}

@@ -16,7 +16,6 @@
 package inpututil
 
 import (
-	"maps"
 	"slices"
 	"sync"
 
@@ -70,15 +69,16 @@ func (i *inputState) update() {
 
 	// Gamepads
 
-	// Copy the gamepad states.
-	clear(i.prevGamepadStates)
-	maps.Copy(i.prevGamepadStates, i.gamepadStates)
+	// Swap the maps: the current states become the previous ones, and the new current
+	// states are rebuilt from the previous ones. This avoids copying the whole maps.
+	i.gamepadStates, i.prevGamepadStates = i.prevGamepadStates, i.gamepadStates
+	clear(i.gamepadStates)
 
 	i.gamepadIDsBuf = ebiten.AppendGamepadIDs(i.gamepadIDsBuf[:0])
 	for _, id := range i.gamepadIDsBuf {
-		state := i.gamepadStates[id]
+		state := i.prevGamepadStates[id]
 
-		for b := range i.gamepadStates[id].buttonDurations {
+		for b := range state.buttonDurations {
 			if ebiten.IsGamepadButtonPressed(id, ebiten.GamepadButton(b)) {
 				state.buttonDurations[b]++
 			} else {
@@ -86,7 +86,7 @@ func (i *inputState) update() {
 			}
 		}
 
-		for b := range i.gamepadStates[id].standardButtonDurations {
+		for b := range state.standardButtonDurations {
 			if ebiten.IsStandardGamepadButtonPressed(id, ebiten.StandardGamepadButton(b)) {
 				state.standardButtonDurations[b]++
 			} else {
@@ -97,32 +97,17 @@ func (i *inputState) update() {
 		i.gamepadStates[id] = state
 	}
 
-	// Remove disconnected gamepads.
-	for id := range i.gamepadStates {
-		if !slices.Contains(i.gamepadIDsBuf, id) {
-			delete(i.gamepadStates, id)
-		}
-	}
-
 	// Touches
 
-	// Copy the touch durations and positions.
-	clear(i.prevTouchStates)
-	maps.Copy(i.prevTouchStates, i.touchStates)
+	i.touchStates, i.prevTouchStates = i.prevTouchStates, i.touchStates
+	clear(i.touchStates)
 
 	i.touchIDsBuf = ebiten.AppendTouchIDs(i.touchIDsBuf[:0])
 	for _, id := range i.touchIDsBuf {
-		state := i.touchStates[id]
+		state := i.prevTouchStates[id]
 		state.duration++
 		state.x, state.y = ebiten.TouchPositionF(id)
 		i.touchStates[id] = state
-	}
-
-	// Remove released touches.
-	for id := range i.touchStates {
-		if !slices.Contains(i.touchIDsBuf, id) {
-			delete(i.touchStates, id)
-		}
 	}
 }
 

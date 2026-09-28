@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"math/rand/v2"
 	"testing"
 
@@ -670,6 +671,83 @@ func TestStereoI16SeekSmallNegativePosition(t *testing.T) {
 					t.Errorf("Seek(0, io.SeekCurrent): got: %d, want: 0", pos)
 				}
 			})
+		}
+	}
+}
+
+func TestStereoI16SourceErrorWithData(t *testing.T) {
+	for _, f := range stereoI16Formats {
+		for _, mono := range []bool{false, true} {
+			t.Run(fmt.Sprintf("format=%s,mono=%t", f.name, mono), func(t *testing.T) {
+				frameSize := f.unit
+				if !mono {
+					frameSize *= 2
+				}
+				src := randBytes(20 * frameSize)
+				dataN := 3*frameSize + 1
+				s := convert.NewStereoI16ReadSeeker(&dataWithErrorReadSeeker{
+					src:    bytes.NewReader(src),
+					failAt: 1,
+					dataN:  dataN,
+				}, mono, f.format)
+				want := stereoI16Bytes(src, mono, f.format, f.unit)
+
+				buf := make([]byte, 64)
+				n, err := s.Read(buf)
+				if !errors.Is(err, errSourceRead) {
+					t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+				}
+				if got, want := n, dataN/frameSize*4; got != want {
+					t.Errorf("Read: got %d bytes, want %d", got, want)
+				}
+				if got, want := buf[:n], want[:n]; !bytes.Equal(got, want) {
+					t.Errorf("Read: got % x, want % x", got, want)
+				}
+
+				pos, err := s.Seek(0, io.SeekCurrent)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got, want := pos, int64(n); got != want {
+					t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+				}
+
+				rest, err := io.ReadAll(s)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := append(buf[:n:n], rest...); !bytes.Equal(got, want) {
+					t.Errorf("got % x, want % x", got, want)
+				}
+			})
+		}
+	}
+}
+
+func TestStereoI16SourcePositionOverflow(t *testing.T) {
+	r := convert.NewStereoI16ReadSeeker(bytes.NewReader(make([]byte, 96)), false, convert.FormatS24)
+	const pos = int64(math.MaxInt64 / 16 * 8)
+	if _, err := r.Seek(pos, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	for _, tc := range []struct {
+		offset int64
+		whence int
+	}{
+		{
+			offset: math.MaxInt64,
+			whence: io.SeekStart,
+		},
+		{
+			offset: math.MaxInt64 / 16 * 4,
+			whence: io.SeekCurrent,
+		},
+	} {
+		if _, err := r.Seek(tc.offset, tc.whence); err == nil {
+			t.Errorf("Seek(%d, %d) did not reject source position overflow", tc.offset, tc.whence)
+		}
+		if got, err := r.Seek(0, io.SeekCurrent); err != nil || got != pos {
+			t.Errorf("position after rejected seek = (%d, %v), want %d", got, err, pos)
 		}
 	}
 }

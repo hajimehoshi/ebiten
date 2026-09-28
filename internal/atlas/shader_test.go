@@ -23,8 +23,10 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/legacyshader"
+	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	etesting "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -91,61 +93,120 @@ func TestImageDrawTwice(t *testing.T) {
 	}
 }
 
+type shaderDisposalObserver struct {
+	graphicsdriver.Graphics
+	program  *shaderir.Program
+	created  chan struct{}
+	disposed chan struct{}
+}
+
+func (g *shaderDisposalObserver) NewShader(program *shaderir.Program) (graphicsdriver.Shader, error) {
+	shader, err := g.Graphics.NewShader(program)
+	if err != nil {
+		return nil, err
+	}
+	if program != g.program {
+		return shader, nil
+	}
+	close(g.created)
+	return &observedShader{
+		Shader:   shader,
+		disposed: g.disposed,
+	}, nil
+}
+
+type observedShader struct {
+	graphicsdriver.Shader
+	disposed chan struct{}
+}
+
+func (s *observedShader) Dispose() {
+	s.Shader.Dispose()
+	close(s.disposed)
+}
+
 func TestGCShader(t *testing.T) {
-	s := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff), "")
+	program := etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff)
+	s := atlas.NewShader(program, "")
+	g := &shaderDisposalObserver{
+		Graphics: ui.Get().GraphicsDriverForTesting(),
+		program:  program,
+		created:  make(chan struct{}),
+		disposed: make(chan struct{}),
+	}
 
 	// Use the shader to initialize it.
 	const w, h = 1, 1
 	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	defer dst.Deallocate()
 	vs := quadVertices(w, h, 0, 0, 1)
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil)
-
-	// Ensure other objects are GCed, as GC appends deferred functions for collected objects.
-	ensureGC()
-
-	// Get the difference of the number of deferred functions before and after s is GCed.
-	c := atlas.DeferredFuncCountForTesting()
+	if err := graphicscommand.FlushCommands(g, graphicsdriver.FlushModeIntermediate); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-g.created:
+	default:
+		t.Fatal("shader was not created")
+	}
 	runtime.KeepAlive(s)
-	ensureGC()
 
-	diff := atlas.DeferredFuncCountForTesting() - c
-	if got, want := diff, 1; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+	if !waitForGC(func() bool {
+		if err := graphicscommand.FlushCommands(g, graphicsdriver.FlushModeIntermediate); err != nil {
+			t.Fatal(err)
+		}
+		select {
+		case <-g.disposed:
+			return true
+		default:
+			return false
+		}
+	}) {
+		t.Error("shader was not disposed after GC")
 	}
 }
 
 func TestGCShaderRemovesRegistryEntry(t *testing.T) {
 	const w, h = 1, 1
 	dst := atlas.NewImage(w, h, atlas.ImageTypeRegular)
+	defer dst.Deallocate()
 	is := graphics.QuadIndices()
 	dr := image.Rect(0, 0, w, h)
 
-	// Ensure other objects are GCed, so that the base count is stable.
-	ensureGC()
-	base := atlas.ShaderCountWithInternalShaderForTesting()
-
 	const count = 10
 	shaders := make([]*atlas.Shader, 0, count)
+	checks := make([]func() bool, 0, count)
 	for range count {
 		s := atlas.NewShader(etesting.ShaderProgramFill(0xff, 0xff, 0xff, 0xff), "")
 		// Use the shader to initialize its internal shader.
 		vs := quadVertices(w, h, 0, 0, 1)
 		dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil)
 		shaders = append(shaders, s)
+		checks = append(checks, s.IsRegisteredFuncForTesting())
 	}
-
-	if got, want := atlas.ShaderCountWithInternalShaderForTesting(), base+count; got != want {
-		t.Errorf("shader count: got: %d, want: %d", got, want)
+	for i, registered := range checks {
+		if !registered() {
+			t.Fatalf("shader %d was not registered", i)
+		}
 	}
-
-	// Drop the references and let the shaders be collected.
+	runtime.KeepAlive(shaders)
 	shaders = nil
-	ensureGC()
 
-	if got, want := atlas.ShaderCountWithInternalShaderForTesting(), base; got != want {
-		t.Errorf("shader count after GC: got: %d, want: %d", got, want)
+	if !waitForGC(func() bool {
+		for _, registered := range checks {
+			if registered() {
+				return false
+			}
+		}
+		return true
+	}) {
+		for i, registered := range checks {
+			if registered() {
+				t.Errorf("shader %d remained registered after GC", i)
+			}
+		}
 	}
 }
 

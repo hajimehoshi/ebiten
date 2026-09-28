@@ -24,6 +24,9 @@ func systemColorMode() ColorMode {
 	k, err := registry.OpenKey(registry.CURRENT_USER,
 		`Software\Microsoft\Windows\CurrentVersion\Themes\Personalize`,
 		registry.QUERY_VALUE)
+	if err != nil {
+		return Unknown
+	}
 	defer func() {
 		_ = k.Close()
 	}()

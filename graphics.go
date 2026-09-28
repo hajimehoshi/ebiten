@@ -83,8 +83,13 @@ type DebugInfo struct {
 
 // ReadDebugInfo writes debug info (e.g. current graphics library) into a provided struct.
 //
+// ReadDebugInfo panics if d is nil.
+//
 // ReadDebugInfo is concurrent-safe.
 func ReadDebugInfo(d *DebugInfo) {
+	if d == nil {
+		panic("ebiten: the given DebugInfo to ReadDebugInfo must not be nil")
+	}
 	d.GraphicsLibrary = GraphicsLibrary(ui.Get().GraphicsLibrary())
 	d.TotalGPUImageMemoryUsageInBytes = atlas.TotalGPUImageMemoryUsageInBytes()
 }

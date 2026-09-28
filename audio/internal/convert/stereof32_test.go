@@ -430,3 +430,50 @@ func TestStereoF32SeekSmallNegativePosition(t *testing.T) {
 		})
 	}
 }
+
+func TestStereoF32SourceErrorWithData(t *testing.T) {
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+			frameSize := 8
+			if mono {
+				frameSize = 4
+			}
+			src := randBytes(20 * frameSize)
+			dataN := 3*frameSize + 1
+			s := convert.NewStereoF32(&dataWithErrorReadSeeker{
+				src:    bytes.NewReader(src),
+				failAt: 1,
+				dataN:  dataN,
+			}, mono)
+			want := stereoF32Bytes(src, mono)
+
+			buf := make([]byte, 64)
+			n, err := s.Read(buf)
+			if !errors.Is(err, errSourceRead) {
+				t.Errorf("Read: got error %v, want %v", err, errSourceRead)
+			}
+			if got, want := n, 3*8; got != want {
+				t.Errorf("Read: got %d bytes, want %d", got, want)
+			}
+			if got, want := buf[:n], want[:n]; !bytes.Equal(got, want) {
+				t.Errorf("Read: got % x, want % x", got, want)
+			}
+
+			pos, err := s.Seek(0, io.SeekCurrent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got, want := pos, int64(n); got != want {
+				t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", got, want)
+			}
+
+			rest, err := io.ReadAll(s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := append(buf[:n:n], rest...); !bytes.Equal(got, want) {
+				t.Errorf("got % x, want % x", got, want)
+			}
+		})
+	}
+}

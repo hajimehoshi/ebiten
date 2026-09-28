@@ -17,6 +17,8 @@ package text
 import (
 	"github.com/go-text/typesetting/bidi"
 	"golang.org/x/image/math/fixed"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 func L2VisualOrder(levels []bidi.Level) []int {
@@ -73,7 +75,7 @@ func HasGlyphImageCache(source *GoTextFaceSource, size float64) bool {
 }
 
 // TouchGlyphImageCache creates or refreshes the glyph image cache for the size of the given face,
-// as if the face were used at the given tick.
-func TouchGlyphImageCache(face *GoTextFace, tick int64) {
-	face.Source.glyphImageCache.cacheForFace(face, tick)
+// as if the face were used at the given logical time.
+func TouchGlyphImageCache(face *GoTextFace, now ebiten.Duration) {
+	face.Source.glyphImageCache.cacheForFace(face, now)
 }

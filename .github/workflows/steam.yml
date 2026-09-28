@@ -22,8 +22,8 @@ jobs:
 
       - name: Docker build (amd64)
         run: |
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-sniper/snapshots/latest-container-runtime-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.Dockerfile
-          curl --location --remote-name https://repo.steampowered.com/steamrt-images-sniper/snapshots/latest-container-runtime-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.tar.gz
+          curl --location --remote-name --fail --retry 5 --retry-all-errors https://repo.steampowered.com/steamrt-images-sniper/snapshots/latest-container-runtime-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.Dockerfile
+          curl --location --remote-name --fail --retry 5 --retry-all-errors https://repo.steampowered.com/steamrt-images-sniper/snapshots/latest-container-runtime-public-beta/com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.tar.gz
           docker build -f com.valvesoftware.SteamRuntime.Sdk-amd64,i386-sniper-sysroot.Dockerfile -t steamrt_sniper_amd64:latest .
 
       - name: Go version

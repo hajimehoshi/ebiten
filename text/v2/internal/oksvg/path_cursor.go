@@ -81,7 +81,9 @@ func (c *PathCursor) GetPoints(dataPoints string) error {
 	c.points = c.points[0:0]
 	lr := ' '
 	for i, r := range dataPoints {
-		if !unicode.IsNumber(r) && r != '.' && !(r == '-' && lr == 'e') && r != 'e' {
+		// 'e' and 'E' start an exponent, not a new value, when they appear
+		// inside a number.
+		if !unicode.IsNumber(r) && r != '.' && !(r == '-' && (lr == 'e' || lr == 'E')) && r != 'e' && r != 'E' {
 			if lastIndex != -1 {
 				if err := c.ReadFloat(dataPoints[lastIndex:i]); err != nil {
 					return err
@@ -132,7 +134,8 @@ func (c *PathCursor) CompilePath(svgPath string) error {
 	c.init()
 	lastIndex := -1
 	for i, v := range svgPath {
-		if unicode.IsLetter(v) && v != 'e' {
+		// 'e' and 'E' are exponents (e.g. 1E2), not commands.
+		if unicode.IsLetter(v) && v != 'e' && v != 'E' {
 			if lastIndex != -1 {
 				if err := c.addSeg(svgPath[lastIndex:i]); err != nil {
 					return err
@@ -370,6 +373,15 @@ func (c *PathCursor) addSeg(segString string) error {
 			if k == 'a' {
 				c.points[i+5] += c.placeX
 				c.points[i+6] += c.placeY
+			}
+			// Per SVG 1.1 F.6.5, an arc with a zero x- or y-radius is a
+			// straight line to (x, y).
+			if c.points[i] == 0 || c.points[i+1] == 0 {
+				c.Path.Line(fixed.Point26_6{
+					X: fixed.Int26_6(c.points[i+5] * 64),
+					Y: fixed.Int26_6(c.points[i+6] * 64)})
+				c.placeX, c.placeY = c.points[i+5], c.points[i+6]
+				continue
 			}
 			c.AddArcFromA(c.points[i:])
 		}

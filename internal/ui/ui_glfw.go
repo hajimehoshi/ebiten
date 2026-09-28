@@ -128,8 +128,7 @@ type glfwBackend struct {
 	dropCallback                   glfw.DropCallback
 	framebufferSizeCallbackCh      chan struct{}
 
-	cachedCurrentMonitor     *Monitor
-	cachedCurrentMonitorTime int64
+	currentMonitorCache windowPropertyCache[*Monitor]
 
 	// Window states are updated by callbacks and native operations, with periodic queries
 	// to recover from missed notifications (#3318). Access is confined to the main thread.
@@ -950,10 +949,18 @@ event:
 	return nil
 }
 
-func (u *glfwBackend) initOnMainThread(options *RunOptions) error {
+func (u *glfwBackend) initOnMainThread(options *RunOptions) (err error) {
 	if err := u.ensureGLFWInit(); err != nil {
 		return err
 	}
+
+	// GLFW is terminated at the end of the game loop. On a failure before the loop starts,
+	// terminate GLFW here so that the window, the cursors, and the platform resources are released.
+	defer func() {
+		if err != nil {
+			err = errors.Join(err, u.terminateGLFW())
+		}
+	}()
 
 	// Center the window on the monitor if the position was not explicitly set.
 	if !options.WindowPositionSet {
@@ -1415,6 +1422,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 			break
 		}
 
+		clock.SetDurationSuspended(true)
 		if err := hook.SuspendAudio(); err != nil {
 			return 0, 0, 0, 0, err
 		}
@@ -1425,6 +1433,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 		}
 	}
 
+	clock.SetDurationSuspended(false)
 	if err := hook.ResumeAudio(); err != nil {
 		return 0, 0, 0, 0, err
 	}
@@ -1432,14 +1441,19 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 	return u.layoutSizes()
 }
 
+// terminateGLFW marks the UI terminated and terminates GLFW.
+//
+// terminateGLFW must be called from the main thread.
+func (u *glfwBackend) terminateGLFW() error {
+	// Mark termination before destroying GLFW so concurrent APIs stop accessing it.
+	u.setTerminated()
+	return glfw.Terminate()
+}
+
 func (u *glfwBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
-		if glfwErr := thread.CallWithArgAndResult(u.mainThread, func(u *glfwBackend) error {
-			// Mark termination before destroying GLFW so concurrent APIs stop accessing it.
-			u.setTerminated()
-			return glfw.Terminate()
-		}, u); glfwErr != nil {
+		if glfwErr := thread.CallWithArgAndResult(u.mainThread, (*glfwBackend).terminateGLFW, u); glfwErr != nil {
 			err = errors.Join(err, glfwErr)
 		}
 	}()
@@ -1957,16 +1971,15 @@ func (u *glfwBackend) minimumWindowWidth() (int, error) {
 //
 // currentMonitor must be called on the main thread.
 func (u *glfwBackend) currentMonitor() (*Monitor, error) {
-	if u.cachedCurrentMonitor != nil && u.cachedCurrentMonitorTime > u.Tick()-int64(clock.TPS()) && theMonitors.contains(u.cachedCurrentMonitor) {
-		return u.cachedCurrentMonitor, nil
+	if m, ok := u.currentMonitorCache.get(time.Now()); ok && m != nil && theMonitors.contains(m) {
+		return m, nil
 	}
 
 	m, err := u.currentMonitorImpl()
 	if err != nil {
 		return nil, err
 	}
-	u.cachedCurrentMonitor = m
-	u.cachedCurrentMonitorTime = u.Tick()
+	u.currentMonitorCache.set(m, time.Now())
 	return m, nil
 }
 
@@ -2564,7 +2577,7 @@ func (u *glfwBackend) RunOnMainThread(f func()) {
 }
 
 func (u *glfwBackend) run(game Game, options *RunOptions) error {
-	if options.SingleThread || buildTagSingleThread || runtime.GOOS == "js" {
+	if options.SingleThread || buildTagSingleThread {
 		return u.runSingleThread(game, options)
 	}
 	return u.runMultiThread(game, options)
@@ -2593,6 +2606,9 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 	wg.Go(func() error {
 		defer cancel()
 
+		// The backend is published at the window creation in initOnMainThread.
+		defer u.setRunningBackend(nil)
+
 		type args struct {
 			u       *glfwBackend
 			options *RunOptions
@@ -2602,9 +2618,6 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 		}, args{u: u, options: options}); err != nil {
 			return err
 		}
-
-		// The backend is published at the window creation in initOnMainThread.
-		defer u.setRunningBackend(nil)
 
 		return u.loopGame()
 	})

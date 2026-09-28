@@ -19,6 +19,8 @@ import (
 	"fmt"
 	"io"
 	"math"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 func NewFloat32BytesReaderFromInt16BytesReader(r io.Reader) io.Reader {
@@ -29,6 +31,15 @@ func NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(r io.ReadSeeker) io.ReadS
 	return &float32BytesReader{r: r}
 }
 
+const (
+	channelCount = 2
+	// int16SampleSize is the size in bytes of one sample of the source.
+	int16SampleSize = 2 * channelCount
+	// float32SampleSize is the size in bytes of one sample of the output.
+	float32SampleSize = 4 * channelCount
+)
+
+// float32BytesReader converts a signed 16bit integer stereo stream into a 32bit float stereo stream.
 type float32BytesReader struct {
 	r      io.Reader
 	eof    bool
@@ -36,19 +47,17 @@ type float32BytesReader struct {
 }
 
 func (r *float32BytesReader) Read(buf []byte) (int, error) {
-	if r.eof && len(r.i16Buf) < 2 {
+	if r.eof && len(r.i16Buf) < int16SampleSize {
 		return 0, io.EOF
 	}
 	if len(buf) == 0 {
 		return 0, nil
 	}
-	if len(buf) < 4 {
-		return 0, io.ErrShortBuffer
-	}
-
 	// Read int16 bytes. Keep reading until one sample is available so that a source returning
 	// less than one sample at a time doesn't make Read return (0, nil).
-	i16LenToFill := len(buf) / 4 * 2
+	// Buffer at least one sample to distinguish EOF from a short destination buffer.
+	i16LenToFill := max(len(buf)/float32SampleSize, 1) * int16SampleSize
+	var readErr error
 	for len(r.i16Buf) < i16LenToFill && !r.eof {
 		origLen := len(r.i16Buf)
 		if cap(r.i16Buf) < i16LenToFill {
@@ -56,21 +65,32 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 		}
 
 		n, err := r.r.Read(r.i16Buf[origLen:i16LenToFill])
+		r.i16Buf = r.i16Buf[:origLen+n]
 		if err != nil && err != io.EOF {
-			return 0, err
+			readErr = err
+			break
 		}
 		if err == io.EOF {
 			r.eof = true
 		}
-		r.i16Buf = r.i16Buf[:origLen+n]
-		if len(r.i16Buf) >= 2 || n == 0 {
+		if len(r.i16Buf) >= int16SampleSize || n == 0 {
 			break
 		}
 	}
 
-	// Convert int16 bytes to float32 bytes and fill buf.
-	samplesToFill := min(len(r.i16Buf)/2, len(buf)/4)
-	for i := range samplesToFill {
+	if len(buf) < float32SampleSize {
+		if readErr != nil {
+			return 0, readErr
+		}
+		if r.eof && len(r.i16Buf) < int16SampleSize {
+			return 0, io.EOF
+		}
+		return 0, io.ErrShortBuffer
+	}
+
+	// Convert the whole samples and fill buf. An incomplete sample is left for the next read.
+	samples := min(len(r.i16Buf)/int16SampleSize, len(buf)/float32SampleSize)
+	for i := range samples * channelCount {
 		vi16l := r.i16Buf[2*i]
 		vi16h := r.i16Buf[2*i+1]
 		v := float32(int16(vi16l)|int16(vi16h)<<8) / (1 << 15)
@@ -82,10 +102,13 @@ func (r *float32BytesReader) Read(buf []byte) (int, error) {
 	}
 
 	// Copy the remaining part for the next read.
-	copy(r.i16Buf, r.i16Buf[samplesToFill*2:])
-	r.i16Buf = r.i16Buf[:len(r.i16Buf)-samplesToFill*2]
+	copy(r.i16Buf, r.i16Buf[samples*int16SampleSize:])
+	r.i16Buf = r.i16Buf[:len(r.i16Buf)-samples*int16SampleSize]
 
-	n := samplesToFill * 4
+	n := samples * float32SampleSize
+	if readErr != nil {
+		return n, readErr
+	}
 	if r.eof {
 		return n, io.EOF
 	}
@@ -97,26 +120,26 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("float32: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
 	}
-	// Resolve the requested position before rounding the offset toward the sample boundary
-	// below, as the rounding truncates toward zero and would turn a small negative position
-	// into 0.
-	var pos int64
+	// Resolve the requested position before rounding the offset down to a sample boundary.
+	var base int64
 	// alignedEnd is the source position just past the last whole sample. It is resolved only
 	// for io.SeekEnd.
 	var alignedEnd int64
 	switch whence {
 	case io.SeekStart:
-		pos = offset
 	case io.SeekCurrent:
-		// The position this reader presents is never negative, so only a negative offset can
-		// resolve before the start.
-		if offset < 0 {
-			cur, err := s.Seek(0, io.SeekCurrent)
-			if err != nil {
-				return 0, err
-			}
-			// The source is ahead of the position this reader presents by the buffered bytes.
-			pos = (cur-int64(len(r.i16Buf)))/2*4 + offset
+		cur, err := s.Seek(0, io.SeekCurrent)
+		if err != nil {
+			return 0, err
+		}
+		samples := (cur - int64(len(r.i16Buf))) / int16SampleSize
+		base, ok = mathutil.Mul(samples, float32SampleSize)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
+		// A query does not seek the source, so that the buffered bytes are kept.
+		if offset == 0 {
+			return base, nil
 		}
 	case io.SeekEnd:
 		// The source length is not necessarily a multiple of the sample size. Resolve the offset
@@ -133,16 +156,19 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 		if _, err := s.Seek(cur, io.SeekStart); err != nil {
 			return 0, err
 		}
-		alignedEnd = end / 2 * 2
-		pos = alignedEnd/2*4 + offset
+		alignedEnd = end / int16SampleSize * int16SampleSize
+		base, ok = mathutil.Mul(alignedEnd/int16SampleSize, float32SampleSize)
+		if !ok {
+			return 0, fmt.Errorf("convert: position overflows int64")
+		}
 	default:
 		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
-	if pos < 0 {
-		return 0, fmt.Errorf("convert: position must be >= 0 but was %d", pos)
+	if _, ok := mathutil.AddForSeek(base, offset); !ok {
+		return 0, fmt.Errorf("convert: invalid seek position")
 	}
 
-	offset = offset / 4 * 2
+	offset = mathutil.FloorDiv(offset, float32SampleSize) * int16SampleSize
 
 	switch whence {
 	case io.SeekCurrent:
@@ -161,5 +187,5 @@ func (r *float32BytesReader) Seek(offset int64, whence int) (int64, error) {
 	// reader presents is behind the source by their length.
 	r.i16Buf = r.i16Buf[:0]
 	r.eof = false
-	return n / 2 * 4, nil
+	return n / int16SampleSize * float32SampleSize, nil
 }

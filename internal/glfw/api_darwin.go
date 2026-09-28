@@ -156,6 +156,12 @@ const (
 	NSOpenGLCPSurfaceOpacity                  = 236
 )
 
+// Mach and bootstrap return codes.
+const (
+	_KERN_SUCCESS             = 0
+	_BOOTSTRAP_NOT_PRIVILEGED = 1100
+)
+
 // cgRect matches the CoreGraphics CGRect struct layout.
 type cgRect struct {
 	_                   structs.HostLayout
@@ -172,6 +178,18 @@ type nsRange struct {
 // Framework handles.
 var openGLFramework uintptr
 var appKitFramework uintptr
+
+// libSystem function pointers and globals.
+var (
+	bootstrapLookUp    func(bp uint32, serviceName string, sp *uint32) int32
+	machPortDeallocate func(task uint32, name uint32) int32
+
+	// bootstrapPort points to bootstrap_port.
+	bootstrapPort *uint32
+
+	// machTaskSelf points to mach_task_self_, which the mach_task_self macro reads.
+	machTaskSelf *uint32
+)
 
 // CoreFoundation function pointers.
 var (
@@ -525,6 +543,16 @@ func mustDlsym(handle uintptr, name string) uintptr {
 }
 
 func init() {
+	// Load libSystem.
+	libSystem, err := purego.Dlopen("/usr/lib/libSystem.B.dylib", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+	if err != nil {
+		panic(fmt.Errorf("glfw: failed to dlopen libSystem: %w", err))
+	}
+	purego.RegisterLibFunc(&bootstrapLookUp, libSystem, "bootstrap_look_up")
+	purego.RegisterLibFunc(&machPortDeallocate, libSystem, "mach_port_deallocate")
+	bootstrapPort = (*uint32)(unsafe.Pointer(mustDlsym(libSystem, "bootstrap_port")))
+	machTaskSelf = (*uint32)(unsafe.Pointer(mustDlsym(libSystem, "mach_task_self_")))
+
 	// Load CoreFoundation.
 	coreFoundation, err := purego.Dlopen("/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation", purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 	if err != nil {

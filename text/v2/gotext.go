@@ -497,8 +497,12 @@ func (g *GoTextFace) appendVectorPathForLine(path *vector.Path, line string, ori
 	horizontal := g.direction().isHorizontal()
 	gs := g.Source.glyphs(line, g)
 	for _, glyph := range gs {
+		o := origin.Add(fixed.Point26_6{
+			X: glyph.shapingGlyph.XOffset,
+			Y: -glyph.shapingGlyph.YOffset,
+		})
 		if glyph.render != nil {
-			appendVectorPathFromSegments(path, glyph.render.segments(), fixed26_6ToFloat32(origin.X), fixed26_6ToFloat32(origin.Y))
+			appendVectorPathFromSegments(path, glyph.render.segments(), fixed26_6ToFloat32(o.X), fixed26_6ToFloat32(o.Y))
 		}
 		if horizontal {
 			origin = origin.Add(fixed.Point26_6{
