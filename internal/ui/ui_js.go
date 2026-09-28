@@ -476,6 +476,37 @@ func (u *UserInterface) loopGame() error {
 	return g.Wait()
 }
 
+// waitForBody waits until the document has its body, and returns an error if the document has no
+// body even after the document was fully loaded.
+//
+// A load listener added after the load event was fired is never invoked, so waiting for the load
+// event is meaningful only while the event can still fire. The load event is fired when the document
+// and all its resources have finished loading, and readyState is "loading" or "interactive" (the
+// parsing is done but the loading is not) until then and "complete" after that.
+// https://html.spec.whatwg.org/multipage/parsing.html#the-end
+func waitForBody(window, document js.Value) error {
+	if document.Get("body").Truthy() {
+		return nil
+	}
+
+	// A page can restore its body in a load handler, so wait while the load event is pending.
+	if document.Get("readyState").String() != "complete" {
+		ch := make(chan struct{})
+		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) any {
+			close(ch)
+			return nil
+		}))
+		<-ch
+	}
+
+	// The load event will not make the body appear anymore, so report an error rather than
+	// panicking on the nil body later.
+	if !document.Get("body").Truthy() {
+		return errors.New("ui: document.body is not found even after the document was loaded")
+	}
+	return nil
+}
+
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
 		savedCursorX: math.NaN(),
@@ -490,18 +521,8 @@ func (u *UserInterface) init() error {
 		return nil
 	}
 
-	if !document.Get("body").Truthy() {
-		// A listener added after the load event already fired never runs,
-		// so only wait while the document is still loading. readyState is
-		// "loading" before load, and "interactive" or "complete" after it.
-		if document.Get("readyState").String() == "loading" {
-			ch := make(chan struct{})
-			window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) any {
-				close(ch)
-				return nil
-			}))
-			<-ch
-		}
+	if err := waitForBody(window, document); err != nil {
+		return err
 	}
 
 	u.setWindowEventHandlers(window)
