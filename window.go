@@ -136,6 +136,9 @@ func SetWindowTitle(title string) {
 //
 // If len(iconImages) is 0, SetWindowIcon reverts the icon to the default one.
 //
+// SetWindowIcon defers reading the given images until the game loop is running. If an image is an
+// [*Image], it must not be disposed before the icon has been set.
+//
 // For desktops, see the document of glfwSetWindowIcon of GLFW 3.2:
 //
 //	This function sets the icon of the specified window.

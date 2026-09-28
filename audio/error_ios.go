@@ -37,7 +37,11 @@ import (
 	"fmt"
 )
 
-// addErrorInfo adds additional information to the error when creating an audio context.
+// addErrorInfo adds the application state to an error the audio device reported.
+//
+// This is applied to every error the device reports, not only to the one from creating
+// a context: the errors from Suspend, Resume and Err come from the device too, and
+// (*Player).Seek reports a device error as well.
 // See also ebitengine/oto#93.
 func addErrorInfo(err error) error {
 	if err == nil {

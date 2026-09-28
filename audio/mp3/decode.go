@@ -14,8 +14,7 @@
 
 // Package mp3 provides an MP3 decoder.
 //
-// On desktops and mobiles, a pure Go decoder is used.
-// On browsers, a native decoder on the browser is used.
+// A pure Go decoder is used on all platforms.
 package mp3
 
 import (

@@ -18,7 +18,7 @@
 // block in Update to script the keys, clicks, touches, and gamepads the guest observes. It is a
 // starting-point template to copy and adapt, not a stable command. See the run-ebitengine-app-headless skill.
 //
-// Written against ebiten commit 95dde051e (2026-07-16); exp/vmhost is experimental, so update this
+// Written against ebiten commit 7de1780bd (2026-09-27); exp/vmhost is experimental, so update this
 // driver if its API has moved since.
 package main
 

@@ -111,6 +111,8 @@ func (i *Image) updateAccessTime() {
 
 // Size returns the size of the image.
 //
+// Size panics if the image is disposed.
+//
 // Deprecated: as of v2.5. Use Bounds().Dx() and Bounds().Dy() or Bounds().Size() instead.
 func (i *Image) Size() (width, height int) {
 	s := i.Bounds().Size()
@@ -274,10 +276,6 @@ func init() {
 // When the given image img is disposed, DrawImage panics.
 // When the given Filter is invalid, DrawImage panics.
 // When the image i is disposed and img is not, DrawImage does nothing.
-//
-// When the given image is as same as i, DrawImage panics.
-// A whole image and its sub-images, or sub-images of the same whole image,
-// are considered to be the same image, and DrawImage panics for them as well.
 //
 // DrawImage works more efficiently as batches
 // when the successive calls of DrawImage satisfy the below conditions:
@@ -1279,6 +1277,8 @@ func (i *Image) RecyclableSubImage(r image.Rectangle) *Image {
 // Bounds returns the bounds of the image.
 //
 // Bounds implements the standard image.Image's Bounds.
+//
+// When the image is disposed, Bounds panics.
 func (i *Image) Bounds() image.Rectangle {
 	if i.isDisposed() {
 		panic("ebiten: the image is already disposed")
@@ -1406,6 +1406,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 // Dispose disposes the image data.
 // After disposing, most of the image functions do nothing and return meaningless values.
+// Bounds, Size, ReadPixels, and RecyclableSubImage are exceptions: they panic instead.
 //
 // Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
 // However, calling Dispose explicitly is helpful if memory usage matters.

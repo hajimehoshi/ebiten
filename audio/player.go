@@ -39,8 +39,6 @@ type player interface {
 	Err() error
 	SetBufferSize(bufferSize int)
 	io.Seeker
-
-	// As of Oto v3.4.0-alpha.7, Close does nothing.
 }
 
 type context interface {
@@ -433,7 +431,8 @@ func (p *playerImpl) Close() error {
 		}()
 		p.player.PauseAndStopReading()
 		// Release the device player if it holds resources beyond this process (the
-		// virtualization guest's forwarded player).
+		// virtualization guest's forwarded player). Close is not a part of this interface:
+		// as of Oto v3.4.0-alpha.7, Oto's Close does nothing.
 		if closer, ok := p.player.(io.Closer); ok {
 			_ = closer.Close()
 		}

@@ -550,8 +550,6 @@ func StandardGamepadButtonPressDuration(id ebiten.GamepadID, button ebiten.Stand
 //
 // The touches are sampled once per tick, so a touch which was created and released between two
 // ticks is not reported at all.
-// A new touch which reuses an ID that is still being tracked is not reported either, as its ID is
-// not new.
 //
 // AppendJustPressedTouchIDs must be called in a game's Update, not Draw.
 //
@@ -585,8 +583,7 @@ func JustPressedTouchIDs() []ebiten.TouchID {
 // and returns the extended buffer.
 // Giving a slice that already has enough capacity works efficiently.
 //
-// A touch which was created and released between two ticks is not reported as released, and a new
-// touch which reused the ID of a released one is reported as a continuation of the previous touch.
+// A touch which was created and released between two ticks is not reported as released.
 //
 // AppendJustReleasedTouchIDs must be called in a game's Update, not Draw.
 //
@@ -614,8 +611,7 @@ func AppendJustReleasedTouchIDs(touchIDs []ebiten.TouchID) []ebiten.TouchID {
 // IsTouchJustReleased returns a boolean value indicating
 // whether the given touch is released just in the current tick.
 //
-// A touch which was created and released between two ticks is not reported as released, and a new
-// touch which reused the ID of a released one is reported as a continuation of the previous touch.
+// A touch which was created and released between two ticks is not reported as released.
 //
 // IsTouchJustReleased must be called in a game's Update, not Draw.
 //
@@ -631,9 +627,6 @@ func IsTouchJustReleased(id ebiten.TouchID) bool {
 
 // TouchPressDuration returns how long the touch remains in ticks (Update).
 //
-// The duration is counted per touch ID, not per touch: a new touch which reused the ID of a touch
-// released between two ticks continues the duration of the previous touch.
-//
 // TouchPressDuration must be called in a game's Update, not Draw.
 //
 // TouchPressDuration is concurrent safe.
@@ -646,9 +639,6 @@ func TouchPressDuration(id ebiten.TouchID) int {
 // TouchPositionInPreviousTick returns the position in the previous tick.
 // If the touch is a just-released touch, TouchPositionInPreviousTick returns the last position of the touch.
 //
-// The position is tracked per touch ID, not per touch: a new touch which reused the ID of a touch
-// released between two ticks continues the position of the previous touch.
-//
 // TouchPositionInPreviousTick must be called in a game's Update, not Draw.
 //
 // TouchPositionInPreviousTick is concurrent safe.
@@ -659,9 +649,6 @@ func TouchPositionInPreviousTick(id ebiten.TouchID) (int, int) {
 
 // TouchPositionFInPreviousTick returns the high-precision position in the previous tick.
 // If the touch is a just-released touch, TouchPositionFInPreviousTick returns the last position of the touch.
-//
-// The position is tracked per touch ID, not per touch: a new touch which reused the ID of a touch
-// released between two ticks continues the position of the previous touch.
 //
 // TouchPositionFInPreviousTick must be called in a game's Update, not Draw.
 //

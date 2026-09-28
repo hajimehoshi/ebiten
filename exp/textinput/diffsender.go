@@ -109,8 +109,9 @@ func handlePlatformState(events *textInputEvents, sender *diffSender, value stri
 // and selEndInUTF16 its selection; caretAtPreeditEnd is documented at
 // [compositionSelectionInBytes].
 func (d *diffSender) trySend(s *session, value string, selStartInUTF16, selEndInUTF16 int, caretAtPreeditEnd bool, kind commitKind) {
-	// A composition is compared against the last state sent in
-	// trySendComposition, which knows the selection it would report.
+	// A committed state that repeats the last one sent carries no new
+	// information: it is the echo of a seeding, or the state a platform
+	// reports again after compositionend.
 	if kind.committed() && d.lastSentCommitted && value == d.lastSentValue {
 		return
 	}
