@@ -55,7 +55,11 @@ func (m *ManagedBytes) GetAndRelease() ([]byte, func()) {
 	bs := m.bytes
 	m.bytes = nil
 	return bs, func() {
+		if bs == nil {
+			return
+		}
 		m.pool.put(bs)
+		bs = nil
 		m.cleanup.Stop()
 	}
 }
