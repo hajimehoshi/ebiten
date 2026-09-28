@@ -90,10 +90,6 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 			cs.addError(t.Pos(), "length of array must be an integer")
 			return shaderir.Type{}, false
 		}
-		if l < 0 {
-			cs.addError(t.Pos(), fmt.Sprintf("invalid array length %d", l))
-			return shaderir.Type{}, false
-		}
 		return cs.parseArrayType(block, fname, t, l)
 	case *ast.StructType:
 		cs.addError(t.Pos(), "struct is not implemented")
@@ -106,6 +102,13 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 
 // parseArrayType parses the array type t whose length is the given length.
 func (cs *compileState) parseArrayType(block *block, fname string, t *ast.ArrayType, length int64) (shaderir.Type, bool) {
+	// An array must have at least one element. A zero-length array has nothing to declare, and
+	// HLSL rejects it as the error X3059 (array dimensions must be between 1 and 65536).
+	// https://learn.microsoft.com/en-us/windows/win32/direct3dhlsl/hlsl-errors-and-warnings
+	if length <= 0 {
+		cs.addError(t.Pos(), fmt.Sprintf("invalid array length %d", length))
+		return shaderir.Type{}, false
+	}
 	if length > maxArrayLength {
 		cs.addError(t.Pos(), fmt.Sprintf("array length %d exceeds the limit %d", length, maxArrayLength))
 		return shaderir.Type{}, false

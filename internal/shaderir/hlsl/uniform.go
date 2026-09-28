@@ -95,9 +95,8 @@ func UniformVariableOffsetsInDwords(program *shaderir.Program) []int {
 			case shaderir.Mat4:
 				n = 16
 			}
-			// A zero-length array must not move the head backwards. parseType accepts
-			// a length of 0, and a negative stride here would move every later offset
-			// into the variables before it.
+			// Kage rejects a zero-length array, but even if one reaches here, the head must not
+			// move backwards.
 			if u.Length > 1 {
 				headInDwords += (u.Length - 1) * align(n)
 			}
