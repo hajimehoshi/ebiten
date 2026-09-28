@@ -402,6 +402,9 @@ func (g *game) Update() error {
 				ctx.Text("TPS")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualTPS()))
 
+				ctx.Text("Duration Time")
+				ctx.Text(fmt.Sprintf("%.3f s", ebiten.DurationTime().Seconds()))
+
 				ctx.Text("FPS")
 				ctx.Text(fmt.Sprintf("%0.2f", ebiten.ActualFPS()))
 

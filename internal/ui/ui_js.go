@@ -25,6 +25,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
@@ -199,6 +200,7 @@ func (u *UserInterface) IsFocused() bool {
 
 func (u *UserInterface) SetRunnableOnUnfocused(runnableOnUnfocused bool) {
 	u.runnableOnUnfocused.Store(runnableOnUnfocused)
+	clock.SetDurationSuspended(u.suspended())
 }
 
 func (u *UserInterface) IsRunnableOnUnfocused() bool {
@@ -334,7 +336,9 @@ func (u *UserInterface) update() error {
 		u.setCursorMode(CursorModeCaptured)
 	}
 
-	if u.suspended() {
+	suspended := u.suspended()
+	clock.SetDurationSuspended(suspended)
+	if suspended {
 		return hook.SuspendAudio()
 	}
 	if err := hook.ResumeAudio(); err != nil {
@@ -457,7 +461,9 @@ func (u *UserInterface) loopGame() error {
 		for {
 			select {
 			case <-t.C:
-				if u.suspended() {
+				suspended := u.suspended()
+				clock.SetDurationSuspended(suspended)
+				if suspended {
 					if err := hook.SuspendAudio(); err != nil {
 						return err
 					}
@@ -500,6 +506,15 @@ func (u *UserInterface) init() error {
 	}
 
 	u.setWindowEventHandlers(window)
+
+	// Record suspension before browsers throttle background timers.
+	onSuspensionChange := js.FuncOf(func(this js.Value, args []js.Value) any {
+		clock.SetDurationSuspended(u.suspended())
+		return nil
+	})
+	document.Call("addEventListener", "visibilitychange", onSuspensionChange)
+	window.Call("addEventListener", "blur", onSuspensionChange)
+	window.Call("addEventListener", "focus", onSuspensionChange)
 
 	// Adjust the initial scale to 1.
 	// https://developer.mozilla.org/en/docs/Mozilla/Mobile/Viewport_meta_tag
@@ -768,7 +783,8 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 
 	// Blur
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
-		u.inputState.releaseAllButtons(u.inputState.nextInputTime())
+		// The browser might not dispatch touchend or touchcancel for the touches that are down.
+		u.releaseAllInputs()
 		return nil
 	}))
 }

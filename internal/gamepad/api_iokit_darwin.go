@@ -161,32 +161,3 @@ func hidDeviceRegistryID(device _IOHIDDeviceRef) uint64 {
 	}
 	return id
 }
-
-// hidDeviceRegistryIDForService returns the registry ID of the HID device containing serviceID.
-func hidDeviceRegistryIDForService(serviceID uint64) uint64 {
-	matching := _IORegistryEntryIDMatching(serviceID)
-	if matching == 0 {
-		return 0
-	}
-	// IOServiceGetMatchingService consumes matching. Each registry entry is owned by this loop.
-	entry := _IOServiceGetMatchingService(0, matching)
-	for entry != 0 {
-		if _IOObjectConformsTo(entry, "IOHIDDevice") {
-			var id uint64
-			result := _IORegistryEntryGetRegistryEntryID(entry, &id)
-			_IOObjectRelease(entry)
-			if result != kIOReturnSuccess {
-				return 0
-			}
-			return id
-		}
-		var parent uint32
-		result := _IORegistryEntryGetParentEntry(entry, "IOService", &parent)
-		_IOObjectRelease(entry)
-		if result != kIOReturnSuccess {
-			return 0
-		}
-		entry = parent
-	}
-	return 0
-}

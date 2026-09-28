@@ -38,7 +38,8 @@ const (
 // Clock determines how many ticks should run in each frame, so that ticks run at the specified TPS
 // as closely as the frame rate allows.
 type Clock struct {
-	tps atomic.Int64
+	tps      atomic.Int64
+	duration DurationClock
 
 	// unconsumedTime is the real time that has passed but that ticks have not consumed yet.
 	// This is negative when a tick has run a little earlier than its exact timing.
@@ -63,6 +64,7 @@ func NewClock(now int64) *Clock {
 		lastUpdated: now,
 	}
 	c.tps.Store(DefaultTPS)
+	c.duration.SetTPS(DefaultTPS)
 	return c
 }
 
@@ -85,6 +87,10 @@ func (c *Clock) SetTPS(tps int) {
 	if tps < 0 && tps != SyncWithFPS {
 		panic("clock: tps must be >= 0 or SyncWithFPS")
 	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	c.duration.SetTPS(tps)
 	c.tps.Store(int64(tps))
 }
 

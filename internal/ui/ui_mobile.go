@@ -25,6 +25,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -128,6 +129,7 @@ type userInterfaceImpl struct {
 
 func (u *UserInterface) SetForeground(foreground bool) error {
 	u.foreground.Store(foreground)
+	clock.SetDurationSuspended(!foreground)
 
 	if foreground {
 		return hook.ResumeAudio()
@@ -306,34 +308,19 @@ type displayInfoValues struct {
 
 var theDisplayInfo atomic.Pointer[displayInfoValues]
 
-func (u *UserInterface) displayInfo() (int, int, float64, bool) {
+func (u *UserInterface) displayInfo() (int, int, float64) {
 	// Reading the display info here would require waiting for the main thread
 	// on iOS, which can deadlock.
 	v := theDisplayInfo.Load()
 	if v == nil {
-		return 0, 0, 1, false
+		return 0, 0, 1
 	}
 	width := int(math.Round(dipFromNativePixels(v.width, v.scale)))
 	height := int(math.Round(dipFromNativePixels(v.height, v.scale)))
-	return width, height, v.scale, true
+	return width, height, v.scale
 }
 
-type Monitor struct {
-	cache atomic.Pointer[monitorCache]
-}
-
-// monitorCache is the monitor values and the tick they expire at. As there is no common way to
-// detect monitor changes in Android and iOS, the values are invalidated regularly.
-type monitorCache struct {
-	monitor  monitor
-	expireAt int64
-}
-
-type monitor struct {
-	width             int
-	height            int
-	deviceScaleFactor float64
-}
+type Monitor struct{}
 
 var theMonitor = &Monitor{}
 
@@ -341,40 +328,14 @@ func (m *Monitor) Name() string {
 	return ""
 }
 
-func (m *Monitor) ensureValues() monitor {
-	tick := theUI.Tick()
-	if c := m.cache.Load(); c != nil && c.expireAt > tick {
-		return c.monitor
-	}
-
-	width, height, scale, ok := theUI.displayInfo()
-	if !ok {
-		// This can happen e.g. when JVM is not ready.
-		return monitor{
-			width:             0,
-			height:            0,
-			deviceScaleFactor: 1,
-		}
-	}
-	mon := monitor{
-		width:             width,
-		height:            height,
-		deviceScaleFactor: scale,
-	}
-	m.cache.Store(&monitorCache{
-		monitor:  mon,
-		expireAt: tick + 1,
-	})
-	return mon
-}
-
 func (m *Monitor) DeviceScaleFactor() float64 {
-	return m.ensureValues().deviceScaleFactor
+	_, _, scale := theUI.displayInfo()
+	return scale
 }
 
 func (m *Monitor) Size() (int, int) {
-	mon := m.ensureValues()
-	return mon.width, mon.height
+	width, height, _ := theUI.displayInfo()
+	return width, height
 }
 
 func (u *UserInterface) AppendMonitors(mons []*Monitor) []*Monitor {

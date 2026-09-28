@@ -149,7 +149,25 @@ d.guest.MoveTouch(0, 120, 100)
 d.guest.ReleaseTouch(0)
 // gamepads — full snapshot each call; see vmhost.GamepadState
 d.guest.UpdateGamepads([]vmhost.GamepadState{ /* ... */ })
+// gamepad touchpad — TouchSurfaces lists each surface's current touches,
+// positions in [0, 1] with (0, 0) at the top left
+d.guest.UpdateGamepads([]vmhost.GamepadState{{
+	ID:   0,
+	Name: "Pad",
+	TouchSurfaces: [][]vmhost.GamepadTouchState{
+		{{ID: 1, X: 0.25, Y: 0.5}},
+	},
+}})
 ```
+
+A gamepad touch is identified by its `ID` across `UpdateGamepads` calls: a
+touch the previous call reported on the same surface with the same ID is the
+same touch (it keeps its `ebiten.GamepadTouchID` in the guest), and any other
+is a new touch. To lift a finger, send a snapshot without it; to put down a
+new finger, use an ID the previous snapshot did not have. Every call is a
+snapshot the guest tracks, so leaving a touch out of one call ends it even if
+no tick runs before the next call. A surface tracks at most 16 touches at
+once.
 
 Tick counts are in the guest's own time units — see
 [Ticks and TPS](#ticks-and-tps) to convert seconds of app time into

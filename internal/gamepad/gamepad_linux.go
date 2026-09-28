@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"slices"
 	"time"
 	"unsafe"
 
@@ -109,6 +110,7 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 		// Keep any active inotify watch for later gamepad detection.
 		return nil
 	}
+	var opened []*Gamepad
 	for _, ent := range ents {
 		if ent.IsDir() {
 			continue
@@ -116,10 +118,17 @@ func (g *nativeGamepadsImpl) init(gamepads *gamepads) (err error) {
 		if !reEvent.MatchString(ent.Name()) {
 			continue
 		}
-		if err := g.openEventNode(gamepads, filepath.Join(dirName, ent.Name())); err != nil {
+		gp, err := g.openEventNode(gamepads, filepath.Join(dirName, ent.Name()))
+		if err != nil {
 			return err
 		}
+		if gp != nil {
+			opened = append(opened, gp)
+		}
 	}
+
+	// A gamepad's touch surface node may have been seen, and closed, before the gamepad node.
+	g.openTouchSurfaces(gamepads, opened)
 
 	return nil
 }
@@ -134,10 +143,11 @@ func (g *nativeGamepadsImpl) isOpen(gamepads *gamepads, path string) bool {
 }
 
 // openEventNode opens the event node at path and, by what it is, adds it as a gamepad, attaches it
-// as the touch surface of its gamepad, or closes it again.
-func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) error {
+// as the touch surface of its gamepad, or closes it again. It returns the gamepad the node is
+// opened for, or nil if the node is already open or is not kept.
+func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) (*Gamepad, error) {
 	if g.isOpen(gamepads, path) {
-		return nil
+		return nil, nil
 	}
 
 	// Rumble requires write access to upload and play force feedback effects.
@@ -151,17 +161,17 @@ func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) erro
 	}
 	if err != nil {
 		if err == unix.EACCES {
-			return nil
+			return nil, nil
 		}
 		// This happens with the Snap sandbox.
 		if err == unix.EPERM {
-			return nil
+			return nil, nil
 		}
 		// This happens just after a disconnection.
 		if err == unix.ENOENT {
-			return nil
+			return nil, nil
 		}
-		return fmt.Errorf("gamepad: Open failed: %w", err)
+		return nil, fmt.Errorf("gamepad: Open failed: %w", err)
 	}
 	owned := true
 	defer func() {
@@ -175,19 +185,20 @@ func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) erro
 	info, err := readEvdevInfo(fd)
 	if err != nil {
 		if isDisconnectError(err) {
-			return nil
+			return nil, nil
 		}
-		return err
+		return nil, err
 	}
 	if info.kind == evdevKindOther {
 		owned = false
-		return unix.Close(fd)
+		return nil, unix.Close(fd)
 	}
 	if info.kind == evdevKindTouchSurface {
-		if attachTouch(gamepads, fd, path, info) {
+		gp := attachTouch(gamepads, fd, path, info)
+		if gp != nil {
 			owned = false
 		}
-		return nil
+		return gp, nil
 	}
 	id := info.id
 
@@ -270,9 +281,9 @@ func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) erro
 		}
 		if err := ioctl(n.fdPlus1-1, uint(_EVIOCGABS(uint(code))), unsafe.Pointer(&n.absInfo[code])); err != nil {
 			if isDisconnectError(err) {
-				return nil
+				return nil, nil
 			}
-			return fmt.Errorf("gamepad: ioctl for an abs at openEventNode failed: %w", err)
+			return nil, fmt.Errorf("gamepad: ioctl for an abs at openEventNode failed: %w", err)
 		}
 		n.absMap[code] = axisCount
 		axisCount++
@@ -286,9 +297,9 @@ func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) erro
 
 	if err := n.pollAbsState(); err != nil {
 		if isDisconnectError(err) {
-			return nil
+			return nil, nil
 		}
-		return err
+		return nil, err
 	}
 
 	owned = false
@@ -298,16 +309,19 @@ func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) erro
 		n.close()
 	}, n)
 
-	// The gamepad's touch surface node may have been seen, and closed, before the gamepad node.
-	if info.uniq != "" {
-		g.openTouchSurfaces(gamepads)
-	}
-
-	return nil
+	return gp, nil
 }
 
-// openTouchSurfaces opens the event nodes that are touch surfaces of open gamepads without one.
-func (g *nativeGamepadsImpl) openTouchSurfaces(gamepads *gamepads) {
+// openTouchSurfaces opens the event nodes that are touch surfaces of open gamepads without one. It
+// does nothing unless such a gamepad is in opened.
+func (g *nativeGamepadsImpl) openTouchSurfaces(gamepads *gamepads, opened []*Gamepad) {
+	if gamepads.find(func(gamepad *Gamepad) bool {
+		n := gamepad.native.(*nativeGamepadImpl)
+		return n.uniq != "" && n.touch == nil && slices.Contains(opened, gamepad)
+	}) == nil {
+		return
+	}
+
 	ents, err := os.ReadDir(dirName)
 	if err != nil {
 		return
@@ -331,35 +345,35 @@ func (g *nativeGamepadsImpl) openTouchSurface(gamepads *gamepads, path string) {
 		return
 	}
 	info, err := readEvdevInfo(fd)
-	if err != nil || info.kind != evdevKindTouchSurface || !attachTouch(gamepads, fd, path, info) {
+	if err != nil || info.kind != evdevKindTouchSurface || attachTouch(gamepads, fd, path, info) == nil {
 		_ = unix.Close(fd)
 	}
 }
 
 // attachTouch makes the opened touch surface node at fd the touch surface of the open gamepad of
-// the same controller, and reports whether it did. A touch surface is used only as the touch
-// surface of an open gamepad: one opened before its gamepad is not kept, and is opened again with
-// the gamepad. A node that fails to open is ignored, as the gamepad works without it. The caller
-// keeps ownership of fd if attachTouch returns false.
-func attachTouch(gamepads *gamepads, fd int, path string, info evdevInfo) bool {
+// the same controller, and returns that gamepad, or nil if it does not attach the node. A touch
+// surface is used only as the touch surface of an open gamepad: one opened before its gamepad is
+// not kept, and is opened again with the gamepad. A node that fails to open is ignored, as the
+// gamepad works without it. The caller keeps ownership of fd if attachTouch returns nil.
+func attachTouch(gamepads *gamepads, fd int, path string, info evdevInfo) *Gamepad {
 	if info.uniq == "" {
-		return false
+		return nil
 	}
 	gp := gamepads.find(func(gamepad *Gamepad) bool {
 		n := gamepad.native.(*nativeGamepadImpl)
 		return n.touch == nil && n.uniq == info.uniq && n.id.vendor == info.id.vendor && n.id.product == info.id.product
 	})
 	if gp == nil {
-		return false
+		return nil
 	}
 	t, err := newTouchNode(fd, path)
 	if err != nil {
-		return false
+		return nil
 	}
 	withNative(gp, func(n *nativeGamepadImpl) {
 		n.touch = t
 	})
-	return true
+	return gp
 }
 
 // evdevInfo is what an event node reports about itself.
@@ -462,6 +476,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	}
 	buf = buf[:n]
 
+	var opened []*Gamepad
 	for len(buf) > 0 {
 		e := unix.InotifyEvent{
 			Wd:     int32(buf[0]) | int32(buf[1])<<8 | int32(buf[2])<<16 | int32(buf[3])<<24,
@@ -481,8 +496,12 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 
 		path := filepath.Join(dirName, name)
 		if e.Mask&(unix.IN_CREATE|unix.IN_ATTRIB) != 0 {
-			if err := g.openEventNode(gamepads, path); err != nil {
+			gp, err := g.openEventNode(gamepads, path)
+			if err != nil {
 				return err
+			}
+			if gp != nil {
+				opened = append(opened, gp)
 			}
 			continue
 		}
@@ -491,6 +510,9 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 			continue
 		}
 	}
+
+	// A gamepad's touch surface node may have been seen, and closed, before the gamepad node.
+	g.openTouchSurfaces(gamepads, opened)
 
 	return nil
 }

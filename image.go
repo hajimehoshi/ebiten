@@ -106,7 +106,7 @@ func (i *Image) copyCheck() {
 }
 
 func (i *Image) updateAccessTime() {
-	i.atime.Store(Tick())
+	i.atime.Store(int64(DurationTime()))
 }
 
 // Size returns the size of the image.
@@ -1215,8 +1215,9 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	if tick := Tick(); i.subImageGCLastTick < tick {
 		i.subImageGCLastTick = tick
 
+		now := DurationTime()
 		for _, img := range i.subImageCache {
-			if img.atime.Load()+60 < tick {
+			if Duration(img.atime.Load()) < now-DurationSecond {
 				delete(i.subImageCache, img.bounds)
 			}
 		}

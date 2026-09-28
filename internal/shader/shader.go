@@ -878,6 +878,10 @@ func (s *compileState) parseVariable(block *block, fname string, vs *ast.ValueSp
 			inits = append(inits, initexprs...)
 		}
 
+		if !s.checkLocalVariableType(n.Pos(), t) {
+			return nil, nil, nil, false
+		}
+
 		name := n.Name
 		if declared(name, append(block.vars, vars...), block.consts) {
 			s.addError(n.Pos(), fmt.Sprintf("%s redeclared in this block", name))

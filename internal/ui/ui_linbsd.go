@@ -22,6 +22,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
@@ -334,4 +335,42 @@ func (u *glfwBackend) syncLockKeysFromOS() {
 	caps := NewLockKeyStateFromBool(mask&xLockMask != 0)
 	num := NewLockKeyStateFromBool(mask&xMod2Mask != 0)
 	u.input.setLockKeys(caps, num)
+}
+
+// x11CrtcSize returns the pixel size of the given CRTC. ok is false when RandR
+// is unavailable or the CRTC cannot be queried.
+func x11CrtcSize(display uintptr, crtc xID) (width, height int, ok bool) {
+	if !xrandrLoaded {
+		return 0, 0, false
+	}
+	resources := xrrGetScreenResourcesCurrent(display, x11RootWindow(display))
+	if resources == 0 {
+		return 0, 0, false
+	}
+	defer xrrFreeScreenResources(resources)
+
+	info := xrrGetCrtcInfo(display, resources, crtc)
+	if info == 0 {
+		return 0, 0, false
+	}
+	defer xrrFreeCrtcInfo(info)
+
+	ci := (*xrrCrtcInfo)(unsafe.Pointer(info))
+	return int(ci.width), int(ci.height), true
+}
+
+// x11SetWindowThemeVariant sets the _GTK_THEME_VARIANT property on the window,
+// or removes it when variant is empty.
+func x11SetWindowThemeVariant(display, window uintptr, variant string) {
+	gtkThemeVariant := xInternAtom(display, "_GTK_THEME_VARIANT", false)
+	if variant == "" {
+		_ = xDeleteProperty(display, xID(window), gtkThemeVariant)
+	} else {
+		utf8String := xInternAtom(display, "UTF8_STRING", false)
+		data := []byte(variant)
+		_ = xChangePropertyGeneric(display, xID(window), gtkThemeVariant, utf8String, xPropModeReplace, data)
+	}
+	// Properties are buffered until the next round-trip; flush so the change
+	// takes effect immediately.
+	xFlush(display)
 }

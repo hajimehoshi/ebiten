@@ -19,11 +19,22 @@
 package vmhost_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
 )
+
+const gamepadTouchTagScale = 16
+
+func gamepadTouch(id ebiten.GamepadTouchID, tag int, y float64) vmhost.GamepadTouchState {
+	return vmhost.GamepadTouchState{
+		ID: id,
+		X:  float64(tag) / gamepadTouchTagScale,
+		Y:  y,
+	}
+}
 
 // fillGamepadState fills state with the snapshot the fixture guest expects, reusing state's slices and
 // maps; keep it in sync with the fixture's expectation. The standard layer is set independently of the
@@ -45,6 +56,9 @@ func fillGamepadState(state *vmhost.GamepadState) {
 	}
 	clear(state.StandardAxes)
 	state.StandardAxes[ebiten.StandardGamepadAxisLeftStickHorizontal] = 0.5
+	state.TouchSurfaces = slices.Grow(state.TouchSurfaces[:0], 2)[:2]
+	state.TouchSurfaces[0] = state.TouchSurfaces[0][:0]
+	state.TouchSurfaces[1] = append(state.TouchSurfaces[1][:0], gamepadTouch(1, 1, 0.5))
 }
 
 // checkScreenGreen fails the test unless the screen's center pixel is the fixture's all-matched green.
@@ -130,4 +144,54 @@ func scrambleGamepadState(state *vmhost.GamepadState) {
 	state.StandardAxes[ebiten.StandardGamepadAxisRightStickVertical] = -1
 	clear(state.StandardButtons)
 	state.StandardButtons[ebiten.StandardGamepadButtonCenterCenter] = vmhost.GamepadStandardButtonState{Pressed: true, Value: 1}
+	for _, touches := range state.TouchSurfaces {
+		for i := range touches {
+			touches[i] = vmhost.GamepadTouchState{
+				ID: 99,
+				X:  -123,
+				Y:  -123,
+			}
+		}
+	}
+}
+
+func TestGamepadTouchForwarding(t *testing.T) {
+	guest := startGuest(t, "./testdata/gamepad", activateByEnv, "unix")
+
+	const w, h = 32, 32
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	outsideScreen := ebiten.NewImage(int(w*scale), int(h*scale))
+	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
+		t.Fatal(err)
+	}
+
+	states := make([]vmhost.GamepadState, 1)
+	updateTouches := func(surfaces ...[]vmhost.GamepadTouchState) {
+		fillGamepadState(&states[0])
+		states[0].TouchSurfaces = surfaces
+		guest.UpdateGamepads(states)
+	}
+
+	updateTouches([]vmhost.GamepadTouchState{
+		gamepadTouch(1, 1, 0.25),
+	}, []vmhost.GamepadTouchState{
+		gamepadTouch(2, 2, 0.5),
+	})
+	tickAndFrame(t, guest)
+	checkScreenGreen(t, outsideScreen)
+
+	updateTouches([]vmhost.GamepadTouchState{
+		gamepadTouch(1, 1, 0.5),
+	}, nil)
+	updateTouches([]vmhost.GamepadTouchState{
+		gamepadTouch(1, 1, 0.75),
+	}, []vmhost.GamepadTouchState{
+		gamepadTouch(2, 3, 0.5),
+	})
+	tickAndFrame(t, guest)
+	checkScreenGreen(t, outsideScreen)
+
+	updateTouches(nil, nil)
+	tickAndFrame(t, guest)
+	checkScreenGreen(t, outsideScreen)
 }

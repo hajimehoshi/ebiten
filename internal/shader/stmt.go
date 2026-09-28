@@ -667,6 +667,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					if t.Main == shaderir.None {
 						t = toDefaultType(r[0].Const)
 					}
+					if !cs.checkLocalVariableType(e.Pos(), t) {
+						return nil, false
+					}
 					block.addNamedLocalVariable(name, t, e.Pos())
 					if name != "_" {
 						newVariable = true
@@ -794,6 +797,9 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 						// but there are no actual cases when len(lhs) != len(rhs). Is this correct?
 						t = toDefaultType(rhsExprs[i].Const)
 					}
+					if !cs.checkLocalVariableType(e.Pos(), t) {
+						return nil, false
+					}
 					block.addNamedLocalVariable(name, t, e.Pos())
 					if name != "_" {
 						newVariable = true
@@ -842,6 +848,15 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	}
 
 	return stmts, true
+}
+
+// checkLocalVariableType reports whether a local variable can have the type t, and adds an error if not.
+func (cs *compileState) checkLocalVariableType(pos token.Pos, t shaderir.Type) bool {
+	if t.Main == shaderir.Texture {
+		cs.addError(pos, "a texture cannot be assigned to a variable")
+		return false
+	}
+	return true
 }
 
 // checkAssignmentTarget reports whether e can be assigned, and adds an error if not.

@@ -21,6 +21,11 @@
 // several injected snapshots and ticks queued ahead of one frame, a corrupted earlier tick is not
 // masked by a correct later one.
 //
+// The touches vary from tick to tick, so they are checked against the previous tick's instead. The
+// host tags each touch by its X position, tag/touchTagScale, keeps the tag while the touch is held,
+// and gives every new touch a new tag. A touch whose tag the previous tick had must keep its ID, a
+// touch with a new tag must have an ID never seen before, and an ended touch must have no position.
+//
 // It is launched by a host; see vmhost's gamepad test.
 package main
 
@@ -43,8 +48,24 @@ var (
 	wantButtons = []bool{true, false, true}
 )
 
+const (
+	wantTouchSurfaceCount = 2
+	touchTagScale         = 16
+)
+
+// touchKey identifies one of the host's touches by its surface and tag.
+type touchKey struct {
+	surface int
+	tag     int
+}
+
 type game struct {
 	failed bool
+
+	// touchIDs holds the ID of each touch at the previous tick. seenTouchIDs holds every ID seen so
+	// far.
+	touchIDs     map[touchKey]ebiten.GamepadTouchID
+	seenTouchIDs map[ebiten.GamepadTouchID]bool
 }
 
 func (g *game) Update() error {
@@ -111,7 +132,61 @@ func (g *game) check() bool {
 		fail("StandardGamepadAxisValue(LeftStickHorizontal) = %v; want 0.5", got)
 	}
 
+	g.checkTouches(id, fail)
+
 	return ok
+}
+
+func (g *game) checkTouches(id ebiten.GamepadID, fail func(format string, args ...any)) {
+	if got := ebiten.GamepadTouchSurfaceCount(id); got != wantTouchSurfaceCount {
+		fail("GamepadTouchSurfaceCount = %d; want %d", got, wantTouchSurfaceCount)
+	}
+
+	touchIDs := map[touchKey]ebiten.GamepadTouchID{}
+	listed := map[ebiten.GamepadTouchID]bool{}
+	for s := range wantTouchSurfaceCount {
+		for _, tid := range ebiten.AppendGamepadTouchIDs(id, s, nil) {
+			if listed[tid] {
+				fail("touch ID %d is listed twice", tid)
+				continue
+			}
+			listed[tid] = true
+
+			x, y := ebiten.GamepadTouchPosition(id, tid)
+			tag := x * touchTagScale
+			if tag != math.Trunc(tag) || tag < 1 || y < 0 || y > 1 {
+				fail("GamepadTouchPosition(%d) = (%v, %v); want a tagged position", tid, x, y)
+				continue
+			}
+			key := touchKey{
+				surface: s,
+				tag:     int(tag),
+			}
+			touchIDs[key] = tid
+
+			if prev, ok := g.touchIDs[key]; ok {
+				if tid != prev {
+					fail("the touch tagged %d on surface %d has ID %d; want the ID %d it had at the previous tick", key.tag, s, tid, prev)
+				}
+			} else if g.seenTouchIDs[tid] {
+				fail("the new touch tagged %d on surface %d has ID %d, which an earlier touch had", key.tag, s, tid)
+			}
+		}
+	}
+
+	for key, tid := range g.touchIDs {
+		if _, ok := touchIDs[key]; ok {
+			continue
+		}
+		if x, y := ebiten.GamepadTouchPosition(id, tid); x != 0 || y != 0 {
+			fail("GamepadTouchPosition(%d) of the ended touch tagged %d on surface %d = (%v, %v); want (0, 0)", tid, key.tag, key.surface, x, y)
+		}
+	}
+
+	for tid := range listed {
+		g.seenTouchIDs[tid] = true
+	}
+	g.touchIDs = touchIDs
 }
 
 func approx(a, b float64) bool {
@@ -131,7 +206,9 @@ func (g *game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	if err := ebiten.RunGame(&game{}); err != nil {
+	if err := ebiten.RunGame(&game{
+		seenTouchIDs: map[ebiten.GamepadTouchID]bool{},
+	}); err != nil {
 		log.Fatal(err)
 	}
 }
