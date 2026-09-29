@@ -31,21 +31,21 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
-var _ uiBackend = (*consoleBackend)(nil)
+var _ uiBackend = (*noWindowSystemBackend)(nil)
 
-type consoleContext interface {
+type noWindowSystemContext interface {
 	opengl.Presenter
 	Size() (int, int)
 	Close() error
 }
 
-// consoleBackend runs the game without a window system, using either GBM/KMS
+// noWindowSystemBackend runs the game without a window system, using either GBM/KMS
 // or a framebuffer device for presentation.
-type consoleBackend struct {
+type noWindowSystemBackend struct {
 	*UserInterface
 
-	eglContext    consoleContext
-	newContext    func() (consoleContext, error)
+	eglContext    noWindowSystemContext
+	newContext    func() (noWindowSystemContext, error)
 	closeDisplay  func() error
 	sizeMu        sync.RWMutex
 	width, height int
@@ -62,8 +62,8 @@ type consoleBackend struct {
 	mu sync.Mutex
 }
 
-func newConsoleBackend(u *UserInterface, width, height int, c consoleContext, newContext func() (consoleContext, error), closeDisplay func() error) *consoleBackend {
-	b := &consoleBackend{
+func newNoWindowSystemBackend(u *UserInterface, width, height int, c noWindowSystemContext, newContext func() (noWindowSystemContext, error), closeDisplay func() error) *noWindowSystemBackend {
+	b := &noWindowSystemBackend{
 		UserInterface: u,
 		eglContext:    c,
 		newContext:    newContext,
@@ -85,12 +85,12 @@ func maybeNewFbdevBackend(u *UserInterface) (uiBackend, error) {
 	}
 
 	width, height := display.Size()
-	return newConsoleBackend(u, width, height, nil, func() (consoleContext, error) {
+	return newNoWindowSystemBackend(u, width, height, nil, func() (noWindowSystemContext, error) {
 		return fbdev.NewContext(display)
 	}, nil), nil
 }
 
-func (b *consoleBackend) run(game Game, options *RunOptions) error {
+func (b *noWindowSystemBackend) run(game Game, options *RunOptions) error {
 	if options == nil {
 		options = &RunOptions{}
 	}
@@ -118,7 +118,7 @@ func (b *consoleBackend) run(game Game, options *RunOptions) error {
 		defer cancel()
 
 		type args struct {
-			b       *consoleBackend
+			b       *noWindowSystemBackend
 			options *RunOptions
 		}
 		if err := thread.CallWithArgAndResult(b.mainThread, func(a args) error {
@@ -138,7 +138,7 @@ func (b *consoleBackend) run(game Game, options *RunOptions) error {
 	return wg.Wait()
 }
 
-func (b *consoleBackend) initOnMainThread(options *RunOptions) (err error) {
+func (b *noWindowSystemBackend) initOnMainThread(options *RunOptions) (err error) {
 	if b.eglContext == nil {
 		c, err := b.newContext()
 		if err != nil {
@@ -176,17 +176,17 @@ func (b *consoleBackend) initOnMainThread(options *RunOptions) (err error) {
 	b.setRunningBackend(b)
 
 	// Ask for the first frame. In FPSModeVsyncOffMinimum the game loop waits
-	// for a request, and a framebuffer device raises no event that would stand
+	// for a request, and a display without a window system raises no event that would stand
 	// in for one, so nothing else would ever ask.
 	b.ScheduleFrame()
 
 	return nil
 }
 
-func (b *consoleBackend) loopGame() (err error) {
+func (b *noWindowSystemBackend) loopGame() (err error) {
 	defer func() {
 		graphicscommand.Terminate()
-		closeErr := thread.CallWithArgAndResult(b.mainThread, func(b *consoleBackend) error {
+		closeErr := thread.CallWithArgAndResult(b.mainThread, func(b *noWindowSystemBackend) error {
 			defer b.setTerminated()
 			return b.closeOnMainThread()
 		}, b)
@@ -200,7 +200,7 @@ func (b *consoleBackend) loopGame() (err error) {
 	}
 }
 
-func (b *consoleBackend) closeOnMainThread() error {
+func (b *noWindowSystemBackend) closeOnMainThread() error {
 	var err error
 	if b.eglContext != nil {
 		err = errors.Join(err, b.eglContext.Close())
@@ -213,10 +213,9 @@ func (b *consoleBackend) closeOnMainThread() error {
 	return err
 }
 
-func (b *consoleBackend) updateGame() error {
-	// In this mode a frame runs only when something asks for one, as there is
-	// only ScheduleFrame asks for a frame: there is no window system to raise
-	// events.
+func (b *noWindowSystemBackend) updateGame() error {
+	// In this mode a frame runs only when something asks for one. Only
+	// ScheduleFrame asks, as there is no window system to raise events.
 	if FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		<-b.frameCh
 	}
@@ -232,75 +231,75 @@ func (b *consoleBackend) updateGame() error {
 
 // deviceScaleFactor implements virtualMonitorSource.
 //
-// Console displays report no physical size, so a logical pixel is a device
+// Displays without a window system report no physical size, so a logical pixel is a device
 // pixel.
-func (b *consoleBackend) deviceScaleFactor() float64 {
+func (b *noWindowSystemBackend) deviceScaleFactor() float64 {
 	return 1
 }
 
 // outsideSize implements virtualMonitorSource.
 //
 // The surface covers the display, and nothing can resize it.
-func (b *consoleBackend) outsideSize() (width, height float64) {
+func (b *noWindowSystemBackend) outsideSize() (width, height float64) {
 	w, h := b.screenSize()
 	return float64(w), float64(h)
 }
 
 // screenSize returns the size of the surface in pixels.
-func (b *consoleBackend) screenSize() (width, height int) {
+func (b *noWindowSystemBackend) screenSize() (width, height int) {
 	b.sizeMu.RLock()
 	defer b.sizeMu.RUnlock()
 	return b.width, b.height
 }
 
-func (b *consoleBackend) readInputState(inputState *InputState) {
+func (b *noWindowSystemBackend) readInputState(inputState *InputState) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	b.inputState.copyAndReset(inputState)
 }
 
-func (b *consoleBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
+func (b *noWindowSystemBackend) updateInputStateForFrame(deviceScaleFactor float64) error {
 	return nil
 }
 
-func (b *consoleBackend) KeyName(key Key) string {
+func (b *noWindowSystemBackend) KeyName(key Key) string {
 	return ""
 }
 
-func (b *consoleBackend) updateIconIfNeeded() error {
+func (b *noWindowSystemBackend) updateIconIfNeeded() error {
 	return nil
 }
 
-func (b *consoleBackend) IsFocused() bool {
+func (b *noWindowSystemBackend) IsFocused() bool {
 	return true
 }
 
-func (b *consoleBackend) IsFullscreen() bool {
+func (b *noWindowSystemBackend) IsFullscreen() bool {
 	// The surface always covers the display, which is not the same as the
 	// fullscreen a window system offers.
 	return false
 }
 
-func (b *consoleBackend) SetFullscreen(fullscreen bool) {
+func (b *noWindowSystemBackend) SetFullscreen(fullscreen bool) {
 }
 
-func (b *consoleBackend) CursorMode() CursorMode {
+func (b *noWindowSystemBackend) CursorMode() CursorMode {
 	return CursorModeHidden
 }
 
-func (b *consoleBackend) SetCursorMode(mode CursorMode) {
+func (b *noWindowSystemBackend) SetCursorMode(mode CursorMode) {
 }
 
-func (b *consoleBackend) applyCursorShape() {
+func (b *noWindowSystemBackend) applyCursorShape() {
 }
 
-func (b *consoleBackend) applyFPSMode() {
+func (b *noWindowSystemBackend) applyFPSMode() {
 	b.RunOnMainThread(func() {
 		graphicscommand.SetVsyncEnabled(FPSModeType(b.fpsMode.Load()) == FPSModeVsyncOn)
 	})
 }
 
-func (b *consoleBackend) ScheduleFrame() {
+func (b *noWindowSystemBackend) ScheduleFrame() {
 	// The game loop can be waiting for this, so never block on a wakeup that is
 	// already pending.
 	select {
@@ -309,18 +308,18 @@ func (b *consoleBackend) ScheduleFrame() {
 	}
 }
 
-func (b *consoleBackend) Window() backendWindow {
+func (b *noWindowSystemBackend) Window() backendWindow {
 	return &nullWindow{}
 }
 
-func (b *consoleBackend) Monitor() *Monitor {
+func (b *noWindowSystemBackend) Monitor() *Monitor {
 	return b.monitor
 }
 
-func (b *consoleBackend) appendMonitors(monitors []*Monitor) []*Monitor {
+func (b *noWindowSystemBackend) appendMonitors(monitors []*Monitor) []*Monitor {
 	return append(monitors, b.monitor)
 }
 
-func (b *consoleBackend) RunOnMainThread(f func()) {
+func (b *noWindowSystemBackend) RunOnMainThread(f func()) {
 	thread.Call(b.mainThread, f)
 }

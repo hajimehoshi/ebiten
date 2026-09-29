@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux && (amd64 || arm64) && !android
+//go:build (amd64 || arm64) && !android
 
 package gbm
 
@@ -50,6 +50,7 @@ type Context struct {
 	eventBuf                 [64]byte
 }
 
+// NewContext creates an OpenGL ES 3 context for the GBM display.
 func NewContext(d *Display) (*Context, error) {
 	e, err := egl.NewContext()
 	if err != nil {
@@ -112,13 +113,16 @@ func (c *Context) chooseConfig() (uintptr, error) {
 	return 0, fmt.Errorf("gbm: no EGL config has the XRGB8888 native visual")
 }
 
+// SwapInterval records the requested KMS presentation interval.
 func (c *Context) SwapInterval(interval int) error {
 	c.swapInterval = interval
 	return nil
 }
 
+// Size returns the size of the surface in pixels.
 func (c *Context) Size() (int, int) { return c.eglContext.Size() }
 
+// MakeContextCurrent makes this context current on the calling thread.
 func (c *Context) MakeContextCurrent() error { return c.eglContext.MakeContextCurrent() }
 
 // Probe verifies that the selected buffer can be scanned out before the UI
@@ -144,6 +148,7 @@ func (c *Context) Probe() error {
 	return nil
 }
 
+// SwapBuffers presents the current frame through KMS.
 func (c *Context) SwapBuffers() error {
 	if err := c.eglContext.SwapBuffers(); err != nil {
 		return err
@@ -223,6 +228,7 @@ func (c *Context) addFB(bo uintptr) (uint32, error) {
 	return fb, nil
 }
 
+// Close restores the previous display state and releases EGL and GBM resources.
 func (c *Context) Close() error {
 	if c.eglContext == nil {
 		return nil

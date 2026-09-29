@@ -12,26 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux && !android && !nintendosdk && !playstation5
+//go:build !android && !nintendosdk && !playstation5
 
 package ui
 
-import "testing"
-
-func TestConsoleSizeAfterClose(t *testing.T) {
-	closed := false
-	b := newConsoleBackend(nil, 640, 480, nil, nil, func() error {
-		closed = true
-		return nil
-	})
+// NoWindowSystemSizeAfterCloseForTesting closes a display and returns its cached size.
+func NoWindowSystemSizeAfterCloseForTesting(width, height int, closeDisplay func() error) (int, int, error) {
+	b := newNoWindowSystemBackend(nil, width, height, nil, nil, closeDisplay)
 	if err := b.closeOnMainThread(); err != nil {
-		t.Fatal(err)
+		return 0, 0, err
 	}
-	if !closed {
-		t.Fatal("display was not closed")
-	}
-	width, height := b.screenSize()
-	if width != 640 || height != 480 {
-		t.Errorf("screenSize() = %dx%d, want 640x480", width, height)
-	}
+	w, h := b.screenSize()
+	return w, h, nil
 }

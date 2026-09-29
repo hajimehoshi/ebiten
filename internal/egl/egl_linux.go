@@ -139,6 +139,7 @@ func (c *Context) RegisterProcFunc(ptr any, name string) error {
 	return nil
 }
 
+// Initialize binds OpenGL ES to the native EGL display.
 func (c *Context) Initialize(display uintptr) error {
 	if display == 0 {
 		return fmt.Errorf("egl: no display: %w", c.LastError())
@@ -188,6 +189,7 @@ func (c *Context) ChooseConfigs(attribs []int32) ([]uintptr, error) {
 	return configs[:num], nil
 }
 
+// ConfigAttrib returns an attribute of an EGL configuration.
 func (c *Context) ConfigAttrib(config uintptr, attribute int32) (int32, error) {
 	var value int32
 	if !c.api.GetConfigAttrib(c.display, config, attribute, &value) {
@@ -196,6 +198,7 @@ func (c *Context) ConfigAttrib(config uintptr, attribute int32) (int32, error) {
 	return value, nil
 }
 
+// CreateWindowSurface creates a window surface for the selected configuration.
 func (c *Context) CreateWindowSurface(config, window uintptr, attribs []int32) error {
 	var p *int32
 	if len(attribs) != 0 {
@@ -208,6 +211,7 @@ func (c *Context) CreateWindowSurface(config, window uintptr, attribs []int32) e
 	return nil
 }
 
+// QuerySurface returns an attribute of the current surface.
 func (c *Context) QuerySurface(attribute int32) (int32, error) {
 	var value int32
 	if !c.api.QuerySurface(c.display, c.surface, attribute, &value) {
@@ -216,6 +220,7 @@ func (c *Context) QuerySurface(attribute int32) (int32, error) {
 	return value, nil
 }
 
+// CreateES3Context creates an OpenGL ES 3 context for the selected configuration.
 func (c *Context) CreateES3Context(config uintptr) error {
 	attribs := []int32{ContextClientVersion, 3, None}
 	c.context = c.api.CreateContext(c.display, config, 0, &attribs[0])
@@ -225,9 +230,13 @@ func (c *Context) CreateES3Context(config uintptr) error {
 	return nil
 }
 
+// SetSize records the surface size in pixels.
 func (c *Context) SetSize(width, height int) { c.width, c.height = width, height }
-func (c *Context) Size() (int, int)          { return c.width, c.height }
 
+// Size returns the surface size in pixels.
+func (c *Context) Size() (int, int) { return c.width, c.height }
+
+// MakeContextCurrent makes this context current on the calling thread.
 func (c *Context) MakeContextCurrent() error {
 	if !c.api.MakeCurrent(c.display, c.surface, c.surface, c.context) {
 		return fmt.Errorf("egl: eglMakeCurrent failed: %w", c.LastError())
@@ -235,6 +244,7 @@ func (c *Context) MakeContextCurrent() error {
 	return nil
 }
 
+// SwapInterval sets the requested interval between buffer swaps.
 func (c *Context) SwapInterval(interval int) error {
 	if c.swapInterval == interval {
 		return nil
@@ -246,6 +256,7 @@ func (c *Context) SwapInterval(interval int) error {
 	return nil
 }
 
+// SwapBuffers presents the current surface through EGL.
 func (c *Context) SwapBuffers() error {
 	if !c.api.SwapBuffers(c.display, c.surface) {
 		return fmt.Errorf("egl: eglSwapBuffers failed: %w", c.LastError())
@@ -260,6 +271,7 @@ func (c *Context) Unbind() {
 	}
 }
 
+// Close releases the EGL context, surface, display, and library.
 func (c *Context) Close() error {
 	if c.display != 0 {
 		c.Unbind()
@@ -286,6 +298,7 @@ type eglError int32
 
 func (e eglError) Error() string { return fmt.Sprintf("EGL error 0x%x", int32(e)) }
 
+// LastError returns the last error reported by EGL.
 func (c *Context) LastError() error {
 	code := c.api.GetError()
 	if code == Success {

@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux && (amd64 || arm64) && !android
+//go:build (amd64 || arm64) && !android
 
 // Package gbm renders on a Linux DRM/KMS display through GBM and a vendor EGL
 // implementation, for systems with no window system but a GBM-capable DRM device

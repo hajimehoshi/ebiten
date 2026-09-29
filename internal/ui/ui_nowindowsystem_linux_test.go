@@ -12,19 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (amd64 || arm64) && !android
+//go:build !android && !nintendosdk && !playstation5
 
-package gbm
+package ui_test
 
-func CRTCForEncoderForTesting(crtcID, possibleCrtcs uint32, crtcs []uint32) uint32 {
-	return crtcForEncoder(&drmModeEncoder{crtcID: crtcID, possibleCrtcs: possibleCrtcs}, crtcs)
-}
+import (
+	"testing"
 
-func PreferredModeIndexForTesting(types []uint32) int {
-	modes := make([]drmModeModeInfo, len(types))
-	for i, typ := range types {
-		modes[i].clock = uint32(i + 1)
-		modes[i].typ = typ
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+)
+
+func TestNoWindowSystemSizeAfterClose(t *testing.T) {
+	closed := false
+	width, height, err := ui.NoWindowSystemSizeAfterCloseForTesting(640, 480, func() error {
+		closed = true
+		return nil
+	})
+	if err != nil {
+		t.Fatal(err)
 	}
-	return int(preferredMode(modes).clock) - 1
+	if !closed {
+		t.Error("display was not closed")
+	}
+	if width != 640 || height != 480 {
+		t.Errorf("screenSize() = %dx%d, want 640x480", width, height)
+	}
 }

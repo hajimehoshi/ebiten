@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build linux && (amd64 || arm64) && !android
+//go:build (amd64 || arm64) && !android
 
 package gbm_test
 
@@ -29,9 +29,9 @@ func TestCRTCForEncoder(t *testing.T) {
 		crtcID, possible uint32
 		want             uint32
 	}{
-		{"current CRTC", 40, 0, 40},
-		{"first compatible CRTC", 0, 1 << 1, 20},
-		{"no compatible CRTC", 0, 0, 0},
+		{name: "current CRTC", crtcID: 40, possible: 0, want: 40},
+		{name: "first compatible CRTC", crtcID: 0, possible: 1 << 1, want: 20},
+		{name: "no compatible CRTC", crtcID: 0, possible: 0, want: 0},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			if got := gbm.CRTCForEncoderForTesting(test.crtcID, test.possible, crtcs); got != test.want {
@@ -47,8 +47,8 @@ func TestPreferredMode(t *testing.T) {
 		types []uint32
 		want  int
 	}{
-		{"preferred", []uint32{0, 1 << 3, 0}, 1},
-		{"first when none preferred", []uint32{0, 0}, 0},
+		{name: "preferred", types: []uint32{0, 1 << 3, 0}, want: 1},
+		{name: "first when none preferred", types: []uint32{0, 0}, want: 0},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			if got := gbm.PreferredModeIndexForTesting(test.types); got != test.want {

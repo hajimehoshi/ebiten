@@ -18,12 +18,11 @@ package ui
 
 import (
 	"errors"
-	"runtime"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gbm"
 )
 
-// maybeNewGBMBackend probes EGL and KMS before choosing the console backend.
+// maybeNewGBMBackend probes EGL and KMS before choosing the backend without a window system.
 // An unusable DRM device can then fall back to fbdev before the game starts.
 func maybeNewGBMBackend(u *UserInterface) (uiBackend, error) {
 	display, err := gbm.OpenDisplay()
@@ -35,16 +34,14 @@ func maybeNewGBMBackend(u *UserInterface) (uiBackend, error) {
 		return nil, errors.Join(err, display.Close())
 	}
 
-	runtime.LockOSThread()
 	err = c.Probe()
 	if err != nil {
 		err = errors.Join(err, c.Close())
 	}
-	runtime.UnlockOSThread()
 	if err != nil {
 		return nil, errors.Join(err, display.Close())
 	}
 
 	width, height := c.Size()
-	return newConsoleBackend(u, width, height, c, nil, display.Close), nil
+	return newNoWindowSystemBackend(u, width, height, c, nil, display.Close), nil
 }
