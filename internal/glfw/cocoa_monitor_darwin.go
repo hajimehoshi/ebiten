@@ -360,7 +360,8 @@ func pollMonitorsNS() error {
 			if m != nil && m.platform.unitNumber == unitNumber {
 				disconnected[j] = nil
 				alreadyKnown = true
-				// Update the screen reference for the already-known monitor.
+				// Refresh the display ID and screen reference for the already-known monitor.
+				m.platform.displayID = display
 				m.platform.screen = nsScreenForDisplayID(display)
 				break
 			}
