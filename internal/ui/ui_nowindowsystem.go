@@ -176,8 +176,7 @@ func (b *noWindowSystemBackend) initOnMainThread(options *RunOptions) (err error
 	b.setRunningBackend(b)
 
 	// Ask for the first frame. In FPSModeVsyncOffMinimum the game loop waits
-	// for a request, and a display without a window system raises no event that would stand
-	// in for one, so nothing else would ever ask.
+	// for a request. Without a window system, no event will request one.
 	b.ScheduleFrame()
 
 	return nil
@@ -231,8 +230,8 @@ func (b *noWindowSystemBackend) updateGame() error {
 
 // deviceScaleFactor implements virtualMonitorSource.
 //
-// Displays without a window system report no physical size, so a logical pixel is a device
-// pixel.
+// Displays without a window system report no physical size, so a logical
+// pixel is a device pixel.
 func (b *noWindowSystemBackend) deviceScaleFactor() float64 {
 	return 1
 }
