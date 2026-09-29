@@ -410,7 +410,7 @@ func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
 	// States belonging to no session describe a target this one knows nothing
 	// about.
 	if !queuedStatesBelong(s.lastEndTick, s.queuedTick, s.currentTick()) {
-		s.queuedStates = s.queuedStates[:0]
+		s.queuedStates = slices.Delete(s.queuedStates, 0, len(s.queuedStates))
 	}
 
 	if s.ch == nil {
@@ -492,7 +492,7 @@ func (s *textInputEvents) send(state textInputState) bool {
 		// opening a session.
 		tick := s.currentTick()
 		if !queuedStatesBelong(s.lastEndTick, s.queuedTick, tick) {
-			s.queuedStates = s.queuedStates[:0]
+			s.queuedStates = slices.Delete(s.queuedStates, 0, len(s.queuedStates))
 		}
 		s.queuedTick = tick
 	}
@@ -529,7 +529,7 @@ func (s *textInputEvents) doSend(state textInputState) {
 func (s *textInputEvents) clearQueue() {
 	s.m.Lock()
 	defer s.m.Unlock()
-	s.queuedStates = s.queuedStates[:0]
+	s.queuedStates = slices.Delete(s.queuedStates, 0, len(s.queuedStates))
 }
 
 // dropQueuedCompositions drops the queued composition states. Queued commits
