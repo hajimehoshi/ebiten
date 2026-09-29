@@ -12,6 +12,7 @@ import (
 	"image"
 	"image/draw"
 	"math"
+	"slices"
 )
 
 const stick = 3
@@ -434,8 +435,7 @@ func (c *Cursor) Destroy() error {
 	// Unlink cursor from global linked list
 	for i, cursor := range _glfw.cursors {
 		if cursor == c {
-			copy(_glfw.cursors[i:], _glfw.cursors[i+1:])
-			_glfw.cursors = _glfw.cursors[:len(_glfw.cursors)-1]
+			_glfw.cursors = slices.Delete(_glfw.cursors, i, i+1)
 			break
 		}
 	}
