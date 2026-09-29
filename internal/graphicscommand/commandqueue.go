@@ -268,7 +268,7 @@ func (a commandQueueFlushArgs) flush() error {
 		a.manager.setError(err)
 		return nil
 	}
-	a.manager.putCommandQueue(a.queue)
+	a.manager.finishCommandQueueFlush(a.queue, a.mode)
 	return nil
 }
 
@@ -318,12 +318,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 		q.tmpNumVertexFloats = 0
 
 		if mode != graphicsdriver.FlushModeIntermediate {
-			q.uint32sBuffer.reset()
-			for i, f := range q.finalizers {
-				f()
-				q.finalizers[i] = nil
-			}
-			q.finalizers = q.finalizers[:0]
+			q.releaseResources()
 		}
 	}()
 
@@ -376,6 +371,15 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 	}
 
 	return nil
+}
+
+func (q *commandQueue) releaseResources() {
+	q.uint32sBuffer.reset()
+	for i, f := range q.finalizers {
+		f()
+		q.finalizers[i] = nil
+	}
+	q.finalizers = q.finalizers[:0]
 }
 
 type rectangleF32 struct {
@@ -532,6 +536,10 @@ type commandQueueManager struct {
 	pool    commandQueuePool
 	current *commandQueue
 
+	// queuesInUse holds queues whose resources are still needed by the current frame.
+	// Only the render thread accesses queuesInUse.
+	queuesInUse []*commandQueue
+
 	err atomic.Pointer[error]
 }
 
@@ -568,9 +576,21 @@ func (c *commandQueueManager) enqueueCommand(command command) {
 	c.current.Enqueue(command)
 }
 
-// put can be called from any goroutine.
-func (c *commandQueueManager) putCommandQueue(commandQueue *commandQueue) {
-	c.pool.put(commandQueue)
+// finishCommandQueueFlush must be called on the render thread.
+func (c *commandQueueManager) finishCommandQueueFlush(queue *commandQueue, mode graphicsdriver.FlushMode) {
+	if mode == graphicsdriver.FlushModeIntermediate {
+		c.queuesInUse = append(c.queuesInUse, queue)
+		return
+	}
+
+	// End has submitted the frame's commands, so every queue used by this frame can be reused.
+	for i, q := range c.queuesInUse {
+		q.releaseResources()
+		c.pool.put(q)
+		c.queuesInUse[i] = nil
+	}
+	c.queuesInUse = c.queuesInUse[:0]
+	c.pool.put(queue)
 }
 
 func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {

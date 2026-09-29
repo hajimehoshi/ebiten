@@ -17,6 +17,7 @@ package graphicscommand_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 	"testing"
 
@@ -154,5 +155,80 @@ func TestFlushStoppedNoopThread(t *testing.T) {
 		if err := q.Flush(&manager, nil, graphicsdriver.FlushModePresent); err != nil {
 			t.Error(err)
 		}
+	}
+}
+
+type resourceCommand struct {
+	finalize func()
+}
+
+func (c *resourceCommand) Exec(q *graphicscommand.CommandQueueForTesting, _ graphicsdriver.Graphics, _ int) error {
+	q.AddFinalizerForTesting(c.finalize)
+	return nil
+}
+
+func (*resourceCommand) NeedsSync() bool { return false }
+func (*resourceCommand) String() string  { return "resource" }
+
+func (*frameDriver) SetVsyncEnabled(bool) {}
+
+// Issue #3814
+func TestCompleteFramesAfterIntermediateFlushes(t *testing.T) {
+	for _, threaded := range []bool{false, true} {
+		t.Run(fmt.Sprintf("threaded=%t", threaded), func(t *testing.T) {
+			var renderThread thread.Thread
+			if threaded {
+				renderThread = thread.NewOSThread()
+				ctx, cancel := context.WithCancel(context.Background())
+				done := make(chan struct{})
+				go func() {
+					defer close(done)
+					_ = renderThread.LoopAndStop(ctx)
+				}()
+				defer func() { cancel(); <-done }()
+			} else {
+				renderThread = thread.NewNoopThread()
+			}
+			defer graphicscommand.SetRenderThreadForTesting(renderThread)()
+			graphicscommand.SetVsyncEnabled(false)
+			defer graphicscommand.SetVsyncEnabled(true)
+			for _, mode := range []graphicsdriver.FlushMode{graphicsdriver.FlushModeEndFrame, graphicsdriver.FlushModePresent} {
+				for _, intermediate := range []int{0, 1, 2, 3} {
+					t.Run(fmt.Sprintf("mode=%d/intermediate=%d", mode, intermediate), func(t *testing.T) {
+						var manager graphicscommand.CommandQueueManagerForTesting
+						var driver frameDriver
+						var finalized int
+						for frame := range 5 {
+							for range intermediate {
+								manager.EnqueueCommandForTesting(&resourceCommand{
+									finalize: func() {
+										if driver.frames != frame+1 {
+											t.Errorf("finalizer ran before frame completion: completed frames = %d, want %d", driver.frames, frame+1)
+										}
+										finalized++
+									},
+								})
+								if err := manager.FlushForTesting(&driver, graphicsdriver.FlushModeIntermediate); err != nil {
+									t.Fatal(err)
+								}
+							}
+							// Synchronize with the render thread before inspecting callback results.
+							thread.Call(renderThread, func() {})
+							if want := frame * intermediate; finalized != want {
+								t.Errorf("after intermediate flushes: finalized = %d, want %d", finalized, want)
+							}
+							// No commands remain for the frame-completion flush.
+							if err := manager.FlushForTesting(&driver, mode); err != nil {
+								t.Fatal(err)
+							}
+							thread.Call(renderThread, func() {})
+							if want := (frame + 1) * intermediate; finalized != want {
+								t.Errorf("after frame completion: finalized = %d, want %d", finalized, want)
+							}
+						}
+					})
+				}
+			}
+		})
 	}
 }
