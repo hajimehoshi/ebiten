@@ -55,6 +55,7 @@ func (b *Board) Update(input *Input) error {
 	if 0 < len(b.tasks) {
 		t := b.tasks[0]
 		if err := t(); err == taskTerminated {
+			b.tasks[0] = nil
 			b.tasks = b.tasks[1:]
 		} else if err != nil {
 			return err
