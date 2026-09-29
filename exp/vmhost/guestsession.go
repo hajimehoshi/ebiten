@@ -443,6 +443,7 @@ func (g *GuestSession) nextOp() (op, bool) {
 		}
 		if len(g.ops) > 0 {
 			o := g.ops[0]
+			g.ops[0] = op{}
 			g.ops = g.ops[1:]
 			return o, true
 		}
