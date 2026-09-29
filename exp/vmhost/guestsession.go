@@ -641,7 +641,7 @@ func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
 	}
 	n := int(total)
 	g.pixelsBuf = slices.Grow(g.pixelsBuf[:0], n)[:n]
-	g.pixelsListBuf = g.pixelsListBuf[:0]
+	g.pixelsListBuf = slices.Delete(g.pixelsListBuf, 0, len(g.pixelsListBuf))
 	var off int
 	for _, r := range query.ReadRegions {
 		n := 4 * r.Dx() * r.Dy()
