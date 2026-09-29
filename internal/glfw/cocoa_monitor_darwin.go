@@ -59,6 +59,7 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 		return refreshRate
 	}
 
+	// IOServiceGetMatchingServices consumes matching even on failure.
 	var it uint32
 	if ioServiceGetMatchingServices(0, matching, &it) != 0 {
 		return refreshRate
@@ -192,6 +193,7 @@ func getMonitorNameNS(displayID uint32) string {
 		return "Display"
 	}
 
+	// IOServiceGetMatchingServices consumes matching even on failure.
 	var iterator uint32
 	if ioServiceGetMatchingServices(0, matching, &iterator) != 0 {
 		return "Display"
