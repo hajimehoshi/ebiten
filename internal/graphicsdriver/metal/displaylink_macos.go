@@ -131,8 +131,13 @@ func (v *view) initCAMetalDisplayLink() error {
 					if drawable == (ca.MetalDrawable{}) {
 						return
 					}
-					v.drawableCh <- drawable
-					<-v.drawableDoneCh
+					// Drop the drawable if no receiver is ready so the callback
+					// cannot block the run loop after draining stops.
+					select {
+					case v.drawableCh <- drawable:
+						<-v.drawableDoneCh
+					default:
+					}
 				},
 			},
 		},
@@ -192,10 +197,8 @@ func (v *view) updateMetalDisplayLink() {
 		defer b.Release()
 		v.metalDisplayLinkRunLoop.PerformBlock(b)
 
-		// A delegate callback might be blocked to send a drawable, preventing the run loop from executing
-		// the block above. Receive drawables until the display link is invalidated.
-		// New delegate callbacks return without sending a drawable as vsyncDisabled or liveResizing is
-		// already true, so this loop always terminates.
+		// Wait for invalidation, acknowledging any drawables handed off by callbacks
+		// that passed the state check before vsyncDisabled or liveResizing became true.
 	loop:
 		for {
 			select {
