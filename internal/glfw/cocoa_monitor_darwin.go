@@ -58,9 +58,8 @@ func getFallbackRefreshRate(displayID uint32) float64 {
 	if matching == 0 {
 		return refreshRate
 	}
-	// IOServiceMatching returns a +1 dictionary.
-	defer cfRelease(matching)
 
+	// IOServiceGetMatchingServices consumes matching even on failure.
 	var it uint32
 	if ioServiceGetMatchingServices(0, matching, &it) != 0 {
 		return refreshRate
@@ -193,9 +192,8 @@ func getMonitorNameNS(displayID uint32) string {
 	if matching == 0 {
 		return "Display"
 	}
-	// IOServiceMatching returns a +1 dictionary.
-	defer cfRelease(matching)
 
+	// IOServiceGetMatchingServices consumes matching even on failure.
 	var iterator uint32
 	if ioServiceGetMatchingServices(0, matching, &iterator) != 0 {
 		return "Display"
