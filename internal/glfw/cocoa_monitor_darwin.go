@@ -358,11 +358,7 @@ func pollMonitorsNS() error {
 			if m != nil && m.platform.unitNumber == unitNumber {
 				disconnected[j] = nil
 				alreadyKnown = true
-				// The display ID is what every other query in this file
-				// uses: GetVideoMode, GetMonitorPos, GetMonitorWorkarea,
-				// and the gamma ramps. Refresh it together with the screen
-				// reference, as the unit number is what stays the same when
-				// a display is replaced.
+				// Refresh the display ID and screen reference for the already-known monitor.
 				m.platform.displayID = display
 				m.platform.screen = nsScreenForDisplayID(display)
 				break
