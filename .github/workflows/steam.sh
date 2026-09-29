@@ -3,7 +3,7 @@ export CGO_CFLAGS=-std=gnu99
 export DISPLAY=:99.0
 
 # Install Go
-curl --location --remote-name https://golang.org/dl/${GO_FILENAME}
+curl --location --remote-name --fail --retry 5 --retry-all-errors https://golang.org/dl/${GO_FILENAME}
 rm -rf /usr/local/go && tar -C /usr/local -xzf ${GO_FILENAME}
 
 # Run X
