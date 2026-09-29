@@ -621,7 +621,7 @@ func (r *remoteBackend) updateGamepads(states []vmprotocol.GamepadState) {
 	// states' slices and maps instead of copying them — states is a freshly decoded, read-only message,
 	// so the aliases stay valid — and the buffer may be reused across ticks. It is kept non-nil so the
 	// subsystem stays virtual.
-	r.gamepadStates = r.gamepadStates[:0]
+	r.gamepadStates = slices.Delete(r.gamepadStates, 0, len(r.gamepadStates))
 	for _, a := range r.gamepadTouchIDs {
 		a.nextTouches()
 	}
