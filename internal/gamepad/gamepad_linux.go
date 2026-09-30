@@ -517,9 +517,25 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	return nil
 }
 
+const inputEventSize = int(unsafe.Sizeof(input_event{}))
+
+// decodeInputEvent decodes the input event at the start of b, ignoring its time.
+func decodeInputEvent(b []byte) input_event {
+	const (
+		offsetTyp   = int(unsafe.Offsetof(input_event{}.typ))
+		offsetCode  = int(unsafe.Offsetof(input_event{}.code))
+		offsetValue = int(unsafe.Offsetof(input_event{}.value))
+	)
+	return input_event{
+		typ:   uint16(b[offsetTyp]) | uint16(b[offsetTyp+1])<<8,
+		code:  uint16(b[offsetCode]) | uint16(b[offsetCode+1])<<8,
+		value: int32(b[offsetValue]) | int32(b[offsetValue+1])<<8 | int32(b[offsetValue+2])<<16 | int32(b[offsetValue+3])<<24,
+	}
+}
+
 // readInputEvent reads one event from an event node. ok is false when no event is pending.
 func readInputEvent(fd int) (e input_event, ok bool, err error) {
-	buf := make([]byte, unsafe.Sizeof(input_event{}))
+	buf := make([]byte, inputEventSize)
 	// TODO: Should the returned byte count be cared about?
 	if _, err := unix.Read(fd, buf); err != nil {
 		// EINTR means no event was read. Retry at the next update instead of
@@ -530,17 +546,7 @@ func readInputEvent(fd int) (e input_event, ok bool, err error) {
 		return input_event{}, false, fmt.Errorf("gamepad: Read failed: %w", err)
 	}
 
-	const (
-		offsetTyp   = unsafe.Offsetof(input_event{}.typ)
-		offsetCode  = unsafe.Offsetof(input_event{}.code)
-		offsetValue = unsafe.Offsetof(input_event{}.value)
-	)
-	// time is not used.
-	return input_event{
-		typ:   uint16(buf[offsetTyp]) | uint16(buf[offsetTyp+1])<<8,
-		code:  uint16(buf[offsetCode]) | uint16(buf[offsetCode+1])<<8,
-		value: int32(buf[offsetValue]) | int32(buf[offsetValue+1])<<8 | int32(buf[offsetValue+2])<<16 | int32(buf[offsetValue+3])<<24,
-	}, true, nil
+	return decodeInputEvent(buf), true, nil
 }
 
 type nativeGamepadImpl struct {
@@ -605,14 +611,43 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 		}
 	}()
 
+	const numReadEvents = 64
+	var buf [numReadEvents * inputEventSize]byte
+
 	for {
-		e, ok, err := readInputEvent(g.fdPlus1 - 1)
+		n, err := unix.Read(g.fdPlus1-1, buf[:])
 		if err != nil {
+			// EINTR means no event was read; retry at the next update.
+			if err == unix.EAGAIN || err == unix.EINTR {
+				break
+			}
+			return fmt.Errorf("gamepad: Read failed: %w", err)
+		}
+
+		if err := g.handleEvents(buf[:n]); err != nil {
 			return err
 		}
-		if !ok {
-			break
+	}
+
+	// The touch surface is an extra: a failure on its node costs the surface, not the gamepad. An
+	// event node fails only once its device is removed, so there is nothing to reattach.
+	if g.touch != nil {
+		if err := g.touch.update(); err != nil {
+			g.touch.close()
+			g.touch = nil
 		}
+	}
+	return nil
+}
+
+// handleEvents applies a batch of events read from the device.
+func (g *nativeGamepadImpl) handleEvents(buf []byte) error {
+	// Key events left in buf predate the key state polled at a recovery. The kernel
+	// flushes only the queued ones (evdev_handle_get_val), so skip these.
+	var skipKeyEvents bool
+
+	for off := 0; off+inputEventSize <= len(buf); off += inputEventSize {
+		e := decodeInputEvent(buf[off:])
 
 		if e.typ == unix.EV_SYN && e.code == _SYN_DROPPED {
 			g.dropped = true
@@ -627,12 +662,16 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 					return fmt.Errorf("gamepad: poll key state: %w", err)
 				}
 				g.dropped = false
+				skipKeyEvents = true
 			}
 			continue
 		}
 
 		switch e.typ {
 		case unix.EV_KEY:
+			if skipKeyEvents {
+				continue
+			}
 			if int(e.code-_BTN_MISC) < len(g.keyMap) {
 				idx := g.keyMap[e.code-_BTN_MISC]
 				if idx < 0 {
@@ -642,15 +681,6 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 			}
 		case unix.EV_ABS:
 			g.handleAbsEvent(int(e.code), e.value)
-		}
-	}
-
-	// The touch surface is an extra: a failure on its node costs the surface, not the gamepad. An
-	// event node fails only once its device is removed, so there is nothing to reattach.
-	if g.touch != nil {
-		if err := g.touch.update(); err != nil {
-			g.touch.close()
-			g.touch = nil
 		}
 	}
 	return nil
