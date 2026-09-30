@@ -98,13 +98,9 @@ func OpenDisplay() (*Display, error) {
 		return nil, err
 	}
 
-	nodes := []string{os.Getenv("EBITENGINE_DRM_DEVICE")}
-	if nodes[0] == "" {
-		var err error
-		nodes, err = filepath.Glob("/dev/dri/card[0-9]*")
-		if err != nil {
-			return nil, fmt.Errorf("gbm: listing DRM devices: %w", err)
-		}
+	nodes, err := filepath.Glob("/dev/dri/card[0-9]*")
+	if err != nil {
+		return nil, fmt.Errorf("gbm: listing DRM devices: %w", err)
 	}
 	if len(nodes) == 0 {
 		return nil, errors.New("gbm: no DRM card devices found")
