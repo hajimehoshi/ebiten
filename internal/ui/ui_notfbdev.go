@@ -23,5 +23,5 @@ import (
 // newFbdevBackend never returns a backend: a framebuffer device is a Linux
 // concept.
 func newFbdevBackend(u *UserInterface) (uiBackend, error) {
-	return nil, errors.New("a framebuffer device is a Linux feature")
+	return nil, errors.New("ui: a framebuffer device is not supported in this environment")
 }

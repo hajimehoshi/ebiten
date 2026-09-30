@@ -20,8 +20,8 @@ import (
 	"errors"
 )
 
-// newGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
-// concept.
+// newGBMBackend never returns a backend: GBM is not supported in this
+// environment.
 func newGBMBackend(u *UserInterface) (uiBackend, error) {
-	return nil, errors.New("ui: a DRM/KMS GBM display is not available in this environment")
+	return nil, errors.New("ui: a DRM/KMS display through GBM is not supported in this environment")
 }
