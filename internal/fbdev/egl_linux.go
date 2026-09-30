@@ -34,7 +34,7 @@ type nativeWindow struct {
 	height uint16
 }
 
-// Context is an EGL context presenting to a framebuffer device.
+// Context is an EGL context presenting through the vendor EGL implementation.
 type Context struct {
 	eglContext *egl.Context
 

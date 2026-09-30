@@ -12,8 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package fbdev provides rendering on a Linux framebuffer device, for systems
-// that have no window system.
+// Package fbdev provides rendering through a vendor EGL implementation that
+// works without a window system, in the display mode reported by the Linux
+// framebuffer device.
 package fbdev
 
 import (
