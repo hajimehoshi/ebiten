@@ -485,7 +485,7 @@ func (u *UserInterface) loopGame() error {
 // after readyState becomes "complete". A load listener added after the load event was fired is
 // never invoked, so the load event must not be waited for unconditionally.
 // https://html.spec.whatwg.org/multipage/parsing.html#the-end
-func waitForBody(window, document js.Value) error {
+func waitForBody() error {
 	if document.Get("body").Truthy() {
 		return nil
 	}
@@ -501,12 +501,12 @@ func waitForBody(window, document js.Value) error {
 		<-ch
 	default:
 		// readyState "complete" does not mean that the load event was already fired: the load
-		// event is fired by a task that is queued by the very steps making readyState "complete",
-		// so the task can still be in the queue even now, as when this function is called from a
-		// readystatechange handler. The queued load event is fired before any task added after
-		// readyState became "complete", so waiting for the load event only until a task added
-		// here is run is enough: if that task is run first, the load event was already fired and
-		// waiting for it would wait forever.
+		// event is fired by the very steps making readyState "complete", in that task or in a task
+		// queued by them, so it can still be pending even now, as when this function is called
+		// from a readystatechange handler. The load event is fired before any task added after
+		// readyState became "complete" is run, so waiting for the load event only until a task
+		// added here is run is enough: if that task is run first, the load event was already fired
+		// and waiting for it would wait forever.
 		done := make(chan struct{})
 		setTimeout.Invoke(js.FuncOf(func(this js.Value, args []js.Value) any {
 			close(done)
@@ -543,7 +543,7 @@ func (u *UserInterface) init() error {
 	// a body. This error reaches the package initialization, which panics with it, so a program on
 	// a document without a body stops with this message instead of waiting forever for a load event
 	// that is never fired or panicking on the nil body.
-	if err := waitForBody(window, document); err != nil {
+	if err := waitForBody(); err != nil {
 		return err
 	}
 
