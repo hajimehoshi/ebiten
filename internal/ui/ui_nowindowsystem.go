@@ -44,9 +44,11 @@ type noWindowSystemContext interface {
 type noWindowSystemBackend struct {
 	*UserInterface
 
-	eglContext    noWindowSystemContext
-	closeDisplay  func() error
-	sizeMu        sync.RWMutex
+	eglContext   noWindowSystemContext
+	closeDisplay func() error
+
+	// width and height are the size of the surface in pixels. They are fixed at
+	// construction, so any goroutine can read them without a lock.
 	width, height int
 
 	// frameCh wakes the game loop in FPSModeVsyncOffMinimum, where a frame runs
@@ -61,7 +63,8 @@ type noWindowSystemBackend struct {
 	mu sync.Mutex
 }
 
-func newNoWindowSystemBackend(u *UserInterface, width, height int, c noWindowSystemContext, closeDisplay func() error) *noWindowSystemBackend {
+func newNoWindowSystemBackend(u *UserInterface, c noWindowSystemContext, closeDisplay func() error) *noWindowSystemBackend {
+	width, height := c.Size()
 	b := &noWindowSystemBackend{
 		UserInterface: u,
 		eglContext:    c,
@@ -86,8 +89,7 @@ func newFbdevBackend(u *UserInterface) (uiBackend, error) {
 		return nil, err
 	}
 
-	width, height := c.Size()
-	return newNoWindowSystemBackend(u, width, height, c, nil), nil
+	return newNoWindowSystemBackend(u, c, nil), nil
 }
 
 func (b *noWindowSystemBackend) run(game Game, options *RunOptions) error {
@@ -145,10 +147,6 @@ func (b *noWindowSystemBackend) initOnMainThread(options *RunOptions) (err error
 		}
 	}()
 	c := b.eglContext
-	width, height := c.Size()
-	b.sizeMu.Lock()
-	b.width, b.height = width, height
-	b.sizeMu.Unlock()
 
 	g, lib, err := newGraphicsDriver(&graphicsDriverCreatorImpl{}, options.GraphicsLibrary)
 	if err != nil {
@@ -239,8 +237,6 @@ func (b *noWindowSystemBackend) outsideSize() (width, height float64) {
 
 // screenSize returns the size of the surface in pixels.
 func (b *noWindowSystemBackend) screenSize() (width, height int) {
-	b.sizeMu.RLock()
-	defer b.sizeMu.RUnlock()
 	return b.width, b.height
 }
 

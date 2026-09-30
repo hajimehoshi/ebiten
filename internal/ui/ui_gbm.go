@@ -42,6 +42,5 @@ func newGBMBackend(u *UserInterface) (uiBackend, error) {
 		return nil, errors.Join(err, display.Close())
 	}
 
-	width, height := c.Size()
-	return newNoWindowSystemBackend(u, width, height, c, display.Close), nil
+	return newNoWindowSystemBackend(u, c, display.Close), nil
 }
