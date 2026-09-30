@@ -1201,8 +1201,6 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.subImageCacheM.Lock()
 	defer i.subImageCacheM.Unlock()
 
-	// The image might already be disposed in another goroutine.
-	// Recheck this.
 	if i.isDisposed() {
 		return nil
 	}
@@ -1415,6 +1413,9 @@ func (i *Image) Set(x, y int, clr color.Color) {
 // Disposing an image also disposes its sub-images.
 //
 // If the image is disposed, Dispose does nothing.
+//
+// Dispose is not concurrent-safe:
+// the image and its sub-images must not be used in another goroutine while Dispose is called.
 //
 // Deprecated: as of v2.7. Use Deallocate instead.
 func (i *Image) Dispose() {
