@@ -139,6 +139,7 @@ var (
 	canvas                js.Value
 	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
 	setTimeout            = js.Global().Get("setTimeout")
+	clearTimeout          = js.Global().Get("clearTimeout")
 )
 
 var (
@@ -484,10 +485,15 @@ func waitForBody() error {
 	}
 
 	ch := make(chan struct{})
-	window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) any {
+	onLoad := js.FuncOf(func(this js.Value, args []js.Value) any {
 		close(ch)
 		return nil
-	}))
+	})
+	window.Call("addEventListener", "load", onLoad)
+	defer func() {
+		window.Call("removeEventListener", "load", onLoad)
+		onLoad.Release()
+	}()
 
 	switch document.Get("readyState").String() {
 	case "loading", "interactive":
@@ -500,10 +506,15 @@ func waitForBody() error {
 		// listener is never invoked.
 		// https://html.spec.whatwg.org/multipage/parsing.html#the-end
 		done := make(chan struct{})
-		setTimeout.Invoke(js.FuncOf(func(this js.Value, args []js.Value) any {
+		onTimeout := js.FuncOf(func(this js.Value, args []js.Value) any {
 			close(done)
 			return nil
-		}), 0)
+		})
+		timeoutID := setTimeout.Invoke(onTimeout, 0)
+		defer func() {
+			clearTimeout.Invoke(timeoutID)
+			onTimeout.Release()
+		}()
 		select {
 		case <-ch:
 		case <-done:
