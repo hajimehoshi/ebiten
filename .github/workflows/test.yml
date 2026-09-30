@@ -155,6 +155,42 @@ jobs:
           env GOARCH=386 go test -shuffle=on -v ./...
           env GOARCH=386 EBITENGINE_DIRECTX=version=12 go test -shuffle=on -v ./...
 
+  gbm:
+    strategy:
+      matrix:
+        go: ['1.25.x', '1.26.x', '1.27.x']
+    name: Test GBM with Go ${{ matrix.go }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libdrm2 libegl1 libegl-mesa0 libgbm1 libgl1-mesa-dri libgles2 linux-modules-extra-$(uname -r)
+
+      - name: Load vkms
+        run: |
+          # vkms is a virtual KMS device with a connected output. Mesa renders for it with its software driver.
+          sudo modprobe vkms
+          sudo udevadm settle
+          sudo chmod a+rw /dev/dri/card*
+
+      - name: go test (GBM)
+        run: |
+          # With neither DISPLAY nor WAYLAND_DISPLAY set, Ebitengine presents through GBM and KMS.
+          # Only one process can be the DRM master at a time, so packages must run one by one.
+          go test -shuffle=on -v -p=1 ./...
+
   cross-build:
     strategy:
       matrix:
