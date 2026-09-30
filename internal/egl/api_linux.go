@@ -17,6 +17,7 @@ package egl
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/ebitengine/purego"
 )
@@ -39,27 +40,37 @@ const (
 	Success              = 0x3000
 )
 
-type api struct {
-	Initialize          func(display uintptr, major, minor *int32) bool
-	Terminate           func(display uintptr) bool
-	BindAPI             func(api int32) bool
-	ChooseConfig        func(display uintptr, attribList *int32, configs *uintptr, configSize int32, numConfig *int32) bool
-	GetConfigAttrib     func(display, config uintptr, attribute int32, value *int32) bool
-	CreateWindowSurface func(display, config, win uintptr, attribList *int32) uintptr
-	CreateContext       func(display, config, shareContext uintptr, attribList *int32) uintptr
-	DestroySurface      func(display, surface uintptr) bool
-	DestroyContext      func(display, ctx uintptr) bool
-	MakeCurrent         func(display, draw, read, ctx uintptr) bool
-	SwapBuffers         func(display, surface uintptr) bool
-	SwapInterval        func(display uintptr, interval int32) bool
-	QuerySurface        func(display, surface uintptr, attribute int32, value *int32) bool
-	GetError            func() int32
+var (
+	eglInitialize          func(display uintptr, major, minor *int32) bool
+	eglTerminate           func(display uintptr) bool
+	eglBindAPI             func(api int32) bool
+	eglChooseConfig        func(display uintptr, attribList *int32, configs *uintptr, configSize int32, numConfig *int32) bool
+	eglGetConfigAttrib     func(display, config uintptr, attribute int32, value *int32) bool
+	eglCreateWindowSurface func(display, config, win uintptr, attribList *int32) uintptr
+	eglCreateContext       func(display, config, shareContext uintptr, attribList *int32) uintptr
+	eglDestroySurface      func(display, surface uintptr) bool
+	eglDestroyContext      func(display, ctx uintptr) bool
+	eglMakeCurrent         func(display, draw, read, ctx uintptr) bool
+	eglSwapBuffers         func(display, surface uintptr) bool
+	eglSwapInterval        func(display uintptr, interval int32) bool
+	eglQuerySurface        func(display, surface uintptr, attribute int32, value *int32) bool
+	eglGetError            func() int32
+)
+
+var (
+	libEGL   uintptr
+	loadOnce sync.Once
+	loadErr  error
+)
+
+func load() error {
+	loadOnce.Do(func() {
+		loadErr = loadImpl()
+	})
+	return loadErr
 }
 
-// NewContext loads the common EGL entry points. The caller selects the native
-// display and window before creating the surface and context.
-func NewContext() (*Context, error) {
-	c := &Context{swapInterval: -1}
+func loadImpl() error {
 	var errs []error
 	for _, name := range []string{"libEGL.so.1", "libEGL.so"} {
 		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
@@ -67,41 +78,40 @@ func NewContext() (*Context, error) {
 			errs = append(errs, err)
 			continue
 		}
-		c.lib = lib
+		libEGL = lib
 		break
 	}
-	if c.lib == 0 {
-		return nil, fmt.Errorf("egl: failed to load libEGL: %w", errors.Join(errs...))
+	if libEGL == 0 {
+		return fmt.Errorf("egl: failed to load libEGL: %w", errors.Join(errs...))
 	}
 	for _, f := range []struct {
 		ptr  any
 		name string
 	}{
-		{&c.api.Initialize, "eglInitialize"},
-		{&c.api.Terminate, "eglTerminate"},
-		{&c.api.BindAPI, "eglBindAPI"},
-		{&c.api.ChooseConfig, "eglChooseConfig"},
-		{&c.api.GetConfigAttrib, "eglGetConfigAttrib"},
-		{&c.api.CreateWindowSurface, "eglCreateWindowSurface"},
-		{&c.api.CreateContext, "eglCreateContext"},
-		{&c.api.DestroySurface, "eglDestroySurface"},
-		{&c.api.DestroyContext, "eglDestroyContext"},
-		{&c.api.MakeCurrent, "eglMakeCurrent"},
-		{&c.api.SwapBuffers, "eglSwapBuffers"},
-		{&c.api.SwapInterval, "eglSwapInterval"},
-		{&c.api.QuerySurface, "eglQuerySurface"},
-		{&c.api.GetError, "eglGetError"},
+		{&eglInitialize, "eglInitialize"},
+		{&eglTerminate, "eglTerminate"},
+		{&eglBindAPI, "eglBindAPI"},
+		{&eglChooseConfig, "eglChooseConfig"},
+		{&eglGetConfigAttrib, "eglGetConfigAttrib"},
+		{&eglCreateWindowSurface, "eglCreateWindowSurface"},
+		{&eglCreateContext, "eglCreateContext"},
+		{&eglDestroySurface, "eglDestroySurface"},
+		{&eglDestroyContext, "eglDestroyContext"},
+		{&eglMakeCurrent, "eglMakeCurrent"},
+		{&eglSwapBuffers, "eglSwapBuffers"},
+		{&eglSwapInterval, "eglSwapInterval"},
+		{&eglQuerySurface, "eglQuerySurface"},
+		{&eglGetError, "eglGetError"},
 	} {
-		if err := c.RegisterFunc(f.ptr, f.name); err != nil {
-			return nil, errors.Join(err, c.Close())
+		if err := registerFunc(f.ptr, f.name); err != nil {
+			return err
 		}
 	}
-	return c, nil
+	return nil
 }
 
-// RegisterFunc loads a backend-specific EGL entry point from the same library.
-func (c *Context) RegisterFunc(ptr any, name string) error {
-	sym, err := purego.Dlsym(c.lib, name)
+func registerFunc(ptr any, name string) error {
+	sym, err := purego.Dlsym(libEGL, name)
 	if err != nil {
 		return fmt.Errorf("egl: %s not found in libEGL: %w", name, err)
 	}
@@ -112,10 +122,15 @@ func (c *Context) RegisterFunc(ptr any, name string) error {
 	return nil
 }
 
+// RegisterFunc loads a backend-specific EGL entry point from libEGL.
+func (c *Context) RegisterFunc(ptr any, name string) error {
+	return registerFunc(ptr, name)
+}
+
 // RegisterProcFunc loads an EGL extension entry point through eglGetProcAddress.
 func (c *Context) RegisterProcFunc(ptr any, name string) error {
 	var getProcAddress func(*byte) uintptr
-	if err := c.RegisterFunc(&getProcAddress, "eglGetProcAddress"); err != nil {
+	if err := registerFunc(&getProcAddress, "eglGetProcAddress"); err != nil {
 		return err
 	}
 	nameBytes := append([]byte(name), 0)

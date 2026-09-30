@@ -18,19 +18,24 @@ package egl
 import (
 	"errors"
 	"fmt"
-
-	"github.com/ebitengine/purego"
 )
 
 // Context owns the EGL display, surface, and OpenGL ES 3 context.
 type Context struct {
-	api           api
-	lib           uintptr
 	display       uintptr
 	surface       uintptr
 	context       uintptr
 	width, height int
 	swapInterval  int
+}
+
+// NewContext loads the common EGL entry points. The caller selects the native
+// display and window before creating the surface and context.
+func NewContext() (*Context, error) {
+	if err := load(); err != nil {
+		return nil, err
+	}
+	return &Context{swapInterval: -1}, nil
 }
 
 // Initialize binds OpenGL ES to the native EGL display.
@@ -39,11 +44,11 @@ func (c *Context) Initialize(display uintptr) error {
 		return fmt.Errorf("egl: no display: %w", c.LastError())
 	}
 	var major, minor int32
-	if !c.api.Initialize(display, &major, &minor) {
+	if !eglInitialize(display, &major, &minor) {
 		return fmt.Errorf("egl: eglInitialize failed: %w", c.LastError())
 	}
 	c.display = display
-	if !c.api.BindAPI(OpenGLESAPI) {
+	if !eglBindAPI(OpenGLESAPI) {
 		return fmt.Errorf("egl: eglBindAPI failed: %w", c.LastError())
 	}
 	return nil
@@ -54,7 +59,7 @@ func (c *Context) Initialize(display uintptr) error {
 func (c *Context) ChooseConfig(attribs []int32) (uintptr, error) {
 	var config uintptr
 	var num int32
-	if !c.api.ChooseConfig(c.display, &attribs[0], &config, 1, &num) {
+	if !eglChooseConfig(c.display, &attribs[0], &config, 1, &num) {
 		return 0, fmt.Errorf("egl: eglChooseConfig failed: %w", c.LastError())
 	}
 	if num <= 0 {
@@ -67,14 +72,14 @@ func (c *Context) ChooseConfig(attribs []int32) (uintptr, error) {
 // the one compatible with its native window format.
 func (c *Context) ChooseConfigs(attribs []int32) ([]uintptr, error) {
 	var num int32
-	if !c.api.ChooseConfig(c.display, &attribs[0], nil, 0, &num) {
+	if !eglChooseConfig(c.display, &attribs[0], nil, 0, &num) {
 		return nil, fmt.Errorf("egl: eglChooseConfig failed: %w", c.LastError())
 	}
 	if num <= 0 {
 		return nil, errors.New("egl: no matching EGL config")
 	}
 	configs := make([]uintptr, num)
-	if !c.api.ChooseConfig(c.display, &attribs[0], &configs[0], int32(len(configs)), &num) {
+	if !eglChooseConfig(c.display, &attribs[0], &configs[0], int32(len(configs)), &num) {
 		return nil, fmt.Errorf("egl: eglChooseConfig failed: %w", c.LastError())
 	}
 	if num <= 0 {
@@ -86,7 +91,7 @@ func (c *Context) ChooseConfigs(attribs []int32) ([]uintptr, error) {
 // ConfigAttrib returns an attribute of an EGL configuration.
 func (c *Context) ConfigAttrib(config uintptr, attribute int32) (int32, error) {
 	var value int32
-	if !c.api.GetConfigAttrib(c.display, config, attribute, &value) {
+	if !eglGetConfigAttrib(c.display, config, attribute, &value) {
 		return 0, fmt.Errorf("egl: eglGetConfigAttrib failed: %w", c.LastError())
 	}
 	return value, nil
@@ -98,7 +103,7 @@ func (c *Context) CreateWindowSurface(config, window uintptr, attribs []int32) e
 	if len(attribs) != 0 {
 		p = &attribs[0]
 	}
-	c.surface = c.api.CreateWindowSurface(c.display, config, window, p)
+	c.surface = eglCreateWindowSurface(c.display, config, window, p)
 	if c.surface == 0 {
 		return fmt.Errorf("egl: eglCreateWindowSurface failed: %w", c.LastError())
 	}
@@ -108,7 +113,7 @@ func (c *Context) CreateWindowSurface(config, window uintptr, attribs []int32) e
 // QuerySurface returns an attribute of the current surface.
 func (c *Context) QuerySurface(attribute int32) (int32, error) {
 	var value int32
-	if !c.api.QuerySurface(c.display, c.surface, attribute, &value) {
+	if !eglQuerySurface(c.display, c.surface, attribute, &value) {
 		return 0, fmt.Errorf("egl: eglQuerySurface failed: %w", c.LastError())
 	}
 	return value, nil
@@ -117,7 +122,7 @@ func (c *Context) QuerySurface(attribute int32) (int32, error) {
 // CreateES3Context creates an OpenGL ES 3 context for the selected configuration.
 func (c *Context) CreateES3Context(config uintptr) error {
 	attribs := []int32{ContextClientVersion, 3, None}
-	c.context = c.api.CreateContext(c.display, config, 0, &attribs[0])
+	c.context = eglCreateContext(c.display, config, 0, &attribs[0])
 	if c.context == 0 {
 		return fmt.Errorf("egl: eglCreateContext failed: %w", c.LastError())
 	}
@@ -132,7 +137,7 @@ func (c *Context) Size() (int, int) { return c.width, c.height }
 
 // MakeContextCurrent makes this context current on the calling thread.
 func (c *Context) MakeContextCurrent() error {
-	if !c.api.MakeCurrent(c.display, c.surface, c.surface, c.context) {
+	if !eglMakeCurrent(c.display, c.surface, c.surface, c.context) {
 		return fmt.Errorf("egl: eglMakeCurrent failed: %w", c.LastError())
 	}
 	return nil
@@ -143,7 +148,7 @@ func (c *Context) SwapInterval(interval int) error {
 	if c.swapInterval == interval {
 		return nil
 	}
-	if !c.api.SwapInterval(c.display, int32(interval)) {
+	if !eglSwapInterval(c.display, int32(interval)) {
 		return fmt.Errorf("egl: eglSwapInterval failed: %w", c.LastError())
 	}
 	c.swapInterval = interval
@@ -152,7 +157,7 @@ func (c *Context) SwapInterval(interval int) error {
 
 // SwapBuffers presents the current surface through EGL.
 func (c *Context) SwapBuffers() error {
-	if !c.api.SwapBuffers(c.display, c.surface) {
+	if !eglSwapBuffers(c.display, c.surface) {
 		return fmt.Errorf("egl: eglSwapBuffers failed: %w", c.LastError())
 	}
 	return nil
@@ -161,29 +166,24 @@ func (c *Context) SwapBuffers() error {
 // Unbind releases the current context before a backend frees scanout buffers.
 func (c *Context) Unbind() {
 	if c.display != 0 && (c.context != 0 || c.surface != 0) {
-		c.api.MakeCurrent(c.display, 0, 0, 0)
+		eglMakeCurrent(c.display, 0, 0, 0)
 	}
 }
 
-// Close releases the EGL context, surface, display, and library.
+// Close releases the EGL context, surface, and display.
 func (c *Context) Close() error {
 	if c.display != 0 {
 		c.Unbind()
 		if c.context != 0 {
-			c.api.DestroyContext(c.display, c.context)
+			eglDestroyContext(c.display, c.context)
 			c.context = 0
 		}
 		if c.surface != 0 {
-			c.api.DestroySurface(c.display, c.surface)
+			eglDestroySurface(c.display, c.surface)
 			c.surface = 0
 		}
-		c.api.Terminate(c.display)
+		eglTerminate(c.display)
 		c.display = 0
-	}
-	if c.lib != 0 {
-		lib := c.lib
-		c.lib = 0
-		return purego.Dlclose(lib)
 	}
 	return nil
 }
@@ -194,7 +194,7 @@ func (e eglError) Error() string { return fmt.Sprintf("EGL error 0x%x", int32(e)
 
 // LastError returns the last error reported by EGL.
 func (c *Context) LastError() error {
-	code := c.api.GetError()
+	code := eglGetError()
 	if code == Success {
 		return errors.New("EGL reported no error")
 	}
