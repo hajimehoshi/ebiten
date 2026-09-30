@@ -65,6 +65,10 @@ type Image struct {
 	// subImageCacheM is a mutex for subImageCache.
 	// subImageCache can be accessed from the image and its sub-images at the same time,
 	// so the map must be protected by a mutex.
+	//
+	// subImageCacheM serializes accesses to the cache only.
+	// It does not make the image lifecycle concurrent-safe:
+	// i.image is read without this mutex, for example in isDisposed.
 	subImageCacheM sync.Mutex
 
 	// atime is the last access time.
@@ -1201,8 +1205,11 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.subImageCacheM.Lock()
 	defer i.subImageCacheM.Unlock()
 
-	// The image might already be disposed in another goroutine.
-	// Recheck this.
+	// Dispose invalidates the image and its cache while holding this mutex,
+	// so no sub-image is published here after the invalidation.
+	// This does not make Dispose concurrent-safe with SubImage:
+	// the check above and Bounds still read the image without this mutex,
+	// and the image can be disposed between them.
 	if i.isDisposed() {
 		return nil
 	}
@@ -1415,6 +1422,9 @@ func (i *Image) Set(x, y int, clr color.Color) {
 // Disposing an image also disposes its sub-images.
 //
 // If the image is disposed, Dispose does nothing.
+//
+// Dispose is not concurrent-safe:
+// the image and its sub-images must not be used in another goroutine while Dispose is called.
 //
 // Deprecated: as of v2.7. Use Deallocate instead.
 func (i *Image) Dispose() {
