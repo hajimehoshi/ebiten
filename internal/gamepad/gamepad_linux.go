@@ -615,16 +615,6 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 	const numReadEvents = 64
 	var buf [numReadEvents * inputEventSize]byte
 
-	restoreDeviceState := func() error {
-		if err := g.pollAbsState(); err != nil {
-			return fmt.Errorf("gamepad: poll absolute state: %w", err)
-		}
-		if err := g.pollKeyState(); err != nil {
-			return fmt.Errorf("gamepad: poll key state: %w", err)
-		}
-		return nil
-	}
-
 	for {
 		n, err := unix.Read(g.fdPlus1-1, buf[:])
 		if err != nil {
@@ -636,7 +626,7 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 			return fmt.Errorf("gamepad: Read failed: %w", err)
 		}
 
-		if err := g.handleEvents(buf[:n], restoreDeviceState); err != nil {
+		if err := g.handleEvents(buf[:n]); err != nil {
 			return err
 		}
 	}
@@ -653,15 +643,14 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 }
 
 // handleEvents handles the events read from the device at once. buf must
-// contain full input_event structures. restoreDeviceState restores the device
-// state after a SYN_DROPPED event.
-func (g *nativeGamepadImpl) handleEvents(buf []byte, restoreDeviceState func() error) error {
-	// The state restored by restoreDeviceState is newer than the events left in
-	// this buffer. The kernel flushes the queued key events when the key state
-	// is queried (evdev_handle_get_val in drivers/input/evdev.c), but it cannot
-	// flush the events already read into buf. Applying such a stale key event
-	// after the restore would resurrect an outdated button state, so skip the
-	// remaining key events in this buffer.
+// contain full input_event structures.
+func (g *nativeGamepadImpl) handleEvents(buf []byte) error {
+	// The state restored by pollAbsState and pollKeyState is newer than the
+	// events left in this buffer. The kernel flushes the queued key events when
+	// the key state is queried (evdev_handle_get_val in drivers/input/evdev.c),
+	// but it cannot flush the events already read into buf. Applying such a
+	// stale key event after the restore would resurrect an outdated button
+	// state, so skip the remaining key events in this buffer.
 	skipKeyEvents := false
 
 	for off := 0; off+inputEventSize <= len(buf); off += inputEventSize {
@@ -673,8 +662,11 @@ func (g *nativeGamepadImpl) handleEvents(buf []byte, restoreDeviceState func() e
 		if g.dropped {
 			// Ignore events through the next SYN_REPORT, then restore the device state.
 			if e.typ == unix.EV_SYN && e.code == _SYN_REPORT {
-				if err := restoreDeviceState(); err != nil {
-					return err
+				if err := g.pollAbsState(); err != nil {
+					return fmt.Errorf("gamepad: poll absolute state: %w", err)
+				}
+				if err := g.pollKeyState(); err != nil {
+					return fmt.Errorf("gamepad: poll key state: %w", err)
 				}
 				g.dropped = false
 				skipKeyEvents = true

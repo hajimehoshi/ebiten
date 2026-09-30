@@ -28,59 +28,6 @@ const (
 	FFEffectRumbleOffset = unsafe.Offsetof(ff_effect{}.u) + unsafe.Offsetof(ff_effect_union{}.rumble)
 )
 
-// Event codes tests need that x/sys/unix does not define.
-const (
-	SYN_REPORT  = _SYN_REPORT
-	SYN_DROPPED = _SYN_DROPPED
-)
-
-type NativeGamepad = nativeGamepadImpl
-
-// InputEventForTest is an input event without the timestamp the kernel prepends.
-type InputEventForTest struct {
-	Typ   uint16
-	Code  uint16
-	Value int32
-}
-
-// NewNativeGamepadForTest returns a gamepad on the evdev backend with no node behind it, whose
-// buttons are the given key codes in the order of the button indices. Events are fed with
-// HandleEventsForTest.
-func NewNativeGamepadForTest(keys ...int) *NativeGamepad {
-	g := &nativeGamepadImpl{buttonCount_: len(keys)}
-	for i := range g.keyMap {
-		g.keyMap[i] = -1
-	}
-	for i, key := range keys {
-		g.keyMap[key-_BTN_MISC] = i
-	}
-	return g
-}
-
-// HandleEventsForTest handles a batch of events as one read from the device does.
-// restoreDeviceState corresponds to the pollAbsState and pollKeyState calls that the recovery from
-// a SYN_DROPPED event makes.
-func (g *NativeGamepad) HandleEventsForTest(evs []InputEventForTest, restoreDeviceState func() error) error {
-	es := make([]input_event, len(evs))
-	for i, ev := range evs {
-		es[i] = input_event{
-			typ:   ev.Typ,
-			code:  ev.Code,
-			value: ev.Value,
-		}
-	}
-	var buf []byte
-	if len(es) > 0 {
-		buf = unsafe.Slice((*byte)(unsafe.Pointer(&es[0])), len(es)*inputEventSize)
-	}
-	return g.handleEvents(buf, restoreDeviceState)
-}
-
-// IsButtonPressedForTest reports whether the button with the given index is pressed.
-func (g *NativeGamepad) IsButtonPressedForTest(button int) bool {
-	return g.isButtonPressed(button)
-}
-
 // Event node capability codes, for building the bitmaps classification reads.
 const (
 	ABS_X              = _ABS_X
