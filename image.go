@@ -65,10 +65,6 @@ type Image struct {
 	// subImageCacheM is a mutex for subImageCache.
 	// subImageCache can be accessed from the image and its sub-images at the same time,
 	// so the map must be protected by a mutex.
-	//
-	// subImageCacheM serializes accesses to the cache only.
-	// It does not make the image lifecycle concurrent-safe:
-	// i.image is read without this mutex, for example in isDisposed.
 	subImageCacheM sync.Mutex
 
 	// atime is the last access time.
@@ -1205,11 +1201,6 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	i.subImageCacheM.Lock()
 	defer i.subImageCacheM.Unlock()
 
-	// Dispose invalidates the image and its cache while holding this mutex,
-	// so no sub-image is published here after the invalidation.
-	// This does not make Dispose concurrent-safe with SubImage:
-	// the check above and Bounds still read the image without this mutex,
-	// and the image can be disposed between them.
 	if i.isDisposed() {
 		return nil
 	}
@@ -1438,8 +1429,8 @@ func (i *Image) Dispose() {
 	}
 	i.invokeUsageCallbacks()
 	i.image.Deallocate()
-	i.subImageCacheM.Lock()
 	i.image = nil
+	i.subImageCacheM.Lock()
 	i.subImageCache = nil
 	i.subImageCacheM.Unlock()
 
