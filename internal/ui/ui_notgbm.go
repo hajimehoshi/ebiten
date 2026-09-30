@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !linux || android || nintendosdk || playstation5
+//go:build !linux || (!amd64 && !arm64) || android || nintendosdk || playstation5
 
 package ui
 
@@ -20,14 +20,14 @@ import (
 	"errors"
 )
 
-type fbdevBackend struct{}
+type gbmBackend struct{}
 
-// maybeNewFbdevBackend never returns a backend: a framebuffer device is a Linux
+// maybeNewGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
 // concept.
-func maybeNewFbdevBackend(u *UserInterface) (*fbdevBackend, error) {
-	return nil, errors.New("a framebuffer device is a Linux feature")
+func maybeNewGBMBackend(u *UserInterface) (*gbmBackend, error) {
+	return nil, errors.New("ui: a DRM/KMS GBM display is not available in this environment")
 }
 
-func (b *fbdevBackend) run(game Game, options *RunOptions) error {
-	return errors.New("ui: a framebuffer device is not available in this environment")
+func (b *gbmBackend) run(game Game, options *RunOptions) error {
+	return errors.New("ui: a DRM/KMS GBM display is not available in this environment")
 }
