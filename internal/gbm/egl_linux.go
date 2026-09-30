@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build (amd64 || arm64) && !android
+//go:build amd64 || arm64
 
 package gbm
 
@@ -23,15 +23,6 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/egl"
-)
-
-const (
-	_EGL_PLATFORM_GBM = 0x31d7
-
-	_DRM_MODE_PAGE_FLIP_EVENT = 0x01
-	_DRM_MODE_PAGE_FLIP_ASYNC = 0x02
-	_DRM_MODE_FB_MODIFIERS    = 0x02
-	_DRM_FORMAT_MOD_INVALID   = 0x00ffffffffffffff
 )
 
 // Context presents an EGL frame through GBM and KMS.
@@ -63,13 +54,13 @@ func NewContext(d *Display) (*Context, error) {
 	var display uintptr
 	var getPlatformDisplay func(platform uint32, nativeDisplay uintptr, attribList *int) uintptr
 	if err := e.RegisterFunc(&getPlatformDisplay, "eglGetPlatformDisplay"); err == nil {
-		display = getPlatformDisplay(_EGL_PLATFORM_GBM, d.gbmDev, nil)
+		display = getPlatformDisplay(_EGL_PLATFORM_GBM_KHR, d.gbmDev, nil)
 	} else {
 		var getPlatformDisplayEXT func(platform uint32, nativeDisplay uintptr, attribList *int32) uintptr
 		if extErr := e.RegisterProcFunc(&getPlatformDisplayEXT, "eglGetPlatformDisplayEXT"); extErr != nil {
 			return fail(errors.Join(err, extErr))
 		}
-		display = getPlatformDisplayEXT(_EGL_PLATFORM_GBM, d.gbmDev, nil)
+		display = getPlatformDisplayEXT(_EGL_PLATFORM_GBM_KHR, d.gbmDev, nil)
 	}
 	if err := e.Initialize(display); err != nil {
 		return fail(err)
@@ -78,7 +69,7 @@ func NewContext(d *Display) (*Context, error) {
 	if err != nil {
 		return fail(err)
 	}
-	c.gbmSurface = gbml.SurfaceCreate(d.gbmDev, uint32(d.width), uint32(d.height), gbmFormatXRGB8888, gbmUseScanout|gbmUseRendering)
+	c.gbmSurface = gbml.SurfaceCreate(d.gbmDev, uint32(d.width), uint32(d.height), _GBM_FORMAT_XRGB8888, _GBM_BO_USE_SCANOUT|_GBM_BO_USE_RENDERING)
 	if c.gbmSurface == 0 {
 		return fail(errors.New("gbm_surface_create failed"))
 	}
@@ -106,7 +97,7 @@ func (c *Context) chooseConfig() (uintptr, error) {
 	// Mesa needs the config's native visual ID to match the GBM format.
 	for _, config := range configs {
 		vis, err := c.eglContext.ConfigAttrib(config, egl.NativeVisualID)
-		if err == nil && uint32(vis) == gbmFormatXRGB8888 {
+		if err == nil && uint32(vis) == _GBM_FORMAT_XRGB8888 {
 			return config, nil
 		}
 	}
@@ -218,9 +209,9 @@ func (c *Context) addFB(bo uintptr) (uint32, error) {
 	var r int32
 	if drml.AddFB2WithMods != nil && gbml.BoGetModifier != nil && mod != 0 && mod != _DRM_FORMAT_MOD_INVALID {
 		mods := [4]uint64{mod}
-		r = drml.AddFB2WithMods(c.d.fd, uint32(c.d.width), uint32(c.d.height), gbmFormatXRGB8888, &handles[0], &pitches[0], &offsets[0], &mods[0], &fb, _DRM_MODE_FB_MODIFIERS)
+		r = drml.AddFB2WithMods(c.d.fd, uint32(c.d.width), uint32(c.d.height), _GBM_FORMAT_XRGB8888, &handles[0], &pitches[0], &offsets[0], &mods[0], &fb, _DRM_MODE_FB_MODIFIERS)
 	} else {
-		r = drml.AddFB2(c.d.fd, uint32(c.d.width), uint32(c.d.height), gbmFormatXRGB8888, &handles[0], &pitches[0], &offsets[0], &fb, 0)
+		r = drml.AddFB2(c.d.fd, uint32(c.d.width), uint32(c.d.height), _GBM_FORMAT_XRGB8888, &handles[0], &pitches[0], &offsets[0], &fb, 0)
 	}
 	if r != 0 {
 		return 0, fmt.Errorf("gbm: drmModeAddFB2 failed: %d", r)
