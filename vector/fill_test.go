@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"runtime"
 	"testing"
 	"time"
@@ -134,5 +135,40 @@ func TestFillPathAfterLargePath(t *testing.T) {
 				t.Errorf("%d pixels differ; first at (%d, %d): got: %v, in the path: %t", mismatches, firstX, firstY, got[i:i+4], image.Pt(firstX, firstY).In(small))
 			}
 		})
+	}
+}
+
+func TestFillPathZeroCoverage(t *testing.T) {
+	for _, aa := range []bool{false, true} {
+		for _, rule := range []vector.FillRule{vector.FillRuleNonZero, vector.FillRuleEvenOdd} {
+			t.Run(fmt.Sprintf("aa=%t/rule=%d", aa, rule), func(t *testing.T) {
+				dst := ebiten.NewImage(64, 64)
+				defer dst.Deallocate()
+				dst.Fill(color.White)
+				var path vector.Path
+				path.Arc(24.375, 24.375, 17, 0, 2*math.Pi, vector.Clockwise)
+				path.Close()
+				paint := color.RGBA{
+					R: 70,
+					G: 160,
+					B: 240,
+					A: 255,
+				}
+				op := &vector.DrawPathOptions{
+					AntiAlias: aa,
+					Blend:     ebiten.BlendCopy,
+				}
+				op.ColorScale.ScaleWithColor(paint)
+				vector.FillPath(dst, &path, &vector.FillOptions{
+					FillRule: rule,
+				}, op)
+				if r, g, b, a := dst.At(8, 8).RGBA(); r != 0xffff || g != 0xffff || b != 0xffff || a != 0xffff {
+					t.Errorf("pixel outside circle: got %v, want white", dst.At(8, 8))
+				}
+				if got := dst.At(24, 24); got != paint {
+					t.Errorf("pixel inside circle: got %v, want %v", got, paint)
+				}
+			})
+		}
 	}
 }

@@ -166,6 +166,9 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	r := int(round(c.r*255))
 	w := abs((r >> 4) - (r & 0x0F))
 	v := min(float(w), 1)
+	if v == 0 {
+		discard()
+	}
 	return v * color
 }
 `
@@ -190,7 +193,11 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	w1 := abs((ci1 >> 4) - (ci1 & 0x0F))
 	v0 := min(vec4(w0), 1)
 	v1 := min(vec4(w1), 1)
-	return (dot(v0, vec4(1.0/8.0)) + dot(v1, vec4(1.0/8.0))) * color
+	v := dot(v0, vec4(1.0/8.0)) + dot(v1, vec4(1.0/8.0))
+	if v == 0 {
+		discard()
+	}
+	return v * color
 }
 `
 
@@ -208,6 +215,9 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	r := int(round(c.r*255))
 	w := abs((r >> 4) - (r & 0x0F))
 	v := float(w % 2)
+	if v == 0 {
+		discard()
+	}
 	return v * color
 }
 `
@@ -232,6 +242,10 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	w1 := abs((ci1 >> 4) - (ci1 & 0x0F))
 	v0 := vec4(w0 % 2)
 	v1 := vec4(w1 % 2)
-	return (dot(v0, vec4(1.0/8.0)) + dot(v1, vec4(1.0/8.0))) * color
+	v := dot(v0, vec4(1.0/8.0)) + dot(v1, vec4(1.0/8.0))
+	if v == 0 {
+		discard()
+	}
+	return v * color
 }
 `

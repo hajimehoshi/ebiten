@@ -75,6 +75,7 @@ type DrawPathOptions struct {
 	ColorScale ebiten.ColorScale
 
 	// Blend is the blend mode to apply to the path.
+	// Pixels the drawing does not cover are left unchanged for every blend mode.
 	// The default (zero) value is ebiten.BlendSourceOver.
 	Blend ebiten.Blend
 }
