@@ -156,16 +156,13 @@ func init() {
 	runtime.LockOSThread()
 }
 
-// maybeNewGLFWBackend returns a glfw backend, or nil where there is no window
+// newGLFWBackend returns a glfw backend, or the reason there is no window
 // system for it to use.
-func maybeNewGLFWBackend(u *UserInterface) *glfwBackend {
+func newGLFWBackend(u *UserInterface) (uiBackend, error) {
 	if !windowsystem.Available() {
-		return nil
+		return nil, errors.New("ui: no window system is available")
 	}
-	return newGLFWBackend(u)
-}
 
-func newGLFWBackend(u *UserInterface) *glfwBackend {
 	b := &glfwBackend{
 		UserInterface: u,
 	}
@@ -173,7 +170,7 @@ func newGLFWBackend(u *UserInterface) *glfwBackend {
 	b.windowToRestore.size = image.Pt(invalidSize, invalidSize)
 	b.input.clearSavedCursorPos()
 	b.backendWindow.ui = b
-	return b
+	return b, nil
 }
 
 var glfwSystemCursors = map[CursorShape]*glfw.Cursor{}

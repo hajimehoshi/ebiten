@@ -66,6 +66,8 @@ func (c *defaultContext) init() error {
 			}
 			errs = append(errs, fmt.Errorf("gl: Dlopen failed: name: %s: %w", name, err))
 		}
+	} else {
+		errs = append(errs, errors.New("gl: libGL.so needs a window system, and none is available"))
 	}
 
 	errs = append([]error{fmt.Errorf("gl: failed to load libGL.so and libGLESv2.so")}, errs...)

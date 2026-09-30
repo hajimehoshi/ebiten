@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !linux || android || nintendosdk || playstation5
+//go:build !linux && !ios && !js && !nintendosdk && !playstation5
 
 package ui
 
@@ -20,14 +20,8 @@ import (
 	"errors"
 )
 
-type fbdevBackend struct{}
-
-// maybeNewFbdevBackend never returns a backend: a framebuffer device is a Linux
+// newFbdevBackend never returns a backend: a framebuffer device is a Linux
 // concept.
-func maybeNewFbdevBackend(u *UserInterface) (*fbdevBackend, error) {
+func newFbdevBackend(u *UserInterface) (uiBackend, error) {
 	return nil, errors.New("a framebuffer device is a Linux feature")
-}
-
-func (b *fbdevBackend) run(game Game, options *RunOptions) error {
-	return errors.New("ui: a framebuffer device is not available in this environment")
 }

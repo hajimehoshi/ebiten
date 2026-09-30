@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !linux || (!amd64 && !arm64) || android || nintendosdk || playstation5
+//go:build (!linux || (!amd64 && !arm64)) && !android && !ios && !js && !nintendosdk && !playstation5
 
 package ui
 
@@ -20,14 +20,8 @@ import (
 	"errors"
 )
 
-type gbmBackend struct{}
-
-// maybeNewGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
+// newGBMBackend never returns a backend: DRM/KMS with GBM is a Linux
 // concept.
-func maybeNewGBMBackend(u *UserInterface) (*gbmBackend, error) {
+func newGBMBackend(u *UserInterface) (uiBackend, error) {
 	return nil, errors.New("ui: a DRM/KMS GBM display is not available in this environment")
-}
-
-func (b *gbmBackend) run(game Game, options *RunOptions) error {
-	return errors.New("ui: a DRM/KMS GBM display is not available in this environment")
 }

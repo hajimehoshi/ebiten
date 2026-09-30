@@ -115,20 +115,24 @@ func (u *UserInterface) Run(game Game, options *RunOptions) error {
 	if b != nil {
 		return b.run(game, options)
 	}
-	if b := maybeNewGLFWBackend(u); b != nil {
+
+	var errs []error
+	for _, newBackend := range []func(u *UserInterface) (uiBackend, error){
+		newGLFWBackend,
+		// Without a window system, prefer a DRM/KMS display driven with GBM (Mali
+		// and Mesa/panfrost-class GPUs), then fall back to a plain framebuffer
+		// device.
+		newGBMBackend,
+		newFbdevBackend,
+	} {
+		b, err := newBackend(u)
+		if err != nil {
+			errs = append(errs, err)
+			continue
+		}
 		return b.run(game, options)
 	}
-	// No window system: prefer a DRM/KMS display driven with GBM (Mali and
-	// Mesa/panfrost-class GPUs), then fall back to a plain framebuffer device.
-	gb, gbErr := maybeNewGBMBackend(u)
-	if gbErr == nil {
-		return gb.run(game, options)
-	}
-	fb, err := maybeNewFbdevBackend(u)
-	if err != nil {
-		return fmt.Errorf("ui: no window system is available: %w", errors.Join(gbErr, err))
-	}
-	return fb.run(game, options)
+	return fmt.Errorf("ui: no backend is available: %w", errors.Join(errs...))
 }
 
 // maybeNewVMGuestBackend returns a remote (guest) backend when a host endpoint is configured, or nil

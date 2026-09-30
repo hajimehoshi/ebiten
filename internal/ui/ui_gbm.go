@@ -22,9 +22,9 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/gbm"
 )
 
-// maybeNewGBMBackend probes EGL and KMS before choosing the backend without a window system.
+// newGBMBackend probes EGL and KMS before choosing the backend without a window system.
 // An unusable DRM device can then fall back to fbdev before the game starts.
-func maybeNewGBMBackend(u *UserInterface) (uiBackend, error) {
+func newGBMBackend(u *UserInterface) (uiBackend, error) {
 	display, err := gbm.OpenDisplay()
 	if err != nil {
 		return nil, err
@@ -43,5 +43,5 @@ func maybeNewGBMBackend(u *UserInterface) (uiBackend, error) {
 	}
 
 	width, height := c.Size()
-	return newNoWindowSystemBackend(u, width, height, c, nil, display.Close), nil
+	return newNoWindowSystemBackend(u, width, height, c, display.Close), nil
 }

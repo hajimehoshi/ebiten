@@ -45,7 +45,6 @@ type noWindowSystemBackend struct {
 	*UserInterface
 
 	eglContext    noWindowSystemContext
-	newContext    func() (noWindowSystemContext, error)
 	closeDisplay  func() error
 	sizeMu        sync.RWMutex
 	width, height int
@@ -62,11 +61,10 @@ type noWindowSystemBackend struct {
 	mu sync.Mutex
 }
 
-func newNoWindowSystemBackend(u *UserInterface, width, height int, c noWindowSystemContext, newContext func() (noWindowSystemContext, error), closeDisplay func() error) *noWindowSystemBackend {
+func newNoWindowSystemBackend(u *UserInterface, width, height int, c noWindowSystemContext, closeDisplay func() error) *noWindowSystemBackend {
 	b := &noWindowSystemBackend{
 		UserInterface: u,
 		eglContext:    c,
-		newContext:    newContext,
 		closeDisplay:  closeDisplay,
 		width:         width,
 		height:        height,
@@ -76,18 +74,20 @@ func newNoWindowSystemBackend(u *UserInterface, width, height int, c noWindowSys
 	return b
 }
 
-// maybeNewFbdevBackend returns a backend presenting on a framebuffer device, or
+// newFbdevBackend returns a backend presenting on a framebuffer device, or
 // the reason the device cannot be used.
-func maybeNewFbdevBackend(u *UserInterface) (uiBackend, error) {
+func newFbdevBackend(u *UserInterface) (uiBackend, error) {
 	display, err := fbdev.OpenDisplay()
 	if err != nil {
 		return nil, err
 	}
+	c, err := fbdev.NewContext(display)
+	if err != nil {
+		return nil, err
+	}
 
-	width, height := display.Size()
-	return newNoWindowSystemBackend(u, width, height, nil, func() (noWindowSystemContext, error) {
-		return fbdev.NewContext(display)
-	}, nil), nil
+	width, height := c.Size()
+	return newNoWindowSystemBackend(u, width, height, c, nil), nil
 }
 
 func (b *noWindowSystemBackend) run(game Game, options *RunOptions) error {
@@ -139,13 +139,6 @@ func (b *noWindowSystemBackend) run(game Game, options *RunOptions) error {
 }
 
 func (b *noWindowSystemBackend) initOnMainThread(options *RunOptions) (err error) {
-	if b.eglContext == nil {
-		c, err := b.newContext()
-		if err != nil {
-			return err
-		}
-		b.eglContext = c
-	}
 	defer func() {
 		if err != nil {
 			err = errors.Join(err, b.closeOnMainThread())
