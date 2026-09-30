@@ -519,8 +519,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 
 const inputEventSize = int(unsafe.Sizeof(input_event{}))
 
-// decodeInputEvent decodes the input event at the start of b, which must hold at least
-// inputEventSize bytes. time is not used.
+// decodeInputEvent decodes the input event at the start of b, ignoring its time.
 func decodeInputEvent(b []byte) input_event {
 	const (
 		offsetTyp   = int(unsafe.Offsetof(input_event{}.typ))
@@ -618,8 +617,7 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 	for {
 		n, err := unix.Read(g.fdPlus1-1, buf[:])
 		if err != nil {
-			// EINTR means no event was read. Retry at the next update instead of
-			// treating this as an error and dropping the gamepad.
+			// EINTR means no event was read; retry at the next update.
 			if err == unix.EAGAIN || err == unix.EINTR {
 				break
 			}
@@ -642,16 +640,11 @@ func (g *nativeGamepadImpl) update(gamepad *gamepads) (err error) {
 	return nil
 }
 
-// handleEvents handles the events read from the device at once. buf must
-// contain full input_event structures.
+// handleEvents applies a batch of events read from the device.
 func (g *nativeGamepadImpl) handleEvents(buf []byte) error {
-	// The state restored by pollAbsState and pollKeyState is newer than the
-	// events left in this buffer. The kernel flushes the queued key events when
-	// the key state is queried (evdev_handle_get_val in drivers/input/evdev.c),
-	// but it cannot flush the events already read into buf. Applying such a
-	// stale key event after the restore would resurrect an outdated button
-	// state, so skip the remaining key events in this buffer.
-	skipKeyEvents := false
+	// Key events left in buf predate the key state polled at a recovery. The kernel
+	// flushes only the queued ones (evdev_handle_get_val), so skip these.
+	var skipKeyEvents bool
 
 	for off := 0; off+inputEventSize <= len(buf); off += inputEventSize {
 		e := decodeInputEvent(buf[off:])
