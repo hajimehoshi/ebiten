@@ -17,7 +17,3 @@ package ui
 func IsShortcutChordForTest(ctrl, alt, meta, altGraph, isApple bool) bool {
 	return isShortcutChord(ctrl, alt, meta, altGraph, isApple)
 }
-
-func (u *UserInterface) InitForTest() error {
-	return u.init()
-}
