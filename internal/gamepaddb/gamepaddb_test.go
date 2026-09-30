@@ -15,13 +15,41 @@
 package gamepaddb_test
 
 import (
+	"bytes"
+	"embed"
 	"runtime"
+	"slices"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
+
+//go:embed gamecontrollerdb_*.txt
+var embeddedDatabases embed.FS
+
+func TestEmbeddedDatabases(t *testing.T) {
+	entries, err := embeddedDatabases.ReadDir(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, entry := range entries {
+		t.Run(entry.Name(), func(t *testing.T) {
+			data, err := embeddedDatabases.ReadFile(entry.Name())
+			if err != nil {
+				t.Fatal(err)
+			}
+			var lineNumber int
+			for line := range bytes.Lines(data) {
+				lineNumber++
+				if err := gamepaddb.ValidateMappingLine(string(line)); err != nil {
+					t.Errorf("line %d: %v", lineNumber, err)
+				}
+			}
+		})
+	}
+}
 
 func TestUpdate(t *testing.T) {
 	cases := []struct {
@@ -75,6 +103,98 @@ func TestUpdate(t *testing.T) {
 		if err != nil && !c.Err {
 			t.Errorf("Update(%q) should not return an error but returned %v", c.Input, err)
 		}
+	}
+}
+
+func TestUpdatePlatform(t *testing.T) {
+	cases := []struct {
+		Name     string
+		Platform string
+		GOOS     []string
+	}{
+		{
+			Name: "missing",
+		},
+		{
+			Name:     "empty",
+			Platform: "platform:,",
+		},
+		{
+			Name:     "Windows",
+			Platform: "platform:Windows,",
+			GOOS:     []string{"windows"},
+		},
+		{
+			Name:     "Mac OS X",
+			Platform: "platform:Mac OS X,",
+			GOOS:     []string{"darwin", "ios"},
+		},
+		{
+			Name:     "iOS",
+			Platform: "platform:iOS,",
+			GOOS:     []string{"darwin", "ios"},
+		},
+		{
+			Name:     "Linux",
+			Platform: "platform:Linux,",
+			GOOS:     []string{"aix", "dragonfly", "freebsd", "hurd", "illumos", "linux", "netbsd", "openbsd", "solaris"},
+		},
+		{
+			Name:     "Android",
+			Platform: "platform:Android,",
+			GOOS:     []string{"android"},
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			const id = "00000000000000000000000000009404"
+			if err := gamepaddb.Update([]byte(id + ",Original,a:b0,\n")); err != nil {
+				t.Fatal(err)
+			}
+			if err := gamepaddb.Update([]byte(id + ",Updated," + c.Platform + "a:b1,\n")); err != nil {
+				t.Fatal(err)
+			}
+			want := "Original"
+			if len(c.GOOS) == 0 || slices.Contains(c.GOOS, runtime.GOOS) {
+				want = "Updated"
+			}
+			if got := gamepaddb.Name(id); got != want {
+				t.Errorf("Name(%q) = %q, want %q", id, got, want)
+			}
+		})
+	}
+}
+
+func TestUpdateInvalidForeignPlatform(t *testing.T) {
+	platform := "Windows"
+	if runtime.GOOS == "windows" {
+		platform = "Linux"
+	}
+	for _, fields := range []string{
+		"platform:" + platform + ",a:",
+		"a:,platform:" + platform,
+	} {
+		t.Run(fields, func(t *testing.T) {
+			const id = "00000000000000000000000000009405"
+			if err := gamepaddb.Update([]byte(id + ",Original,a:b0,\n")); err != nil {
+				t.Fatal(err)
+			}
+			data := id + ",Updated,a:b1,\n" + id + ",Invalid," + fields + "\n"
+			if err := gamepaddb.Update([]byte(data)); err == nil {
+				t.Error("Update with an invalid foreign-platform mapping should return an error")
+			}
+			if got, want := gamepaddb.Name(id), "Original"; got != want {
+				t.Errorf("Name(%q) after a failed update = %q, want %q", id, got, want)
+			}
+			state := stubGamepadState{
+				buttons: map[int]bool{
+					0: true,
+				},
+			}
+			if !gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonRightBottom).IsButtonPressed(state) {
+				t.Error("a failed update changed the existing button mapping")
+			}
+		})
 	}
 }
 

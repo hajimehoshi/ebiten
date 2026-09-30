@@ -14,6 +14,11 @@
 
 package gamepaddb
 
+func ValidateMappingLine(line string) error {
+	_, _, _, _, _, err := parseLine(line)
+	return err
+}
+
 func AddAndroidDefaultMappings(id string) bool {
 	mappingsM.Lock()
 	defer mappingsM.Unlock()
