@@ -478,13 +478,6 @@ func (u *UserInterface) loopGame() error {
 
 // waitForBody waits until the document has its body, and returns an error if the document has no
 // body even though no load event is pending anymore.
-//
-// A page can restore its body in a load handler, so the load event is waited for while it can still
-// be fired. readyState is "loading" or "interactive" (the parsing is done but the loading is not)
-// until the document and all its resources have finished loading, and the load event is fired right
-// after readyState becomes "complete". A load listener added after the load event was fired is
-// never invoked, so the load event must not be waited for unconditionally.
-// https://html.spec.whatwg.org/multipage/parsing.html#the-end
 func waitForBody() error {
 	if document.Get("body").Truthy() {
 		return nil
@@ -500,13 +493,12 @@ func waitForBody() error {
 	case "loading", "interactive":
 		<-ch
 	default:
-		// readyState "complete" does not mean that the load event was already fired: the load
-		// event is fired by the very steps making readyState "complete", in that task or in a task
-		// queued by them, so it can still be pending even now, as when this function is called
-		// from a readystatechange handler. The load event is fired before any task added after
-		// readyState became "complete" is run, so waiting for the load event only until a task
-		// added here is run is enough: if that task is run first, the load event was already fired
-		// and waiting for it would wait forever.
+		// The load event is fired in the very task making readyState "complete", so it can still be
+		// pending even now, as when this function is called from a readystatechange handler. The
+		// event is fired before the tasks added after it, so waiting for it only until a task added
+		// here is run is enough: if that task is run first, the event was already fired and the
+		// listener is never invoked.
+		// https://html.spec.whatwg.org/multipage/parsing.html#the-end
 		done := make(chan struct{})
 		setTimeout.Invoke(js.FuncOf(func(this js.Value, args []js.Value) any {
 			close(done)
@@ -518,7 +510,6 @@ func waitForBody() error {
 		}
 	}
 
-	// The body must not be used when it is not there, for using a nil body panics.
 	if !document.Get("body").Truthy() {
 		return errors.New("ui: document.body is not found even after the document was loaded")
 	}
@@ -539,10 +530,6 @@ func (u *UserInterface) init() error {
 		return nil
 	}
 
-	// A document that has no body cannot be initialized at all, for the canvas must be attached to
-	// a body. This error reaches the package initialization, which panics with it, so a program on
-	// a document without a body stops with this message instead of waiting forever for a load event
-	// that is never fired or panicking on the nil body.
 	if err := waitForBody(); err != nil {
 		return err
 	}

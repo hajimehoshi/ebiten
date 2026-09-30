@@ -22,8 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
-// waitFrames waits for the given number of rendering updates, and reports whether they happened,
-// for frames are not rendered for a page which is not shown.
+// waitFrames waits for the given number of rendering updates, and reports whether they happened.
 func waitFrames(n int) bool {
 	const timeout = 10 * time.Second
 	for i := 0; i < n; i++ {
@@ -45,10 +44,6 @@ func waitFrames(n int) bool {
 	return true
 }
 
-// TestInitWithNilBody tests that the initialization of a loaded document that has no body reports
-// an error instead of hanging or accessing the nil body: a load listener added after the load event
-// was fired is never invoked, and using a nil body panics. The error is reported by the package
-// initialization, which panics with it, for no game runs yet to receive an error.
 func TestInitWithNilBody(t *testing.T) {
 	// document is undefined on node.js.
 	document := js.Global().Get("document")
@@ -56,9 +51,8 @@ func TestInitWithNilBody(t *testing.T) {
 		t.Skip("document is not defined")
 	}
 
-	// While the load event has not been fired yet, a document without its body is just a document
-	// that is still being loaded, and waiting for its body is what the initialization must do.
-	// loadEventEnd is non-zero only after the load event was fired.
+	// A document that is still being loaded may still get its body, so the load event must have
+	// been fired. readyState "complete" does not tell that, but loadEventEnd does.
 	// https://w3c.github.io/navigation-timing/#dom-performancenavigationtiming-loadeventend
 	navigation := js.Global().Get("performance").Call("getEntriesByType", "navigation")
 	if navigation.Length() == 0 || navigation.Index(0).Get("loadEventEnd").Float() == 0 {
@@ -69,17 +63,14 @@ func TestInitWithNilBody(t *testing.T) {
 		t.Fatal("document.body is nil")
 	}
 
-	// The user interface created by the package initialization watches the canvas with a
-	// ResizeObserver, whose callback uses document.body. The observation of a newly watched canvas
-	// is delivered in a rendering update, which can still be pending now, so let some frames pass
-	// before the body is shadowed. Otherwise the pending delivery would use the shadowed body and
-	// panic, whatever the initialization does.
+	// The pending first delivery of the ResizeObserver on the canvas of the user interface created
+	// by the package initialization uses document.body, which panics while it is shadowed, and
+	// observations are delivered in rendering updates, so let a couple of frames pass.
 	if !waitFrames(2) {
 		t.Skip("no frame is rendered")
 	}
 
-	// Shadow document.body with null instead of removing the body element from the document, so
-	// that the document is not resized while the body is gone.
+	// Shadowing document.body keeps the document size, unlike removing the body element.
 	shadow := js.Global().Get("Object").New()
 	shadow.Set("configurable", true)
 	shadow.Set("value", js.Null())
