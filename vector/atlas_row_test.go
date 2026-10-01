@@ -12,24 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vector
+package vector_test
 
 import (
 	"image"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 func TestAtlasRowHeight(t *testing.T) {
 	for _, antialias := range []bool{false, true} {
-		var a atlas
-		paths := make([]*Path, 5)
+		paths := make([]*vector.Path, 5)
 		bounds := make([]image.Rectangle, len(paths))
 		for i := range paths {
 			height := 16
 			if i == 0 {
 				height = 1024
 			}
-			p := &Path{}
+			p := &vector.Path{}
 			p.MoveTo(0, 0)
 			p.LineTo(2048, 0)
 			p.LineTo(2048, float32(height))
@@ -38,15 +39,15 @@ func TestAtlasRowHeight(t *testing.T) {
 			paths[i] = p
 			bounds[i] = image.Rect(0, 0, 2048, height)
 		}
-		a.setPaths(image.Rect(0, 0, 2048, 2048), paths, bounds, antialias)
-		for _, img := range a.atlasImages {
+		images, regionBounds := vector.AtlasSetPaths(image.Rect(0, 0, 2048, 2048), paths, bounds, antialias)
+		for _, img := range images {
 			defer img.Deallocate()
 		}
-		if got := len(a.atlasImages); got != 1 {
+		if got := len(images); got != 1 {
 			t.Errorf("antialias=%v: atlas image count: got %d, want 1", antialias, got)
 		}
 		for i := 1; i < len(paths); i++ {
-			got := a.atlasRegions[a.pathIndexToAtlasRegionIndex[i]].imageBounds.Min.Y
+			got := regionBounds[i].Min.Y
 			want := 1024 + (i-1)*16
 			if got != want {
 				t.Errorf("antialias=%v: path %d Y: got %d, want %d", antialias, i, got, want)
