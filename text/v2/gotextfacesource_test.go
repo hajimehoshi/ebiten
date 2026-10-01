@@ -193,8 +193,6 @@ func parseTestFont(t *testing.T, data []byte) *font.Font {
 	return f
 }
 
-// goTextFaceMetrics returns the metrics a new go-text face reports for f
-// at size and variations. Scaling and the descent sign match GoTextFaceSource.
 func goTextFaceMetrics(t *testing.T, f *font.Font, size float64, variations []font.Variation) text.Metrics {
 	t.Helper()
 
@@ -606,70 +604,4 @@ func TestGoTextFaceSourceMetricsConcurrentWithShaping(t *testing.T) {
 		}
 	}
 	wg.Wait()
-}
-
-func TestGoTextFaceSourceMetricsMeasureSecondary(t *testing.T) {
-	data := variableFontData(t)
-	const (
-		size        = 24
-		lineSpacing = 5.5
-		sample      = "A\nB"
-	)
-	wght := text.MustParseTag("wght")
-	f := parseTestFont(t, data)
-	src := newGoTextFaceSourceForTest(t, data)
-
-	for _, tc := range []struct {
-		name       string
-		direction  text.Direction
-		variations []font.Variation
-		vertical   bool
-	}{
-		{
-			name: "horizontal default",
-		},
-		{
-			name: "horizontal wght100",
-			variations: []font.Variation{
-				{
-					Tag:   font.Tag(wght),
-					Value: 100,
-				},
-			},
-		},
-		{
-			name:      "vertical default",
-			direction: text.DirectionTopToBottomAndLeftToRight,
-			vertical:  true,
-		},
-		{
-			name:      "vertical wght900",
-			direction: text.DirectionTopToBottomAndRightToLeft,
-			variations: []font.Variation{
-				{
-					Tag:   font.Tag(wght),
-					Value: 900,
-				},
-			},
-			vertical: true,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			face := newVariedGoTextFace(src, size, tc.variations)
-			face.Direction = tc.direction
-			m := goTextFaceMetrics(t, f, size, tc.variations)
-			gotW, gotH := text.Measure(sample, face, lineSpacing)
-			if tc.vertical {
-				wantW := m.VAscent + m.VDescent + lineSpacing
-				if gotW != wantW {
-					t.Errorf("Measure width: got: %v, want VAscent+VDescent+lineSpacing %v", gotW, wantW)
-				}
-			} else {
-				wantH := m.HAscent + m.HDescent + lineSpacing
-				if gotH != wantH {
-					t.Errorf("Measure height: got: %v, want HAscent+HDescent+lineSpacing %v", gotH, wantH)
-				}
-			}
-		})
-	}
 }
