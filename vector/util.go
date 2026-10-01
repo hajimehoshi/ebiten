@@ -346,6 +346,10 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 
 // StrokePath strokes the specified path with the specified options.
 func StrokePath(dst *ebiten.Image, path *Path, strokeOptions *StrokeOptions, drawPathOptions *DrawPathOptions) {
+	if path == nil || len(path.subPaths) == 0 {
+		return
+	}
+
 	if strokeOptions == nil {
 		strokeOptions = &StrokeOptions{}
 	}

@@ -84,6 +84,10 @@ type DrawPathOptions struct {
 //
 // An invalid FillRule in fillOptions causes a panic.
 func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathOptions *DrawPathOptions) {
+	if path == nil || len(path.subPaths) == 0 {
+		return
+	}
+
 	if drawPathOptions == nil {
 		drawPathOptions = &DrawPathOptions{}
 	}

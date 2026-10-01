@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/imagebridge"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -169,6 +170,186 @@ func TestFillPathZeroCoverage(t *testing.T) {
 					t.Errorf("pixel inside circle: got %v, want %v", got, paint)
 				}
 			})
+		}
+	}
+}
+
+func TestDrawEmptyPath(t *testing.T) {
+	var empty, reset vector.Path
+	reset.MoveTo(1, 1)
+	reset.LineTo(7, 1)
+	reset.LineTo(7, 7)
+	reset.Close()
+	reset.Reset()
+	paths := []struct {
+		name string
+		path *vector.Path
+	}{
+		{
+			name: "Nil",
+		},
+		{
+			name: "ZeroValue",
+			path: &empty,
+		},
+		{
+			name: "Reset",
+			path: &reset,
+		},
+	}
+
+	drawings := []struct {
+		name string
+		draw func(*ebiten.Image, *vector.Path, *vector.DrawPathOptions)
+	}{
+		{
+			name: "FillPath/NilOptions",
+			draw: func(dst *ebiten.Image, path *vector.Path, op *vector.DrawPathOptions) {
+				vector.FillPath(dst, path, nil, op)
+			},
+		},
+		{
+			name: "FillPath/EvenOdd",
+			draw: func(dst *ebiten.Image, path *vector.Path, op *vector.DrawPathOptions) {
+				vector.FillPath(dst, path, &vector.FillOptions{
+					FillRule: vector.FillRuleEvenOdd,
+				}, op)
+			},
+		},
+		{
+			name: "StrokePath/NilOptions",
+			draw: func(dst *ebiten.Image, path *vector.Path, op *vector.DrawPathOptions) {
+				vector.StrokePath(dst, path, nil, op)
+			},
+		},
+		{
+			name: "StrokePath/PositiveWidth",
+			draw: func(dst *ebiten.Image, path *vector.Path, op *vector.DrawPathOptions) {
+				vector.StrokePath(dst, path, &vector.StrokeOptions{
+					Width: 2,
+				}, op)
+			},
+		},
+	}
+	blends := []struct {
+		name  string
+		blend ebiten.Blend
+	}{
+		{
+			name: "NilOptions",
+		},
+		{
+			name: "Default",
+		},
+		{
+			name:  "SourceOver",
+			blend: ebiten.BlendSourceOver,
+		},
+		{
+			name:  "Clear",
+			blend: ebiten.BlendClear,
+		},
+		{
+			name:  "Copy",
+			blend: ebiten.BlendCopy,
+		},
+		{
+			name:  "Destination",
+			blend: ebiten.BlendDestination,
+		},
+		{
+			name:  "DestinationOver",
+			blend: ebiten.BlendDestinationOver,
+		},
+		{
+			name:  "SourceIn",
+			blend: ebiten.BlendSourceIn,
+		},
+		{
+			name:  "DestinationIn",
+			blend: ebiten.BlendDestinationIn,
+		},
+		{
+			name:  "SourceOut",
+			blend: ebiten.BlendSourceOut,
+		},
+		{
+			name:  "DestinationOut",
+			blend: ebiten.BlendDestinationOut,
+		},
+		{
+			name:  "SourceAtop",
+			blend: ebiten.BlendSourceAtop,
+		},
+		{
+			name:  "DestinationAtop",
+			blend: ebiten.BlendDestinationAtop,
+		},
+		{
+			name:  "Xor",
+			blend: ebiten.BlendXor,
+		},
+		{
+			name:  "Lighter",
+			blend: ebiten.BlendLighter,
+		},
+	}
+	for _, path := range paths {
+		for _, drawing := range drawings {
+			for _, blend := range blends {
+				for _, aa := range []bool{false, true} {
+					if blend.name == "NilOptions" && aa {
+						continue
+					}
+					for _, queued := range []bool{false, true} {
+						t.Run(fmt.Sprintf("%s/%s/%s/aa=%t/queued=%t", path.name, drawing.name, blend.name, aa, queued), func(t *testing.T) {
+							const size = 8
+							dst := ebiten.NewImage(size, size)
+							defer dst.Deallocate()
+							background := color.RGBA{R: 32, G: 64, B: 96, A: 128}
+							dst.Fill(background)
+							if queued {
+								vector.FillRect(dst, 2, 2, 4, 4, color.White, false)
+								vector.StrokeLine(dst, 1, 1, 7, 1, 2, color.White, false)
+							}
+
+							var op *vector.DrawPathOptions
+							if blend.name != "NilOptions" {
+								op = &vector.DrawPathOptions{
+									AntiAlias: aa,
+									Blend:     blend.blend,
+								}
+							}
+							// An empty path must leave queued drawings deferred until the destination is used.
+							bridge := imagebridge.Get[*ebiten.Image]()
+							var uses int
+							token := bridge.AddUsage(dst, func(*ebiten.Image) {
+								uses++
+							})
+							drawing.draw(dst, path.path, op)
+							bridge.RemoveUsage(dst, token)
+							if uses != 0 {
+								t.Errorf("empty path used the destination %d times, want 0", uses)
+							}
+
+							got := make([]byte, 4*size*size)
+							dst.ReadPixels(got)
+							for y := range size {
+								for x := range size {
+									want := background
+									if queued && ((2 <= x && x < 6 && 2 <= y && y < 6) || (1 <= x && x < 7 && y < 2)) {
+										want = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+									}
+									i := 4 * (y*size + x)
+									if !bytes.Equal(got[i:i+4], []byte{want.R, want.G, want.B, want.A}) {
+										t.Errorf("pixel (%d, %d): got %v, want %v", x, y, got[i:i+4], want)
+									}
+								}
+							}
+						})
+					}
+				}
+			}
 		}
 	}
 }
