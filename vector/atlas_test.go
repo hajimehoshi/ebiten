@@ -12,41 +12,46 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package vector
+package vector_test
 
 import (
-	"github.com/hajimehoshi/ebiten/v2"
 	"image"
 	"testing"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 func TestAtlasReleasesUnusedImages(t *testing.T) {
-	var a atlas
-	a.atlasImages = []*ebiten.Image{
+	var a vector.Atlas
+	images := []*ebiten.Image{
 		ebiten.NewImage(16, 16),
 		ebiten.NewImage(16, 16),
 		ebiten.NewImage(16, 16),
 	}
-	old := a.atlasImages
-	for _, img := range old {
+	for _, img := range images {
 		defer img.Deallocate()
 	}
-	var p Path
+	a.SetAtlasImages(images)
+
+	var p vector.Path
 	p.MoveTo(0, 0)
 	p.LineTo(16, 0)
 	p.LineTo(16, 16)
 	p.LineTo(0, 16)
 	p.Close()
 	bounds := image.Rect(0, 0, 16, 16)
-	a.setPaths(bounds, []*Path{&p}, []image.Rectangle{bounds}, false)
-	if len(a.atlasImages) != 1 {
-		t.Fatalf("got %d images, want 1", len(a.atlasImages))
+	a.SetPaths(bounds, []*vector.Path{&p}, []image.Rectangle{bounds}, false)
+
+	if got, want := len(a.AtlasImages()), 1; got != want {
+		t.Fatalf("got: %d, want: %d", got, want)
 	}
-	if a.atlasImages[0] != old[0] {
+	if a.AtlasImages()[0] != images[0] {
 		t.Error("the active image was not reused")
 	}
-	for i := 1; i < len(old); i++ {
-		if old[i] != nil {
+	// The removed entries must not retain the unused images.
+	for i := 1; i < len(images); i++ {
+		if images[i] != nil {
 			t.Errorf("unused image %d is still referenced", i)
 		}
 	}

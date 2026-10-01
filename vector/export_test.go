@@ -16,8 +16,27 @@ package vector
 
 import (
 	"fmt"
+	"image"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
+
+type Atlas struct {
+	atlas atlas
+}
+
+func (a *Atlas) SetAtlasImages(images []*ebiten.Image) {
+	a.atlas.atlasImages = images
+}
+
+func (a *Atlas) AtlasImages() []*ebiten.Image {
+	return a.atlas.atlasImages
+}
+
+func (a *Atlas) SetPaths(dstBounds image.Rectangle, paths []*Path, bounds []image.Rectangle, antialias bool) {
+	a.atlas.setPaths(dstBounds, paths, bounds, antialias)
+}
 
 type Point struct {
 	X, Y float32
