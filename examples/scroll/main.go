@@ -19,6 +19,7 @@ import (
 	"image"
 	"image/color"
 	"log"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -31,6 +32,14 @@ type Game struct {
 
 	// dragging indicates whether a pointing device is dragging the content.
 	dragging bool
+
+	// draggingByTouch indicates whether the content is dragged by touch rather than by mouse.
+	// This is used only when dragging is true.
+	draggingByTouch bool
+
+	// dragTouchID is the ID of the touch which is dragging the content.
+	// This is used only when dragging and draggingByTouch are true.
+	dragTouchID ebiten.TouchID
 
 	// prevY is the previous Y value of a pointing device in the last frame.
 	prevY int
@@ -59,26 +68,41 @@ func (g *Game) updateInput() {
 	g.justReleasedTouchIDs = inpututil.AppendJustReleasedTouchIDs(g.justReleasedTouchIDs[:0])
 }
 
+// pointingDeviceTouchID returns the ID of the touch used as a pointing device, and reports whether a
+// touch is used as one.
+//
+// The touch which started dragging keeps being used as a pointing device until it is released, so that
+// pressing or releasing another touch does not disturb the dragging.
+func (g *Game) pointingDeviceTouchID() (ebiten.TouchID, bool) {
+	if g.dragging && g.draggingByTouch {
+		return g.dragTouchID, true
+	}
+	if len(g.touchIDs) > 0 {
+		return g.touchIDs[0], true
+	}
+	return 0, false
+}
+
 // pointingDevicePosition returns the position of a pointing device (a touch or a mouse).
 func (g *Game) pointingDevicePosition() (x, y int) {
-	if len(g.touchIDs) > 0 {
-		return ebiten.TouchPosition(g.touchIDs[0])
+	if id, ok := g.pointingDeviceTouchID(); ok {
+		return ebiten.TouchPosition(id)
 	}
 	return ebiten.CursorPosition()
 }
 
 // isPointingDevicePressed reports whether a pointing device is pressed.
 func (g *Game) isPointingDevicePressed() bool {
-	if len(g.touchIDs) > 0 {
-		return true
+	if id, ok := g.pointingDeviceTouchID(); ok {
+		return slices.Contains(g.touchIDs, id)
 	}
 	return ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft)
 }
 
 // isPointingDeviceJustReleased reports whether a pointing device is just released.
 func (g *Game) isPointingDeviceJustReleased() bool {
-	if len(g.justReleasedTouchIDs) > 0 {
-		return true
+	if id, ok := g.pointingDeviceTouchID(); ok {
+		return slices.Contains(g.justReleasedTouchIDs, id)
 	}
 	return inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft)
 }
@@ -120,6 +144,8 @@ func (g *Game) Update() error {
 	g.velocityY = 0
 
 	if !g.dragging && hovering {
+		// Remember the pointing device which started dragging. If no touch is pressed, the mouse is used.
+		g.dragTouchID, g.draggingByTouch = g.pointingDeviceTouchID()
 		g.dragging = true
 		g.prevY = y
 		g.offsetStartY = g.offsetY
