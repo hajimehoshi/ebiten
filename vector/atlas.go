@@ -122,13 +122,13 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 				// Try the next row.
 				currentPosition.X = 0
 				currentPosition.Y += currentRowHeight
+				// The regions are sorted by height in descending order, so the first region of a row
+				// has the largest height of the row.
+				currentRowHeight = s.Y
 				if currentPosition.Y+s.Y > maxImageSize {
 					atlasImageIndex++
 					a.atlasSizes = append(a.atlasSizes, image.Point{})
 					currentPosition.Y = 0
-					currentRowHeight = s.Y
-				} else {
-					currentRowHeight = max(currentRowHeight, s.Y)
 				}
 			}
 			a.atlasRegions[i].imageIndex = atlasImageIndex
