@@ -140,6 +140,7 @@ var (
 	canvas                js.Value
 	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
 	setTimeout            = js.Global().Get("setTimeout")
+	clearTimeout          = js.Global().Get("clearTimeout")
 )
 
 var (
@@ -482,6 +483,56 @@ func (u *UserInterface) loopGame() error {
 	return g.Wait()
 }
 
+// waitForBody waits until the document has its body, and returns an error if the document has no
+// body even though no load event is pending anymore.
+func waitForBody() error {
+	if document.Get("body").Truthy() {
+		return nil
+	}
+
+	ch := make(chan struct{})
+	onLoad := js.FuncOf(func(this js.Value, args []js.Value) any {
+		close(ch)
+		return nil
+	})
+	window.Call("addEventListener", "load", onLoad)
+	defer func() {
+		window.Call("removeEventListener", "load", onLoad)
+		onLoad.Release()
+	}()
+
+	switch document.Get("readyState").String() {
+	case "loading", "interactive":
+		<-ch
+	default:
+		// The load event is fired in the very task making readyState "complete", so it can still be
+		// pending even now, as when this function is called from a readystatechange handler. The
+		// event is fired before the tasks added after it, so waiting for it only until a task added
+		// here is run is enough: if that task is run first, the event was already fired and the
+		// listener is never invoked.
+		// https://html.spec.whatwg.org/multipage/parsing.html#the-end
+		done := make(chan struct{})
+		onTimeout := js.FuncOf(func(this js.Value, args []js.Value) any {
+			close(done)
+			return nil
+		})
+		timeoutID := setTimeout.Invoke(onTimeout, 0)
+		defer func() {
+			clearTimeout.Invoke(timeoutID)
+			onTimeout.Release()
+		}()
+		select {
+		case <-ch:
+		case <-done:
+		}
+	}
+
+	if !document.Get("body").Truthy() {
+		return errors.New("ui: document.body is not found even after the document was loaded")
+	}
+	return nil
+}
+
 func (u *UserInterface) init() error {
 	u.userInterfaceImpl = userInterfaceImpl{
 		savedCursorX: math.NaN(),
@@ -496,13 +547,8 @@ func (u *UserInterface) init() error {
 		return nil
 	}
 
-	if !document.Get("body").Truthy() {
-		ch := make(chan struct{})
-		window.Call("addEventListener", "load", js.FuncOf(func(this js.Value, args []js.Value) any {
-			close(ch)
-			return nil
-		}))
-		<-ch
+	if err := waitForBody(); err != nil {
+		return err
 	}
 
 	u.setWindowEventHandlers(window)
