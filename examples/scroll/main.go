@@ -78,7 +78,7 @@ func (g *Game) isPointingDevicePressed() bool {
 // isPointingDeviceJustReleased reports whether a pointing device is just released.
 func (g *Game) isPointingDeviceJustReleased() bool {
 	if len(g.justReleasedTouchIDs) > 0 {
-		return false
+		return true
 	}
 	return inpututil.IsMouseButtonJustReleased(ebiten.MouseButtonLeft)
 }
@@ -93,10 +93,10 @@ func (g *Game) Update() error {
 
 	hovering := image.Pt(x, y).In(g.contentArea)
 
-	// If a pointing device is just released, start scrolling.
+	// If a pointing device is just released, start scrolling with the velocity
+	// tracked while dragging.
 	if g.isPointingDeviceJustReleased() && g.dragging {
 		g.dragging = false
-		g.velocityY = y - g.prevY
 		return nil
 	}
 
@@ -121,6 +121,7 @@ func (g *Game) Update() error {
 
 	if !g.dragging && hovering {
 		g.dragging = true
+		g.prevY = y
 		g.offsetStartY = g.offsetY
 		g.startY = y
 	}
@@ -128,6 +129,7 @@ func (g *Game) Update() error {
 	// If a pointing device is pressed, adjust the offset by the movement.
 	if g.dragging {
 		g.setOffsetY(g.offsetStartY + y - g.startY)
+		g.velocityY = y - g.prevY
 	}
 
 	return nil
