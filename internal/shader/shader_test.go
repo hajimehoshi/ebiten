@@ -1047,6 +1047,44 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestCompileNonIntegerArrayLength(t *testing.T) {
+	cases := []struct {
+		name string
+		src  string
+	}{
+		{
+			name: "float length",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [1.5]float
+	return vec4(a[0])
+}`,
+		},
+		{
+			name: "bool length",
+			src: `package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	var a [true]int
+	return vec4(float(a[0]))
+}`,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Fatalf("Compile must not panic for a non-integer array length, but panicked: %v", r)
+				}
+			}()
+			if _, err := shader.Compile([]byte(c.src), "Vertex", "Fragment", 0); err == nil {
+				t.Errorf("Compile must return an error for a non-integer array length, but got nil")
+			}
+		})
+	}
+}
+
 func TestCompileZeroLengthArray(t *testing.T) {
 	cases := []struct {
 		name string
