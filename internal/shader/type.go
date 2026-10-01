@@ -85,9 +85,14 @@ func (cs *compileState) parseType(block *block, fname string, expr ast.Expr) (sh
 			cs.addError(t.Pos(), "length of array must be a constant number")
 			return shaderir.Type{}, false
 		}
+		// Int64Val panics for non-integer constants other than Unknown.
+		if exprs[0].Const.Kind() != gconstant.Int {
+			cs.addError(t.Pos(), fmt.Sprintf("invalid array length %s", exprs[0].Const))
+			return shaderir.Type{}, false
+		}
 		l, ok := gconstant.Int64Val(exprs[0].Const)
 		if !ok {
-			cs.addError(t.Pos(), "length of array must be an integer")
+			cs.addError(t.Pos(), fmt.Sprintf("invalid array length %s", exprs[0].Const))
 			return shaderir.Type{}, false
 		}
 		return cs.parseArrayType(block, fname, t, l)
