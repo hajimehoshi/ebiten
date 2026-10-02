@@ -67,13 +67,23 @@ var (
 	bindBootClasspath string // -bootclasspath
 )
 
+type usageError string
+
+func (e usageError) Error() string {
+	return string(e)
+}
+
 func main() {
-	if err := run(); err != nil {
+	if err := xmain(); err != nil {
+		if _, ok := err.(usageError); ok {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
 		log.Fatal(err)
 	}
 }
 
-func run() error {
+func xmain() error {
 	flag.Usage = func() {
 		// This message is copied from `gomobile bind -h`
 		fmt.Fprintf(os.Stderr, "%s bind [-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]\n", ebitenmobileCommand)
@@ -134,7 +144,7 @@ func run() error {
 	}
 
 	if buildO == "" {
-		return fmt.Errorf("ebitenmobile: -o must be specified")
+		return usageError("ebitenmobile: -o must be specified")
 	}
 
 	dir, err := prepareGomobileCommands()
