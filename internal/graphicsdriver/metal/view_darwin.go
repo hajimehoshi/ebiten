@@ -56,7 +56,8 @@ type view struct {
 	device mtl.Device
 	ml     ca.MetalLayer
 
-	once sync.Once
+	// attachedUIView is used only on the rendering thread, and only on iOS.
+	attachedUIView uintptr
 
 	caDisplayLink    uintptr
 	metalDisplayLink uintptr
