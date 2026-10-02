@@ -1319,51 +1319,21 @@ func (i *Image) ReadPixels(pixels []byte) {
 	i.image.ReadPixels(pixels, i.adjustedBounds())
 }
 
-// ReadPixelsAsync loads pixels from GPU to system memory in the background and returns a channel
-// that reports the result.
+// ReadPixelsAsync reads the image's pixels into pixels in RGBA order with premultiplied alpha.
+// It captures drawing operations preceding the call and excludes subsequent operations.
+// The call returns without waiting for the GPU.
 //
-// The call records the read in drawing order and returns without waiting for the GPU. The read
-// pixels include the drawing operations that precede this call and exclude the operations that
-// follow it, so ReadPixelsAsync captures the image as it is at this point of the frame even when
-// more drawing happens before the pixels are available.
+// The returned buffered channel receives exactly one value: nil on success, or an error on
+// failure, including when the game exits. The channel is not closed. Ignoring it does not block
+// completion. pixels must not be accessed or reused until the result is received; its contents
+// are unspecified on error. The image may be drawn to or disposed while the read is pending.
 //
-// The returned channel is buffered and receives exactly one value: nil when the pixels are
-// available, or an error when the read failed. The channel is not closed, so a caller must receive
-// one value instead of ranging over the channel. A channel that a caller ignores does not prevent
-// the read from completing.
+// Results progress as the game loop runs. Do not block Update or Draw waiting for a result.
+// Drivers without asynchronous read-back support read synchronously on the rendering thread.
 //
-// pixels must not be read, modified, or reused until the channel receives a value. Ebitengine does
-// not touch pixels after the channel receives a value, and the contents of pixels are unspecified
-// when the value is an error.
-//
-// Ebitengine retains the resources a pending read needs, so the image may be drawn to or disposed
-// while the read is still pending. A pending read always receives a value, including when the
-// graphics device fails or the game exits, so a caller can stop waiting with a select and still
-// receive the result before reusing pixels.
-//
-// len(pixels) must be 4 * (bounds width) * (bounds height).
-// If len(pixels) is not correct, ReadPixelsAsync panics.
-//
-// The game loop must keep running until the result arrives. Do not block Update or Draw
-// waiting for the result; poll the channel on subsequent frames or receive it on another goroutine.
-//
-// ReadPixelsAsync also works on a sub-image.
-//
-// ReadPixelsAsync panics if the image is disposed.
-//
-// Like ReadPixels, ReadPixelsAsync can be slow, since the pixels must be transferred from the GPU.
-// ReadPixelsAsync mainly allows the transfer, the rendering, and the encoding of the pixels to
-// overlap, and the GPU might still stall on the transfer. For a continuous capture, keep the number
-// of pending reads small, for example by reusing a small pool of destination buffers.
-//
-// On a platform or with a graphics driver that cannot read pixels in the background, the pixels are
-// read synchronously instead. The read pixels are the same either way, but then the rendering waits
-// for the GPU to finish the read.
-//
-// Note that an important logic should not rely on values returned by ReadPixelsAsync, since
-// the returned values can include very slight differences between some machines.
-//
-// ReadPixelsAsync can't be called before the main loop (ebiten.RunGame's updating function) starts.
+// ReadPixelsAsync works on sub-images. It panics if len(pixels) is not 4 times the bounds' width
+// times height, if the image is disposed, or if called before the game loop starts.
+// As with ReadPixels, pixel values can differ slightly between machines.
 func (i *Image) ReadPixelsAsync(pixels []byte) <-chan error {
 	b := i.Bounds()
 	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {

@@ -85,8 +85,6 @@ func TestReadPixelsIsServedWhileWaitingForTheTick(t *testing.T) {
 }
 
 func TestReadPixelsAsyncGuestExit(t *testing.T) {
-	// Reuse the public API regression, including an unsubmitted read at termination.
-	// startGuest verifies the guest's exit status, so a missing result fails the test.
 	guest := startGuest(t, "../../internal/processtest/testdata/readpixelsasync.go", activateByEnv, "unix")
 	screen := ebiten.NewImage(16, 16)
 	defer screen.Dispose()

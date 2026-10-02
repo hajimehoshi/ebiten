@@ -235,9 +235,6 @@ func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.
 // error that prevented it.
 func (u *UserInterface) abortedReadPixels() <-chan error {
 	err := u.error()
-	if err == nil {
-		err = errors.New("ui: the pixel read-back was not enqueued")
-	}
 	ch := make(chan error, 1)
 	ch <- err
 	return ch

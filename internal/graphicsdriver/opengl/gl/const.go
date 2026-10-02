@@ -21,9 +21,9 @@ const (
 	ARRAY_BUFFER               = 0x8892
 	BLEND                      = 0x0BE2
 	CLAMP_TO_EDGE              = 0x812F
+	COLOR_ATTACHMENT0          = 0x8CE0
 	COMPLETION_STATUS_KHR      = 0x91B1
 	CONDITION_SATISFIED        = 0x911C
-	COLOR_ATTACHMENT0          = 0x8CE0
 	DST_ALPHA                  = 0x0304
 	DST_COLOR                  = 0x0306
 	DYNAMIC_DRAW               = 0x88E8

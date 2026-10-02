@@ -379,15 +379,6 @@ func (d *DebugContext) GetUniformLocation(arg0 uint32, arg1 string) int32 {
 	return out0
 }
 
-func (d *DebugContext) HasFenceSync() bool {
-	out0 := d.Context.HasFenceSync()
-	fmt.Fprintln(os.Stderr, "HasFenceSync")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at HasFenceSync", e))
-	}
-	return out0
-}
-
 func (d *DebugContext) IsES() bool {
 	out0 := d.Context.IsES()
 	return out0

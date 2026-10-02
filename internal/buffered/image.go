@@ -64,10 +64,8 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 
 // ReadPixelsAsync reads the pixels in region asynchronously.
 //
-// The pixel cache is not used: a read-back fills the caller's buffer directly, and caching the
-// pixels would only keep a second copy of the data. The pending writes are the primary data of the
-// pixels, so they are applied to the GPU first, which is safe as the writes are enqueued before the
-// read-back.
+// Read-back must neither read from nor populate the CPU pixel cache. Pending CPU writes are
+// flushed to the GPU before the read; GPU pixels go directly into the caller's buffer.
 func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) (bool, <-chan error) {
 	i.writeBackPixelsIfNeeded()
 	return i.img.ReadPixelsAsync(pixels, region)

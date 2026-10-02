@@ -39,16 +39,6 @@ func (p *procAddressGetter) get(name string) uintptr {
 	return proc
 }
 
-// getOptional is like get but a missing function is not an error. It returns 0 for a missing
-// function so that the caller can check the availability of the function.
-func (p *procAddressGetter) getOptional(name string) uintptr {
-	proc, err := p.ctx.getProcAddress(name)
-	if err != nil {
-		return 0
-	}
-	return proc
-}
-
 func (p *procAddressGetter) error() error {
 	return p.err
 }

@@ -160,7 +160,6 @@ func (c *readPixelsAsyncCommand) abort(err error) {
 		// Exec has started the read-back, and the manager owns it.
 		return
 	}
-	c.req.discard()
 	c.req.publish(err)
 }
 
@@ -184,16 +183,6 @@ func (c *commandQueueManager) pollReadPixels() {
 	// keeps the completion order as close to the submission order as possible.
 	pending := c.pendingReadPixels[:0]
 	for _, req := range c.pendingReadPixels {
-		if req.finished {
-			// The result has already been published, e.g. by a synchronous read-back.
-			continue
-		}
-		if req.readback == nil {
-			// The read-back has not been started yet. This happens when the read-back was enqueued
-			// after the current command queue started being flushed.
-			pending = append(pending, req)
-			continue
-		}
 		done, err := req.readback.Poll()
 		if !done {
 			pending = append(pending, req)
@@ -219,13 +208,7 @@ func (c *commandQueueManager) abortReadPixels(err error) {
 	if len(c.pendingReadPixels) == 0 {
 		return
 	}
-	if err == nil {
-		err = errReadPixelsAborted
-	}
 	for _, req := range c.pendingReadPixels {
-		if req.finished {
-			continue
-		}
 		req.discard()
 		req.publish(err)
 	}
@@ -261,7 +244,7 @@ func (q *commandQueue) abortReadPixels(err error) {
 }
 
 // stopReadPixels drains render-thread work before aborting the unsubmitted queue.
-// The caller must have stopped recording commands.
+// The caller must hold the atlas backend mutex to prevent concurrent command recording.
 func (c *commandQueueManager) stopReadPixels(err error) {
 	q := c.current
 	thread.Call(theRenderThread, func() {

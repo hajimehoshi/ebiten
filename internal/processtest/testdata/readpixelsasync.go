@@ -18,10 +18,11 @@ package main
 
 import (
 	"fmt"
-	"github.com/hajimehoshi/ebiten/v2"
 	"image"
 	"image/color"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type game struct {
@@ -51,7 +52,6 @@ func (g *game) Update() error {
 				return fmt.Errorf("pixel %d: got %d, want %d", n, v, want)
 			}
 		}
-		// This request has no opportunity to reach the graphics driver before exit.
 		img := ebiten.NewImage(1, 1)
 		img.Fill(color.White)
 		g.result = img.ReadPixelsAsync(make([]byte, 4))

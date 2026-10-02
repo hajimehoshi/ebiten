@@ -70,24 +70,11 @@ type Context interface {
 	GetShaderi(shader uint32, pname uint32) int
 	GetUniformLocation(program uint32, name string) int32
 
-	// HasFenceSync reports whether the functions needed for an asynchronous read of pixels are all
-	// available: FenceSync, ClientWaitSync, DeleteSync and ReadBufferData. They are not available
-	// e.g. on WebGL 1.
-	//
-	// When HasFenceSync returns false, a fence sync object is represented as 0, the fence sync
-	// functions must not be called, and ReadBufferData is unavailable.
-	//
-	// A sync object is a pointer, so it is represented as a uintptr instead of a uint32 like the
-	// other object names.
-	HasFenceSync() bool
-
 	IsProgram(program uint32) bool
 	LinkProgram(program uint32)
 	PixelStorei(pname uint32, param int32)
 	// ReadBufferData copies len(dst) bytes from the buffer bound to target, starting at offset,
 	// into dst.
-	//
-	// ReadBufferData must be called only when HasFenceSync reports true.
 	ReadBufferData(target uint32, offset int, dst []byte) error
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)
 	Scissor(x, y, width, height int32)

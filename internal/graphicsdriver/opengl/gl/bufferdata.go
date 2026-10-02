@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !playstation5
+//go:build !js && !playstation5
 
 package gl
 
@@ -21,31 +21,13 @@ import (
 	"unsafe"
 )
 
-// errReadBufferDataUnavailable indicates that the context provides neither glGetBufferSubData nor
-// buffer mapping.
-var errReadBufferDataUnavailable = errors.New("gl: reading the content of a buffer is not supported by this context")
-
 // ReadBufferData copies len(dst) bytes from the buffer bound to target, starting at offset, into
 // dst.
 //
 // A buffer must be bound to target.
-//
-// ReadBufferData must be called only when HasFenceSync reports true.
 func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) error {
 	if len(dst) == 0 {
 		return nil
-	}
-
-	// glGetBufferSubData is the simplest way, but it is not available everywhere. Notably, some
-	// OpenGL ES implementations, like Mesa's libGLESv2, don't export it at all.
-	if c.hasGetBufferSubData {
-		c.getBufferSubData(target, offset, dst)
-		return nil
-	}
-
-	// Buffer mapping is the alternative, but WebGL 2 forbids it.
-	if !c.hasBufferMapping {
-		return errReadBufferDataUnavailable
 	}
 
 	src := c.mapBufferRange(target, offset, len(dst), MAP_READ_BIT)
@@ -59,12 +41,6 @@ func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) e
 		return errors.New("gl: unmapping a buffer reported that its content was lost")
 	}
 	return nil
-}
-
-// HasFenceSync reports whether the functions needed for an asynchronous read of pixels are all
-// available.
-func (c *defaultContext) HasFenceSync() bool {
-	return c.hasFenceSync && (c.hasGetBufferSubData || c.hasBufferMapping)
 }
 
 // pointerFromUintptr reinterprets a pointer value returned by a foreign function as an

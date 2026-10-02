@@ -105,14 +105,6 @@ type defaultContext struct {
 	programUniformLocations map[uint32][]int32
 
 	lastUniformLocationID int32
-
-	// hasFenceSync represents whether the fence sync functions are available.
-	// hasGetBufferSubData represents whether getBufferSubData is available.
-	hasFenceSync        bool
-	hasGetBufferSubData bool
-
-	// hasBufferMapping is false as WebGL 2 forbids buffer mapping.
-	hasBufferMapping bool
 }
 
 type values struct {
@@ -163,6 +155,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnBufferData:              v.Get("bufferData").Call("bind", v),
 		fnBufferSubData:           v.Get("bufferSubData").Call("bind", v),
 		fnCheckFramebufferStatus:  v.Get("checkFramebufferStatus").Call("bind", v),
+		fnClientWaitSync:          v.Get("clientWaitSync").Call("bind", v),
 		fnCompileShader:           v.Get("compileShader").Call("bind", v),
 		fnCreateBuffer:            v.Get("createBuffer").Call("bind", v),
 		fnCreateFramebuffer:       v.Get("createFramebuffer").Call("bind", v),
@@ -174,6 +167,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnDeleteFramebuffer:       v.Get("deleteFramebuffer").Call("bind", v),
 		fnDeleteProgram:           v.Get("deleteProgram").Call("bind", v),
 		fnDeleteShader:            v.Get("deleteShader").Call("bind", v),
+		fnDeleteSync:              v.Get("deleteSync").Call("bind", v),
 		fnDeleteTexture:           v.Get("deleteTexture").Call("bind", v),
 		fnDeleteVertexArray:       v.Get("deleteVertexArray").Call("bind", v),
 		fnDrawElements:            v.Get("drawElements").Call("bind", v),
@@ -181,7 +175,9 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnEnableVertexAttribArray: v.Get("enableVertexAttribArray").Call("bind", v),
 		fnFinish:                  v.Get("finish").Call("bind", v),
 		fnFramebufferTexture2D:    v.Get("framebufferTexture2D").Call("bind", v),
+		fnFenceSync:               v.Get("fenceSync").Call("bind", v),
 		fnFlush:                   v.Get("flush").Call("bind", v),
+		fnGetBufferSubData:        v.Get("getBufferSubData").Call("bind", v),
 		fnGetError:                v.Get("getError").Call("bind", v),
 		fnGetExtension:            v.Get("getExtension").Call("bind", v),
 		fnGetParameter:            v.Get("getParameter").Call("bind", v),
@@ -218,24 +214,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnViewport:                v.Get("viewport").Call("bind", v),
 	}
 
-	// The fence sync functions and getBufferSubData are optional as they are not available e.g. on
-	// WebGL 1. Calling "bind" on a missing function panics, so they are resolved lazily here.
-	g.fnClientWaitSync = bindIfFunction(v, "clientWaitSync")
-	g.fnDeleteSync = bindIfFunction(v, "deleteSync")
-	g.fnFenceSync = bindIfFunction(v, "fenceSync")
-	g.fnGetBufferSubData = bindIfFunction(v, "getBufferSubData")
-
 	return g, nil
-}
-
-// bindIfFunction returns the function of the given name of v, bound to v.
-// bindIfFunction returns an undefined value when v has no such function.
-func bindIfFunction(v js.Value, name string) js.Value {
-	f := v.Get(name)
-	if f.Type() != js.TypeFunction {
-		return f
-	}
-	return f.Call("bind", v)
 }
 
 func (c *defaultContext) getUniformLocation(location int32) js.Value {
@@ -243,10 +222,6 @@ func (c *defaultContext) getUniformLocation(location int32) js.Value {
 }
 
 func (c *defaultContext) LoadFunctions() error {
-	c.hasFenceSync = c.fnFenceSync.Type() == js.TypeFunction &&
-		c.fnClientWaitSync.Type() == js.TypeFunction &&
-		c.fnDeleteSync.Type() == js.TypeFunction
-	c.hasGetBufferSubData = c.fnGetBufferSubData.Type() == js.TypeFunction
 	return nil
 }
 
@@ -420,24 +395,18 @@ func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, 
 	c.fnFramebufferTexture2D.Invoke(target, attachment, textarget, c.textures.get(texture), level)
 }
 
-// mapBufferRange must not be called as WebGL 2 forbids buffer mapping.
-func (*defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
-	panic("gl: mapBufferRange must not be called as WebGL forbids buffer mapping")
-}
-
-// unmapBuffer must not be called as WebGL 2 forbids buffer mapping.
-func (*defaultContext) unmapBuffer(target uint32) bool {
-	panic("gl: unmapBuffer must not be called as WebGL forbids buffer mapping")
-}
-
-// getBufferSubData copies the content of the buffer bound to target into dst.
+// ReadBufferData copies the content of the buffer bound to target into dst.
 //
 // WebGL 2 forbids buffer mapping, so getBufferSubData is the only way to read a buffer.
-func (c *defaultContext) getBufferSubData(target uint32, offset int, dst []byte) {
+func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) error {
+	if len(dst) == 0 {
+		return nil
+	}
 	l := len(dst)
 	arr := uint8Array.New(l)
 	c.fnGetBufferSubData.Invoke(target, offset, arr, 0, l)
 	js.CopyBytesToGo(dst, arr)
+	return nil
 }
 
 func (c *defaultContext) GetError() uint32 {

@@ -71,8 +71,6 @@ func (c *commandQueueManager) PendingReadPixelsForTesting() int {
 	return len(c.pendingReadPixels)
 }
 
-// NewImageForTesting creates an image whose commands are enqueued into the given manager instead of
-// the global one, so that a test can use its own graphics driver.
 func NewImageForTesting(manager *commandQueueManager, width, height int, screenFramebuffer bool, attribute string) *Image {
 	i := &Image{
 		width:     width,

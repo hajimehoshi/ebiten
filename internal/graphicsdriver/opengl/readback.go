@@ -52,13 +52,6 @@ type readback struct {
 
 	// regions are the read regions, in the same order as the arguments of ReadPixelsAsync.
 	regions []image.Rectangle
-
-	// sync represents whether the pixels have been read synchronously into the arguments' buffers.
-	//
-	// A read-back is synchronous when the OpenGL implementation doesn't provide the functions for an
-	// asynchronous read. The pixels are then already in the caller's buffers, so Poll reports the
-	// read-back as done and Copy does nothing.
-	sync bool
 }
 
 // ReadPixelsAsync records pixel reads into pixel pack buffers and returns without waiting for the
@@ -66,18 +59,8 @@ type readback struct {
 //
 // The reads are recorded in the command stream at the current position, so the read pixels include
 // the preceding drawing commands and exclude the following ones.
-//
-// When the OpenGL implementation doesn't provide the functions for an asynchronous read, the pixels
-// are read synchronously instead. The read pixels are the same either way, but the rendering
-// thread waits for the GPU.
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
 	c := &i.graphics.context
-	if !c.hasFenceSync() {
-		if err := i.ReadPixels(args); err != nil {
-			return nil, err
-		}
-		return &readback{graphics: i.graphics, sync: true}, nil
-	}
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
 	}
@@ -109,6 +92,8 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 		return nil, err
 	}
 	r.fence = f
+	// Submit the fence so polling does not depend on a later frame flush.
+	c.ctx.Flush()
 
 	// The read commands must not be affected by the drawing commands that follow, and the pixel
 	// pack buffer must not be bound while another command reads into it.
@@ -118,23 +103,14 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 
 // Poll reports whether the reads are complete. Poll must not block.
 func (r *readback) Poll() (bool, error) {
-	if r.sync {
-		return true, nil
-	}
-	// The fence is recorded during a flush, and the same flush calls End, which calls glFlush.
-	// Therefore the commands preceding the fence have already been flushed, and the flush bit of
-	// glClientWaitSync is not necessary here.
-	//
+
 	// A zero timeout makes this a pure query that never blocks the render thread.
 	return r.graphics.context.pollFence(r.fence)
 }
 
 // Copy copies the read pixels to args. Copy must be called only after Poll reported done.
 func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
-	if r.sync {
-		// The pixels have already been read into the arguments' buffers.
-		return nil
-	}
+
 	if len(args) != len(r.pbos) {
 		return fmt.Errorf("opengl: len(args) must be %d but %d at Copy", len(r.pbos), len(args))
 	}
@@ -148,9 +124,7 @@ func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
 
 // Discard releases the resources for the read-back without copying the pixels.
 func (r *readback) Discard() {
-	if r.sync {
-		return
-	}
+
 	c := &r.graphics.context
 	if r.fence != 0 {
 		c.deleteFence(r.fence)
@@ -161,13 +135,6 @@ func (r *readback) Discard() {
 		r.pbos[j] = 0
 	}
 	r.pbos = nil
-}
-
-// hasFenceSync reports whether the context supports an asynchronous read-back.
-//
-// When this reports false, a read-back is performed synchronously instead.
-func (c *context) hasFenceSync() bool {
-	return c.ctx.HasFenceSync()
 }
 
 func (c *context) newPixelPackBuffer(size int) (buffer, error) {

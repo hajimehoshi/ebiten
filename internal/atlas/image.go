@@ -866,6 +866,13 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	return i.backend.backendImage.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
+// Terminate aborts pending read-backs while preventing concurrent command recording.
+func Terminate() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	graphicscommand.Terminate()
+}
+
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()

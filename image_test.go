@@ -370,13 +370,6 @@ func TestImageReadPixelsAsync(t *testing.T) {
 		}()
 		img.ReadPixelsAsync(make([]byte, 4*w*h))
 	})
-
-	// The tests here run inside a single call of the game's Update, so no frame completes and the
-	// read-backs can never be flushed. The tests for the read pixels themselves are in the
-	// graphicscommand package, which can drive a flush.
-	//
-	// A synchronous read would publish its result before returning, so this checks that the call
-	// records the read and returns without waiting for the GPU.
 	t.Run("DoesNotWaitForTheGPU", func(t *testing.T) {
 		img := ebiten.NewImage(w, h)
 		img.Fill(color.RGBA{R: 0x12, A: 0xff})
@@ -386,9 +379,9 @@ func TestImageReadPixelsAsync(t *testing.T) {
 			select {
 			case err, ok := <-ch:
 				if !ok {
-					t.Fatal("the channel must not be closed")
+					t.Error("the channel must not be closed")
 				}
-				t.Fatalf("the result was published before the call returned or the read was flushed: %v", err)
+				t.Errorf("the result was published before the call returned or the read was flushed: %v", err)
 			default:
 			}
 		}

@@ -17,6 +17,7 @@
 package gl
 
 import (
+	"math/bits"
 	"runtime"
 	"unsafe"
 
@@ -24,13 +25,6 @@ import (
 )
 
 type defaultContext struct {
-	// hasFenceSync represents whether the fence sync functions are available.
-	// hasGetBufferSubData represents whether glGetBufferSubData is available.
-	// hasBufferMapping represents whether glMapBufferRange and glUnmapBuffer are available.
-	hasFenceSync        bool
-	hasGetBufferSubData bool
-	hasBufferMapping    bool
-
 	gpActiveTexture           uintptr
 	gpAttachShader            uintptr
 	gpBindAttribLocation      uintptr
@@ -65,7 +59,6 @@ type defaultContext struct {
 	gpGenFramebuffers         uintptr
 	gpGenTextures             uintptr
 	gpGenVertexArrays         uintptr
-	gpGetBufferSubData        uintptr
 	gpMapBufferRange          uintptr
 	gpGetError                uintptr
 	gpGetIntegerv             uintptr
@@ -176,7 +169,7 @@ func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 
 func (c *defaultContext) ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32 {
 	// GLuint64 occupies two argument words on 32-bit platforms.
-	if unsafe.Sizeof(uintptr(0)) == 4 {
+	if bits.UintSize == 32 {
 		ret, _, _ := purego.SyscallN(c.gpClientWaitSync, sync, uintptr(flags), uintptr(uint32(timeout)), uintptr(timeout>>32))
 		return uint32(ret)
 	}
@@ -281,11 +274,6 @@ func (c *defaultContext) Flush() {
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	purego.SyscallN(c.gpFramebufferTexture2D, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
-}
-
-func (c *defaultContext) getBufferSubData(target uint32, offset int, dst []byte) {
-	purego.SyscallN(c.gpGetBufferSubData, uintptr(target), uintptr(offset), uintptr(len(dst)), uintptr(unsafe.Pointer(&dst[0])))
-	runtime.KeepAlive(dst)
 }
 
 func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
@@ -492,7 +480,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpBufferData = g.get("glBufferData")
 	c.gpBufferSubData = g.get("glBufferSubData")
 	c.gpCheckFramebufferStatus = g.get("glCheckFramebufferStatus")
-	c.gpClientWaitSync = g.getOptional("glClientWaitSync")
+	c.gpClientWaitSync = g.get("glClientWaitSync")
 	c.gpCompileShader = g.get("glCompileShader")
 	c.gpCreateProgram = g.get("glCreateProgram")
 	c.gpCreateShader = g.get("glCreateShader")
@@ -500,13 +488,13 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteFramebuffers = g.get("glDeleteFramebuffers")
 	c.gpDeleteProgram = g.get("glDeleteProgram")
 	c.gpDeleteShader = g.get("glDeleteShader")
-	c.gpDeleteSync = g.getOptional("glDeleteSync")
+	c.gpDeleteSync = g.get("glDeleteSync")
 	c.gpDeleteTextures = g.get("glDeleteTextures")
 	c.gpDeleteVertexArrays = g.get("glDeleteVertexArrays")
 	c.gpDrawElements = g.get("glDrawElements")
 	c.gpEnable = g.get("glEnable")
 	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")
-	c.gpFenceSync = g.getOptional("glFenceSync")
+	c.gpFenceSync = g.get("glFenceSync")
 	c.gpFinish = g.get("glFinish")
 	c.gpFlush = g.get("glFlush")
 	c.gpFramebufferTexture2D = g.get("glFramebufferTexture2D")
@@ -514,8 +502,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = g.get("glGenFramebuffers")
 	c.gpGenTextures = g.get("glGenTextures")
 	c.gpGenVertexArrays = g.get("glGenVertexArrays")
-	c.gpGetBufferSubData = g.getOptional("glGetBufferSubData")
-	c.gpMapBufferRange = g.getOptional("glMapBufferRange")
+	c.gpMapBufferRange = g.get("glMapBufferRange")
 	c.gpGetError = g.get("glGetError")
 	c.gpGetIntegerv = g.get("glGetIntegerv")
 	c.gpGetProgramInfoLog = g.get("glGetProgramInfoLog")
@@ -532,7 +519,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpTexImage2D = g.get("glTexImage2D")
 	c.gpTexParameteri = g.get("glTexParameteri")
 	c.gpTexSubImage2D = g.get("glTexSubImage2D")
-	c.gpUnmapBuffer = g.getOptional("glUnmapBuffer")
+	c.gpUnmapBuffer = g.get("glUnmapBuffer")
 	c.gpUniform1fv = g.get("glUniform1fv")
 	c.gpUniform1i = g.get("glUniform1i")
 	c.gpUniform1iv = g.get("glUniform1iv")
@@ -548,10 +535,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpUseProgram = g.get("glUseProgram")
 	c.gpVertexAttribPointer = g.get("glVertexAttribPointer")
 	c.gpViewport = g.get("glViewport")
-
-	c.hasFenceSync = c.gpFenceSync != 0 && c.gpClientWaitSync != 0 && c.gpDeleteSync != 0
-	c.hasGetBufferSubData = c.gpGetBufferSubData != 0
-	c.hasBufferMapping = c.gpMapBufferRange != 0 && c.gpUnmapBuffer != 0
 
 	return g.error()
 }

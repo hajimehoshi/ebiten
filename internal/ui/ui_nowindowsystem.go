@@ -24,6 +24,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/fbdev"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -175,7 +176,7 @@ func (b *noWindowSystemBackend) initOnMainThread(options *RunOptions) (err error
 
 func (b *noWindowSystemBackend) loopGame() (err error) {
 	defer func() {
-		graphicscommand.Terminate()
+		atlas.Terminate()
 		closeErr := thread.CallWithArgAndResult(b.mainThread, func(b *noWindowSystemBackend) error {
 			defer b.setTerminated()
 			return b.closeOnMainThread()
