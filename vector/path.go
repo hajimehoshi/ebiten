@@ -64,6 +64,13 @@ func (p point) add(v vec2) point {
 	return point{x: p.x + v.x, y: p.y + v.y}
 }
 
+func arePointsCollinear(p0, p1, p2 point) bool {
+	// Convert before subtracting so finite float32 coordinates cannot overflow the differences or products.
+	dx0, dy0 := float64(p1.x)-float64(p0.x), float64(p1.y)-float64(p0.y)
+	dx1, dy1 := float64(p2.x)-float64(p1.x), float64(p2.y)-float64(p1.y)
+	return dx0*dy1 == dy0*dx1
+}
+
 type vec2 struct {
 	x, y float32
 }
@@ -700,13 +707,19 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 func quadCusp(p0, p1, p2 point) (point, bool) {
 	if p0 == p2 {
 		// Divide before adding to avoid overflow and preserve midpoint rounding.
-		return point{p0.x/2 + p1.x/2, p0.y/2 + p1.y/2}, p0 != p1
+		return point{
+			x: p0.x/2 + p1.x/2,
+			y: p0.y/2 + p1.y/2,
+		}, p0 != p1
 	}
 
-	// Use float64 so finite float32 coordinates cannot overflow the differences or products.
+	if !arePointsCollinear(p0, p1, p2) {
+		return point{}, false
+	}
+
 	dx0, dy0 := float64(p1.x)-float64(p0.x), float64(p1.y)-float64(p0.y)
 	dx1, dy1 := float64(p2.x)-float64(p1.x), float64(p2.y)-float64(p1.y)
-	if dx0*dy1 != dy0*dx1 || dx0*dx1+dy0*dy1 >= 0 {
+	if dx0*dx1+dy0*dy1 >= 0 {
 		return point{}, false
 	}
 	// Solve (1-t)*(p1-p0) + t*(p2-p1) = 0 for the reversal.
@@ -776,12 +789,7 @@ func normalizeSubPath(dst *subPath, src *subPath) {
 			case cur == op.p1 && op.p1 == op.p2:
 				// A single point: drop it.
 				continue
-			case cur == op.p1, op.p1 == op.p2:
-				op.typ = opTypeLineTo
-				op.p1 = op.p2
-				op.p2 = point{}
-				cur = op.p1
-			case (op.p1.x-cur.x)*(op.p2.y-cur.y)-(op.p2.x-cur.x)*(op.p1.y-cur.y) == 0:
+			case arePointsCollinear(cur, op.p1, op.p2):
 				op.typ = opTypeLineTo
 				op.p1 = op.p2
 				op.p2 = point{}

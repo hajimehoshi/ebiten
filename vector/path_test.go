@@ -27,6 +27,98 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+func TestArePointsCollinear(t *testing.T) {
+	const large = math.MaxFloat32
+	const tiny = math.SmallestNonzeroFloat32
+	tests := []struct {
+		name       string
+		p0, p1, p2 vector.Point
+		want       bool
+	}{
+		{
+			name: "horizontal",
+			p0:   vector.Point{X: -2, Y: 3},
+			p1:   vector.Point{X: 1, Y: 3},
+			p2:   vector.Point{X: 4, Y: 3},
+			want: true,
+		},
+		{
+			name: "vertical",
+			p0:   vector.Point{X: 3, Y: -2},
+			p1:   vector.Point{X: 3, Y: 1},
+			p2:   vector.Point{X: 3, Y: 4},
+			want: true,
+		},
+		{
+			name: "diagonal",
+			p0:   vector.Point{X: -2, Y: 5},
+			p1:   vector.Point{X: 1, Y: -1},
+			p2:   vector.Point{X: 4, Y: -7},
+			want: true,
+		},
+		{
+			name: "noncollinear",
+			p0:   vector.Point{X: -2, Y: 5},
+			p1:   vector.Point{X: 1, Y: -1},
+			p2:   vector.Point{X: 4, Y: -6},
+		},
+		{
+			name: "two coincident points",
+			p0:   vector.Point{X: 1, Y: 2},
+			p1:   vector.Point{X: 1, Y: 2},
+			p2:   vector.Point{X: -3, Y: 5},
+			want: true,
+		},
+		{
+			name: "all coincident points",
+			p0:   vector.Point{X: 1, Y: 2},
+			p1:   vector.Point{X: 1, Y: 2},
+			p2:   vector.Point{X: 1, Y: 2},
+			want: true,
+		},
+		{
+			name: "large horizontal differences",
+			p0:   vector.Point{X: -large, Y: 3},
+			p1:   vector.Point{X: large, Y: 3},
+			p2:   vector.Point{X: 0, Y: 3},
+			want: true,
+		},
+		{
+			name: "large diagonal products",
+			p0:   vector.Point{X: -large, Y: -large},
+			p1:   vector.Point{X: 0, Y: 0},
+			p2:   vector.Point{X: large, Y: large},
+			want: true,
+		},
+		{
+			name: "large noncollinear products",
+			p0:   vector.Point{X: 0, Y: 0},
+			p1:   vector.Point{X: large, Y: large},
+			p2:   vector.Point{X: large / 2, Y: large / 4},
+		},
+		{
+			name: "tiny diagonal products",
+			p0:   vector.Point{X: -tiny, Y: -tiny},
+			p1:   vector.Point{X: 0, Y: 0},
+			p2:   vector.Point{X: tiny, Y: tiny},
+			want: true,
+		},
+		{
+			name: "tiny noncollinear products",
+			p0:   vector.Point{X: 0, Y: 0},
+			p1:   vector.Point{X: tiny, Y: 0},
+			p2:   vector.Point{X: 0, Y: tiny},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := vector.ArePointsCollinear(test.p0, test.p1, test.p2); got != test.want {
+				t.Errorf("ArePointsCollinear(%v, %v, %v): got %v, want %v", test.p0, test.p1, test.p2, got, test.want)
+			}
+		})
+	}
+}
+
 func TestIsPointCloseToSegment(t *testing.T) {
 	testCases := []struct {
 		p     vector.Point

@@ -41,6 +41,19 @@ func IsPointCloseToSegment(p, p0, p1 Point, allow float32) bool {
 	}, allow)
 }
 
+func ArePointsCollinear(p0, p1, p2 Point) bool {
+	return arePointsCollinear(point{
+		x: p0.X,
+		y: p0.Y,
+	}, point{
+		x: p1.X,
+		y: p1.Y,
+	}, point{
+		x: p2.X,
+		y: p2.Y,
+	})
+}
+
 func CurrentPosition(path *Path) (Point, bool) {
 	p, ok := path.currentPosition()
 	if !ok {

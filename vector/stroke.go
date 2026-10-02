@@ -262,13 +262,8 @@ func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist floa
 	if p0 == p2 {
 		return true
 	}
-	// This curve is a line as the control point is the same as the start point.
-	if p0 == p1 || p1 == p2 {
-		appendParalleledLine(path, p0, p2, dist)
-		return true
-	}
 	// This curve is a line as p0, p1, and p2 are on the same line.
-	if (p1.x-p0.x)*(p2.y-p0.y)-(p2.x-p0.x)*(p1.y-p0.y) == 0 {
+	if arePointsCollinear(p0, p1, p2) {
 		appendParalleledLine(path, p0, p2, dist)
 		return true
 	}
