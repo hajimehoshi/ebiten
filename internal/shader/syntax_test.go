@@ -7443,3 +7443,36 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxArgumentWithoutValue(t *testing.T) {
+	for _, expr := range []string{
+		"_ = min(bar(), 1.0, 2.0)",
+		"_ = min(discard(), 1.0, 2.0)",
+		"_ = foo(bar(), 1.0, 2.0)",
+		"bar(bar())",
+	} {
+		t.Run(expr, func(t *testing.T) {
+			src := `package main
+func bar() {}
+func foo(x, y float) float { return x + y }
+func Fragment() vec4 {
+	` + expr + `
+	return vec4(0)
+}
+`
+			if _, err := compileToIR([]byte(src)); err == nil || !strings.Contains(err.Error(), "no value") {
+				t.Errorf("got: %v, want a no-value argument error", err)
+			}
+		})
+	}
+
+	if _, err := compileToIR([]byte(`package main
+func pair() (float, float) { return 1, 2 }
+func foo(x, y float) float { return x + y }
+func Fragment() vec4 {
+	return vec4(foo(pair()) + min(pair()))
+}
+`)); err != nil {
+		t.Error(err)
+	}
+}
