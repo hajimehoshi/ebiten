@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"encoding/binary"
 	"image"
 	"image/color"
 	"image/draw"
@@ -41,26 +42,16 @@ func imageToBytes(img image.Image, premultipliedAlpha bool) []byte {
 		x1 := b.Max.X
 		y1 := b.Max.Y
 
-		palette := make([]uint8, len(img.Palette)*4)
+		palette := make([]uint32, len(img.Palette))
 		if premultipliedAlpha {
 			for i, c := range img.Palette {
-				// Create a temporary slice to reduce boundary checks.
-				pl := palette[4*i : 4*i+4]
 				rgba := color.RGBAModel.Convert(c).(color.RGBA)
-				pl[0] = rgba.R
-				pl[1] = rgba.G
-				pl[2] = rgba.B
-				pl[3] = rgba.A
+				palette[i] = uint32(rgba.R) | uint32(rgba.G)<<8 | uint32(rgba.B)<<16 | uint32(rgba.A)<<24
 			}
 		} else {
 			for i, c := range img.Palette {
-				// Create a temporary slice to reduce boundary checks.
-				pl := palette[4*i : 4*i+4]
 				nrgba := color.NRGBAModel.Convert(c).(color.NRGBA)
-				pl[0] = nrgba.R
-				pl[1] = nrgba.G
-				pl[2] = nrgba.B
-				pl[3] = nrgba.A
+				palette[i] = uint32(nrgba.R) | uint32(nrgba.G)<<8 | uint32(nrgba.B)<<16 | uint32(nrgba.A)<<24
 			}
 		}
 		// Even when img is a subimage of another image, Pix starts with the 0-th index.
@@ -69,7 +60,7 @@ func imageToBytes(img image.Image, premultipliedAlpha bool) []byte {
 		for range y1 - y0 {
 			for range x1 - x0 {
 				p := int(img.Pix[srcIdx])
-				copy(bs[dstIdx:dstIdx+4], palette[4*p:4*p+4])
+				binary.LittleEndian.PutUint32(bs[dstIdx:dstIdx+4], palette[p])
 				srcIdx++
 				dstIdx += 4
 			}
