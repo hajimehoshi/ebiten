@@ -1886,6 +1886,9 @@ func (u *glfwBackend) setFullscreen(fullscreen bool) error {
 	if err != nil {
 		return err
 	}
+	if m == nil {
+		return nil
+	}
 	ww, wh := windowSizeToRestore(restoreSize.X, restoreSize.Y, restoreMonitor, u.windowWidthInDIP, u.windowHeightInDIP, m)
 	if u.isNativeFullscreenAvailable() {
 		if err := u.setNativeFullscreen(false); err != nil {
