@@ -16,6 +16,7 @@ package ebiten_test
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"image/color/palette"
@@ -43,6 +44,26 @@ func TestImageToBytes(t *testing.T) {
 		Premul bool
 		Out    []uint8
 	}{
+		{
+			Image: &image.Paletted{
+				Pix:     []uint8{0},
+				Stride:  1,
+				Rect:    image.Rect(0, 0, 1, 1),
+				Palette: color.Palette{color.NRGBA{R: 0x80, G: 0x40, B: 0x20, A: 0x80}},
+			},
+			Premul: true,
+			Out:    []uint8{0x40, 0x20, 0x10, 0x80},
+		},
+		{
+			Image: &image.Paletted{
+				Pix:     []uint8{0},
+				Stride:  1,
+				Rect:    image.Rect(0, 0, 1, 1),
+				Palette: color.Palette{color.NRGBA{R: 0x80, G: 0x40, B: 0x20, A: 0x80}},
+			},
+			Premul: false,
+			Out:    []uint8{0x80, 0x40, 0x20, 0x80},
+		},
 		{
 			Image: &image.Paletted{
 				Pix:    []uint8{0, 1, 1, 2},
@@ -180,9 +201,17 @@ func BenchmarkImageToBytesNRGBA(b *testing.B) {
 }
 
 func BenchmarkImageToBytesPaletted(b *testing.B) {
-	img := image.NewPaletted(image.Rect(0, 0, 4096, 4096), palette.Plan9)
-	b.ResetTimer()
-	for range b.N {
-		ebiten.ImageToBytes(img, true)
+	for _, size := range []int{64, 512, 4096} {
+		b.Run(fmt.Sprintf("%d", size), func(b *testing.B) {
+			img := image.NewPaletted(image.Rect(0, 0, size, size), palette.Plan9)
+			for i := range img.Pix {
+				img.Pix[i] = byte(i)
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for range b.N {
+				ebiten.ImageToBytes(img, true)
+			}
+		})
 	}
 }
