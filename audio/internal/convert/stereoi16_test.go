@@ -16,6 +16,7 @@ package convert_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -139,7 +140,7 @@ func TestStereoI16FromUnsigned8Bits(t *testing.T) {
 					inBytes := tc.In
 					var outBytes []byte
 					for _, v := range tc.In {
-						v16 := int16(int(v)*0x101 - (1 << 15))
+						v16 := (int16(v) - 128) << 8
 						if mono {
 							// As the source is mono, the output should be stereo.
 							outBytes = append(outBytes, byte(v16), byte(v16>>8), byte(v16), byte(v16>>8))
@@ -174,6 +175,30 @@ func TestStereoI16FromUnsigned8Bits(t *testing.T) {
 						t.Errorf("got: %v, want: %v", got, want)
 					}
 				})
+			}
+		})
+	}
+}
+
+func TestStereoI16FromUnsigned8BitsSamples(t *testing.T) {
+	for _, mono := range []bool{false, true} {
+		t.Run(fmt.Sprintf("mono=%t", mono), func(t *testing.T) {
+			in := []byte{0, 127, 128, 255}
+			samples := []int16{-32768, -256, 0, 32512}
+			var want []byte
+			for _, v := range samples {
+				want = binary.LittleEndian.AppendUint16(want, uint16(v))
+				if mono {
+					want = binary.LittleEndian.AppendUint16(want, uint16(v))
+				}
+			}
+			s := convert.NewStereoI16ReadSeeker(bytes.NewReader(in), mono, convert.FormatU8)
+			got, err := io.ReadAll(s)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Errorf("got: %v, want: %v", got, want)
 			}
 		})
 	}
@@ -435,7 +460,7 @@ func stereoI16Bytes(src []byte, mono bool, format convert.Format, unit int) []by
 			}
 			switch format {
 			case convert.FormatU8:
-				v := int16(int(sample[0])*0x101 - (1 << 15))
+				v := (int16(sample[0]) - 128) << 8
 				dst = append(dst, byte(v), byte(v>>8))
 			case convert.FormatS16:
 				dst = append(dst, sample[0], sample[1])
