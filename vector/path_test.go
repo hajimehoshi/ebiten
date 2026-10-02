@@ -1071,11 +1071,36 @@ func TestStrokeCollinearQuad(t *testing.T) {
 		name              string
 		control, end, tip image.Point
 	}{
-		{"beyond end", image.Pt(120, 0), image.Pt(90, 0), image.Pt(96, 0)},
-		{"before start", image.Pt(-30, 0), image.Pt(90, 0), image.Pt(-6, 0)},
-		{"vertical", image.Pt(0, 120), image.Pt(0, 90), image.Pt(0, 96)},
-		{"diagonal", image.Pt(120, 120), image.Pt(90, 90), image.Pt(96, 96)},
-		{"between endpoints", image.Pt(30, 0), image.Pt(90, 0), image.Pt(90, 0)},
+		{
+			name:    "beyond end",
+			control: image.Pt(120, 0),
+			end:     image.Pt(90, 0),
+			tip:     image.Pt(96, 0),
+		},
+		{
+			name:    "before start",
+			control: image.Pt(-30, 0),
+			end:     image.Pt(90, 0),
+			tip:     image.Pt(-6, 0),
+		},
+		{
+			name:    "vertical",
+			control: image.Pt(0, 120),
+			end:     image.Pt(0, 90),
+			tip:     image.Pt(0, 96),
+		},
+		{
+			name:    "diagonal",
+			control: image.Pt(120, 120),
+			end:     image.Pt(90, 90),
+			tip:     image.Pt(96, 96),
+		},
+		{
+			name:    "between endpoints",
+			control: image.Pt(30, 0),
+			end:     image.Pt(90, 0),
+			tip:     image.Pt(90, 0),
+		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			const offset = 40
