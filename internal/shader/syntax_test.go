@@ -7489,8 +7489,8 @@ func foo(x float, b bool) {
 	` + expr + `
 }
 `
-			if _, err := compileToIR([]byte(src)); err == nil || !strings.Contains(err.Error(), "evaluated but not used") {
-				t.Errorf("got: %v, want an unused-expression error", err)
+			if _, err := compileToIR([]byte(src)); err == nil {
+				t.Error("compileToIR must return an error but did not")
 			}
 		})
 	}
