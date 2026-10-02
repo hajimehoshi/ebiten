@@ -65,8 +65,9 @@ func (s *TextInputEvents) QueuedStateCount() int {
 	return len(s.queuedStates)
 }
 
-func (s *TextInputEvents) Start() {
-	s.start()
+func (s *TextInputEvents) Start() <-chan TextInputState {
+	ch, _ := s.start()
+	return ch
 }
 
 func (s *TextInputEvents) End() {
