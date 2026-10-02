@@ -202,6 +202,8 @@ func (u *UserInterface) update() error {
 	s := theMonitor.DeviceScaleFactor()
 	sw, sh := u.screenSize(w, h, s)
 	if err := u.context.updateFrame(u.graphicsDriver, w, h, sw, sh, s, u, true); err != nil {
+		// Abort read-backs while the render thread is still serving this frame.
+		graphicscommand.Terminate()
 		return err
 	}
 	return nil

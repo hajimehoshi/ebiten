@@ -206,6 +206,33 @@ func (i *Image) readPixels(pixels []byte, region image.Rectangle) (bool, error) 
 	return i.mipmap.ReadPixels(i.ui.graphicsDriver, pixels, region)
 }
 
+// readPixelsAsync starts reading pixels and reports whether the read-back was enqueued.
+//
+// The caller must not hold the mutex, as the frame needs the mutex to draw the image.
+func (i *Image) readPixelsAsync(pixels []byte, region image.Rectangle) (ok bool, result <-chan error) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	return i.mipmap.ReadPixelsAsync(pixels, region)
+}
+
+// ReadPixelsAsync reads the pixels in region asynchronously.
+//
+// The returned channel receives exactly one value: nil when the read-back is finished, or an
+// error. The channel is not closed, so a caller must receive one value instead of ranging over the
+// channel.
+//
+// The pixels must not be read, modified, or reused until the channel receives a value. Ebitengine
+// doesn't touch pixels after the channel receives a value.
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+	// Check the error existence and avoid unnecessary calls.
+	if i.ui.error() != nil {
+		return i.ui.abortedReadPixels()
+	}
+
+	return i.ui.readPixelsAsync(i, pixels, region)
+}
+
 func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()

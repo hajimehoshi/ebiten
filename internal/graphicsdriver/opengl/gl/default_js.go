@@ -32,6 +32,7 @@ type defaultContext struct {
 	fnBufferData              js.Value
 	fnBufferSubData           js.Value
 	fnCheckFramebufferStatus  js.Value
+	fnClientWaitSync          js.Value
 	fnCompileShader           js.Value
 	fnCreateBuffer            js.Value
 	fnCreateFramebuffer       js.Value
@@ -43,14 +44,17 @@ type defaultContext struct {
 	fnDeleteFramebuffer       js.Value
 	fnDeleteProgram           js.Value
 	fnDeleteShader            js.Value
+	fnDeleteSync              js.Value
 	fnDeleteTexture           js.Value
 	fnDeleteVertexArray       js.Value
 	fnDrawElements            js.Value
 	fnEnable                  js.Value
 	fnEnableVertexAttribArray js.Value
+	fnFenceSync               js.Value
 	fnFinish                  js.Value
 	fnFramebufferTexture2D    js.Value
 	fnFlush                   js.Value
+	fnGetBufferSubData        js.Value
 	fnGetError                js.Value
 	fnGetExtension            js.Value
 	fnGetParameter            js.Value
@@ -90,6 +94,7 @@ type defaultContext struct {
 	framebuffers values
 	programs     values
 	shaders      values
+	syncs        values
 	textures     values
 	vertexArrays values
 
@@ -100,6 +105,14 @@ type defaultContext struct {
 	programUniformLocations map[uint32][]int32
 
 	lastUniformLocationID int32
+
+	// hasFenceSync represents whether the fence sync functions are available.
+	// hasGetBufferSubData represents whether getBufferSubData is available.
+	hasFenceSync        bool
+	hasGetBufferSubData bool
+
+	// hasBufferMapping is false as WebGL 2 forbids buffer mapping.
+	hasBufferMapping bool
 }
 
 type values struct {
@@ -205,7 +218,24 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnViewport:                v.Get("viewport").Call("bind", v),
 	}
 
+	// The fence sync functions and getBufferSubData are optional as they are not available e.g. on
+	// WebGL 1. Calling "bind" on a missing function panics, so they are resolved lazily here.
+	g.fnClientWaitSync = bindIfFunction(v, "clientWaitSync")
+	g.fnDeleteSync = bindIfFunction(v, "deleteSync")
+	g.fnFenceSync = bindIfFunction(v, "fenceSync")
+	g.fnGetBufferSubData = bindIfFunction(v, "getBufferSubData")
+
 	return g, nil
+}
+
+// bindIfFunction returns the function of the given name of v, bound to v.
+// bindIfFunction returns an undefined value when v has no such function.
+func bindIfFunction(v js.Value, name string) js.Value {
+	f := v.Get(name)
+	if f.Type() != js.TypeFunction {
+		return f
+	}
+	return f.Call("bind", v)
 }
 
 func (c *defaultContext) getUniformLocation(location int32) js.Value {
@@ -213,6 +243,10 @@ func (c *defaultContext) getUniformLocation(location int32) js.Value {
 }
 
 func (c *defaultContext) LoadFunctions() error {
+	c.hasFenceSync = c.fnFenceSync.Type() == js.TypeFunction &&
+		c.fnClientWaitSync.Type() == js.TypeFunction &&
+		c.fnDeleteSync.Type() == js.TypeFunction
+	c.hasGetBufferSubData = c.fnGetBufferSubData.Type() == js.TypeFunction
 	return nil
 }
 
@@ -269,6 +303,10 @@ func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
 
 func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 	return uint32(c.fnCheckFramebufferStatus.Invoke(target).Int())
+}
+
+func (c *defaultContext) ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32 {
+	return uint32(c.fnClientWaitSync.Invoke(c.syncs.get(uint32(sync)), flags, float64(timeout)).Int())
 }
 
 func (c *defaultContext) CompileShader(shader uint32) {
@@ -331,6 +369,11 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 	c.shaders.delete(shader)
 }
 
+func (c *defaultContext) DeleteSync(sync uintptr) {
+	c.fnDeleteSync.Invoke(c.syncs.get(uint32(sync)))
+	c.syncs.delete(uint32(sync))
+}
+
 func (c *defaultContext) DeleteTexture(texture uint32) {
 	c.fnDeleteTexture.Invoke(c.textures.get(texture))
 	c.textures.delete(texture)
@@ -357,6 +400,14 @@ func (c *defaultContext) EnableVertexAttribArray(index uint32) {
 	c.fnEnableVertexAttribArray.Invoke(index)
 }
 
+func (c *defaultContext) FenceSync(condition uint32, flags uint32) uintptr {
+	v := c.fnFenceSync.Invoke(condition, flags)
+	if v.IsNull() {
+		return 0
+	}
+	return uintptr(c.syncs.create(v))
+}
+
 func (c *defaultContext) Finish() {
 	c.fnFinish.Invoke()
 }
@@ -367,6 +418,26 @@ func (c *defaultContext) Flush() {
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	c.fnFramebufferTexture2D.Invoke(target, attachment, textarget, c.textures.get(texture), level)
+}
+
+// mapBufferRange must not be called as WebGL 2 forbids buffer mapping.
+func (*defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
+	panic("gl: mapBufferRange must not be called as WebGL forbids buffer mapping")
+}
+
+// unmapBuffer must not be called as WebGL 2 forbids buffer mapping.
+func (*defaultContext) unmapBuffer(target uint32) bool {
+	panic("gl: unmapBuffer must not be called as WebGL forbids buffer mapping")
+}
+
+// getBufferSubData copies the content of the buffer bound to target into dst.
+//
+// WebGL 2 forbids buffer mapping, so getBufferSubData is the only way to read a buffer.
+func (c *defaultContext) getBufferSubData(target uint32, offset int, dst []byte) {
+	l := len(dst)
+	arr := uint8Array.New(l)
+	c.fnGetBufferSubData.Invoke(target, offset, arr, 0, l)
+	js.CopyBytesToGo(dst, arr)
 }
 
 func (c *defaultContext) GetError() uint32 {

@@ -24,6 +24,13 @@ import (
 )
 
 type defaultContext struct {
+	// hasFenceSync represents whether the fence sync functions are available.
+	// hasGetBufferSubData represents whether glGetBufferSubData is available.
+	// hasBufferMapping represents whether glMapBufferRange and glUnmapBuffer are available.
+	hasFenceSync        bool
+	hasGetBufferSubData bool
+	hasBufferMapping    bool
+
 	gpActiveTexture           uintptr
 	gpAttachShader            uintptr
 	gpBindAttribLocation      uintptr
@@ -36,6 +43,7 @@ type defaultContext struct {
 	gpBufferData              uintptr
 	gpBufferSubData           uintptr
 	gpCheckFramebufferStatus  uintptr
+	gpClientWaitSync          uintptr
 	gpCompileShader           uintptr
 	gpCreateProgram           uintptr
 	gpCreateShader            uintptr
@@ -43,11 +51,13 @@ type defaultContext struct {
 	gpDeleteFramebuffers      uintptr
 	gpDeleteProgram           uintptr
 	gpDeleteShader            uintptr
+	gpDeleteSync              uintptr
 	gpDeleteTextures          uintptr
 	gpDeleteVertexArrays      uintptr
 	gpDrawElements            uintptr
 	gpEnable                  uintptr
 	gpEnableVertexAttribArray uintptr
+	gpFenceSync               uintptr
 	gpFinish                  uintptr
 	gpFlush                   uintptr
 	gpFramebufferTexture2D    uintptr
@@ -55,6 +65,8 @@ type defaultContext struct {
 	gpGenFramebuffers         uintptr
 	gpGenTextures             uintptr
 	gpGenVertexArrays         uintptr
+	gpGetBufferSubData        uintptr
+	gpMapBufferRange          uintptr
 	gpGetError                uintptr
 	gpGetIntegerv             uintptr
 	gpGetProgramInfoLog       uintptr
@@ -71,6 +83,7 @@ type defaultContext struct {
 	gpTexImage2D              uintptr
 	gpTexParameteri           uintptr
 	gpTexSubImage2D           uintptr
+	gpUnmapBuffer             uintptr
 	gpUniform1fv              uintptr
 	gpUniform1i               uintptr
 	gpUniform1iv              uintptr
@@ -161,6 +174,16 @@ func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 	return uint32(ret)
 }
 
+func (c *defaultContext) ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32 {
+	// GLuint64 occupies two argument words on 32-bit platforms.
+	if unsafe.Sizeof(uintptr(0)) == 4 {
+		ret, _, _ := purego.SyscallN(c.gpClientWaitSync, sync, uintptr(flags), uintptr(uint32(timeout)), uintptr(timeout>>32))
+		return uint32(ret)
+	}
+	ret, _, _ := purego.SyscallN(c.gpClientWaitSync, sync, uintptr(flags), uintptr(timeout))
+	return uint32(ret)
+}
+
 func (c *defaultContext) CompileShader(shader uint32) {
 	purego.SyscallN(c.gpCompileShader, uintptr(shader))
 }
@@ -219,6 +242,10 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 	purego.SyscallN(c.gpDeleteShader, uintptr(shader))
 }
 
+func (c *defaultContext) DeleteSync(sync uintptr) {
+	purego.SyscallN(c.gpDeleteSync, sync)
+}
+
 func (c *defaultContext) DeleteTexture(texture uint32) {
 	purego.SyscallN(c.gpDeleteTextures, 1, uintptr(unsafe.Pointer(&texture)))
 }
@@ -239,6 +266,11 @@ func (c *defaultContext) EnableVertexAttribArray(index uint32) {
 	purego.SyscallN(c.gpEnableVertexAttribArray, uintptr(index))
 }
 
+func (c *defaultContext) FenceSync(condition uint32, flags uint32) uintptr {
+	ret, _, _ := purego.SyscallN(c.gpFenceSync, uintptr(condition), uintptr(flags))
+	return ret
+}
+
 func (c *defaultContext) Finish() {
 	purego.SyscallN(c.gpFinish)
 }
@@ -249,6 +281,24 @@ func (c *defaultContext) Flush() {
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	purego.SyscallN(c.gpFramebufferTexture2D, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
+}
+
+func (c *defaultContext) getBufferSubData(target uint32, offset int, dst []byte) {
+	purego.SyscallN(c.gpGetBufferSubData, uintptr(target), uintptr(offset), uintptr(len(dst)), uintptr(unsafe.Pointer(&dst[0])))
+	runtime.KeepAlive(dst)
+}
+
+func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
+	p, _, _ := purego.SyscallN(c.gpMapBufferRange, uintptr(target), uintptr(offset), uintptr(length), uintptr(access))
+	if p == 0 {
+		return nil
+	}
+	return unsafe.Slice((*byte)(pointerFromUintptr(p)), length)
+}
+
+func (c *defaultContext) unmapBuffer(target uint32) bool {
+	r, _, _ := purego.SyscallN(c.gpUnmapBuffer, uintptr(target))
+	return r != 0
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -319,6 +369,11 @@ func (c *defaultContext) PixelStorei(pname uint32, param int32) {
 }
 
 func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
+	if dst == nil {
+		// A nil destination means reading into the currently bound GL_PIXEL_PACK_BUFFER.
+		purego.SyscallN(c.gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), 0)
+		return
+	}
 	purego.SyscallN(c.gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(&dst[0])))
 	runtime.KeepAlive(dst)
 }
@@ -437,6 +492,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpBufferData = g.get("glBufferData")
 	c.gpBufferSubData = g.get("glBufferSubData")
 	c.gpCheckFramebufferStatus = g.get("glCheckFramebufferStatus")
+	c.gpClientWaitSync = g.getOptional("glClientWaitSync")
 	c.gpCompileShader = g.get("glCompileShader")
 	c.gpCreateProgram = g.get("glCreateProgram")
 	c.gpCreateShader = g.get("glCreateShader")
@@ -444,11 +500,13 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteFramebuffers = g.get("glDeleteFramebuffers")
 	c.gpDeleteProgram = g.get("glDeleteProgram")
 	c.gpDeleteShader = g.get("glDeleteShader")
+	c.gpDeleteSync = g.getOptional("glDeleteSync")
 	c.gpDeleteTextures = g.get("glDeleteTextures")
 	c.gpDeleteVertexArrays = g.get("glDeleteVertexArrays")
 	c.gpDrawElements = g.get("glDrawElements")
 	c.gpEnable = g.get("glEnable")
 	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")
+	c.gpFenceSync = g.getOptional("glFenceSync")
 	c.gpFinish = g.get("glFinish")
 	c.gpFlush = g.get("glFlush")
 	c.gpFramebufferTexture2D = g.get("glFramebufferTexture2D")
@@ -456,6 +514,8 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = g.get("glGenFramebuffers")
 	c.gpGenTextures = g.get("glGenTextures")
 	c.gpGenVertexArrays = g.get("glGenVertexArrays")
+	c.gpGetBufferSubData = g.getOptional("glGetBufferSubData")
+	c.gpMapBufferRange = g.getOptional("glMapBufferRange")
 	c.gpGetError = g.get("glGetError")
 	c.gpGetIntegerv = g.get("glGetIntegerv")
 	c.gpGetProgramInfoLog = g.get("glGetProgramInfoLog")
@@ -472,6 +532,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpTexImage2D = g.get("glTexImage2D")
 	c.gpTexParameteri = g.get("glTexParameteri")
 	c.gpTexSubImage2D = g.get("glTexSubImage2D")
+	c.gpUnmapBuffer = g.getOptional("glUnmapBuffer")
 	c.gpUniform1fv = g.get("glUniform1fv")
 	c.gpUniform1i = g.get("glUniform1i")
 	c.gpUniform1iv = g.get("glUniform1iv")
@@ -487,6 +548,10 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpUseProgram = g.get("glUseProgram")
 	c.gpVertexAttribPointer = g.get("glVertexAttribPointer")
 	c.gpViewport = g.get("glViewport")
+
+	c.hasFenceSync = c.gpFenceSync != 0 && c.gpClientWaitSync != 0 && c.gpDeleteSync != 0
+	c.hasGetBufferSubData = c.gpGetBufferSubData != 0
+	c.hasBufferMapping = c.gpMapBufferRange != 0 && c.gpUnmapBuffer != 0
 
 	return g.error()
 }

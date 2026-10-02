@@ -622,6 +622,43 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return true, nil
 }
 
+// ReadPixelsAsync reads the pixels in region into pixels asynchronously.
+//
+// ReadPixelsAsync reports whether the read-back was enqueued. When it reports false, the pixels
+// were not read and the read-back must be tried again in the next frame, like ReadPixels.
+//
+// The pixels must not be read, modified, or reused until the returned channel receives a value.
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) (ok bool, result <-chan error) {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	if !inFrame {
+		// Not ready to read pixels. Try this later.
+		return false, nil
+	}
+
+	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
+	// To prevent memory leaks, flush the deferred functions here.
+	flushDeferred()
+
+	if i.backend == nil || i.backend.backendImage == nil {
+		// Fill the pixels with transparent color as ReadPixels does, then report the read-back as
+		// finished. Ebitengine doesn't touch pixels after the result is published.
+		clear(pixels)
+		ch := make(chan error, 1)
+		ch <- nil
+		return true, ch
+	}
+
+	args := []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pixels,
+			Region: region.Add(i.regionWithPadding().Min),
+		},
+	}
+	return true, i.backend.backendImage.ReadPixelsAsync(args)
+}
+
 // Deallocate deallocates the internal state.
 // Even after this call, the image is still available as a new cleared image.
 func (i *Image) Deallocate() {

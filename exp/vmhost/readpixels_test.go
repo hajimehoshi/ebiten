@@ -83,3 +83,16 @@ func TestReadPixelsIsServedWhileWaitingForTheTick(t *testing.T) {
 		t.Fatalf("WaitTicks did not return within %v: the guest's read-back was never served", budget)
 	}
 }
+
+func TestReadPixelsAsyncGuestExit(t *testing.T) {
+	// Reuse the public API regression, including an unsubmitted read at termination.
+	// startGuest verifies the guest's exit status, so a missing result fails the test.
+	guest := startGuest(t, "../../internal/processtest/testdata/readpixelsasync.go", activateByEnv, "unix")
+	screen := ebiten.NewImage(16, 16)
+	defer screen.Dispose()
+	if err := guest.SetOutsideScreen(screen); err != nil {
+		t.Fatal(err)
+	}
+	guest.AdvanceTicks(2)
+	guest.WaitTicks()
+}

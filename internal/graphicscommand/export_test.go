@@ -63,6 +63,34 @@ func (c *commandQueueManager) FlushForTesting(graphicsDriver graphicsdriver.Grap
 	return c.flush(graphicsDriver, mode)
 }
 
+func (c *commandQueueManager) ReadPixelsAsyncForTesting(img *Image, args []graphicsdriver.PixelsArgs) <-chan error {
+	return c.readPixelsAsync(img, args)
+}
+
+func (c *commandQueueManager) PendingReadPixelsForTesting() int {
+	return len(c.pendingReadPixels)
+}
+
+// NewImageForTesting creates an image whose commands are enqueued into the given manager instead of
+// the global one, so that a test can use its own graphics driver.
+func NewImageForTesting(manager *commandQueueManager, width, height int, screenFramebuffer bool, attribute string) *Image {
+	i := &Image{
+		width:     width,
+		height:    height,
+		screen:    screenFramebuffer,
+		id:        genNextImageID(),
+		attribute: attribute,
+	}
+	manager.enqueueCommand(&newImageCommand{
+		result:    i,
+		width:     width,
+		height:    height,
+		screen:    screenFramebuffer,
+		attribute: attribute,
+	})
+	return i
+}
+
 func SetRenderThreadForTesting(t thread.Thread) func() {
 	previous := theRenderThread
 	theRenderThread = t

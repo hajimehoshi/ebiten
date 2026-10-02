@@ -68,6 +68,8 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 			return err
 		}
 
+		defer graphicscommand.Terminate()
+
 		// setRunning(true) should be called in initOnMainThread for each platform.
 		defer u.setRunning(false)
 
@@ -92,6 +94,8 @@ func (u *UserInterface) runSingleThread(game Game, options *RunOptions) error {
 	if err := u.initOnMainThread(options); err != nil {
 		return err
 	}
+
+	defer graphicscommand.Terminate()
 
 	if err := u.loopGame(); err != nil {
 		return err

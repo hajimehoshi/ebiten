@@ -47,5 +47,5 @@ func runOnRenderThreadAsync[A any](f func(A), arg A) {
 func Terminate() {
 	// Post a task to the render thread to ensure all the queued functions are executed.
 	// This is necessary especially for GLFW. glfw.Terminate will remove the context and any graphics calls after that will be invalidated.
-	thread.Call(theRenderThread, func() {})
+	theCommandQueueManager.stopReadPixels(errReadPixelsAborted)
 }

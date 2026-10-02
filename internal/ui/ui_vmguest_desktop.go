@@ -36,6 +36,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/remote"
 	"github.com/hajimehoshi/ebiten/v2/internal/hook"
@@ -167,6 +168,7 @@ func (r *remoteBackend) run(game Game, options *RunOptions) (err error) {
 	r.setRunningBackend(r)
 	defer r.setRunningBackend(nil)
 
+	defer graphicscommand.Terminate()
 	return r.serve(conn)
 }
 

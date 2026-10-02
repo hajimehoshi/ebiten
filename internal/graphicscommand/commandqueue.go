@@ -261,6 +261,10 @@ func (a commandQueueFlushArgs) flush() error {
 	defer a.logger.Flush()
 	applyVsyncEnabledIfNeeded(a.graphicsDriver)
 	if err := a.queue.flush(a.graphicsDriver, a.mode, a.logger); err != nil {
+		// A read-back that has not finished can never finish when the graphics driver is broken,
+		// so complete the pending read-backs with the error instead of leaving their callers
+		// waiting forever.
+		a.manager.abortReadPixels(err)
 		if a.sync {
 			return err
 		}
@@ -268,6 +272,7 @@ func (a commandQueueFlushArgs) flush() error {
 		a.manager.setError(err)
 		return nil
 	}
+	a.manager.pollReadPixels()
 	a.manager.finishCommandQueueFlush(a.queue, a.mode)
 	return nil
 }
@@ -289,10 +294,18 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 	logger.FrameLogf("Graphics commands:\n")
 
 	if err := graphicsDriver.Begin(); err != nil {
+		q.abortReadPixels(err)
 		return err
 	}
 
 	defer func() {
+		// A command that has not run never publishes its result, so complete the read-backs of the
+		// commands left over by an error with the error. Otherwise the callers of ReadPixelsAsync
+		// would wait forever.
+		if err != nil {
+			q.abortReadPixels(err)
+		}
+
 		// Call End even if an error occurs, or the graphics driver's state might be stale (#2388).
 		if graphicsErr := graphicsDriver.End(mode); graphicsErr != nil {
 			err = errors.Join(err, graphicsErr)
@@ -540,6 +553,10 @@ type commandQueueManager struct {
 	// Only the render thread accesses queuesInUse.
 	queuesInUse []*commandQueue
 
+	// pendingReadPixels holds the pixel read-backs that have not been finished yet.
+	// Only the render thread accesses pendingReadPixels.
+	pendingReadPixels []*readPixelsRequest
+
 	err atomic.Pointer[error]
 }
 
@@ -603,6 +620,7 @@ func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [grap
 func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
 	// An error at an earlier flush stops any further work.
 	if err := c.error(); err != nil {
+		c.stopReadPixels(err)
 		return err
 	}
 
@@ -620,6 +638,7 @@ func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode
 	// A flush is queued on the render thread after the previous asynchronous flush has finished,
 	// and thus the error of the previous flush is available here.
 	if err := c.error(); err != nil {
+		c.stopReadPixels(err)
 		return err
 	}
 	return nil
