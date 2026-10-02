@@ -15,6 +15,7 @@
 package chunk_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -383,5 +384,43 @@ func TestChunks_FallbackAbsorbsExtend(t *testing.T) {
 	// absorbed combining mark.
 	if want := chunk.FallbackBytes + 1 + len("\u0301"); got[0].End != want {
 		t.Errorf("first chunk ends at %d, want %d", got[0].End, want)
+	}
+}
+
+func TestChunks_ParagraphSeparators(t *testing.T) {
+	for _, separator := range []string{"\x1c", "\x1d", "\x1e"} {
+		for _, base := range []bidi.Level{0, 1} {
+			for _, suffix := range []string{"def", "אב", "\u202babc\u202c", separator + "אב", ""} {
+				text := "אbc" + separator + suffix
+				got := chunk.AppendChunks(nil, text+"\nignored", base)
+				var end int
+				for _, c := range got {
+					if c.Start != end || c.End <= c.Start || c.End > len(text) {
+						t.Errorf("%q, base %d: invalid coverage: %v", text, base, got)
+						break
+					}
+					end = c.End
+				}
+				if end != len(text) {
+					t.Errorf("%q, base %d: covered %d bytes, want %d", text, base, end, len(text))
+				}
+			}
+		}
+	}
+
+	for _, tc := range []struct {
+		text string
+		base bidi.Level
+		want []chunk.Chunk
+	}{
+		{"א\x1cב", 0, []chunk.Chunk{{0, 2, 1}, {2, 3, 0}, {3, 5, 1}}},
+		{"a\x1db", 1, []chunk.Chunk{{0, 1, 2}, {1, 2, 1}, {2, 3, 2}}},
+		{"\x1eאב", 0, []chunk.Chunk{{0, 1, 0}, {1, 5, 1}}},
+		{"\u202babc\x1cdef", 0, []chunk.Chunk{{0, 6, 0}, {6, 7, 0}, {7, 10, 0}}},
+	} {
+		got := chunk.AppendChunks(nil, tc.text, tc.base)
+		if !slices.Equal(got, tc.want) {
+			t.Errorf("%q, base %d: got %v, want %v", tc.text, tc.base, got, tc.want)
+		}
 	}
 }

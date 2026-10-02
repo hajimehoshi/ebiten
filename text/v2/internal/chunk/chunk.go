@@ -30,6 +30,7 @@
 package chunk
 
 import (
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -92,36 +93,58 @@ func AppendChunks(dst []Chunk, text string, paragraphLevel bidi.Level) []Chunk {
 	if len(firstLine) == 0 {
 		return append(dst, Chunk{0, 0, paragraphLevel})
 	}
+
+	// U+001C..U+001E are bidi paragraph separators, but not line breaks.
+	// Segment each paragraph separately so SegmentString cannot discard the tail.
+	var byteOffset int
+	for {
+		i := strings.IndexAny(firstLine, "\x1c\x1d\x1e")
+		if i < 0 {
+			if len(firstLine) > 0 {
+				dst = appendChunksForParagraph(dst, firstLine, paragraphLevel, byteOffset)
+			}
+			return dst
+		}
+		if i > 0 {
+			dst = appendChunksForParagraph(dst, firstLine[:i], paragraphLevel, byteOffset)
+		}
+		dst = append(dst, Chunk{byteOffset + i, byteOffset + i + 1, paragraphLevel})
+		byteOffset += i + 1
+		firstLine = firstLine[i+1:]
+	}
+}
+
+func appendChunksForParagraph(dst []Chunk, text string, paragraphLevel bidi.Level, byteOffset int) []Chunk {
 	defaultDir := bidi.LeftToRight
 	if paragraphLevel%2 == 1 {
 		defaultDir = bidi.RightToLeft
 	}
 	var p bidi.Paragraph
-	runs := p.SegmentString(firstLine, defaultDir)
+	runs := p.SegmentString(text, defaultDir)
 	if runs.NumRuns() == 0 {
-		return append(dst, Chunk{0, len(firstLine), paragraphLevel})
+		return append(dst, Chunk{byteOffset, byteOffset + len(text), paragraphLevel})
 	}
 
 	var byteIdx int
 	var runeIdx int
 	for ri := range runs.NumRuns() {
 		run := runs.Run(ri)
-		// Walk runes in firstLine until reaching the rune-indexed
+		// Walk runes in text until reaching the rune-indexed
 		// run boundary. The bidi package returns rune-indexed runs;
 		// chunker output is byte-indexed.
 		for runeIdx < run.Start {
-			_, w := utf8.DecodeRuneInString(firstLine[byteIdx:])
+			_, w := utf8.DecodeRuneInString(text[byteIdx:])
 			byteIdx += w
 			runeIdx++
 		}
 		runStart := byteIdx
 		for runeIdx < run.End {
-			_, w := utf8.DecodeRuneInString(firstLine[byteIdx:])
+			_, w := utf8.DecodeRuneInString(text[byteIdx:])
 			byteIdx += w
 			runeIdx++
 		}
 		runEnd := byteIdx
-		dst = appendChunksForRun(dst, firstLine[runStart:runEnd], run.Level, paragraphLevel, runStart)
+		dst = appendChunksForRun(dst, text[runStart:runEnd], run.Level, paragraphLevel, byteOffset+runStart)
 	}
 	return dst
 }
@@ -321,7 +344,10 @@ func absorbExtendFormat(text string, pos int) int {
 // base. It is an upper bound: every first line that resolves to an
 // odd level returns true, but a true result does not guarantee one.
 //
-// Two kinds of content qualify: strong-RTL runes, matched by the UTF-8
+// Paragraph separators U+001C..U+001E also require the bidi path so that
+// shaping receives each paragraph separately.
+//
+// Two kinds of directional content qualify: strong-RTL runes, matched by the UTF-8
 // lead bytes below, and the explicit controls that raise the level on
 // their own (RLE U+202B, RLO U+202E, and RLI U+2067). FSI U+2068 needs
 // no match of its own, as it takes its direction from the first strong
@@ -367,6 +393,8 @@ func mayNeedBidiInFirstLine(text string) bool {
 		b := text[i]
 		if b < 0x80 {
 			switch b {
+			case '\x1c', '\x1d', '\x1e':
+				return true
 			case '\n', '\v', '\f', '\r':
 				return false
 			}

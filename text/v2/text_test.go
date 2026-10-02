@@ -1630,3 +1630,23 @@ func TestDrawWithInvalidLayoutOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestAdvanceParagraphSeparators(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, direction := range []text.Direction{text.DirectionLeftToRight, text.DirectionRightToLeft} {
+		face := &text.GoTextFace{Source: source, Size: 24, Direction: direction}
+		for _, separator := range []string{"\x1c", "\x1d", "\x1e"} {
+			for _, prefix := range []string{"abc", "אbc"} {
+				const suffix = "def"
+				got := text.Advance(prefix+separator+suffix, face)
+				want := text.Advance(prefix, face) + text.Advance(separator, face) + text.Advance(suffix, face)
+				if got != want {
+					t.Errorf("%q, direction %d: got %v, want %v", prefix+separator+suffix, direction, got, want)
+				}
+			}
+		}
+	}
+}
