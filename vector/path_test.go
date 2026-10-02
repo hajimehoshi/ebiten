@@ -15,6 +15,7 @@
 package vector_test
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"math"
@@ -1060,6 +1061,49 @@ func TestAddStrokeAllocs(t *testing.T) {
 				dst.AddStroke(&src, op)
 			}); got != 0 {
 				t.Errorf("allocations: got: %v, want: 0", got)
+			}
+		})
+	}
+}
+
+func TestStrokeCollinearQuad(t *testing.T) {
+	for _, tc := range []struct {
+		name              string
+		control, end, tip image.Point
+	}{
+		{"beyond end", image.Pt(120, 0), image.Pt(90, 0), image.Pt(96, 0)},
+		{"before start", image.Pt(-30, 0), image.Pt(90, 0), image.Pt(-6, 0)},
+		{"vertical", image.Pt(0, 120), image.Pt(0, 90), image.Pt(0, 96)},
+		{"diagonal", image.Pt(120, 120), image.Pt(90, 90), image.Pt(96, 96)},
+		{"between endpoints", image.Pt(30, 0), image.Pt(90, 0), image.Pt(90, 0)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			const offset = 40
+			var curve, lines vector.Path
+			curve.MoveTo(offset, offset)
+			curve.QuadTo(float32(tc.control.X+offset), float32(tc.control.Y+offset), float32(tc.end.X+offset), float32(tc.end.Y+offset))
+			lines.MoveTo(offset, offset)
+			lines.LineTo(float32(tc.tip.X+offset), float32(tc.tip.Y+offset))
+			if tc.tip != tc.end {
+				lines.LineTo(float32(tc.end.X+offset), float32(tc.end.Y+offset))
+			}
+			for _, join := range []vector.LineJoin{vector.LineJoinMiter, vector.LineJoinBevel, vector.LineJoinRound} {
+				for _, cap := range []vector.LineCap{vector.LineCapButt, vector.LineCapRound, vector.LineCapSquare} {
+					op := &vector.StrokeOptions{Width: 8, LineJoin: join, LineCap: cap}
+					got := ebiten.NewImage(180, 180)
+					defer got.Deallocate()
+					want := ebiten.NewImage(180, 180)
+					defer want.Deallocate()
+					vector.StrokePath(got, &curve, op, nil)
+					vector.StrokePath(want, &lines, op, nil)
+					gotPixels := make([]byte, 4*180*180)
+					wantPixels := make([]byte, len(gotPixels))
+					got.ReadPixels(gotPixels)
+					want.ReadPixels(wantPixels)
+					if !bytes.Equal(gotPixels, wantPixels) {
+						t.Errorf("join %d, cap %d: stroked quadratic differs from the out-and-back lines", join, cap)
+					}
+				}
 			}
 		})
 	}

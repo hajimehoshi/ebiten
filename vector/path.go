@@ -696,8 +696,34 @@ func (p *Path) AddPath(src *Path, options *AddPathOptions) {
 	}
 }
 
-// countCusps counts the number of cusps in subPath, which are quadratic curves whose start and end points are the same
-// and whose control point differs from them.
+// quadCusp returns the turning point of a collinear quadratic, if it reverses direction.
+func quadCusp(p0, p1, p2 point) (point, bool) {
+	if p0 == p2 {
+		// Divide before adding to avoid overflow and preserve midpoint rounding.
+		return point{p0.x/2 + p1.x/2, p0.y/2 + p1.y/2}, p0 != p1
+	}
+
+	// Use float64 so finite float32 coordinates cannot overflow the differences or products.
+	dx0, dy0 := float64(p1.x)-float64(p0.x), float64(p1.y)-float64(p0.y)
+	dx1, dy1 := float64(p2.x)-float64(p1.x), float64(p2.y)-float64(p1.y)
+	if dx0*dy1 != dy0*dx1 || dx0*dx1+dy0*dy1 >= 0 {
+		return point{}, false
+	}
+	// Solve (1-t)*(p1-p0) + t*(p2-p1) = 0 for the reversal.
+	var t float64
+	if dx0 != 0 {
+		t = dx0 / (dx0 - dx1)
+	} else {
+		t = dy0 / (dy0 - dy1)
+	}
+	u := 1 - t
+	return point{
+		x: float32(u*u*float64(p0.x) + 2*u*t*float64(p1.x) + t*t*float64(p2.x)),
+		y: float32(u*u*float64(p0.y) + 2*u*t*float64(p1.y) + t*t*float64(p2.y)),
+	}, true
+}
+
+// countCusps counts the quadratic curves that reverse direction in subPath.
 func countCusps(subPath *subPath) int {
 	var n int
 	cur := subPath.start
@@ -706,7 +732,7 @@ func countCusps(subPath *subPath) int {
 		case opTypeLineTo:
 			cur = op.p1
 		case opTypeQuadTo:
-			if cur == op.p2 && cur != op.p1 {
+			if _, ok := quadCusp(cur, op.p1, op.p2); ok {
 				n++
 			}
 			cur = op.p2
@@ -729,31 +755,27 @@ func normalizeSubPath(dst *subPath, src *subPath) {
 			}
 			cur = op.p1
 		case opTypeQuadTo:
+			if tip, ok := quadCusp(cur, op.p1, op.p2); ok {
+				// Use lines so that the reversal gets a joint at the actual extremum.
+				if tip != cur {
+					line := op
+					line.typ = opTypeLineTo
+					line.p1, line.p2 = tip, point{}
+					ops = append(ops, line)
+				}
+				if tip != op.p2 {
+					line := op
+					line.typ = opTypeLineTo
+					line.p1, line.p2 = op.p2, point{}
+					ops = append(ops, line)
+				}
+				cur = op.p2
+				continue
+			}
 			switch {
 			case cur == op.p1 && op.p1 == op.p2:
 				// A single point: drop it.
 				continue
-			case cur == op.p2:
-				// A cusp goes to the midpoint and comes back.
-				// Keep this as lines, not as a curve, so that the 180-degree turn at the tip gets a joint.
-				// Divide by 2 before adding so that the midpoint computation cannot overflow.
-				mid := point{
-					x: cur.x/2 + op.p1.x/2,
-					y: cur.y/2 + op.p1.y/2,
-				}
-				if mid == cur {
-					// The midpoint is rounded to the current point in float32, so there is nothing to keep.
-					continue
-				}
-				first := op
-				first.typ = opTypeLineTo
-				first.p1 = mid
-				first.p2 = point{}
-				ops = append(ops, first)
-				op.typ = opTypeLineTo
-				op.p1 = op.p2
-				op.p2 = point{}
-				cur = op.p1
 			case cur == op.p1, op.p1 == op.p2:
 				op.typ = opTypeLineTo
 				op.p1 = op.p2
