@@ -7476,3 +7476,37 @@ func Fragment() vec4 {
 		t.Error(err)
 	}
 }
+
+func TestSyntaxUnusedBuiltinCall(t *testing.T) {
+	for _, expr := range []string{
+		"int(1.0)", "float(2)", "bool(true)",
+		"len([2]float{})", "cap([2]float{})",
+		"int(x)", "float(x)", "bool(b)", "(int)(1.0)",
+	} {
+		t.Run(expr, func(t *testing.T) {
+			src := `package main
+func foo(x float, b bool) {
+	` + expr + `
+}
+`
+			if _, err := compileToIR([]byte(src)); err == nil {
+				t.Error("compileToIR must return an error but did not")
+			}
+		})
+	}
+
+	if _, err := compileToIR([]byte(`package main
+func foo() float { return 1 }
+func pair() (float, float) { return 1, 2 }
+func bar() {}
+func Fragment() vec4 {
+	foo()
+	pair()
+	bar()
+	discard()
+	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+}
