@@ -145,6 +145,11 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 		atlasImageCount = atlasImageIndex + 1
 	}
 
+	// Release images that are no longer used before shortening the slice.
+	for i := atlasImageCount; i < len(a.atlasImages); i++ {
+		a.atlasImages[i].Deallocate()
+		a.atlasImages[i] = nil
+	}
 	a.atlasImages = slices.Grow(a.atlasImages, atlasImageCount)[:atlasImageCount]
 	for i := range a.atlasImages {
 		s := a.atlasSizes[i]
