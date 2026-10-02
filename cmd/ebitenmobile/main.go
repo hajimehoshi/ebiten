@@ -90,6 +90,7 @@ func main() {
 	const minAndroidAPI = 21
 
 	var flagset flag.FlagSet
+	flagset.Init("", flag.ExitOnError)
 	flagset.StringVar(&buildO, "o", "", "")
 	flagset.StringVar(&buildGcflags, "gcflags", "", "")
 	flagset.StringVar(&buildLdflags, "ldflags", "", "")
