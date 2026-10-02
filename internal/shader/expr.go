@@ -251,6 +251,10 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 			if !ok {
 				return nil, nil, nil, false
 			}
+			if len(es) == 0 {
+				cs.addError(a.Pos(), "cannot use an expression with no value as an argument")
+				return nil, nil, nil, false
+			}
 			if len(es) > 1 && len(e.Args) > 1 {
 				cs.addError(a.Pos(), fmt.Sprintf("single-value context and multiple-value context cannot be mixed: %s", e.Fun))
 				return nil, nil, nil, false
