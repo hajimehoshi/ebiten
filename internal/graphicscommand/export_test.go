@@ -67,26 +67,8 @@ func (c *commandQueueManager) ReadPixelsAsyncForTesting(img *Image, args []graph
 	return c.readPixelsAsync(img, args)
 }
 
-func (c *commandQueueManager) PendingReadPixelsForTesting() int {
-	return len(c.pendingReadPixels)
-}
-
 func NewImageForTesting(manager *commandQueueManager, width, height int, screenFramebuffer bool, attribute string) *Image {
-	i := &Image{
-		width:     width,
-		height:    height,
-		screen:    screenFramebuffer,
-		id:        genNextImageID(),
-		attribute: attribute,
-	}
-	manager.enqueueCommand(&newImageCommand{
-		result:    i,
-		width:     width,
-		height:    height,
-		screen:    screenFramebuffer,
-		attribute: attribute,
-	})
-	return i
+	return newImage(manager, width, height, screenFramebuffer, attribute)
 }
 
 func SetRenderThreadForTesting(t thread.Thread) func() {

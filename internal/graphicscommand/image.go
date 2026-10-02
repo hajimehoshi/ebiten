@@ -62,6 +62,10 @@ func genNextImageID() int {
 //
 // The pixel data just after NewImage is undetermined.
 func NewImage(width, height int, screenFramebuffer bool, attribute string) *Image {
+	return newImage(&theCommandQueueManager, width, height, screenFramebuffer, attribute)
+}
+
+func newImage(manager *commandQueueManager, width, height int, screenFramebuffer bool, attribute string) *Image {
 	i := &Image{
 		width:     width,
 		height:    height,
@@ -76,7 +80,7 @@ func NewImage(width, height int, screenFramebuffer bool, attribute string) *Imag
 		screen:    screenFramebuffer,
 		attribute: attribute,
 	}
-	theCommandQueueManager.enqueueCommand(c)
+	manager.enqueueCommand(c)
 	return i
 }
 

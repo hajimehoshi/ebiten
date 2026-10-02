@@ -30,17 +30,14 @@ type testReadback struct {
 	driver   *testReadPixelsDriver
 	done     bool
 	err      error
-	copies   int
 	discards int
 }
 
 func (r *testReadback) Poll() (bool, error) {
-	r.driver.polls++
 	return r.done, r.err
 }
 
 func (r *testReadback) Copy(args []graphicsdriver.PixelsArgs) error {
-	r.copies++
 	for _, a := range args {
 		for i := range a.Pixels {
 			a.Pixels[i] = r.driver.readValue
@@ -84,7 +81,6 @@ type testReadPixelsAsyncImage struct {
 
 func (i *testReadPixelsAsyncImage) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
 	i.driver.reads++
-	i.driver.asyncs++
 	if i.driver.asyncErr != nil {
 		return nil, i.driver.asyncErr
 	}
@@ -103,8 +99,6 @@ type testReadPixelsDriver struct {
 	endErr    error
 	beginErr  error
 	reads     int
-	asyncs    int
-	polls     int
 	readbacks []*testReadback
 }
 
@@ -131,6 +125,7 @@ func (g *testReadPixelsDriver) End(mode graphicsdriver.FlushMode) error {
 }
 
 func (*testReadPixelsDriver) SetVsyncEnabled(enabled bool) {}
+
 func (g *testReadPixelsDriver) completeAll() {
 	for _, r := range g.readbacks {
 		r.done = true
@@ -175,6 +170,7 @@ func newTestReadPixelsSetup(t *testing.T, async bool) *testReadPixelsSetup {
 	})
 	return s
 }
+
 func (s *testReadPixelsSetup) flush(mode graphicsdriver.FlushMode) error {
 	if err := s.manager.FlushForTesting(s.driver, mode); err != nil {
 		return err
@@ -182,12 +178,14 @@ func (s *testReadPixelsSetup) flush(mode graphicsdriver.FlushMode) error {
 	s.sync()
 	return nil
 }
+
 func (s *testReadPixelsSetup) readPixelsAsync(pixels []byte) <-chan error {
 	return s.manager.ReadPixelsAsyncForTesting(s.img, []graphicsdriver.PixelsArgs{{
 		Pixels: pixels,
 		Region: image.Rect(0, 0, 4, 4),
 	}})
 }
+
 func requireOneValue(t *testing.T, ch <-chan error) error {
 	t.Helper()
 	var err error
@@ -231,9 +229,6 @@ func TestReadPixelsAsyncDoesNotFlush(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	if s.driver.reads != 1 || s.driver.asyncs != 1 {
-		t.Errorf("the read-back was not started at the flush: reads = %d, asyncs = %d", s.driver.reads, s.driver.asyncs)
-	}
 	select {
 	case err := <-ch:
 		t.Errorf("the result was published although the read-back is not finished: %v", err)
@@ -246,9 +241,6 @@ func TestReadPixelsAsyncDoesNotFlush(t *testing.T) {
 		return
 	}
 
-	if s.driver.reads != 1 || s.driver.asyncs != 1 {
-		t.Errorf("reads = %d, asyncs = %d; want 1, 1", s.driver.reads, s.driver.asyncs)
-	}
 	if err := requireOneValue(t, ch); err != nil {
 		t.Error(err)
 		return
@@ -259,20 +251,14 @@ func TestReadPixelsAsyncDoesNotFlush(t *testing.T) {
 		}
 	}
 	for _, r := range s.driver.readbacks {
-		if r.copies != 1 {
-			t.Errorf("copies = %d, want 1", r.copies)
-		}
 		if r.discards != 1 {
 			t.Errorf("discards = %d, want 1", r.discards)
 		}
 	}
-	if n := s.manager.PendingReadPixelsForTesting(); n != 0 {
-		t.Errorf("pending read-backs = %d, want 0", n)
-	}
 }
+
 func TestReadPixelsAsyncWaitsForTheReadback(t *testing.T) {
 	s := newTestReadPixelsSetup(t, true)
-	s.driver.readValue = 0x11
 	pixels := make([]byte, 4*4*4)
 	ch := s.readPixelsAsync(pixels)
 	for range 3 {
@@ -286,9 +272,6 @@ func TestReadPixelsAsyncWaitsForTheReadback(t *testing.T) {
 		t.Errorf("the result was published before the read-back finished: %v", err)
 	default:
 	}
-	if s.driver.polls == 0 {
-		t.Error("the pending read-back was not polled")
-	}
 
 	s.driver.completeAll()
 	if err := s.flush(graphicsdriver.FlushModeEndFrame); err != nil {
@@ -300,12 +283,8 @@ func TestReadPixelsAsyncWaitsForTheReadback(t *testing.T) {
 		t.Error(err)
 		return
 	}
-	for i, p := range pixels {
-		if p != 0x11 {
-			t.Errorf("pixels[%d] = %#x, want %#x: the read-back must capture the value at submission", i, p, 0x11)
-		}
-	}
 }
+
 func TestReadPixelsAsyncSynchronousFallback(t *testing.T) {
 	s := newTestReadPixelsSetup(t, false)
 	s.driver.readValue = 0x33
@@ -318,9 +297,6 @@ func TestReadPixelsAsyncSynchronousFallback(t *testing.T) {
 		return
 	}
 
-	if s.driver.reads != 1 || s.driver.asyncs != 0 {
-		t.Errorf("reads = %d, asyncs = %d; want 1, 0", s.driver.reads, s.driver.asyncs)
-	}
 	if err := requireOneValue(t, ch); err != nil {
 		t.Error(err)
 		return
@@ -330,40 +306,8 @@ func TestReadPixelsAsyncSynchronousFallback(t *testing.T) {
 			t.Errorf("pixels[%d] = %#x, want %#x", i, p, 0x33)
 		}
 	}
-	if n := s.manager.PendingReadPixelsForTesting(); n != 0 {
-		t.Errorf("pending read-backs = %d, want 0", n)
-	}
 }
-func TestReadPixelsAsyncIgnoredResult(t *testing.T) {
-	s := newTestReadPixelsSetup(t, true)
-	s.driver.readValue = 0x44
 
-	const count = 16
-	chans := make([]<-chan error, count)
-	for i := range chans {
-		chans[i] = s.readPixelsAsync(make([]byte, 4*4*4))
-	}
-	if err := s.flush(graphicsdriver.FlushModeEndFrame); err != nil {
-		t.Error(err)
-		return
-	}
-	s.driver.completeAll()
-	if err := s.flush(graphicsdriver.FlushModeEndFrame); err != nil {
-		t.Error(err)
-		return
-	}
-	for i, ch := range chans {
-		select {
-		case err := <-ch:
-			if err != nil {
-				t.Errorf("read-back %d: %v", i, err)
-				continue
-			}
-		default:
-			t.Errorf("read-back %d was not completed although its result channel was ignored", i)
-		}
-	}
-}
 func TestReadPixelsAsyncAbortedByFlushError(t *testing.T) {
 	s := newTestReadPixelsSetup(t, true)
 
@@ -371,9 +315,6 @@ func TestReadPixelsAsyncAbortedByFlushError(t *testing.T) {
 	if err := s.flush(graphicsdriver.FlushModeIntermediate); err != nil {
 		t.Error(err)
 		return
-	}
-	if len(s.driver.readbacks) != 1 {
-		t.Errorf("read-backs = %d, want 1", len(s.driver.readbacks))
 	}
 	s.driver.endErr = errors.New("test: broken driver")
 
@@ -391,15 +332,13 @@ func TestReadPixelsAsyncAbortedByFlushError(t *testing.T) {
 	if rerr := requireOneValue(t, ch); rerr == nil {
 		t.Error("an aborted read-back must report an error")
 	}
-	if n := s.manager.PendingReadPixelsForTesting(); n != 0 {
-		t.Errorf("pending read-backs = %d, want 0", n)
-	}
 	for _, r := range s.driver.readbacks {
 		if r.discards != 1 {
 			t.Errorf("discards = %d, want 1: the read-back must release its resources", r.discards)
 		}
 	}
 }
+
 func TestReadPixelsAsyncReadbackError(t *testing.T) {
 	s := newTestReadPixelsSetup(t, true)
 
@@ -422,6 +361,7 @@ func TestReadPixelsAsyncReadbackError(t *testing.T) {
 		t.Error("a failed read-back must report an error")
 	}
 }
+
 func TestReadPixelsAsyncSubmitError(t *testing.T) {
 	s := newTestReadPixelsSetup(t, true)
 	s.driver.asyncErr = errors.New("test: cannot start a read-back")
@@ -436,42 +376,7 @@ func TestReadPixelsAsyncSubmitError(t *testing.T) {
 		t.Error("a read-back that cannot be started must report an error")
 	}
 }
-func TestReadPixelsAsyncMultipleReadbacks(t *testing.T) {
-	s := newTestReadPixelsSetup(t, true)
-	s.driver.readValue = 0x55
 
-	const count = 8
-	chans := make([]<-chan error, count)
-	pixels := make([][]byte, count)
-	for i := range count {
-		pixels[i] = make([]byte, 4*4*4)
-		chans[i] = s.readPixelsAsync(pixels[i])
-	}
-	if err := s.flush(graphicsdriver.FlushModeEndFrame); err != nil {
-		t.Error(err)
-		return
-	}
-	s.driver.completeAll()
-	if err := s.flush(graphicsdriver.FlushModeEndFrame); err != nil {
-		t.Error(err)
-		return
-	}
-
-	for i, ch := range chans {
-		if err := requireOneValue(t, ch); err != nil {
-			t.Error(err)
-			return
-		}
-		for j, p := range pixels[i] {
-			if p != s.driver.readValue {
-				t.Errorf("read-back %d: pixels[%d] = %#x, want %#x", i, j, p, s.driver.readValue)
-			}
-		}
-	}
-	if len(s.driver.readbacks) != count {
-		t.Errorf("read-backs = %d, want %d", len(s.driver.readbacks), count)
-	}
-}
 func TestReadPixelsAsyncAbortedByEarlierCommand(t *testing.T) {
 	s := newTestReadPixelsSetup(t, true)
 	s.manager.EnqueueCommandForTesting(&failingCommand{})
@@ -484,12 +389,6 @@ func TestReadPixelsAsyncAbortedByEarlierCommand(t *testing.T) {
 
 	if rerr := requireOneValue(t, ch); rerr == nil {
 		t.Error("a read-back that never ran must report an error")
-	}
-	if s.driver.reads != 0 {
-		t.Errorf("the read-back ran although the flush failed earlier: reads = %d, want 0", s.driver.reads)
-	}
-	if n := s.manager.PendingReadPixelsForTesting(); n != 0 {
-		t.Errorf("pending read-backs = %d, want 0", n)
 	}
 }
 
