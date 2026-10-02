@@ -16,6 +16,7 @@ package vector
 
 import (
 	"fmt"
+	"image"
 	"strings"
 )
 
@@ -86,4 +87,13 @@ func CallbackTokenCount() int {
 
 func CircleVertexCount(radius float32) int {
 	return circleVertexCount(radius)
+}
+
+func AtlasImageCount(dstBounds image.Rectangle, paths []*Path, bounds []image.Rectangle, antialias bool) int {
+	var a atlas
+	a.setPaths(dstBounds, paths, bounds, antialias)
+	for _, img := range a.atlasImages {
+		img.Deallocate()
+	}
+	return len(a.atlasImages)
 }
