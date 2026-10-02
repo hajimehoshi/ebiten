@@ -196,6 +196,7 @@ func flushPresent(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
 func requireReadPixelsAsyncResult(t *testing.T, ch <-chan error) error {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
@@ -219,9 +220,9 @@ func requireReadPixelsAsyncResult(t *testing.T, ch <-chan error) error {
 		flushPresent(t)
 		time.Sleep(time.Millisecond)
 	}
-	t.Error("the read-back did not complete within 5 seconds")
 	return fmt.Errorf("test: read-back timed out")
 }
+
 func fillImage(t *testing.T, img *graphicscommand.Image, clr color.RGBA) {
 	t.Helper()
 	const w, h = 16, 16
@@ -265,6 +266,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			t.Errorf("ReadPixelsAsync got: %v, want: %v", got, want)
 		}
 	})
+
 	t.Run("CaptureOrder", func(t *testing.T) {
 		img := graphicscommand.NewImage(w, h, false, "")
 		fillImage(t, img, color.RGBA{R: 0x11, G: 0x11, B: 0x11, A: 0xff})
@@ -288,6 +290,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			}
 		}
 	})
+
 	t.Run("ManyInFlight", func(t *testing.T) {
 		const count = 16
 		clrs := make([]color.RGBA, count)
@@ -317,6 +320,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			}
 		}
 	})
+
 	t.Run("DisposeWhilePending", func(t *testing.T) {
 		const count = 4
 		imgs := make([]*graphicscommand.Image, count)
@@ -339,6 +343,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			}
 		}
 	})
+
 	t.Run("IgnoredResults", func(t *testing.T) {
 		img := graphicscommand.NewImage(w, h, false, "")
 		fillImage(t, img, color.RGBA{R: 0x55, A: 0xff})

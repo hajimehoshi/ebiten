@@ -103,14 +103,12 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 
 // Poll reports whether the reads are complete. Poll must not block.
 func (r *readback) Poll() (bool, error) {
-
 	// A zero timeout makes this a pure query that never blocks the render thread.
 	return r.graphics.context.pollFence(r.fence)
 }
 
 // Copy copies the read pixels to args. Copy must be called only after Poll reported done.
 func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
-
 	if len(args) != len(r.pbos) {
 		return fmt.Errorf("opengl: len(args) must be %d but %d at Copy", len(r.pbos), len(args))
 	}
@@ -124,7 +122,6 @@ func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
 
 // Discard releases the resources for the read-back without copying the pixels.
 func (r *readback) Discard() {
-
 	c := &r.graphics.context
 	if r.fence != 0 {
 		c.deleteFence(r.fence)
