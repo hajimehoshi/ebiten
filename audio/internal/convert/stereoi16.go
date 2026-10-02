@@ -97,7 +97,7 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 		switch s.format {
 		case FormatU8:
 			for i := range frames {
-				v := int16(int(s.buf[i])*0x101 - (1 << 15))
+				v := (int16(s.buf[i]) - 128) << 8
 				b[4*i] = byte(v)
 				b[4*i+1] = byte(v >> 8)
 				b[4*i+2] = byte(v)
@@ -122,8 +122,8 @@ func (s *StereoI16ReadSeeker) Read(b []byte) (int, error) {
 		switch s.format {
 		case FormatU8:
 			for i := range frames {
-				v0 := int16(int(s.buf[2*i])*0x101 - (1 << 15))
-				v1 := int16(int(s.buf[2*i+1])*0x101 - (1 << 15))
+				v0 := (int16(s.buf[2*i]) - 128) << 8
+				v1 := (int16(s.buf[2*i+1]) - 128) << 8
 				b[4*i] = byte(v0)
 				b[4*i+1] = byte(v0 >> 8)
 				b[4*i+2] = byte(v1)
