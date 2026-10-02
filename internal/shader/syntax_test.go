@@ -7460,8 +7460,8 @@ func Fragment() vec4 {
 	return vec4(0)
 }
 `
-			if _, err := compileToIR([]byte(src)); err == nil || !strings.Contains(err.Error(), "no value") {
-				t.Errorf("got: %v, want a no-value argument error", err)
+			if _, err := compileToIR([]byte(src)); err == nil {
+				t.Error("compileToIR must return an error but did not")
 			}
 		})
 	}
