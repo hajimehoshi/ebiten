@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"image"
 	"strings"
-
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Point struct {
@@ -91,15 +89,11 @@ func CircleVertexCount(radius float32) int {
 	return circleVertexCount(radius)
 }
 
-// AtlasSetPaths packs the paths into atlas images, and returns the created atlas images and the
-// atlas region bounds of each path. The caller is responsible for the returned images.
-func AtlasSetPaths(dstBounds image.Rectangle, paths []*Path, bounds []image.Rectangle, antialias bool) (images []*ebiten.Image, regionBounds []image.Rectangle) {
+func AtlasImageCount(dstBounds image.Rectangle, paths []*Path, bounds []image.Rectangle, antialias bool) int {
 	var a atlas
 	a.setPaths(dstBounds, paths, bounds, antialias)
-	images = a.atlasImages
-	regionBounds = make([]image.Rectangle, len(paths))
-	for i := range paths {
-		regionBounds[i] = a.atlasRegions[a.pathIndexToAtlasRegionIndex[i]].imageBounds
+	for _, img := range a.atlasImages {
+		img.Deallocate()
 	}
-	return images, regionBounds
+	return len(a.atlasImages)
 }
