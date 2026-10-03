@@ -82,6 +82,9 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if res.StatusCode < 200 || 300 <= res.StatusCode {
+			log.Fatalf("fetching %s failed: %s", mpgURL, res.Status)
+		}
 		in = res.Body
 		fmt.Println("Play the default video. You can specify a video file as an argument.")
 	}

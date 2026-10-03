@@ -267,7 +267,7 @@ func (g *Game) drawWave(screen *ebiten.Image, counter int, aa bool, line bool) {
 		return x, y
 	}
 
-	for i := 0; i <= npoints; i++ {
+	for i := 0; i < npoints; i++ {
 		if i == 0 {
 			path.MoveTo(indexToPoint(i, counter))
 			continue
