@@ -489,8 +489,8 @@ type _XWMHints struct {
 
 type _XClassHint struct {
 	_        structs.HostLayout
-	ResName  uintptr
-	ResClass uintptr
+	ResName  *byte
+	ResClass *byte
 }
 
 type _XIMStyles struct {
@@ -744,7 +744,7 @@ type _XIEventMask struct {
 	_        structs.HostLayout
 	Deviceid int32
 	MaskLen  int32
-	Mask     uintptr // *byte
+	Mask     *byte
 }
 
 type _XIValuatorState struct {

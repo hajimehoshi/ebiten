@@ -510,13 +510,16 @@ func enableRawMouseMotion(window *Window) {
 	mask := make([]byte, xiMaskLen(_XI_RawMotion))
 	xiSetMask(mask, _XI_RawMotion)
 
+	var pinner runtime.Pinner
+	pinner.Pin(&mask[0])
+	defer pinner.Unpin()
+
 	em := _XIEventMask{
 		Deviceid: _XIAllMasterDevices,
 		MaskLen:  int32(len(mask)),
-		Mask:     uintptr(unsafe.Pointer(&mask[0])),
+		Mask:     &mask[0],
 	}
 	_glfw.platformWindow.xi.SelectEvents(_glfw.platformWindow.display, _glfw.platformWindow.root, &em, 1)
-	runtime.KeepAlive(mask)
 }
 
 func disableRawMouseMotion(window *Window) {
@@ -527,13 +530,16 @@ func disableRawMouseMotion(window *Window) {
 
 	mask := make([]byte, 1)
 
+	var pinner runtime.Pinner
+	pinner.Pin(&mask[0])
+	defer pinner.Unpin()
+
 	em := _XIEventMask{
 		Deviceid: _XIAllMasterDevices,
 		MaskLen:  int32(len(mask)),
-		Mask:     uintptr(unsafe.Pointer(&mask[0])),
+		Mask:     &mask[0],
 	}
 	_glfw.platformWindow.xi.SelectEvents(_glfw.platformWindow.display, _glfw.platformWindow.root, &em, 1)
-	runtime.KeepAlive(mask)
 }
 
 // xiScrollAxis is one scroll axis of an input device. A raw motion event's delta on the axis, divided
@@ -563,21 +569,24 @@ func selectXIEvents(window *Window) {
 	deviceMask := make([]byte, xiMaskLen(_XI_DeviceChanged))
 	xiSetMask(deviceMask, _XI_DeviceChanged)
 
+	var pinner runtime.Pinner
+	pinner.Pin(&pointerMask[0])
+	pinner.Pin(&deviceMask[0])
+	defer pinner.Unpin()
+
 	em := []_XIEventMask{
 		{
 			Deviceid: _XIAllMasterDevices,
 			MaskLen:  int32(len(pointerMask)),
-			Mask:     uintptr(unsafe.Pointer(&pointerMask[0])),
+			Mask:     &pointerMask[0],
 		},
 		{
 			Deviceid: _XIAllDevices,
 			MaskLen:  int32(len(deviceMask)),
-			Mask:     uintptr(unsafe.Pointer(&deviceMask[0])),
+			Mask:     &deviceMask[0],
 		},
 	}
 	_glfw.platformWindow.xi.SelectEvents(_glfw.platformWindow.display, window.platform.handle, &em[0], int32(len(em)))
-	runtime.KeepAlive(pointerMask)
-	runtime.KeepAlive(deviceMask)
 }
 
 // xiScrollAxesFromClasses reads the scroll axes out of a device class list (from XIQueryDevice or an
@@ -1067,16 +1076,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 			}
 		}
 
-		nameBytes := append([]byte(name), 0)
-		classBytes := append([]byte(class), 0)
-		hint := _XClassHint{
-			ResName:  uintptr(unsafe.Pointer(&nameBytes[0])),
-			ResClass: uintptr(unsafe.Pointer(&classBytes[0])),
-		}
-
-		xSetClassHint(_glfw.platformWindow.display, window.platform.handle, &hint)
-		runtime.KeepAlive(nameBytes)
-		runtime.KeepAlive(classBytes)
+		setClassHint(window, name, class)
 	}
 
 	// Announce support for Xdnd (drag and drop)
@@ -1110,6 +1110,23 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	}
 
 	return nil
+}
+
+// setClassHint sets the window's WM_CLASS property.
+func setClassHint(window *Window, name, class string) {
+	nameBytes := append([]byte(name), 0)
+	classBytes := append([]byte(class), 0)
+
+	var pinner runtime.Pinner
+	pinner.Pin(&nameBytes[0])
+	pinner.Pin(&classBytes[0])
+	defer pinner.Unpin()
+
+	hint := _XClassHint{
+		ResName:  &nameBytes[0],
+		ResClass: &classBytes[0],
+	}
+	xSetClassHint(_glfw.platformWindow.display, window.platform.handle, &hint)
 }
 
 // writeTargetToProperty writes the selection string in the format of the
