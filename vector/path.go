@@ -625,6 +625,9 @@ func (p *Path) arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	y1 := y + radius*float32(sin1)
 
 	p.LineTo(x0, y0)
+	if da == 0 {
+		return
+	}
 
 	// Calculate the control points for an approximated Bézier curve.
 	// See https://learn.microsoft.com/en-us/previous-versions/xamarin/xamarin-forms/user-interface/graphics/skiasharp/curves/beziers.
