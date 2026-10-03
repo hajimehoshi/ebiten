@@ -129,6 +129,11 @@ jobs:
         run: |
           go test -shuffle=on -v -p=1 ./...
 
+      - name: go test -race (Linux)
+        if: runner.os == 'Linux' && matrix.go == '1.27.x'
+        run: |
+          go test -race -shuffle=on -v -p=1 ./...
+
       - name: go test (Linux 386)
         if: runner.os == 'Linux'
         run: |
