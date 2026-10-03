@@ -197,8 +197,9 @@ func MustParseTag(str string) Tag {
 }
 
 // Metrics implements Face.
+// The metrics reflect this face's font variations, at its Size.
 func (g *GoTextFace) Metrics() Metrics {
-	return g.Source.metrics(g.Size)
+	return g.Source.metrics(g)
 }
 
 // encodeVariations returns a binary string encoding of variations

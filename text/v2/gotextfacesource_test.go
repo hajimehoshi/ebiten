@@ -22,6 +22,8 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/font/opentype"
 	"golang.org/x/image/font/gofont/goregular"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -178,45 +180,181 @@ func newGoTextFaceSourceForTest(t *testing.T, data []byte) *text.GoTextFaceSourc
 	return src
 }
 
+func parseTestFont(t *testing.T, data []byte) *font.Font {
+	t.Helper()
+	l, err := opentype.NewLoader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := font.NewFont(l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+func goTextFaceMetrics(t *testing.T, f *font.Font, size float64, variations []font.Variation) text.Metrics {
+	t.Helper()
+
+	face := font.NewFace(f)
+	face.SetVariations(variations)
+
+	var m text.Metrics
+	if h, ok := face.FontHExtents(); ok {
+		m.HLineGap = float64(h.LineGap)
+		m.HAscent = float64(h.Ascender)
+		m.HDescent = float64(-h.Descender)
+	}
+	if v, ok := face.FontVExtents(); ok {
+		m.VLineGap = float64(v.LineGap)
+		m.VAscent = float64(v.Ascender)
+		m.VDescent = float64(-v.Descender)
+	}
+	m.XHeight = float64(face.LineMetric(font.XHeight))
+	m.CapHeight = float64(face.LineMetric(font.CapHeight))
+
+	scale := size / float64(face.Upem())
+	m.HLineGap *= scale
+	m.HAscent *= scale
+	m.HDescent *= scale
+	m.VLineGap *= scale
+	m.VAscent *= scale
+	m.VDescent *= scale
+	m.XHeight *= scale
+	m.CapHeight *= scale
+	return m
+}
+
+func newVariedGoTextFace(src *text.GoTextFaceSource, size float64, variations []font.Variation) *text.GoTextFace {
+	face := &text.GoTextFace{Source: src, Size: size}
+	for _, v := range variations {
+		face.SetVariation(text.Tag(v.Tag), v.Value)
+	}
+	return face
+}
+
 func TestGoTextFaceSourceMetricsWithVariations(t *testing.T) {
 	data := variableFontData(t)
-	const size = 16
-
-	want := (&text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: size}).Metrics()
-
+	f := parseTestFont(t, data)
+	const (
+		size   = 16
+		sample = "Hello, world!"
+	)
 	wght := text.MustParseTag("wght")
-	for _, weight := range []float32{100, 400, 900} {
-		src := newGoTextFaceSourceForTest(t, data)
-		varied := &text.GoTextFace{Source: src, Size: size}
-		varied.SetVariation(wght, weight)
-		text.Measure("Hello, world!", varied, 0)
 
-		if got := (&text.GoTextFace{Source: src, Size: size}).Metrics(); got != want {
-			t.Errorf("Metrics() after shaping with wght=%v: got: %v, want: %v", weight, got, want)
+	src := newGoTextFaceSourceForTest(t, data)
+	defaultFace := &text.GoTextFace{Source: src, Size: size}
+	defaultMetrics := defaultFace.Metrics()
+	if got, want := defaultMetrics, goTextFaceMetrics(t, f, size, nil); got != want {
+		t.Errorf("default Metrics(): got: %v, want: %v", got, want)
+	}
+
+	var changed bool
+	for _, weight := range []float32{100, 400, 900} {
+		variations := []font.Variation{
+			{
+				Tag:   font.Tag(wght),
+				Value: weight,
+			},
 		}
+		varied := newVariedGoTextFace(src, size, variations)
+		got := varied.Metrics()
+		want := goTextFaceMetrics(t, f, size, variations)
+		if got != want {
+			t.Errorf("wght=%v Metrics(): got: %v, want: %v", weight, got, want)
+		}
+		if got.XHeight != defaultMetrics.XHeight || got.CapHeight != defaultMetrics.CapHeight {
+			changed = true
+		}
+
+		fresh := newVariedGoTextFace(newGoTextFaceSourceForTest(t, data), size, variations)
+		if got, want := text.Advance(sample, varied), text.Advance(sample, fresh); got != want {
+			t.Errorf("wght=%v Advance after Metrics(): got: %v, want: %v", weight, got, want)
+		}
+
+		text.Measure(sample, varied, 0)
+		if got := defaultFace.Metrics(); got != defaultMetrics {
+			t.Errorf("default Metrics() after shaping wght=%v: got: %v, want: %v", weight, got, defaultMetrics)
+		}
+		if got := (&text.GoTextFace{Source: src, Size: size}).Metrics(); got != defaultMetrics {
+			t.Errorf("new default Metrics() after shaping wght=%v: got: %v, want: %v", weight, got, defaultMetrics)
+		}
+	}
+	if !changed {
+		t.Error("RobotoFlex wght did not change XHeight or CapHeight")
+	}
+
+	regularFont := parseTestFont(t, goregular.TTF)
+	regular := newGoTextFaceSourceForTest(t, goregular.TTF)
+	variations := []font.Variation{
+		{
+			Tag:   font.Tag(wght),
+			Value: 900,
+		},
+	}
+	got := newVariedGoTextFace(regular, size, variations).Metrics()
+	if want := goTextFaceMetrics(t, regularFont, size, variations); got != want {
+		t.Errorf("non-variable font Metrics(): got: %v, want: %v", got, want)
+	}
+	if plain := (&text.GoTextFace{Source: regular, Size: size}).Metrics(); got != plain {
+		t.Errorf("variation changed a non-variable font: plain %v, varied %v", plain, got)
 	}
 }
 
 func TestGoTextFaceSourceMetricsConcurrentWithShaping(t *testing.T) {
 	data := variableFontData(t)
+	f := parseTestFont(t, data)
+	const size = 16
 	wght := text.MustParseTag("wght")
+	wdth := text.MustParseTag("wdth")
 
-	// A source reads its metrics only once, so a fresh source is needed on
-	// every iteration.
-	const iterations = 50
-	for i := range iterations {
-		src := newGoTextFaceSourceForTest(t, data)
-		varied := &text.GoTextFace{Source: src, Size: 16}
-		varied.SetVariation(wght, float32(100+i*10))
-		plain := &text.GoTextFace{Source: src, Size: 16}
-
-		var wg sync.WaitGroup
-		wg.Go(func() {
-			text.Measure("Hello, world!", varied, 0)
-		})
-		wg.Go(func() {
-			plain.Metrics()
-		})
-		wg.Wait()
+	variations := [][]font.Variation{
+		nil,
+		{
+			{
+				Tag:   font.Tag(wght),
+				Value: 900,
+			},
+		},
+		{
+			{
+				Tag:   font.Tag(wght),
+				Value: 250,
+			},
+			{
+				Tag:   font.Tag(wdth),
+				Value: 120,
+			},
+		},
 	}
+
+	src := newGoTextFaceSourceForTest(t, data)
+	faces := make([]*text.GoTextFace, len(variations))
+	wants := make([]text.Metrics, len(variations))
+	for i, v := range variations {
+		faces[i] = newVariedGoTextFace(src, size, v)
+		wants[i] = goTextFaceMetrics(t, f, size, v)
+	}
+
+	const (
+		goroutines = 4
+		iterations = 20
+		sample     = "Hello, world!"
+	)
+	var wg sync.WaitGroup
+	for i := range faces {
+		face := faces[i]
+		want := wants[i]
+		for range goroutines {
+			wg.Go(func() {
+				for range iterations {
+					if got := face.Metrics(); got != want {
+						t.Errorf("Metrics(): got: %v, want: %v", got, want)
+					}
+					text.Measure(sample, face, 2)
+				}
+			})
+		}
+	}
+	wg.Wait()
 }

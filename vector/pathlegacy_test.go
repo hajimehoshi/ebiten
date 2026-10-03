@@ -15,6 +15,8 @@
 package vector_test
 
 import (
+	"image"
+	"math"
 	"slices"
 	"testing"
 
@@ -83,4 +85,29 @@ func TestAppendVerticesAndIndicesForStrokeTooManyVertices(t *testing.T) {
 		}
 	}()
 	path.AppendVerticesAndIndicesForStroke(vertices, nil, op)
+}
+
+func TestLegacyFlatteningSubdivisionLimit(t *testing.T) {
+	var p vector.Path
+	p.MoveTo(0, 0)
+	p.QuadTo(5e7, 1e8, 1e8, 0)
+	if got, want := p.Bounds(), image.Rect(0, 0, 100000000, 50000000); got != want {
+		t.Errorf("Bounds: got %v, want %v", got, want)
+	}
+	vertices, _ := p.AppendVerticesAndIndicesForFilling(nil, nil)
+	assertGeometryVertex(t, vertices, vector.Point{}, 0)
+	assertGeometryVertex(t, vertices, vector.Point{X: 5e7, Y: 5e7}, 0)
+	assertGeometryVertex(t, vertices, vector.Point{X: 1e8}, 0)
+}
+
+func TestLegacyFlatteningNonFiniteControl(t *testing.T) {
+	for _, control := range []float32{float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
+		var p vector.Path
+		p.MoveTo(0, 0)
+		p.QuadTo(10, control, 20, 0)
+		vertices, indices := p.AppendVerticesAndIndicesForFilling(nil, nil)
+		if len(vertices) != 0 || len(indices) != 0 {
+			t.Errorf("control %g: non-finite curve produced triangles", control)
+		}
+	}
 }

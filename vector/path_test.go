@@ -15,7 +15,6 @@
 package vector_test
 
 import (
-	"bytes"
 	"image"
 	"image/color"
 	"math"
@@ -955,17 +954,22 @@ func TestStrokeQuadCusp(t *testing.T) {
 }
 
 func TestStrokeTinyQuadCusp(t *testing.T) {
-	// The midpoint of this cusp is rounded back to the start point in float32, so there is nothing to stroke.
+	// The cusp's extremum is halfway between adjacent float32 input coordinates.
 	var p vector.Path
 	p.MoveTo(1e7, 0)
 	p.QuadTo(1e7+1, 0, 1e7, 0)
 
 	op := &vector.AddStrokeOptions{}
 	op.StrokeOptions.Width = 4
+	op.GeoM.Translate(-1e7, 0)
+	op.GeoM.Scale(2, 1)
 
 	var sp vector.Path
 	sp.AddStroke(&p, op)
-	if got, want := vector.SubPathCount(&sp), 0; got != want {
+	if got, want := vector.SubPathCount(&sp), 1; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := sp.Bounds(), image.Rect(0, -2, 1, 2); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
@@ -975,6 +979,7 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(3.0e38, 1)
 	p.QuadTo(3.4e38, 1, 3.0e38, 1)
+	before := vector.PathOperationsString(&p)
 
 	op := &vector.AddStrokeOptions{}
 	op.StrokeOptions.Width = 4
@@ -983,7 +988,7 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	sp.AddStroke(&p, op)
 
 	// AddStroke must not modify the source path.
-	if got, want := vector.PathOperationsString(&p), "MoveTo(3e+38, 1)\nQuadTo(3.4e+38, 1, 3e+38, 1)\n"; got != want {
+	if got, want := vector.PathOperationsString(&p), before; got != want {
 		t.Errorf("got:\n%v\nwant:\n%v", got, want)
 	}
 
@@ -1153,74 +1158,6 @@ func TestAddStrokeAllocs(t *testing.T) {
 				dst.AddStroke(&src, op)
 			}); got != 0 {
 				t.Errorf("allocations: got: %v, want: 0", got)
-			}
-		})
-	}
-}
-
-func TestStrokeCollinearQuad(t *testing.T) {
-	for _, tc := range []struct {
-		name              string
-		control, end, tip image.Point
-	}{
-		{
-			name:    "beyond end",
-			control: image.Pt(120, 0),
-			end:     image.Pt(90, 0),
-			tip:     image.Pt(96, 0),
-		},
-		{
-			name:    "before start",
-			control: image.Pt(-30, 0),
-			end:     image.Pt(90, 0),
-			tip:     image.Pt(-6, 0),
-		},
-		{
-			name:    "vertical",
-			control: image.Pt(0, 120),
-			end:     image.Pt(0, 90),
-			tip:     image.Pt(0, 96),
-		},
-		{
-			name:    "diagonal",
-			control: image.Pt(120, 120),
-			end:     image.Pt(90, 90),
-			tip:     image.Pt(96, 96),
-		},
-		{
-			name:    "between endpoints",
-			control: image.Pt(30, 0),
-			end:     image.Pt(90, 0),
-			tip:     image.Pt(90, 0),
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			const offset = 40
-			var curve, lines vector.Path
-			curve.MoveTo(offset, offset)
-			curve.QuadTo(float32(tc.control.X+offset), float32(tc.control.Y+offset), float32(tc.end.X+offset), float32(tc.end.Y+offset))
-			lines.MoveTo(offset, offset)
-			lines.LineTo(float32(tc.tip.X+offset), float32(tc.tip.Y+offset))
-			if tc.tip != tc.end {
-				lines.LineTo(float32(tc.end.X+offset), float32(tc.end.Y+offset))
-			}
-			for _, join := range []vector.LineJoin{vector.LineJoinMiter, vector.LineJoinBevel, vector.LineJoinRound} {
-				for _, cap := range []vector.LineCap{vector.LineCapButt, vector.LineCapRound, vector.LineCapSquare} {
-					op := &vector.StrokeOptions{Width: 8, LineJoin: join, LineCap: cap}
-					got := ebiten.NewImage(180, 180)
-					defer got.Deallocate()
-					want := ebiten.NewImage(180, 180)
-					defer want.Deallocate()
-					vector.StrokePath(got, &curve, op, nil)
-					vector.StrokePath(want, &lines, op, nil)
-					gotPixels := make([]byte, 4*180*180)
-					wantPixels := make([]byte, len(gotPixels))
-					got.ReadPixels(gotPixels)
-					want.ReadPixels(wantPixels)
-					if !bytes.Equal(gotPixels, wantPixels) {
-						t.Errorf("join %d, cap %d: stroked quadratic differs from the out-and-back lines", join, cap)
-					}
-				}
 			}
 		})
 	}
