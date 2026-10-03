@@ -179,10 +179,17 @@ func (c *Context) SwapBuffers() error {
 			release()
 			return fmt.Errorf("gbm: drmModePageFlip failed: %d", r)
 		}
-		if _, err := unix.Read(int(c.d.fd), c.eventBuf[:]); err != nil {
-			c.pendingBo = bo
-			c.pendingFB = fb
-			return fmt.Errorf("gbm: waiting for page flip failed: %w", err)
+		for {
+			_, err := unix.Read(int(c.d.fd), c.eventBuf[:])
+			if err == unix.EINTR {
+				continue
+			}
+			if err != nil {
+				c.pendingBo = bo
+				c.pendingFB = fb
+				return fmt.Errorf("gbm: waiting for page flip failed: %w", err)
+			}
+			break
 		}
 	}
 
