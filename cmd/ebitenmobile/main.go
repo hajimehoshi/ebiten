@@ -93,7 +93,7 @@ func xmain() error {
 	args := flag.Args()
 	if len(args) < 1 || args[0] != "bind" {
 		flag.Usage()
-		return fmt.Errorf("ebitenmobile: expected bind command")
+		return usageError("expected bind command")
 	}
 
 	// minAndroidAPI specifies the minimum API version for Android.
@@ -144,7 +144,7 @@ func xmain() error {
 	}
 
 	if buildO == "" {
-		return usageError("ebitenmobile: -o must be specified")
+		return usageError("-o must be specified")
 	}
 
 	dir, err := prepareGomobileCommands()
