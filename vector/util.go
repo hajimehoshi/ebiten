@@ -50,19 +50,20 @@ func useCachedVerticesAndIndicesForUtil(fn func([]ebiten.Vertex, []uint32) (vs [
 	theCachedVerticesForUtil, theCachedIndicesForUtil = fn(theCachedVerticesForUtil[:0], theCachedIndicesForUtil[:0])
 }
 
-func circleVertexCount(r float32) int {
+func circleVertexCount(r float64) int {
 	const maxCircleVertexCount = 8192
 
-	if !(r > 0) || math.IsInf(float64(r), 0) {
+	// A full circle with a larger radius cannot have finite float32 vertices.
+	if !(r > 0) || r > math.MaxFloat32 {
 		return 0
 	}
 
 	// At this count, the error from approximating a circle is comparable to
 	// float32 precision, so additional vertices cannot meaningfully improve it.
-	if float64(r) >= maxCircleVertexCount/math.Pi {
+	if r >= maxCircleVertexCount/math.Pi {
 		return maxCircleVertexCount
 	}
-	return int(math.Ceil(math.Pi * float64(r)))
+	return int(math.Ceil(math.Pi * r))
 }
 
 var (
@@ -94,26 +95,38 @@ func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, 
 
 	// Use a regular DrawImage for batching.
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(math.Hypot(float64(x1-x0), float64(y1-y0)), float64(strokeWidth))
-	op.GeoM.Translate(0, -float64(strokeWidth)/2)
-	op.GeoM.Rotate(math.Atan2(float64(y1-y0), float64(x1-x0)))
-	op.GeoM.Translate(float64(x0), float64(y0))
+	op.GeoM = strokeLineGeoM(x0, y0, x1, y1, strokeWidth)
 	op.ColorScale.ScaleWithColor(clr)
 	dst.DrawImage(whiteSubImage, op)
 }
 
+func strokeLineGeoM(x0, y0, x1, y1, strokeWidth float32) ebiten.GeoM {
+	dx := float64(x1) - float64(x0)
+	dy := float64(y1) - float64(y0)
+	var geoM ebiten.GeoM
+	geoM.Scale(math.Hypot(dx, dy), float64(strokeWidth))
+	geoM.Translate(0, -float64(strokeWidth)/2)
+	geoM.Rotate(math.Atan2(dy, dx))
+	geoM.Translate(float64(x0), float64(y0))
+	return geoM
+}
+
 // FillRect fills a rectangle with the specified position (x, y), size (width, height) and color.
 func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
+	fillRect(dst, float64(x), float64(y), float64(width), float64(height), clr, antialias)
+}
+
+func fillRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
 			path.Reset()
 			thePathPool.Put(path)
 		}()
-		path.MoveTo(x, y)
-		path.LineTo(x, y+height)
-		path.LineTo(x+width, y+height)
-		path.LineTo(x+width, y)
+		path.moveTo(x, y)
+		path.lineTo(x, y+height)
+		path.lineTo(x+width, y+height)
+		path.lineTo(x+width, y)
 		drawOp := &DrawPathOptions{}
 		drawOp.AntiAlias = true
 		drawOp.ColorScale.ScaleWithColor(clr)
@@ -123,8 +136,8 @@ func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, a
 
 	// Use a regular DrawImage for batching.
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(float64(width), float64(height))
-	op.GeoM.Translate(float64(x), float64(y))
+	op.GeoM.Scale(width, height)
+	op.GeoM.Translate(x, y)
 	op.ColorScale.ScaleWithColor(clr)
 	dst.DrawImage(whiteSubImage, op)
 }
@@ -138,19 +151,23 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 
 // StrokeRect strokes a rectangle with the specified position (x, y), size (width, height), stroke width and color.
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
+	strokeRect(dst, float64(x), float64(y), float64(width), float64(height), float64(strokeWidth), clr, antialias)
+}
+
+func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
 			path.Reset()
 			thePathPool.Put(path)
 		}()
-		path.MoveTo(x, y)
-		path.LineTo(x, y+height)
-		path.LineTo(x+width, y+height)
-		path.LineTo(x+width, y)
+		path.moveTo(x, y)
+		path.lineTo(x, y+height)
+		path.lineTo(x+width, y+height)
+		path.lineTo(x+width, y)
 		path.Close()
 		strokeOp := &StrokeOptions{}
-		strokeOp.Width = strokeWidth
+		strokeOp.Width = float32(strokeWidth)
 		strokeOp.MiterLimit = 10
 		drawOp := &DrawPathOptions{}
 		drawOp.AntiAlias = true
@@ -164,7 +181,7 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	}
 
 	if strokeWidth >= width || strokeWidth >= height {
-		FillRect(dst, x-strokeWidth/2, y-strokeWidth/2, width+strokeWidth, height+strokeWidth, clr, false)
+		fillRect(dst, x-strokeWidth/2, y-strokeWidth/2, width+strokeWidth, height+strokeWidth, clr, false)
 		return
 	}
 
@@ -172,32 +189,32 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 	{
 		// Render the top side.
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(float64(width+strokeWidth), float64(strokeWidth))
-		op.GeoM.Translate(float64(x-strokeWidth/2), float64(y-strokeWidth/2))
+		op.GeoM.Scale(width+strokeWidth, strokeWidth)
+		op.GeoM.Translate(x-strokeWidth/2, y-strokeWidth/2)
 		op.ColorScale.ScaleWithColor(clr)
 		dst.DrawImage(whiteSubImage, op)
 	}
 	{
 		// Render the left side.
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(float64(strokeWidth), float64(height-strokeWidth))
-		op.GeoM.Translate(float64(x-strokeWidth/2), float64(y+strokeWidth/2))
+		op.GeoM.Scale(strokeWidth, height-strokeWidth)
+		op.GeoM.Translate(x-strokeWidth/2, y+strokeWidth/2)
 		op.ColorScale.ScaleWithColor(clr)
 		dst.DrawImage(whiteSubImage, op)
 	}
 	{
 		// Render the right side.
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(float64(strokeWidth), float64(height-strokeWidth))
-		op.GeoM.Translate(float64(x+width-strokeWidth/2), float64(y+strokeWidth/2))
+		op.GeoM.Scale(strokeWidth, height-strokeWidth)
+		op.GeoM.Translate(x+width-strokeWidth/2, y+strokeWidth/2)
 		op.ColorScale.ScaleWithColor(clr)
 		dst.DrawImage(whiteSubImage, op)
 	}
 	{
 		// Render the bottom side.
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(float64(width+strokeWidth), float64(strokeWidth))
-		op.GeoM.Translate(float64(x-strokeWidth/2), float64(y+height-strokeWidth/2))
+		op.GeoM.Scale(width+strokeWidth, strokeWidth)
+		op.GeoM.Translate(x-strokeWidth/2, y+height-strokeWidth/2)
 		op.ColorScale.ScaleWithColor(clr)
 		dst.DrawImage(whiteSubImage, op)
 	}
@@ -205,13 +222,17 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 
 // FillCircle fills a circle with the specified center position (cx, cy), the radius (r) and color.
 func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
+	fillCircle(dst, float64(cx), float64(cy), float64(r), clr, antialias)
+}
+
+func fillCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
 			path.Reset()
 			thePathPool.Put(path)
 		}()
-		path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
+		path.addArc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 		drawOp := &DrawPathOptions{}
 		drawOp.AntiAlias = true
 		drawOp.ColorScale.ScaleWithColor(clr)
@@ -234,8 +255,8 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
 			sin, cos := math.Sincos(angle)
-			x := cx + r*float32(cos)
-			y := cy + r*float32(sin)
+			x := float32(cx + r*cos)
+			y := float32(cy + r*sin)
 			vs = append(vs, ebiten.Vertex{
 				DstX:   x,
 				DstY:   y,
@@ -267,16 +288,20 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 
 // StrokeCircle strokes a circle with the specified center position (cx, cy), the radius (r), width and color.
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
+	strokeCircle(dst, float64(cx), float64(cy), float64(r), float64(strokeWidth), clr, antialias)
+}
+
+func strokeCircle(dst *ebiten.Image, cx, cy, r, strokeWidth float64, clr color.Color, antialias bool) {
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
 			path.Reset()
 			thePathPool.Put(path)
 		}()
-		path.Arc(cx, cy, r, 0, 2*math.Pi, Clockwise)
+		path.addArc(cx, cy, r, 0, 2*math.Pi, Clockwise)
 		path.Close()
 		strokeOp := &StrokeOptions{}
-		strokeOp.Width = strokeWidth
+		strokeOp.Width = float32(strokeWidth)
 		strokeOp.LineJoin = LineJoinRound
 		drawOp := &DrawPathOptions{}
 		drawOp.AntiAlias = true
@@ -290,11 +315,13 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 	}
 
 	if strokeWidth >= 2*r {
-		FillCircle(dst, cx, cy, r+strokeWidth/2, clr, false)
+		fillCircle(dst, cx, cy, r+strokeWidth/2, clr, false)
 		return
 	}
 
-	count := circleVertexCount(r + strokeWidth/2)
+	outerRadius := r + strokeWidth/2
+	innerRadius := r - strokeWidth/2
+	count := circleVertexCount(outerRadius)
 	if count == 0 {
 		return
 	}
@@ -309,8 +336,8 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 		for i := range count {
 			angle := float64(i) * (2 * math.Pi / float64(count))
 			sin, cos := math.Sincos(angle)
-			x0 := cx + (r+strokeWidth/2)*float32(cos)
-			y0 := cy + (r+strokeWidth/2)*float32(sin)
+			x0 := float32(cx + outerRadius*cos)
+			y0 := float32(cy + outerRadius*sin)
 			vs = append(vs, ebiten.Vertex{
 				DstX:   x0,
 				DstY:   y0,
@@ -321,8 +348,8 @@ func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr
 				ColorB: cbf,
 				ColorA: caf,
 			})
-			x1 := cx + (r-strokeWidth/2)*float32(cos)
-			y1 := cy + (r-strokeWidth/2)*float32(sin)
+			x1 := float32(cx + innerRadius*cos)
+			y1 := float32(cy + innerRadius*sin)
 			vs = append(vs, ebiten.Vertex{
 				DstX:   x1,
 				DstY:   y1,

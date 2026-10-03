@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"image"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Point struct {
@@ -125,7 +127,7 @@ func CallbackTokenCount() int {
 	return len(theCallbackTokens)
 }
 
-func CircleVertexCount(radius float32) int {
+func CircleVertexCount(radius float64) int {
 	return circleVertexCount(radius)
 }
 
@@ -136,4 +138,15 @@ func AtlasImageCount(dstBounds image.Rectangle, paths []*Path, bounds []image.Re
 		img.Deallocate()
 	}
 	return len(a.atlasImages)
+}
+
+func StrokeLineGeoM(x0, y0, x1, y1, strokeWidth float32) ebiten.GeoM {
+	return strokeLineGeoM(x0, y0, x1, y1, strokeWidth)
+}
+
+func UtilDrawingVertices(draw func()) []ebiten.Vertex {
+	draw()
+	theCacheForUtilM.Lock()
+	defer theCacheForUtilM.Unlock()
+	return append([]ebiten.Vertex(nil), theCachedVerticesForUtil...)
 }
