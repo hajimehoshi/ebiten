@@ -514,9 +514,9 @@ type _XIMCallback struct {
 type _XIMText struct {
 	_               structs.HostLayout
 	Length          uint16
-	Feedback        uintptr // *XIMFeedback
-	EncodingIsWChar int32   // Bool
-	String          uintptr // union { char *multi_byte; wchar_t *wide_char; }
+	Feedback        *_XIMFeedback
+	EncodingIsWChar int32          // Bool
+	String          unsafe.Pointer // union { char *multi_byte; wchar_t *wide_char; }
 }
 
 // _XIMPreeditDrawCallbackStruct is the XIMPreeditDrawCallbackStruct struct.

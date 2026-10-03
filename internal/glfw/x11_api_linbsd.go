@@ -181,7 +181,7 @@ var (
 	// string in the LC_CTYPE locale, which is the encoding the input method
 	// reports its composition in. It is nil when libc does not export it,
 	// which callers must handle.
-	mbstowcs func(dest *int32, src uintptr, n uintptr) uintptr
+	mbstowcs func(dest *int32, src *byte, n uintptr) uintptr
 )
 
 // XrmValue is the Xrm resource value struct.

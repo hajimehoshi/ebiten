@@ -17,7 +17,6 @@
 package glfw_test
 
 import (
-	"runtime"
 	"slices"
 	"testing"
 	"unsafe"
@@ -163,14 +162,12 @@ func TestDecodeXIMTextWideChar(t *testing.T) {
 	fb := []glfw.XIMFeedback{glfw.XIMReverse, 0, glfw.XIMHighlight}
 	text := glfw.XIMText{
 		Length:          uint16(len(wcs)),
-		Feedback:        uintptr(unsafe.Pointer(&fb[0])),
+		Feedback:        &fb[0],
 		EncodingIsWChar: 1,
-		String:          uintptr(unsafe.Pointer(&wcs[0])),
+		String:          unsafe.Pointer(&wcs[0]),
 	}
 
 	rs, gotFb := glfw.DecodeXIMText(&text)
-	runtime.KeepAlive(wcs)
-	runtime.KeepAlive(fb)
 
 	if got, want := string(rs), "あbc"; got != want {
 		t.Errorf("text: got %q, want %q", got, want)
@@ -187,14 +184,12 @@ func TestDecodeXIMTextMultiByte(t *testing.T) {
 	fb := []glfw.XIMFeedback{glfw.XIMReverse, 0, glfw.XIMHighlight}
 	text := glfw.XIMText{
 		Length:          3,
-		Feedback:        uintptr(unsafe.Pointer(&fb[0])),
+		Feedback:        &fb[0],
 		EncodingIsWChar: 0,
-		String:          uintptr(unsafe.Pointer(&buf[0])),
+		String:          unsafe.Pointer(&buf[0]),
 	}
 
 	rs, gotFb := glfw.DecodeXIMText(&text)
-	runtime.KeepAlive(buf)
-	runtime.KeepAlive(fb)
 
 	if got, want := string(rs), "あbc"; got != want {
 		t.Errorf("text: got %q, want %q", got, want)
@@ -218,11 +213,10 @@ func TestDecodeXIMFeedbackWithoutString(t *testing.T) {
 	fb := []glfw.XIMFeedback{glfw.XIMReverse, glfw.XIMHighlight}
 	text := glfw.XIMText{
 		Length:   uint16(len(fb)),
-		Feedback: uintptr(unsafe.Pointer(&fb[0])),
+		Feedback: &fb[0],
 	}
 
 	got := glfw.DecodeXIMFeedback(&text)
-	runtime.KeepAlive(fb)
 
 	if !slices.Equal(got, fb) {
 		t.Errorf("got %v, want %v", got, fb)
@@ -360,11 +354,10 @@ func TestDecodeXIMTextWithoutFeedback(t *testing.T) {
 	text := glfw.XIMText{
 		Length:          uint16(len(wcs)),
 		EncodingIsWChar: 1,
-		String:          uintptr(unsafe.Pointer(&wcs[0])),
+		String:          unsafe.Pointer(&wcs[0]),
 	}
 
 	rs, fb := glfw.DecodeXIMText(&text)
-	runtime.KeepAlive(wcs)
 
 	if got, want := string(rs), "ab"; got != want {
 		t.Errorf("text: got %q, want %q", got, want)
@@ -464,8 +457,7 @@ func TestInheritedFeedback(t *testing.T) {
 // under the fallback taken when libc cannot decode it, the result is the same.
 func TestDecodeMultiByte(t *testing.T) {
 	buf := append([]byte("あbc"), 0)
-	got := glfw.DecodeMultiByte(uintptr(unsafe.Pointer(&buf[0])), 3)
-	runtime.KeepAlive(buf)
+	got := glfw.DecodeMultiByte(&buf[0], 3)
 
 	if want := "あbc"; string(got) != want {
 		t.Errorf("got %q, want %q", string(got), want)
