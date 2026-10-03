@@ -12,7 +12,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.25.x', '1.26.x', '1.27.x']
+        go: ['1.26.x', '1.27.x']
     name: Test with Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
@@ -163,7 +163,7 @@ jobs:
   gbm:
     strategy:
       matrix:
-        go: ['1.25.x', '1.26.x', '1.27.x']
+        go: ['1.26.x', '1.27.x']
     name: Test GBM with Go ${{ matrix.go }}
     runs-on: ubuntu-latest
     defaults:
@@ -199,7 +199,7 @@ jobs:
   cross-build:
     strategy:
       matrix:
-        go: ['1.25.x', '1.26.x', '1.27.x']
+        go: ['1.26.x', '1.27.x']
     name: Cross build with Go ${{ matrix.go }}
     runs-on: ubuntu-latest
     defaults:
@@ -235,7 +235,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ['1.25.x', '1.26.x', '1.27.x']
+        go: ['1.26.x', '1.27.x']
     name: Test Cgo with Go ${{ matrix.go }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     defaults:
@@ -315,7 +315,7 @@ jobs:
   wasm:
     strategy:
       matrix:
-        go: ['1.25.x', '1.26.x', '1.27.x']
+        go: ['1.26.x', '1.27.x']
     name: Test WebAssembly with Go ${{ matrix.go }}
     runs-on: ubuntu-latest
     defaults:
