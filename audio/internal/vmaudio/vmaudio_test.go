@@ -475,3 +475,61 @@ func TestFailingSource(t *testing.T) {
 		t.Errorf("controls = %+v; want exactly one control, not playing", controls)
 	}
 }
+
+type blockedSource struct {
+	started chan struct{}
+	release chan struct{}
+}
+
+func (s *blockedSource) Read([]byte) (int, error) {
+	close(s.started)
+	<-s.release
+	return 0, io.EOF
+}
+
+func TestBlockedReadDoesNotBlockContext(t *testing.T) {
+	c := newContext(t, 48000)
+	src := &blockedSource{started: make(chan struct{}), release: make(chan struct{})}
+	p := c.NewPlayer(src)
+	defer func() {
+		if err := p.Close(); err != nil {
+			t.Fatalf("Close: %v", err)
+		}
+	}()
+	id := onlyControlID(t, c)
+	p.Play()
+
+	readDone := make(chan struct{})
+	go func() {
+		c.ReadForTesting(id, 8)
+		close(readDone)
+	}()
+	<-src.started
+	controlDone := make(chan struct{})
+	go func() {
+		c.TakeControlChangesForTesting(nil)
+		close(controlDone)
+	}()
+	defer func() {
+		close(src.release)
+		<-readDone
+		<-controlDone
+	}()
+
+	for range 10 {
+		time.Sleep(time.Millisecond)
+		done := make(chan error, 1)
+		go func() {
+			done <- c.Suspend()
+		}()
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("Suspend: %v", err)
+			}
+		case <-time.After(5 * time.Second):
+			t.Error("Suspend blocked behind a player's source read")
+			return
+		}
+	}
+}
