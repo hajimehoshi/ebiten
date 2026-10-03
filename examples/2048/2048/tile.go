@@ -327,14 +327,16 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	y := j*tileSize + (j+1)*tileMargin
 	nx := ni*tileSize + (ni+1)*tileMargin
 	ny := nj*tileSize + (nj+1)*tileMargin
+	numberScale := 1.0
 	switch {
 	case 0 < t.movingCount:
 		rate := 1 - float64(t.movingCount)/maxMovingCount
 		x = mean(x, nx, rate)
 		y = mean(y, ny, rate)
 	case 0 < t.startPoppingCount:
-		rate := 1 - float64(t.startPoppingCount)/float64(maxPoppingCount)
+		rate := 1 - float64(t.startPoppingCount-1)/float64(maxPoppingCount-1)
 		scale := meanF(0.0, 1.0, rate)
+		numberScale = scale
 		op.GeoM.Translate(float64(-tileSize/2), float64(-tileSize/2))
 		op.GeoM.Scale(scale, scale)
 		op.GeoM.Translate(float64(tileSize/2), float64(tileSize/2))
@@ -349,6 +351,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 			rate = float64(t.poppingCount) / float64(maxPoppingCount*2/3)
 		}
 		scale := meanF(1.0, maxScale, rate)
+		numberScale = scale
 		op.GeoM.Translate(float64(-tileSize/2), float64(-tileSize/2))
 		op.GeoM.Scale(scale, scale)
 		op.GeoM.Translate(float64(tileSize/2), float64(tileSize/2))
@@ -367,6 +370,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 	}
 
 	textOp := &text.DrawOptions{}
+	textOp.GeoM.Scale(numberScale, numberScale)
 	textOp.GeoM.Translate(float64(x)+float64(tileSize)/2, float64(y)+float64(tileSize)/2)
 	textOp.ColorScale.ScaleWithColor(tileColor(v))
 	textOp.PrimaryAlign = text.AlignCenter

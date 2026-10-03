@@ -111,6 +111,10 @@ func loadFaceSource(path string) (*text.GoTextFaceSource, error) {
 		if err != nil {
 			return nil, err
 		}
+		if res.StatusCode < 200 || 300 <= res.StatusCode {
+			_ = res.Body.Close()
+			return nil, fmt.Errorf("fetching %s failed: %s", fontURL, res.Status)
+		}
 		in = res.Body
 	}
 	fontData, err := io.ReadAll(in)

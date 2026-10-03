@@ -110,6 +110,7 @@ func (g *Game) Update() error {
 			x, y := ebiten.CursorPosition()
 			dx, dy := float64(g.mousePanX-x)*(pan/100), float64(g.mousePanY-y)*(pan/100)
 			g.camX, g.camY = g.camX-dx, g.camY+dy
+			g.mousePanX, g.mousePanY = x, y
 		}
 	} else if g.mousePanX != math.MinInt32 || g.mousePanY != math.MinInt32 {
 		g.mousePanX, g.mousePanY = math.MinInt32, math.MinInt32
