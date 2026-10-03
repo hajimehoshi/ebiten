@@ -366,9 +366,11 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				continue
 			}
 			pp := theAtlas.pathRenderingPositionAt(i)
-			dstOffsetX := float32(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
-			dstOffsetY := float32(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
+			dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
+			dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
 
+			offsetX := float64(oac.offsetX) + dstOffsetX
+			offsetY := float64(oac.offsetY) + dstOffsetY
 			for i := range path.subPaths {
 				subPath := &path.subPaths[i]
 				if !subPath.isValid() {
@@ -382,8 +384,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				originIdx := uint32(len(vs))
 				cur := subPath.start
 				vs = append(vs, ebiten.Vertex{
-					DstX:   cur.x + oac.offsetX + dstOffsetX,
-					DstY:   cur.y + oac.offsetY + dstOffsetY,
+					DstX:   float32(cur.x + offsetX),
+					DstY:   float32(cur.y + offsetY),
 					ColorR: oac.colorR,
 					ColorG: oac.colorG,
 					ColorB: oac.colorB,
@@ -396,16 +398,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 						idx := uint32(len(vs))
 						vs = append(vs,
 							ebiten.Vertex{
-								DstX:   cur.x + oac.offsetX + dstOffsetX,
-								DstY:   cur.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(cur.x + offsetX),
+								DstY:   float32(cur.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
 								ColorA: oac.colorA,
 							},
 							ebiten.Vertex{
-								DstX:   op.p1.x + oac.offsetX + dstOffsetX,
-								DstY:   op.p1.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(op.p1.x + offsetX),
+								DstY:   float32(op.p1.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
@@ -417,16 +419,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 						idx := uint32(len(vs))
 						vs = append(vs,
 							ebiten.Vertex{
-								DstX:   cur.x + oac.offsetX + dstOffsetX,
-								DstY:   cur.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(cur.x + offsetX),
+								DstY:   float32(cur.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
 								ColorA: oac.colorA,
 							},
 							ebiten.Vertex{
-								DstX:   op.p2.x + oac.offsetX + dstOffsetX,
-								DstY:   op.p2.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(op.p2.x + offsetX),
+								DstY:   float32(op.p2.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
@@ -441,16 +443,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 					idx := uint32(len(vs))
 					vs = append(vs,
 						ebiten.Vertex{
-							DstX:   cur.x + oac.offsetX + dstOffsetX,
-							DstY:   cur.y + oac.offsetY + dstOffsetY,
+							DstX:   float32(cur.x + offsetX),
+							DstY:   float32(cur.y + offsetY),
 							ColorR: oac.colorR,
 							ColorG: oac.colorG,
 							ColorB: oac.colorB,
 							ColorA: oac.colorA,
 						},
 						ebiten.Vertex{
-							DstX:   subPath.start.x + oac.offsetX + dstOffsetX,
-							DstY:   subPath.start.y + oac.offsetY + dstOffsetY,
+							DstX:   float32(subPath.start.x + offsetX),
+							DstY:   float32(subPath.start.y + offsetY),
 							ColorR: oac.colorR,
 							ColorG: oac.colorG,
 							ColorB: oac.colorB,
@@ -484,8 +486,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				continue
 			}
 			pp := theAtlas.pathRenderingPositionAt(i)
-			dstOffsetX := float32(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
-			dstOffsetY := float32(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
+			dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
+			dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
+			offsetX := float64(oac.offsetX) + dstOffsetX
+			offsetY := float64(oac.offsetY) + dstOffsetY
 			for i := range path.subPaths {
 				subPath := &path.subPaths[i]
 				if !subPath.isValid() {
@@ -501,8 +505,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 						idx := uint32(len(vs))
 						vs = append(vs,
 							ebiten.Vertex{
-								DstX:    cur.x + oac.offsetX + dstOffsetX,
-								DstY:    cur.y + oac.offsetY + dstOffsetY,
+								DstX:    float32(cur.x + offsetX),
+								DstY:    float32(cur.y + offsetY),
 								ColorR:  oac.colorR,
 								ColorG:  oac.colorG,
 								ColorB:  oac.colorB,
@@ -511,8 +515,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 								Custom1: 0, // v for Loop-Blinn algorithm
 							},
 							ebiten.Vertex{
-								DstX:    op.p1.x + oac.offsetX + dstOffsetX,
-								DstY:    op.p1.y + oac.offsetY + dstOffsetY,
+								DstX:    float32(op.p1.x + offsetX),
+								DstY:    float32(op.p1.y + offsetY),
 								ColorR:  oac.colorR,
 								ColorG:  oac.colorG,
 								ColorB:  oac.colorB,
@@ -521,8 +525,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 								Custom1: 0,
 							},
 							ebiten.Vertex{
-								DstX:    op.p2.x + oac.offsetX + dstOffsetX,
-								DstY:    op.p2.y + oac.offsetY + dstOffsetY,
+								DstX:    float32(op.p2.x + offsetX),
+								DstY:    float32(op.p2.y + offsetY),
 								ColorR:  oac.colorR,
 								ColorG:  oac.colorG,
 								ColorB:  oac.colorB,

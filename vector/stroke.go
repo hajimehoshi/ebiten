@@ -88,6 +88,8 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		return
 	}
 
+	halfWidth := float64(options.Width) / 2
+
 	// p might be the same as src. Use srcN to avoid modifying the overlapped region.
 	srcN := len(src.subPaths)
 
@@ -108,8 +110,8 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 			continue
 		}
 
-		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&normalized, options.Width/2)
-		p.MoveTo(sp4.x, sp4.y)
+		_, sp1, sp2, sp3, sp4 := strokeStartControlPositions(&normalized, halfWidth)
+		p.moveTo(sp4.x, sp4.y)
 		if origN < 0 {
 			// The last sub-path is the first stroke output whether MoveTo added it or reused an empty one.
 			// normalized has an op here, so the outline gets ops. Even if the outline stayed empty, the next
@@ -118,35 +120,35 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 		}
 
 		appendParalleledPathFromSubPath(p, &normalized, &options.StrokeOptions)
-		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&normalized, options.Width/2)
+		_, ep1, ep2, ep3, ep4 := strokeEndControlPositions(&normalized, halfWidth)
 		if normalized.closed {
 			p.Close()
-			p.MoveTo(ep4.x, ep4.y)
+			p.moveTo(ep4.x, ep4.y)
 		} else {
 			switch options.LineCap {
 			case LineCapButt:
-				p.LineTo(ep4.x, ep4.y)
+				p.lineTo(ep4.x, ep4.y)
 			case LineCapRound:
-				p.ArcTo(ep1.x, ep1.y, ep2.x, ep2.y, options.Width/2)
-				p.ArcTo(ep3.x, ep3.y, ep4.x, ep4.y, options.Width/2)
+				p.arcTo(ep1.x, ep1.y, ep2.x, ep2.y, halfWidth)
+				p.arcTo(ep3.x, ep3.y, ep4.x, ep4.y, halfWidth)
 			case LineCapSquare:
-				p.LineTo(ep1.x, ep1.y)
-				p.LineTo(ep3.x, ep3.y)
-				p.LineTo(ep4.x, ep4.y)
+				p.lineTo(ep1.x, ep1.y)
+				p.lineTo(ep3.x, ep3.y)
+				p.lineTo(ep4.x, ep4.y)
 			}
 		}
 		appendParalleledPathFromSubPathReversed(p, &normalized, &options.StrokeOptions)
 		if !normalized.closed {
 			switch options.LineCap {
 			case LineCapButt:
-				p.LineTo(sp4.x, sp4.y)
+				p.lineTo(sp4.x, sp4.y)
 			case LineCapRound:
-				p.ArcTo(sp1.x, sp1.y, sp2.x, sp2.y, options.Width/2)
-				p.ArcTo(sp3.x, sp3.y, sp4.x, sp4.y, options.Width/2)
+				p.arcTo(sp1.x, sp1.y, sp2.x, sp2.y, halfWidth)
+				p.arcTo(sp3.x, sp3.y, sp4.x, sp4.y, halfWidth)
 			case LineCapSquare:
-				p.LineTo(sp1.x, sp1.y)
-				p.LineTo(sp3.x, sp3.y)
-				p.LineTo(sp4.x, sp4.y)
+				p.lineTo(sp1.x, sp1.y)
+				p.lineTo(sp3.x, sp3.y)
+				p.lineTo(sp4.x, sp4.y)
 			}
 		}
 		p.Close()
@@ -155,18 +157,30 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 
 	if origN >= 0 && options.GeoM != (ebiten.GeoM{}) {
 		for i, subPath := range p.subPaths[origN:] {
-			x, y := options.GeoM.Apply(float64(subPath.start.x), float64(subPath.start.y))
-			p.subPaths[origN+i].start = point{x: float32(x), y: float32(y)}
+			x, y := options.GeoM.Apply(subPath.start.x, subPath.start.y)
+			p.subPaths[origN+i].start = point{
+				x: x,
+				y: y,
+			}
 			for j, op := range subPath.ops {
 				switch op.typ {
 				case opTypeLineTo:
-					x1, y1 := options.GeoM.Apply(float64(op.p1.x), float64(op.p1.y))
-					p.subPaths[origN+i].ops[j].p1 = point{x: float32(x1), y: float32(y1)}
+					x1, y1 := options.GeoM.Apply(op.p1.x, op.p1.y)
+					p.subPaths[origN+i].ops[j].p1 = point{
+						x: x1,
+						y: y1,
+					}
 				case opTypeQuadTo:
-					x1, y1 := options.GeoM.Apply(float64(op.p1.x), float64(op.p1.y))
-					x2, y2 := options.GeoM.Apply(float64(op.p2.x), float64(op.p2.y))
-					p.subPaths[origN+i].ops[j].p1 = point{x: float32(x1), y: float32(y1)}
-					p.subPaths[origN+i].ops[j].p2 = point{x: float32(x2), y: float32(y2)}
+					x1, y1 := options.GeoM.Apply(op.p1.x, op.p1.y)
+					x2, y2 := options.GeoM.Apply(op.p2.x, op.p2.y)
+					p.subPaths[origN+i].ops[j].p1 = point{
+						x: x1,
+						y: y1,
+					}
+					p.subPaths[origN+i].ops[j].p2 = point{
+						x: x2,
+						y: y2,
+					}
 				}
 			}
 			p.subPaths[origN+i].updateValidity()
@@ -174,20 +188,20 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 	}
 }
 
-func strokeStartControlPositions(subPath *subPath, dist float32) (point, point, point, point, point) {
+func strokeStartControlPositions(subPath *subPath, dist float64) (point, point, point, point, point) {
 	p := subPath.startAtOp(0)
 	dir := subPath.startDir(0).inv().norm().mul(dist)
 	dirPerp := dir.perp()
 	// TODO: These values are a little tricky. Refactor this.
-	return p.add(dirPerp), p.add(dir).add(dirPerp), p.add(dir), p.add(dir).add(dirPerp.inv()), p.add(dirPerp.inv())
+	return p.add(dirPerp), p.add(dir.add(dirPerp)), p.add(dir), p.add(dir.add(dirPerp.inv())), p.add(dirPerp.inv())
 }
 
-func strokeEndControlPositions(subPath *subPath, dist float32) (point, point, point, point, point) {
+func strokeEndControlPositions(subPath *subPath, dist float64) (point, point, point, point, point) {
 	p := subPath.endAtOp(len(subPath.ops) - 1)
 	dir := subPath.endDir(len(subPath.ops) - 1).norm().mul(dist)
 	dirPerp := dir.perp()
 	// TODO: These values are a little tricky. Refactor this.
-	return p.add(dirPerp), p.add(dir).add(dirPerp), p.add(dir), p.add(dir).add(dirPerp.inv()), p.add(dirPerp.inv())
+	return p.add(dirPerp), p.add(dir.add(dirPerp)), p.add(dir), p.add(dir.add(dirPerp.inv())), p.add(dirPerp.inv())
 }
 
 func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options *StrokeOptions) {
@@ -201,13 +215,14 @@ func appendParalleledPathFromSubPath(strokePath *Path, subPath *subPath, options
 
 	cur := subPath.start
 
+	dist := float64(options.Width) / 2
 	for i, op := range subPath.ops {
 		switch op.typ {
 		case opTypeLineTo:
-			appendParalleledLine(strokePath, cur, op.p1, options.Width/2)
+			appendParalleledLine(strokePath, cur, op.p1, dist)
 			cur = op.p1
 		case opTypeQuadTo:
-			appendParalleledQuad(strokePath, cur, op.p1, op.p2, options.Width/2)
+			appendParalleledQuad(strokePath, cur, op.p1, op.p2, dist)
 			cur = op.p2
 		}
 		// Add a joint between this operation and the next operation.
@@ -225,13 +240,14 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 	// A line operation must have a different point from the start point.
 	// A quadratic curve operation must not be a single point nor a cusp, which are dropped or converted into lines by normalizeSubPath.
 
+	dist := float64(options.Width) / 2
 	for i, op := range slices.Backward(subPath.ops) {
 		nextP := subPath.startAtOp(i)
 		switch op.typ {
 		case opTypeLineTo:
-			appendParalleledLine(strokePath, op.p1, nextP, options.Width/2)
+			appendParalleledLine(strokePath, op.p1, nextP, dist)
 		case opTypeQuadTo:
-			appendParalleledQuad(strokePath, op.p2, op.p1, nextP, options.Width/2)
+			appendParalleledQuad(strokePath, op.p2, op.p1, nextP, dist)
 		}
 		// Add a joint between this operation and the previous operation.
 		// This also renders the 180-degree turn at the tip of a cusp, which normalizeSubPath converted into two lines.
@@ -239,19 +255,22 @@ func appendParalleledPathFromSubPathReversed(strokePath *Path, subPath *subPath,
 	}
 }
 
-func appendParalleledLine(path *Path, p0, p1 point, dist float32) {
+func appendParalleledLine(path *Path, p0, p1 point, dist float64) {
 	if p0 == p1 {
 		panic("not reached")
 	}
 
-	dir := vec2{x: p1.x - p0.x, y: p1.y - p0.y}
+	dir := vec2{
+		x: p1.x - p0.x,
+		y: p1.y - p0.y,
+	}
 	v := dir.perp().norm().mul(dist)
 	pp1 := p1.add(v)
-	path.LineTo(pp1.x, pp1.y)
+	path.lineTo(pp1.x, pp1.y)
 }
 
 // appendParalleledLineForQuadIfNeeded appends a paralleled line for a quadratic curve if the quadratic curve is just a line.
-func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist float32) bool {
+func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist float64) bool {
 	if p0 == p1 && p0 == p2 {
 		panic("not reached")
 	}
@@ -270,14 +289,14 @@ func appendParalleledLineForQuadIfNeeded(path *Path, p0, p1, p2 point, dist floa
 	return false
 }
 
-func appendParalleledQuad(path *Path, p0, p1, p2 point, dist float32) {
+func appendParalleledQuad(path *Path, p0, p1, p2 point, dist float64) {
 	if appendParalleledLineForQuadIfNeeded(path, p0, p1, p2, dist) {
 		return
 	}
 	doAppendParalleledQuad(path, p0, p1, p2, dist, 0)
 }
 
-func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float32, level int) {
+func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float64, level int) {
 	if p0 == p1 && p0 == p2 {
 		return
 	}
@@ -293,17 +312,26 @@ func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float32, level in
 	// B''(t) = 2*(p0 - 2*p1 + p2)
 
 	// t = 0
-	dir0 := vec2{x: p1.x - p0.x, y: p1.y - p0.y}
+	dir0 := vec2{
+		x: p1.x - p0.x,
+		y: p1.y - p0.y,
+	}
 	v0 := dir0.perp().norm().mul(dist)
 	pp0 := p0.add(v0)
 
 	// t = 1
-	dir2 := vec2{x: p2.x - p1.x, y: p2.y - p1.y}
+	dir2 := vec2{
+		x: p2.x - p1.x,
+		y: p2.y - p1.y,
+	}
 	v2 := dir2.perp().norm().mul(dist)
 	pp2 := p2.add(v2)
 
 	// t = 0.5
-	dir1 := vec2{x: p2.x - p0.x, y: p2.y - p0.y}
+	dir1 := vec2{
+		x: p2.x - p0.x,
+		y: p2.y - p0.y,
+	}
 	v1 := dir1.perp().norm().mul(dist)
 	mid := point{
 		x: 0.25*p0.x + 0.5*p1.x + 0.25*p2.x,
@@ -316,13 +344,13 @@ func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float32, level in
 	}
 
 	if level > 5 {
-		path.QuadTo(pp1.x, pp1.y, pp2.x, pp2.y)
+		path.quadTo(pp1.x, pp1.y, pp2.x, pp2.y)
 		return
 	}
 
-	// If any of the points is not a regular float32, do not call this function recursively.
-	if !isRegularF32(pp0.x) || !isRegularF32(pp0.y) || !isRegularF32(pp1.x) || !isRegularF32(pp1.y) || !isRegularF32(pp2.x) || !isRegularF32(pp2.y) {
-		path.QuadTo(pp1.x, pp1.y, pp2.x, pp2.y)
+	// If any of the points cannot be represented by finite rendering vertices, do not call this function recursively.
+	if !isRegularPoint(pp0) || !isRegularPoint(pp1) || !isRegularPoint(pp2) {
+		path.quadTo(pp1.x, pp1.y, pp2.x, pp2.y)
 		return
 	}
 
@@ -330,21 +358,21 @@ func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float32, level in
 	maxAllowance := dist * 65 / 64
 
 	var needSplit bool
-	for _, t := range []float32{0.25, 0.75} {
+	for _, t := range []float64{0.25, 0.75} {
 		gotP := point{
 			x: (1-t)*(1-t)*pp0.x + 2*(1-t)*t*pp1.x + t*t*pp2.x,
 			y: (1-t)*(1-t)*pp0.y + 2*(1-t)*t*pp1.y + t*t*pp2.y,
 		}
 
 		dir := vec2{
-			x: (1-t)*(p1.x-p0.x) + t*(p2.x-p1.x),
-			y: (1-t)*(p1.y-p0.y) + t*(p2.y-p1.y),
+			x: (1-t)*dir0.x + t*dir2.x,
+			y: (1-t)*dir0.y + t*dir2.y,
 		}
 		v := dir.perp().norm().mul(dist)
 		p := point{
-			x: (1-t)*(1-t)*p0.x + 2*(1-t)*t*p1.x + t*t*p2.x + v.x,
-			y: (1-t)*(1-t)*p0.y + 2*(1-t)*t*p1.y + t*t*p2.y + v.y,
-		}
+			x: (1-t)*(1-t)*p0.x + 2*(1-t)*t*p1.x + t*t*p2.x,
+			y: (1-t)*(1-t)*p0.y + 2*(1-t)*t*p1.y + t*t*p2.y,
+		}.add(v)
 		expectedP := p.add(v)
 
 		if !arePointsInRange(gotP, expectedP, minAllowance, maxAllowance) {
@@ -354,7 +382,7 @@ func doAppendParalleledQuad(path *Path, p0, p1, p2 point, dist float32, level in
 	}
 
 	if !needSplit {
-		path.QuadTo(pp1.x, pp1.y, pp2.x, pp2.y)
+		path.quadTo(pp1.x, pp1.y, pp2.x, pp2.y)
 		return
 	}
 
@@ -406,49 +434,49 @@ func addJoint(strokePath *Path, subPath *subPath, opIndex int, reverse bool, opt
 		return
 	}
 
-	v1 := dir1.perp().mul(options.Width / 2)
+	dist := float64(options.Width) / 2
+	v1 := dir1.perp().mul(dist)
 	p1 := p.add(v1)
 
 	// If the joint is an internal angle (< 180 degrees), the joint is not rendered. Just connect the two segments.
 	// A cross product can be calculated by dir0.x*dir1.y - dir0.y*dir1.x,
-	// but this can cause a floating-point precision issue due to FMSUBS. Avoid this subtraction.
+	// but a fused multiply-subtract can produce a nonzero result from equal products.
 	if dir0.x*dir1.y > dir0.y*dir1.x {
-		strokePath.LineTo(p1.x, p1.y)
+		strokePath.lineTo(p1.x, p1.y)
 		return
 	}
 
-	v0 := dir0.perp().mul(options.Width / 2)
-	p0 := p.add(v0)
+	v0 := dir0.perp().mul(dist)
 
 	// Add a joint.
 	switch options.LineJoin {
 	case LineJoinMiter:
-		dot := min(max(float64(dir0.x*(-dir1.x)+dir0.y*(-dir1.y)), -1.0), 1.0)
+		dot := min(max(dir0.x*(-dir1.x)+dir0.y*(-dir1.y), -1.0), 1.0)
 		theta := math.Acos(dot)
-		exceed := float32(math.Abs(1/math.Sin(float64(theta/2)))) > options.MiterLimit
+		exceed := float32(math.Abs(1/math.Sin(theta/2))) > options.MiterLimit
 		if !exceed {
-			cp := crossingPointForTwoLines(p0, p0.add(dir0), p1, p1.add(dir1))
-			if isRegularF32(cp.x) && isRegularF32(cp.y) {
-				strokePath.LineTo(cp.x, cp.y)
+			// Intersect offsets around the joint, keeping the directions separate from the coordinates.
+			cp := p.add(crossingPointForTwoLines(v0, dir0, v1, dir1))
+			if isRegularPoint(cp) {
+				strokePath.lineTo(cp.x, cp.y)
 			}
 		}
-		strokePath.LineTo(p1.x, p1.y)
+		strokePath.lineTo(p1.x, p1.y)
 	case LineJoinBevel:
-		strokePath.LineTo(p1.x, p1.y)
+		strokePath.lineTo(p1.x, p1.y)
 	case LineJoinRound:
-		// Sweep an arc around p from p0 to p1 on the outer side of the turn.
-		// Derive the sweep angle from the directions, as the atan2 of p0 and p1
-		// can straddle the ±π branch cut at a nearly straight joint.
+		// Sweep an arc around p on the outer side of the turn.
+		// Derive the sweep angle from the directions to handle the branch cut at a nearly straight joint.
 		// math.Abs clears a negative zero, so a cusp sweeps π rather than -π.
-		// The explicit conversions avoid FMSUBS.
-		a0 := float32(math.Atan2(float64(v0.y), float64(v0.x)))
-		cross := math.Abs(float64(float32(dir0.x*dir1.y) - float32(dir0.y*dir1.x)))
-		dot := float64(dir0.x*dir1.x + dir0.y*dir1.y)
+		// The explicit conversions avoid a fused multiply-subtract.
+		a0 := float32(math.Atan2(v0.y, v0.x))
+		cross := math.Abs(float64(dir0.x*dir1.y) - float64(dir0.y*dir1.x))
+		dot := dir0.x*dir1.x + dir0.y*dir1.y
 		a1 := a0 - float32(math.Atan2(cross, dot))
-		if isRegularF32(a0) && isRegularF32(a1) {
-			strokePath.Arc(p.x, p.y, options.Width/2, a0, a1, CounterClockwise)
+		if isRegular(float64(a0)) && isRegular(float64(a1)) {
+			strokePath.addArc(p.x, p.y, dist, a0, a1, CounterClockwise)
 		} else {
-			strokePath.LineTo(p1.x, p1.y)
+			strokePath.lineTo(p1.x, p1.y)
 		}
 	}
 }
