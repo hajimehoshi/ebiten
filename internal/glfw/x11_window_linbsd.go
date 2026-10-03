@@ -178,8 +178,7 @@ func getWindowState(window *Window) int {
 
 // isSelectionEvent reports whether it is a selection event for the helper
 // window.
-func isSelectionEvent(display uintptr, eventPtr uintptr, pointer uintptr) uintptr {
-	event := (*_XEvent)(unsafe.Pointer(eventPtr))
+func isSelectionEvent(display uintptr, event *_XEvent, pointer uintptr) uintptr {
 	if event.xany().Window != _glfw.platformWindow.helperWindowHandle {
 		return 0
 	}
@@ -196,8 +195,7 @@ var isSelectionEventCallback uintptr
 
 // isFrameExtentsEvent reports whether it is a _NET_FRAME_EXTENTS event for
 // the window whose XID is passed as the pointer argument.
-func isFrameExtentsEvent(display uintptr, eventPtr uintptr, pointer uintptr) uintptr {
-	event := (*_XEvent)(unsafe.Pointer(eventPtr))
+func isFrameExtentsEvent(display uintptr, event *_XEvent, pointer uintptr) uintptr {
 	if event.EventType() != _PropertyNotify {
 		return 0
 	}
@@ -220,8 +218,7 @@ var selPropNewValueNotification *_XEvent
 
 // isSelPropNewValueNotify reports whether it is a property event for the
 // selection transfer awaited in selPropNewValueNotification.
-func isSelPropNewValueNotify(display uintptr, eventPtr uintptr, pointer uintptr) uintptr {
-	event := (*_XEvent)(unsafe.Pointer(eventPtr))
+func isSelPropNewValueNotify(display uintptr, event *_XEvent, pointer uintptr) uintptr {
 	if event.EventType() != _PropertyNotify {
 		return 0
 	}

@@ -526,7 +526,7 @@ type _XIMPreeditDrawCallbackStruct struct {
 	Caret     int32
 	ChgFirst  int32
 	ChgLength int32
-	Text      uintptr // *XIMText
+	Text      *_XIMText
 }
 
 // _XIMPreeditCaretCallbackStruct is the XIMPreeditCaretCallbackStruct struct.

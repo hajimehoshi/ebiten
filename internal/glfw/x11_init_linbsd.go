@@ -977,12 +977,12 @@ func createEmptyEventPipe() error {
 var errorHandlerCallback uintptr
 
 // errorHandler is the X error handler.
-func errorHandler(display uintptr, event uintptr) uintptr {
+func errorHandler(display uintptr, event *_XErrorEvent) uintptr {
 	if _glfw.platformWindow.display != display {
 		return 0
 	}
 
-	_glfw.platformWindow.errorCode = int((*_XErrorEvent)(unsafe.Pointer(event)).ErrorCode)
+	_glfw.platformWindow.errorCode = int(event.ErrorCode)
 	return 0
 }
 
