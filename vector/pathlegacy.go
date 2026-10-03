@@ -201,6 +201,9 @@ func (p *Path) appendFlatPathPointsForLine(pt point) {
 
 func (p *Path) appendFlatPathPointsForQuad(p0, p1, p2 point, level int) {
 	if level > 10 {
+		if isRegularPoint(p0) && isRegularPoint(p1) && isRegularPoint(p2) {
+			p.appendFlatPathPointsForLine(p2)
+		}
 		return
 	}
 
