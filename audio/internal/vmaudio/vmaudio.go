@@ -162,18 +162,7 @@ func (c *Context) Err() error {
 // by player ID, so the forwarded order does not depend on map iteration.
 func (c *Context) takeControlChanges(controls []vmprotocol.AudioControl) []vmprotocol.AudioControl {
 	start := len(controls)
-	c.mu.Lock()
-	players := make([]*Player, 0, len(c.players))
-	for _, wp := range c.players {
-		if p := wp.Value(); p != nil {
-			players = append(players, p)
-		}
-	}
-	for _, id := range c.closedIDs {
-		controls = append(controls, vmprotocol.AudioControl{ID: id, Closed: true})
-	}
-	c.closedIDs = c.closedIDs[:0]
-	c.mu.Unlock()
+	players, controls := c.snapshotPlayersAndDrainClosedIDs(controls)
 
 	// A player's source read can block while holding its mutex. Do not hold
 	// the context mutex while waiting for that player.
@@ -186,6 +175,23 @@ func (c *Context) takeControlChanges(controls []vmprotocol.AudioControl) []vmpro
 		return cmp.Compare(a.ID, b.ID)
 	})
 	return controls
+}
+
+func (c *Context) snapshotPlayersAndDrainClosedIDs(controls []vmprotocol.AudioControl) ([]*Player, []vmprotocol.AudioControl) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	players := make([]*Player, 0, len(c.players))
+	for _, wp := range c.players {
+		if p := wp.Value(); p != nil {
+			players = append(players, p)
+		}
+	}
+	for _, id := range c.closedIDs {
+		controls = append(controls, vmprotocol.AudioControl{ID: id, Closed: true})
+	}
+	c.closedIDs = c.closedIDs[:0]
+
+	return players, controls
 }
 
 // read reads player id's samples into buf and reports whether its source has ended. The player is kept
