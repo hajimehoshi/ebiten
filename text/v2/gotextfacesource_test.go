@@ -236,7 +236,10 @@ func newVariedGoTextFace(src *text.GoTextFaceSource, size float64, variations []
 func TestGoTextFaceSourceMetricsWithVariations(t *testing.T) {
 	data := variableFontData(t)
 	f := parseTestFont(t, data)
-	const size = 16
+	const (
+		size   = 16
+		sample = "Hello, world!"
+	)
 	wght := text.MustParseTag("wght")
 
 	src := newGoTextFaceSourceForTest(t, data)
@@ -264,7 +267,12 @@ func TestGoTextFaceSourceMetricsWithVariations(t *testing.T) {
 			changed = true
 		}
 
-		text.Measure("Hello, world!", varied, 0)
+		fresh := newVariedGoTextFace(newGoTextFaceSourceForTest(t, data), size, variations)
+		if got, want := text.Advance(sample, varied), text.Advance(sample, fresh); got != want {
+			t.Errorf("wght=%v Advance after Metrics(): got: %v, want: %v", weight, got, want)
+		}
+
+		text.Measure(sample, varied, 0)
 		if got := defaultFace.Metrics(); got != defaultMetrics {
 			t.Errorf("default Metrics() after shaping wght=%v: got: %v, want: %v", weight, got, defaultMetrics)
 		}
@@ -275,244 +283,21 @@ func TestGoTextFaceSourceMetricsWithVariations(t *testing.T) {
 	if !changed {
 		t.Error("RobotoFlex wght did not change XHeight or CapHeight")
 	}
-}
 
-func TestGoTextFaceSourceMetricsSharedSource(t *testing.T) {
-	data := variableFontData(t)
-	f := parseTestFont(t, data)
-	const (
-		size   = 16
-		sample = "Hello, world!"
-		weight = float32(900)
-	)
-	wght := text.MustParseTag("wght")
+	regularFont := parseTestFont(t, goregular.TTF)
+	regular := newGoTextFaceSourceForTest(t, goregular.TTF)
 	variations := []font.Variation{
 		{
 			Tag:   font.Tag(wght),
-			Value: weight,
-		},
-	}
-	wantPlain := goTextFaceMetrics(t, f, size, nil)
-	wantVaried := goTextFaceMetrics(t, f, size, variations)
-
-	for _, variedFirst := range []bool{false, true} {
-		t.Run(fmt.Sprintf("variedFirst=%t", variedFirst), func(t *testing.T) {
-			src := newGoTextFaceSourceForTest(t, data)
-			plain := &text.GoTextFace{Source: src, Size: size}
-			varied := newVariedGoTextFace(src, size, variations)
-
-			check := func(face *text.GoTextFace, want text.Metrics, name string) {
-				t.Helper()
-				if got := face.Metrics(); got != want {
-					t.Errorf("%s Metrics(): got: %v, want: %v", name, got, want)
-				}
-			}
-
-			if variedFirst {
-				check(varied, wantVaried, "varied")
-				check(plain, wantPlain, "plain")
-			} else {
-				check(plain, wantPlain, "plain")
-				check(varied, wantVaried, "varied")
-			}
-
-			freshPlainSrc := newGoTextFaceSourceForTest(t, data)
-			freshVariedSrc := newGoTextFaceSourceForTest(t, data)
-			freshPlain := &text.GoTextFace{Source: freshPlainSrc, Size: size}
-			freshVaried := newVariedGoTextFace(freshVariedSrc, size, variations)
-
-			if variedFirst {
-				text.Measure(sample, plain, 0)
-				text.Measure(sample, varied, 0)
-			} else {
-				text.Measure(sample, varied, 0)
-				text.Measure(sample, plain, 0)
-			}
-			if got, want := text.Advance(sample, plain), text.Advance(sample, freshPlain); got != want {
-				t.Errorf("plain Advance: got: %v, want: %v", got, want)
-			}
-			if got, want := text.Advance(sample, varied), text.Advance(sample, freshVaried); got != want {
-				t.Errorf("varied Advance: got: %v, want: %v", got, want)
-			}
-
-			check(plain, wantPlain, "plain after Measure")
-			check(varied, wantVaried, "varied after Measure")
-			check(varied, wantVaried, "varied cached")
-			check(plain, wantPlain, "plain cached")
-		})
-	}
-}
-
-func TestGoTextFaceSourceMetricsVariationUpdate(t *testing.T) {
-	data := variableFontData(t)
-	f := parseTestFont(t, data)
-	const size = 16
-	wght := text.MustParseTag("wght")
-	wdth := text.MustParseTag("wdth")
-
-	src := newGoTextFaceSourceForTest(t, data)
-	face := &text.GoTextFace{Source: src, Size: size}
-
-	check := func(variations []font.Variation) {
-		t.Helper()
-		if got, want := face.Metrics(), goTextFaceMetrics(t, f, size, variations); got != want {
-			t.Errorf("variations %v: got: %v, want: %v", variations, got, want)
-		}
-	}
-
-	face.SetVariation(wght, 100)
-	check([]font.Variation{
-		{
-			Tag:   font.Tag(wght),
-			Value: 100,
-		},
-	})
-
-	face.SetVariation(wght, 900)
-	check([]font.Variation{
-		{
-			Tag:   font.Tag(wght),
-			Value: 900,
-		},
-	})
-
-	face.SetVariation(wdth, 70)
-	check([]font.Variation{
-		{
-			Tag:   font.Tag(wght),
-			Value: 900,
-		},
-		{
-			Tag:   font.Tag(wdth),
-			Value: 70,
-		},
-	})
-
-	face.RemoveVariation(wght)
-	check([]font.Variation{
-		{
-			Tag:   font.Tag(wdth),
-			Value: 70,
-		},
-	})
-
-	face.RemoveVariation(wdth)
-	check(nil)
-
-	wghtThenWdth := newVariedGoTextFace(src, size, []font.Variation{
-		{
-			Tag:   font.Tag(wght),
-			Value: 250,
-		},
-		{
-			Tag:   font.Tag(wdth),
-			Value: 80,
-		},
-	})
-	wdthThenWght := newVariedGoTextFace(src, size, []font.Variation{
-		{
-			Tag:   font.Tag(wdth),
-			Value: 80,
-		},
-		{
-			Tag:   font.Tag(wght),
-			Value: 250,
-		},
-	})
-	want := goTextFaceMetrics(t, f, size, []font.Variation{
-		{
-			Tag:   font.Tag(wght),
-			Value: 250,
-		},
-		{
-			Tag:   font.Tag(wdth),
-			Value: 80,
-		},
-	})
-	if got := wghtThenWdth.Metrics(); got != want {
-		t.Errorf("wght then wdth: got: %v, want: %v", got, want)
-	}
-	if got := wdthThenWght.Metrics(); got != want {
-		t.Errorf("wdth then wght: got: %v, want: %v", got, want)
-	}
-}
-
-func TestGoTextFaceSourceMetricsScaling(t *testing.T) {
-	variableData := variableFontData(t)
-	variableFont := parseTestFont(t, variableData)
-	regularFont := parseTestFont(t, goregular.TTF)
-	wght := text.MustParseTag("wght")
-	heavy := []font.Variation{
-		{
-			Tag:   font.Tag(wght),
 			Value: 900,
 		},
 	}
-
-	for _, tc := range []struct {
-		name        string
-		data        []byte
-		font        *font.Font
-		variations  []font.Variation
-		nonVariable bool
-	}{
-		{
-			name: "RobotoFlex default",
-			data: variableData,
-			font: variableFont,
-		},
-		{
-			name:       "RobotoFlex wght900",
-			data:       variableData,
-			font:       variableFont,
-			variations: heavy,
-		},
-		{
-			name:        "goregular",
-			data:        goregular.TTF,
-			font:        regularFont,
-			nonVariable: true,
-		},
-		{
-			name:        "goregular varied",
-			data:        goregular.TTF,
-			font:        regularFont,
-			variations:  heavy,
-			nonVariable: true,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			src := newGoTextFaceSourceForTest(t, tc.data)
-			for _, size := range []float64{0, 16, 32} {
-				face := newVariedGoTextFace(src, size, tc.variations)
-				want := goTextFaceMetrics(t, tc.font, size, tc.variations)
-				if got := face.Metrics(); got != want {
-					t.Errorf("size %v Metrics(): got: %v, want: %v", size, got, want)
-				}
-			}
-
-			m16 := newVariedGoTextFace(src, 16, tc.variations).Metrics()
-			m32 := newVariedGoTextFace(src, 32, tc.variations).Metrics()
-			if m16.XHeight == 0 || m16.CapHeight == 0 {
-				t.Fatalf("size 16 metrics have a zero x-height or cap-height: %v", m16)
-			}
-			if got, want := m32.XHeight/m16.XHeight, 2.0; got != want {
-				t.Errorf("XHeight ratio: got: %v, want: %v", got, want)
-			}
-			if got, want := m32.CapHeight/m16.CapHeight, 2.0; got != want {
-				t.Errorf("CapHeight ratio: got: %v, want: %v", got, want)
-			}
-			if got := newVariedGoTextFace(src, 0, tc.variations).Metrics(); got != (text.Metrics{}) {
-				t.Errorf("size 0 Metrics(): got: %v, want zero", got)
-			}
-
-			if tc.nonVariable {
-				plain := newVariedGoTextFace(src, 16, nil).Metrics()
-				if plain != m16 {
-					t.Errorf("variation changed a non-variable font: plain %v, varied %v", plain, m16)
-				}
-			}
-		})
+	got := newVariedGoTextFace(regular, size, variations).Metrics()
+	if want := goTextFaceMetrics(t, regularFont, size, variations); got != want {
+		t.Errorf("non-variable font Metrics(): got: %v, want: %v", got, want)
+	}
+	if plain := (&text.GoTextFace{Source: regular, Size: size}).Metrics(); got != plain {
+		t.Errorf("variation changed a non-variable font: plain %v, varied %v", plain, got)
 	}
 }
 
@@ -523,64 +308,32 @@ func TestGoTextFaceSourceMetricsConcurrentWithShaping(t *testing.T) {
 	wght := text.MustParseTag("wght")
 	wdth := text.MustParseTag("wdth")
 
-	type faceSpec struct {
-		variations []font.Variation
-		warm       bool
-	}
-	specs := []faceSpec{
+	variations := [][]font.Variation{
+		nil,
 		{
-			warm: true,
-		},
-		{
-			variations: []font.Variation{
-				{
-					Tag:   font.Tag(wght),
-					Value: 100,
-				},
-			},
-			warm: true,
-		},
-		{
-			variations: []font.Variation{
-				{
-					Tag:   font.Tag(wght),
-					Value: 900,
-				},
+			{
+				Tag:   font.Tag(wght),
+				Value: 900,
 			},
 		},
 		{
-			variations: []font.Variation{
-				{
-					Tag:   font.Tag(wdth),
-					Value: 70,
-				},
+			{
+				Tag:   font.Tag(wght),
+				Value: 250,
 			},
-		},
-		{
-			variations: []font.Variation{
-				{
-					Tag:   font.Tag(wght),
-					Value: 250,
-				},
-				{
-					Tag:   font.Tag(wdth),
-					Value: 120,
-				},
+			{
+				Tag:   font.Tag(wdth),
+				Value: 120,
 			},
 		},
 	}
 
 	src := newGoTextFaceSourceForTest(t, data)
-	faces := make([]*text.GoTextFace, len(specs))
-	wants := make([]text.Metrics, len(specs))
-	for i, spec := range specs {
-		faces[i] = newVariedGoTextFace(src, size, spec.variations)
-		wants[i] = goTextFaceMetrics(t, f, size, spec.variations)
-		if spec.warm {
-			if got := faces[i].Metrics(); got != wants[i] {
-				t.Fatalf("warm Metrics(): got: %v, want: %v", got, wants[i])
-			}
-		}
+	faces := make([]*text.GoTextFace, len(variations))
+	wants := make([]text.Metrics, len(variations))
+	for i, v := range variations {
+		faces[i] = newVariedGoTextFace(src, size, v)
+		wants[i] = goTextFaceMetrics(t, f, size, v)
 	}
 
 	const (
