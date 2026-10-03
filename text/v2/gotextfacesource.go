@@ -110,6 +110,9 @@ type goTextGlyphImageCacheKey struct {
 // glyphImageCachesSoftLimit indicates the soft limit of the number of the caches, one per face size.
 const glyphImageCachesSoftLimit = 16
 
+// metricsCacheSoftLimit is the soft limit of cached variation metrics.
+const metricsCacheSoftLimit = 32
+
 type glyphImageCacheEntry struct {
 	cache *cache[goTextGlyphImageCacheKey, *ebiten.Image]
 
@@ -344,11 +347,27 @@ type GoTextFaceSource struct {
 	glyphImageCache glyphImageCaches
 	hasGlyphCache   runeToBoolMap
 
-	// unscaledMetrics is in font units, for the default variation
-	// coordinates. It is computed in newGoTextFaceSource, before the
-	// source can be shared, so that reading it needs no lock even
-	// though shaping mutates the variation coordinates of f.
+	// unscaledMetrics is the font-unit metrics at the default variation
+	// coordinates. newGoTextFaceSource computes it before the source can
+	// be shared, while the face is still at ppem 0. A face with an empty
+	// variationsString scales this value and does not lock.
 	unscaledMetrics Metrics
+
+	// metricsCache stores font-unit metrics keyed by a non-empty
+	// variationsString. Entries may expire. Size scaling is applied after
+	// lookup, so faces that differ only in size share an entry.
+	//
+	// A miss measures metricsFace, created on the first miss with
+	// font.NewFace(g.f.Font) and used only while this cache's mutex is
+	// held. *font.Font is safe for concurrent use, so the miss does not
+	// take shapeMu and does not change g.f's variations or bitmap ppem.
+	// A new face starts at ppem 0, which selects the largest bitmap
+	// strike when x-height or cap-height falls back to glyph extents.
+	metricsCache *cache[string, Metrics]
+
+	// metricsFace is the face metricsCache misses read. It is nil until
+	// the first varied lookup. Guarded by metricsCache's mutex.
+	metricsFace *font.Face
 
 	addr *GoTextFaceSource
 
@@ -375,7 +394,8 @@ type GoTextFaceSource struct {
 
 	// shapeMu serializes mutations of the shared font state (g.f) during shaping
 	// and per-glyph data lookups. Lazy glyph builds happen outside of the
-	// outputCache mutex, so this mutex is needed to keep the font state consistent.
+	// outputCache mutex, so this mutex is needed to keep the font state
+	// consistent. Metrics reads do not take shapeMu.
 	shapeMu sync.Mutex
 
 	// lastVariationsString and lastXPpem/lastYPpem mirror the state
@@ -426,26 +446,33 @@ func newGoTextFaceSource(face *font.Face, loader *opentype.Loader) *GoTextFaceSo
 	s.chunkPlanCache = newCache[chunkPlanKey, []chunk.Chunk](512)
 	// 4 is an arbitrary number, which should not cause troubles.
 	s.shaper.SetFontCacheSize(4)
-	s.initUnscaledMetrics()
+	s.metricsCache = newCache[string, Metrics](metricsCacheSoftLimit)
+	// The face is still at the default coordinates and ppem 0.
+	s.unscaledMetrics = readUnscaledMetrics(face)
 	return s
 }
 
-// initUnscaledMetrics reads the metrics of g.f in font units.
-// g.f must be at its default variation coordinates.
-func (g *GoTextFaceSource) initUnscaledMetrics() {
-	um := &g.unscaledMetrics
-	if h, ok := g.f.FontHExtents(); ok {
+// readUnscaledMetrics reads face's metrics in font units.
+// Absent horizontal or vertical extents leave the corresponding fields
+// at zero. Descents are negated so Metrics stores them positive.
+//
+// face's ppem selects the bitmap strike used when x-height or cap-height
+// falls back to glyph extents. Callers pass a face at ppem 0.
+func readUnscaledMetrics(face *font.Face) Metrics {
+	var um Metrics
+	if h, ok := face.FontHExtents(); ok {
 		um.HLineGap = float64(h.LineGap)
 		um.HAscent = float64(h.Ascender)
 		um.HDescent = float64(-h.Descender)
 	}
-	if v, ok := g.f.FontVExtents(); ok {
+	if v, ok := face.FontVExtents(); ok {
 		um.VLineGap = float64(v.LineGap)
 		um.VAscent = float64(v.Ascender)
 		um.VDescent = float64(-v.Descender)
 	}
-	um.XHeight = float64(g.f.LineMetric(font.XHeight))
-	um.CapHeight = float64(g.f.LineMetric(font.CapHeight))
+	um.XHeight = float64(face.LineMetric(font.XHeight))
+	um.CapHeight = float64(face.LineMetric(font.CapHeight))
+	return um
 }
 
 // NewGoTextFaceSource parses an OpenType or TrueType font and returns a GoTextFaceSource object.
@@ -1353,9 +1380,21 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goT
 	return g.glyphImageCache.getOrCreate(goTextFace, key, create)
 }
 
-func (g *GoTextFaceSource) metrics(size float64) Metrics {
+// metrics returns face's metrics in pixels. Default coordinates scale
+// unscaledMetrics and take no lock. Other coordinates are cached by
+// variationsString; size scaling happens after the lookup.
+func (g *GoTextFaceSource) metrics(face *GoTextFace) Metrics {
 	um := g.unscaledMetrics
-	scale := g.scale(size)
+	if variations := face.variationsString; variations != "" {
+		um = g.metricsCache.getOrCreate(variations, func() (Metrics, bool) {
+			if g.metricsFace == nil {
+				g.metricsFace = font.NewFace(g.f.Font)
+			}
+			g.metricsFace.SetVariations(face.variations)
+			return readUnscaledMetrics(g.metricsFace), true
+		})
+	}
+	scale := g.scale(face.Size)
 	return Metrics{
 		HLineGap:  um.HLineGap * scale,
 		HAscent:   um.HAscent * scale,
