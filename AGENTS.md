@@ -2,6 +2,11 @@
 
 When writing or modifying Ebitengine code or applications, consult the [`skills`](skills) directory, which holds skills for working with this repository.
 
+For application rendering changes, start with
+[`using-ebitengine-rendering-apis`](skills/using-ebitengine-rendering-apis/SKILL.md)
+for image, vector, text, and capture contracts. It routes to the shader,
+performance, display-resolution, and headless skills as the work requires.
+
 # Issues and pull requests
 
 - Before filing an issue, read and follow the applicable template in [`.github/ISSUE_TEMPLATE`](.github/ISSUE_TEMPLATE).
