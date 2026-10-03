@@ -1654,6 +1654,9 @@ func (u *glfwBackend) updateWindowSizeLimits() error {
 	if err != nil {
 		return err
 	}
+	if m == nil {
+		return nil
+	}
 	minw, minh, maxw, maxh := u.desktopWindow.getWindowSizeLimitsInDIP()
 
 	s := m.DeviceScaleFactor()
@@ -1874,6 +1877,14 @@ func (u *glfwBackend) setFullscreen(fullscreen bool) error {
 	}
 
 	// Exit the fullscreen.
+	m, err := u.currentMonitor()
+	if err != nil {
+		return err
+	}
+	if m == nil {
+		return nil
+	}
+
 	if err := u.updateWindowSizeLimits(); err != nil {
 		return err
 	}
@@ -1882,10 +1893,6 @@ func (u *glfwBackend) setFullscreen(fullscreen bool) error {
 	restoreSize := u.windowToRestore.size
 	restoreMonitor := u.windowToRestore.monitor
 
-	m, err := u.currentMonitor()
-	if err != nil {
-		return err
-	}
 	ww, wh := windowSizeToRestore(restoreSize.X, restoreSize.Y, restoreMonitor, u.windowWidthInDIP, u.windowHeightInDIP, m)
 	if u.isNativeFullscreenAvailable() {
 		if err := u.setNativeFullscreen(false); err != nil {
