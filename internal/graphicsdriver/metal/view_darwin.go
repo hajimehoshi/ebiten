@@ -106,6 +106,14 @@ type view struct {
 	completionChannelPool       sync.Pool
 	metalDisplayLinkChannelPool sync.Pool
 
+	// drawableRequested reports whether a drawable has been requested in the current frame.
+	// This is used only on the rendering thread.
+	drawableRequested bool
+
+	// metalDisplayLinkPaused reports whether the display link is paused.
+	// This is used only on the rendering thread.
+	metalDisplayLinkPaused bool
+
 	// The following members are used only with CADisplayLink.
 	handleToSelf viewHandle
 	fence        *fence

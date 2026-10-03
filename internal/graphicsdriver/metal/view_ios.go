@@ -93,6 +93,10 @@ func (v *view) finishDrawableUsage() {
 	// Do nothing.
 }
 
+func (v *view) endFrame() {
+	// Do nothing.
+}
+
 func (v *view) setDrawableSize(width, height int) {
 	v.ml.SetDrawableSize(width, height)
 }

@@ -135,6 +135,7 @@ func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	g.pool.ID = 0
 	if mode != graphicsdriver.FlushModeIntermediate {
 		g.frame++
+		g.view.endFrame()
 	}
 	// Reclaim the resources for the past frames here, as a drawable is not always obtained in a frame.
 	g.gcBuffers()
