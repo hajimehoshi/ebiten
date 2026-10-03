@@ -1711,8 +1711,8 @@ func _SwapBuffers(unnamedParam1 _HDC) error {
 	return nil
 }
 
-func _SystemParametersInfoW(uiAction uint32, uiParam uint32, pvParam uintptr, fWinIni uint32) error {
-	r, _, e := procSystemParametersInfoW.Call(uintptr(uiAction), uintptr(uiParam), pvParam, uintptr(fWinIni))
+func _SystemParametersInfoW(uiAction uint32, uiParam uint32, pvParam unsafe.Pointer, fWinIni uint32) error {
+	r, _, e := procSystemParametersInfoW.Call(uintptr(uiAction), uintptr(uiParam), uintptr(pvParam), uintptr(fWinIni))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return fmt.Errorf("glfw: SystemParametersInfoW failed: %w", e)
 	}
