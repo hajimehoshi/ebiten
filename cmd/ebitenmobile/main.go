@@ -67,21 +67,33 @@ var (
 	bindBootClasspath string // -bootclasspath
 )
 
+type usageError string
+
+func (e usageError) Error() string {
+	return string(e)
+}
+
 func main() {
+	if err := xmain(); err != nil {
+		if _, ok := err.(usageError); ok {
+			fmt.Fprintln(os.Stderr, err)
+			return
+		}
+		log.Fatal(err)
+	}
+}
+
+func xmain() error {
 	flag.Usage = func() {
 		// This message is copied from `gomobile bind -h`
 		fmt.Fprintf(os.Stderr, "%s bind [-target android|ios] [-bootclasspath <path>] [-classpath <path>] [-o output] [build flags] [package]\n", ebitenmobileCommand)
-		os.Exit(2)
 	}
 	flag.Parse()
 
 	args := flag.Args()
-	if len(args) < 1 {
+	if len(args) < 1 || args[0] != "bind" {
 		flag.Usage()
-	}
-
-	if args[0] != "bind" {
-		flag.Usage()
+		return usageError("expected bind command")
 	}
 
 	// minAndroidAPI specifies the minimum API version for Android.
@@ -115,7 +127,7 @@ func main() {
 
 	buildTarget, err := osFromBuildTarget(buildTarget)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// Add ldflags to suppress linker errors (#932).
@@ -127,8 +139,12 @@ func main() {
 		buildLdflags += "-extldflags=-Wl,-soname,libgojni.so"
 
 		if !isValidJavaPackageName(bindJavaPkg) {
-			log.Fatalf("invalid Java package name: %s", bindJavaPkg)
+			return usageError(fmt.Sprintf("invalid Java package name: %s", bindJavaPkg))
 		}
+	}
+
+	if buildO == "" {
+		return usageError("-o must be specified")
 	}
 
 	dir, err := prepareGomobileCommands()
@@ -138,7 +154,7 @@ func main() {
 		}
 	}()
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	// If args doesn't include '-androidapi', add it to args explicitly.
@@ -155,9 +171,7 @@ func main() {
 		}
 	}
 
-	if err := doBind(args, &flagset, buildTarget); err != nil {
-		log.Fatal(err)
-	}
+	return doBind(args, &flagset, buildTarget)
 }
 
 func osFromBuildTarget(buildTarget string) (string, error) {
@@ -213,12 +227,6 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 
 	args = append(args, "github.com/hajimehoshi/ebiten/v2/mobile/ebitenmobileview")
 
-	if buildO == "" {
-		fmt.Fprintln(os.Stderr, "-o must be specified.")
-		os.Exit(2)
-		return nil
-	}
-
 	if buildN {
 		fmt.Print("gomobile")
 		for _, arg := range args {
@@ -232,8 +240,7 @@ func doBind(args []string, flagset *flag.FlagSet, buildOS string) error {
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		os.Exit(err.(*exec.ExitError).ExitCode())
-		return nil
+		return err
 	}
 
 	replacePrefixes := func(content string) string {
