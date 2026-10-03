@@ -22,6 +22,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmguest"
@@ -68,6 +69,8 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 			return err
 		}
 
+		defer atlas.Terminate()
+
 		// setRunning(true) should be called in initOnMainThread for each platform.
 		defer u.setRunning(false)
 
@@ -92,6 +95,8 @@ func (u *UserInterface) runSingleThread(game Game, options *RunOptions) error {
 	if err := u.initOnMainThread(options); err != nil {
 		return err
 	}
+
+	defer atlas.Terminate()
 
 	if err := u.loopGame(); err != nil {
 		return err

@@ -167,6 +167,7 @@ func (r *remoteBackend) run(game Game, options *RunOptions) (err error) {
 	r.setRunningBackend(r)
 	defer r.setRunningBackend(nil)
 
+	defer atlas.Terminate()
 	return r.serve(conn)
 }
 

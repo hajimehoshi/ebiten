@@ -28,6 +28,7 @@ import (
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/file"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
@@ -1449,7 +1450,7 @@ func (u *glfwBackend) terminateGLFW() error {
 
 func (u *glfwBackend) loopGame() (err error) {
 	defer func() {
-		graphicscommand.Terminate()
+		atlas.Terminate()
 		if glfwErr := thread.CallWithArgAndResult(u.mainThread, (*glfwBackend).terminateGLFW, u); glfwErr != nil {
 			err = errors.Join(err, glfwErr)
 		}

@@ -347,6 +347,47 @@ func TestImageReadPixelsDispose(t *testing.T) {
 	img.ReadPixels(make([]byte, 4*16*16))
 }
 
+func TestImageReadPixelsAsync(t *testing.T) {
+	const w, h = 16, 16
+
+	t.Run("InvalidLength", func(t *testing.T) {
+		img := ebiten.NewImage(w, h)
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("ReadPixelsAsync with an invalid length must panic")
+			}
+		}()
+		img.ReadPixelsAsync(make([]byte, 4*w*h-1))
+	})
+
+	t.Run("Disposed", func(t *testing.T) {
+		img := ebiten.NewImage(w, h)
+		img.Dispose()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("ReadPixelsAsync on a disposed image must panic")
+			}
+		}()
+		img.ReadPixelsAsync(make([]byte, 4*w*h))
+	})
+	t.Run("DoesNotWaitForTheGPU", func(t *testing.T) {
+		img := ebiten.NewImage(w, h)
+		img.Fill(color.RGBA{R: 0x12, A: 0xff})
+
+		for range 4 {
+			ch := img.ReadPixelsAsync(make([]byte, 4*w*h))
+			select {
+			case err, ok := <-ch:
+				if !ok {
+					t.Error("the channel must not be closed")
+				}
+				t.Errorf("the result was published before the call returned or the read was flushed: %v", err)
+			default:
+			}
+		}
+	})
+}
+
 func TestImageDeallocate(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)

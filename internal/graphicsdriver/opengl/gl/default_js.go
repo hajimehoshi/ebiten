@@ -32,6 +32,7 @@ type defaultContext struct {
 	fnBufferData              js.Value
 	fnBufferSubData           js.Value
 	fnCheckFramebufferStatus  js.Value
+	fnClientWaitSync          js.Value
 	fnCompileShader           js.Value
 	fnCreateBuffer            js.Value
 	fnCreateFramebuffer       js.Value
@@ -43,14 +44,17 @@ type defaultContext struct {
 	fnDeleteFramebuffer       js.Value
 	fnDeleteProgram           js.Value
 	fnDeleteShader            js.Value
+	fnDeleteSync              js.Value
 	fnDeleteTexture           js.Value
 	fnDeleteVertexArray       js.Value
 	fnDrawElements            js.Value
 	fnEnable                  js.Value
 	fnEnableVertexAttribArray js.Value
+	fnFenceSync               js.Value
 	fnFinish                  js.Value
 	fnFramebufferTexture2D    js.Value
 	fnFlush                   js.Value
+	fnGetBufferSubData        js.Value
 	fnGetError                js.Value
 	fnGetExtension            js.Value
 	fnGetParameter            js.Value
@@ -90,6 +94,7 @@ type defaultContext struct {
 	framebuffers values
 	programs     values
 	shaders      values
+	syncs        values
 	textures     values
 	vertexArrays values
 
@@ -150,6 +155,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnBufferData:              v.Get("bufferData").Call("bind", v),
 		fnBufferSubData:           v.Get("bufferSubData").Call("bind", v),
 		fnCheckFramebufferStatus:  v.Get("checkFramebufferStatus").Call("bind", v),
+		fnClientWaitSync:          v.Get("clientWaitSync").Call("bind", v),
 		fnCompileShader:           v.Get("compileShader").Call("bind", v),
 		fnCreateBuffer:            v.Get("createBuffer").Call("bind", v),
 		fnCreateFramebuffer:       v.Get("createFramebuffer").Call("bind", v),
@@ -161,6 +167,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnDeleteFramebuffer:       v.Get("deleteFramebuffer").Call("bind", v),
 		fnDeleteProgram:           v.Get("deleteProgram").Call("bind", v),
 		fnDeleteShader:            v.Get("deleteShader").Call("bind", v),
+		fnDeleteSync:              v.Get("deleteSync").Call("bind", v),
 		fnDeleteTexture:           v.Get("deleteTexture").Call("bind", v),
 		fnDeleteVertexArray:       v.Get("deleteVertexArray").Call("bind", v),
 		fnDrawElements:            v.Get("drawElements").Call("bind", v),
@@ -168,7 +175,9 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnEnableVertexAttribArray: v.Get("enableVertexAttribArray").Call("bind", v),
 		fnFinish:                  v.Get("finish").Call("bind", v),
 		fnFramebufferTexture2D:    v.Get("framebufferTexture2D").Call("bind", v),
+		fnFenceSync:               v.Get("fenceSync").Call("bind", v),
 		fnFlush:                   v.Get("flush").Call("bind", v),
+		fnGetBufferSubData:        v.Get("getBufferSubData").Call("bind", v),
 		fnGetError:                v.Get("getError").Call("bind", v),
 		fnGetExtension:            v.Get("getExtension").Call("bind", v),
 		fnGetParameter:            v.Get("getParameter").Call("bind", v),
@@ -271,6 +280,10 @@ func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 	return uint32(c.fnCheckFramebufferStatus.Invoke(target).Int())
 }
 
+func (c *defaultContext) ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32 {
+	return uint32(c.fnClientWaitSync.Invoke(c.syncs.get(uint32(sync)), flags, float64(timeout)).Int())
+}
+
 func (c *defaultContext) CompileShader(shader uint32) {
 	c.fnCompileShader.Invoke(c.shaders.get(shader))
 }
@@ -331,6 +344,11 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 	c.shaders.delete(shader)
 }
 
+func (c *defaultContext) DeleteSync(sync uintptr) {
+	c.fnDeleteSync.Invoke(c.syncs.get(uint32(sync)))
+	c.syncs.delete(uint32(sync))
+}
+
 func (c *defaultContext) DeleteTexture(texture uint32) {
 	c.fnDeleteTexture.Invoke(c.textures.get(texture))
 	c.textures.delete(texture)
@@ -357,6 +375,14 @@ func (c *defaultContext) EnableVertexAttribArray(index uint32) {
 	c.fnEnableVertexAttribArray.Invoke(index)
 }
 
+func (c *defaultContext) FenceSync(condition uint32, flags uint32) uintptr {
+	v := c.fnFenceSync.Invoke(condition, flags)
+	if v.IsNull() {
+		return 0
+	}
+	return uintptr(c.syncs.create(v))
+}
+
 func (c *defaultContext) Finish() {
 	c.fnFinish.Invoke()
 }
@@ -367,6 +393,20 @@ func (c *defaultContext) Flush() {
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	c.fnFramebufferTexture2D.Invoke(target, attachment, textarget, c.textures.get(texture), level)
+}
+
+// ReadBufferData copies the content of the buffer bound to target into dst.
+//
+// WebGL 2 forbids buffer mapping, so getBufferSubData is the only way to read a buffer.
+func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) error {
+	if len(dst) == 0 {
+		return nil
+	}
+	l := len(dst)
+	arr := uint8Array.New(l)
+	c.fnGetBufferSubData.Invoke(target, offset, arr, 0, l)
+	js.CopyBytesToGo(dst, arr)
+	return nil
 }
 
 func (c *defaultContext) GetError() uint32 {

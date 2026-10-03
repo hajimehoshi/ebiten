@@ -126,6 +126,15 @@ func (d *DebugContext) CheckFramebufferStatus(arg0 uint32) uint32 {
 	return out0
 }
 
+func (d *DebugContext) ClientWaitSync(arg0 uintptr, arg1 uint32, arg2 uint64) uint32 {
+	out0 := d.Context.ClientWaitSync(arg0, arg1, arg2)
+	fmt.Fprintln(os.Stderr, "ClientWaitSync")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at ClientWaitSync", e))
+	}
+	return out0
+}
+
 func (d *DebugContext) CompileShader(arg0 uint32) {
 	d.Context.CompileShader(arg0)
 	fmt.Fprintln(os.Stderr, "CompileShader")
@@ -220,6 +229,14 @@ func (d *DebugContext) DeleteShader(arg0 uint32) {
 	}
 }
 
+func (d *DebugContext) DeleteSync(arg0 uintptr) {
+	d.Context.DeleteSync(arg0)
+	fmt.Fprintln(os.Stderr, "DeleteSync")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at DeleteSync", e))
+	}
+}
+
 func (d *DebugContext) DeleteTexture(arg0 uint32) {
 	d.Context.DeleteTexture(arg0)
 	fmt.Fprintln(os.Stderr, "DeleteTexture")
@@ -258,6 +275,15 @@ func (d *DebugContext) EnableVertexAttribArray(arg0 uint32) {
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at EnableVertexAttribArray", e))
 	}
+}
+
+func (d *DebugContext) FenceSync(arg0 uint32, arg1 uint32) uintptr {
+	out0 := d.Context.FenceSync(arg0, arg1)
+	fmt.Fprintln(os.Stderr, "FenceSync")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at FenceSync", e))
+	}
+	return out0
 }
 
 func (d *DebugContext) Finish() {
@@ -386,6 +412,15 @@ func (d *DebugContext) PixelStorei(arg0 uint32, arg1 int32) {
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at PixelStorei", e))
 	}
+}
+
+func (d *DebugContext) ReadBufferData(arg0 uint32, arg1 int, arg2 []uint8) error {
+	out0 := d.Context.ReadBufferData(arg0, arg1, arg2)
+	fmt.Fprintln(os.Stderr, "ReadBufferData")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at ReadBufferData", e))
+	}
+	return out0
 }
 
 func (d *DebugContext) ReadPixels(arg0 []uint8, arg1 int32, arg2 int32, arg3 int32, arg4 int32, arg5 uint32, arg6 uint32) {

@@ -63,6 +63,14 @@ func (c *commandQueueManager) FlushForTesting(graphicsDriver graphicsdriver.Grap
 	return c.flush(graphicsDriver, mode)
 }
 
+func (c *commandQueueManager) ReadPixelsAsyncForTesting(img *Image, args []graphicsdriver.PixelsArgs) <-chan error {
+	return c.readPixelsAsync(img, args)
+}
+
+func NewImageForTesting(manager *commandQueueManager, width, height int, screenFramebuffer bool, attribute string) *Image {
+	return newImage(manager, width, height, screenFramebuffer, attribute)
+}
+
 func SetRenderThreadForTesting(t thread.Thread) func() {
 	previous := theRenderThread
 	theRenderThread = t
