@@ -493,7 +493,7 @@ func TestBlockedReadDoesNotBlockContext(t *testing.T) {
 	p := c.NewPlayer(src)
 	defer func() {
 		if err := p.Close(); err != nil {
-			t.Errorf("Close: %v", err)
+			t.Fatalf("Close: %v", err)
 		}
 	}()
 	id := onlyControlID(t, c)
@@ -518,15 +518,15 @@ func TestBlockedReadDoesNotBlockContext(t *testing.T) {
 
 	for range 10 {
 		time.Sleep(time.Millisecond)
-		done := make(chan struct{})
+		done := make(chan error, 1)
 		go func() {
-			if err := c.Suspend(); err != nil {
-				t.Errorf("Suspend: %v", err)
-			}
-			close(done)
+			done <- c.Suspend()
 		}()
 		select {
-		case <-done:
+		case err := <-done:
+			if err != nil {
+				t.Fatalf("Suspend: %v", err)
+			}
 		case <-time.After(5 * time.Second):
 			t.Error("Suspend blocked behind a player's source read")
 			return
