@@ -139,7 +139,7 @@ func xmain() error {
 		buildLdflags += "-extldflags=-Wl,-soname,libgojni.so"
 
 		if !isValidJavaPackageName(bindJavaPkg) {
-			return fmt.Errorf("invalid Java package name: %s", bindJavaPkg)
+			return usageError(fmt.Sprintf("invalid Java package name: %s", bindJavaPkg))
 		}
 	}
 
