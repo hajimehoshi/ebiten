@@ -62,7 +62,7 @@ func createMonitor(adapter *_DISPLAY_DEVICEW, display *_DISPLAY_DEVICEW) (*Monit
 		right:  dm.dmPosition.x + int32(dm.dmPelsWidth),
 		bottom: dm.dmPosition.y + int32(dm.dmPelsHeight),
 	}
-	if err := _EnumDisplayMonitors(0, &rect, monitorCallbackPtr, _LPARAM(unsafe.Pointer(monitor))); err != nil {
+	if err := _EnumDisplayMonitors(0, &rect, monitorCallbackPtr, unsafe.Pointer(monitor)); err != nil {
 		return nil, err
 	}
 	return monitor, nil
@@ -106,7 +106,7 @@ adapterLoop:
 			for i, monitor := range disconnected {
 				if monitor != nil && monitor.platform.displayName == windows.UTF16ToString(display.DeviceName[:]) {
 					disconnected[i] = nil
-					err := _EnumDisplayMonitors(0, nil, monitorCallbackPtr, _LPARAM(unsafe.Pointer(_glfw.monitors[i])))
+					err := _EnumDisplayMonitors(0, nil, monitorCallbackPtr, unsafe.Pointer(_glfw.monitors[i]))
 					if err != nil {
 						return err
 					}

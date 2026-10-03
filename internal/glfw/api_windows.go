@@ -1187,7 +1187,11 @@ func _EnumDisplayDevicesW(device string, iDevNum uint32, dwFlags uint32) (_DISPL
 	return displayDevice, true
 }
 
-func _EnumDisplayMonitors(hdc _HDC, lprcClip *_RECT, lpfnEnum uintptr, dwData _LPARAM) error {
+func _EnumDisplayMonitors(hdc _HDC, lprcClip *_RECT, lpfnEnum uintptr, dwData unsafe.Pointer) error {
+	// dwData is an unsafe.Pointer rather than an _LPARAM, and is converted to uintptr only in Call's arguments.
+	// Call is marked //go:uintptrescapes, so the compiler moves dwData's referent to the heap and keeps it
+	// alive until Call returns. An _LPARAM is just an integer to the compiler, so its referent could stay on
+	// the stack, move when a callback grows the stack, and reach the next callback as a stale address.
 	r, _, e := procEnumDisplayMonitors.Call(uintptr(hdc), uintptr(unsafe.Pointer(lprcClip)), uintptr(lpfnEnum), uintptr(dwData))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return fmt.Errorf("glfw: EnumDisplayMonitors failed: %w", e)
