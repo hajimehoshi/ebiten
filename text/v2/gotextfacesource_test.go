@@ -16,7 +16,6 @@ package text_test
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -57,51 +56,55 @@ func TestGlyphImageCacheConcurrent(t *testing.T) {
 }
 
 func TestGlyphImageCacheSizeEviction(t *testing.T) {
-	for _, tps := range []int{30, 120} {
-		t.Run(fmt.Sprint(tps), func(t *testing.T) {
-			src, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
-			if err != nil {
-				t.Fatal(err)
-			}
+	src, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			dst := ebiten.NewImage(64, 64)
+	dst := ebiten.NewImage(64, 64)
 
-			// Draw with many distinct sizes, like a game animating its font size.
-			const drawnSizeCount = 100
-			for i := range drawnSizeCount {
-				face := &text.GoTextFace{Source: src, Size: 12 + float64(i)/4}
-				text.Draw(dst, "Hello", face, nil)
-			}
-			if got := text.GlyphImageCacheCount(src); got == 0 {
-				t.Fatal("no glyph image cache was created")
-			}
+	// Draw with many distinct sizes, like a game animating its font size.
+	const drawnSizeCount = 100
+	for i := range drawnSizeCount {
+		face := &text.GoTextFace{
+			Source: src,
+			Size:   12 + float64(i)/4,
+		}
+		text.Draw(dst, "Hello", face, nil)
+	}
+	if got := text.GlyphImageCacheCount(src); got == 0 {
+		t.Fatal("no glyph image cache was created")
+	}
 
-			// Pass explicit logical times to simulate frames.
-			// Each frame uses a new size, and one size is kept in use all the time.
-			const (
-				firstTick = 1000
-				tickCount = 300
-				hotSize   = 12
-				// The tested rates retain fewer than 128 recent sizes.
-				maxCacheCount = 128
-			)
-			for i := range tickCount {
-				now := ebiten.Duration(firstTick+i) * ebiten.DurationSecond / ebiten.Duration(tps)
-				text.TouchGlyphImageCache(&text.GoTextFace{Source: src, Size: hotSize}, now)
-				text.TouchGlyphImageCache(&text.GoTextFace{Source: src, Size: 1000 + float64(i)}, now)
-				if got := text.GlyphImageCacheCount(src); got > maxCacheCount {
-					t.Errorf("the number of the glyph image caches must be <= %d but was %d at time %d", maxCacheCount, got, now)
-				}
-			}
+	// Pass explicit ticks to simulate updates.
+	// Each frame uses a new size, and one size is kept in use all the time.
+	const (
+		firstTick = 1000
+		tickCount = 300
+		hotSize   = 12
+		// The recent sizes fit below this bound.
+		maxCacheCount = 128
+	)
+	for i := range tickCount {
+		now := int64(firstTick + i)
+		text.TouchGlyphImageCache(&text.GoTextFace{
+			Source: src,
+			Size:   hotSize,
+		}, now)
+		text.TouchGlyphImageCache(&text.GoTextFace{
+			Source: src,
+			Size:   1000 + float64(i),
+		}, now)
+		if got := text.GlyphImageCacheCount(src); got > maxCacheCount {
+			t.Errorf("the number of the glyph image caches must be <= %d but was %d at tick %d", maxCacheCount, got, now)
+		}
+	}
 
-			if !text.HasGlyphImageCache(src, hotSize) {
-				t.Errorf("the cache for the size %v must not be dropped", float64(hotSize))
-			}
-			if staleSize := 1000.0; text.HasGlyphImageCache(src, staleSize) {
-				t.Errorf("the cache for the size %v must be dropped", staleSize)
-			}
-
-		})
+	if !text.HasGlyphImageCache(src, hotSize) {
+		t.Errorf("the cache for the size %v must not be dropped", float64(hotSize))
+	}
+	if staleSize := 1000.0; text.HasGlyphImageCache(src, staleSize) {
+		t.Errorf("the cache for the size %v must be dropped", staleSize)
 	}
 }
 

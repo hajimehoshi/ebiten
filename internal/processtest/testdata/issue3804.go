@@ -50,9 +50,7 @@ func (f *countingFace) GlyphAdvance(r rune) (fixed.Int26_6, bool) {
 type game struct {
 	phase        int
 	initialized  bool
-	started      ebiten.Duration
-	checkedA     bool
-	wantACalls   int
+	started      int64
 	pausedFrames int
 	paused       bool
 	image        *ebiten.Image
@@ -85,8 +83,7 @@ func subrect(i int) image.Rectangle {
 func (g *game) Update() error {
 	if !g.initialized {
 		ebiten.SetTPS(rates[g.phase])
-		g.started = ebiten.DurationTime()
-		g.checkedA = false
+		g.started = ebiten.Tick()
 		g.pausedFrames = 0
 		g.image = ebiten.NewImage(16, 16)
 		g.legacy = &countingFace{
@@ -114,7 +111,7 @@ func (g *game) Update() error {
 	if g.paused {
 		return nil
 	}
-	elapsed := ebiten.DurationTime() - g.started
+	elapsed := ebiten.Tick() - g.started
 	// Keep one resource hot while the other two age.
 	g.use("c")
 	if err := g.check('c', 1); err != nil {
@@ -123,29 +120,22 @@ func (g *game) Update() error {
 	if got := g.image.SubImage(subrect(2)); got != g.subimages[2] {
 		return fmt.Errorf("TPS %d: frequently used sub-image was evicted", rates[g.phase])
 	}
-	if !g.checkedA && elapsed >= 3*ebiten.DurationSecond/4 {
-		// SyncWithFPS can advance past the expiry time in a single slow frame.
-		expired := elapsed > ebiten.DurationSecond
-		g.wantACalls = 1
-		if expired {
-			g.wantACalls = 2
-		}
+	if elapsed == 60 {
 		g.use("d")
 		g.image.SubImage(subrect(3))
 		g.use("a")
-		if err := g.check('a', g.wantACalls); err != nil {
+		if err := g.check('a', 1); err != nil {
 			return err
 		}
-		if evicted := g.image.SubImage(subrect(0)) != g.subimages[0]; evicted != expired {
-			return fmt.Errorf("TPS %d: sub-image eviction at elapsed time %d: got %t, want %t", rates[g.phase], elapsed, evicted, expired)
+		if evicted := g.image.SubImage(subrect(0)) != g.subimages[0]; evicted {
+			return fmt.Errorf("TPS %d: sub-image eviction after %d ticks: got %t, want false", rates[g.phase], elapsed, evicted)
 		}
-		g.checkedA = true
-		// Paused Draw calls must not age resources or advance logical time.
+		// Draw calls without updates must not age resources.
 		g.paused = true
 		ebiten.SetTPS(0)
 		return nil
 	}
-	if elapsed <= ebiten.DurationSecond {
+	if elapsed <= 60 {
 		return nil
 	}
 	g.use("e")
@@ -171,7 +161,7 @@ func (g *game) Draw(*ebiten.Image) {
 		return
 	}
 	g.use("a")
-	if err := g.check('a', g.wantACalls); err != nil {
+	if err := g.check('a', 1); err != nil {
 		panic(err)
 	}
 	g.pausedFrames++

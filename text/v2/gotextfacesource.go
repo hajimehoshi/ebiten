@@ -116,16 +116,16 @@ const metricsCacheSoftLimit = 32
 type glyphImageCacheEntry struct {
 	cache *cache[goTextGlyphImageCacheKey, *ebiten.Image]
 
-	// atime is the last time when the cache was accessed.
-	atime ebiten.Duration
+	// atime is the last tick when the cache was accessed.
+	atime int64
 }
 
 // glyphImageCaches is a set of glyph image caches, one per face size.
 type glyphImageCaches struct {
 	caches map[float64]*glyphImageCacheEntry
 
-	// atime is the last time when the caches were cleaned up.
-	atime ebiten.Duration
+	// atime is the last tick when the caches were cleaned up.
+	atime int64
 
 	// mu guards caches, not the caches in it: each cache has its own
 	// mutex, and creating a glyph image must not block another size's
@@ -134,12 +134,12 @@ type glyphImageCaches struct {
 }
 
 func (c *glyphImageCaches) getOrCreate(face *GoTextFace, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
-	return c.cacheForFace(face, ebiten.DurationTime()).getOrCreate(key, create)
+	return c.cacheForFace(face, ebiten.Tick()).getOrCreate(key, create)
 }
 
 // cacheForFace returns the cache for the size of the given face, creating it if necessary.
-// n is the current logical time.
-func (c *glyphImageCaches) cacheForFace(face *GoTextFace, n ebiten.Duration) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
+// n is the current tick.
+func (c *glyphImageCaches) cacheForFace(face *GoTextFace, n int64) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -164,7 +164,7 @@ func (c *glyphImageCaches) cacheForFace(face *GoTextFace, n ebiten.Duration) *ca
 		// but this is fine.
 		if len(c.caches) > glyphImageCachesSoftLimit {
 			for size, e := range c.caches {
-				if e.atime >= n-ebiten.DurationSecond {
+				if e.atime >= n-cacheLifetime {
 					continue
 				}
 				delete(c.caches, size)

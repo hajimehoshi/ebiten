@@ -67,7 +67,7 @@ type Image struct {
 	// so the map must be protected by a mutex.
 	subImageCacheM sync.Mutex
 
-	// atime is the last access time.
+	// atime is the last access tick.
 	// atime needs to be an atomic value since a sub-image atime can be accessed from its original image.
 	atime atomic.Int64
 
@@ -106,7 +106,7 @@ func (i *Image) copyCheck() {
 }
 
 func (i *Image) updateAccessTime() {
-	i.atime.Store(int64(DurationTime()))
+	i.atime.Store(Tick())
 }
 
 // Size returns the size of the image.
@@ -1213,9 +1213,8 @@ func (i *Image) SubImage(r image.Rectangle) image.Image {
 	if tick := Tick(); i.subImageGCLastTick < tick {
 		i.subImageGCLastTick = tick
 
-		now := DurationTime()
 		for _, img := range i.subImageCache {
-			if Duration(img.atime.Load()) < now-DurationSecond {
+			if img.atime.Load() < tick-60 {
 				delete(i.subImageCache, img.bounds)
 			}
 		}
