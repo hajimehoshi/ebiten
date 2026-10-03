@@ -537,6 +537,10 @@ func (g *nativeGamepadHID) vibrate(duration time.Duration, strongMagnitude float
 	// TODO: Implement this (#1452)
 }
 
+func (g *nativeGamepadHID) isVibrationAvailable() bool {
+	return false // TODO: Implement vibration (#1452)
+}
+
 // hidDeviceRegistryIDForService returns the registry ID of the HID device containing serviceID.
 func hidDeviceRegistryIDForService(serviceID uint64) uint64 {
 	matching := _IORegistryEntryIDMatching(serviceID)

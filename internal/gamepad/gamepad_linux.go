@@ -993,6 +993,10 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 	g.writeFFEvent(1)
 }
 
+func (g *nativeGamepadImpl) isVibrationAvailable() bool {
+	return g.supportsRumble && g.fdPlus1 != 0
+}
+
 // writeFFEvent starts (value 1) or stops (value 0) playing the uploaded force
 // feedback effect. It does nothing when no effect has been uploaded.
 func (g *nativeGamepadImpl) writeFFEvent(value int32) {

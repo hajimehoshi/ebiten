@@ -295,6 +295,10 @@ func (g *nativeGamepadVirtual) vibrate(duration time.Duration, strongMagnitude f
 	g.vibrationPending = true
 }
 
+func (g *nativeGamepadVirtual) isVibrationAvailable() bool {
+	return true // vibrations are recorded for the host
+}
+
 // setTouches places the touches in the surfaces' slots. A touch whose ID holds a slot keeps it; a new
 // touch takes a free slot, and is ignored while there is none.
 func (g *nativeGamepadVirtual) setTouches(surfaces [][]VirtualGamepadTouch) {
