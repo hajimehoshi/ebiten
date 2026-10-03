@@ -108,7 +108,7 @@ func (g *Game) Update() error {
 			g.mousePanX, g.mousePanY = ebiten.CursorPosition()
 		} else {
 			x, y := ebiten.CursorPosition()
-			dx, dy := float64(g.mousePanX-x)*(pan/100), float64(g.mousePanY-y)*(pan/100)
+			dx, dy := float64(g.mousePanX-x)/g.camScale, float64(g.mousePanY-y)/g.camScale
 			g.camX, g.camY = g.camX-dx, g.camY+dy
 			g.mousePanX, g.mousePanY = x, y
 		}
