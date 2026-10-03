@@ -99,3 +99,22 @@ func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
 	}
 	g.Vibrate(options.Duration, options.StrongMagnitude, options.WeakMagnitude)
 }
+
+// IsGamepadVibrationAvailable reports whether VibrateGamepad can vibrate the specified gamepad.
+//
+// IsGamepadVibrationAvailable reports false when VibrateGamepad would do nothing for the gamepad:
+// on the platforms and for the gamepads where VibrateGamepad is not supported (see VibrateGamepad),
+// and for gamepads without vibration motors when the platform tells.
+// A gamepad reported as available might still not vibrate, when the platform cannot tell
+// whether it has motors.
+//
+// IsGamepadVibrationAvailable returns false before the game starts.
+//
+// IsGamepadVibrationAvailable is concurrent-safe.
+func IsGamepadVibrationAvailable(gamepadID GamepadID) bool {
+	g := gamepad.Get(gamepadID)
+	if g == nil {
+		return false
+	}
+	return g.IsVibrationAvailable()
+}

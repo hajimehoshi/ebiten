@@ -296,6 +296,7 @@ type nativeGamepad interface {
 	isButtonPressed(button int) bool
 	hatState(hat int) int
 	vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64)
+	isVibrationAvailable() bool
 }
 
 func (g *Gamepad) update(gamepads *gamepads) error {
@@ -564,6 +565,14 @@ func (g *Gamepad) Vibrate(duration time.Duration, strongMagnitude float64, weakM
 	defer g.m.Unlock()
 
 	g.native.vibrate(duration, strongMagnitude, weakMagnitude)
+}
+
+// IsVibrationAvailable is concurrent-safe.
+func (g *Gamepad) IsVibrationAvailable() bool {
+	g.m.Lock()
+	defer g.m.Unlock()
+
+	return g.native.isVibrationAvailable()
 }
 
 // motorMagnitude converts a magnitude in the range 0 to 1 to a vibration motor magnitude.
