@@ -92,7 +92,7 @@ type Sprites struct {
 }
 
 func (s *Sprites) Update() {
-	for i := 0; i < s.num; i++ {
+	for i := range s.num {
 		s.sprites[i].Update()
 	}
 }
