@@ -164,8 +164,7 @@ after bounding the batch. The number of index entries is not itself limited to
 `DrawTriangles32` accepts `uint32` indices but still has `MaxVertexCount` and
 memory limits. Preserve blend/order constraints when splitting or sorting.
 Verify the quads immediately before and after a batch boundary and the final
-partial batch. Source pixel coordinates, vertex color modes, and opaque panel
-examples are in [rendering API contracts](../using-ebitengine-rendering-apis/SKILL.md).
+partial batch.
 
 ## Verify the actual commands
 
