@@ -225,7 +225,7 @@ op.Uniforms = map[string]any{
 dst.DrawRectShader(src.Bounds().Dx(), src.Bounds().Dy(), shader, op)
 ```
 
-### `DrawTrianglesShader`
+### `DrawTrianglesShader32`
 
 Needed whenever source images differ in size from each other or from the
 destination area, or the geometry is not an axis-aligned rectangle. Set both
@@ -241,13 +241,13 @@ vs := []ebiten.Vertex{
 	{DstX: float32(db.Min.X), DstY: float32(db.Max.Y), SrcX: float32(sb.Min.X), SrcY: float32(sb.Max.Y), ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
 	{DstX: float32(db.Max.X), DstY: float32(db.Max.Y), SrcX: float32(sb.Max.X), SrcY: float32(sb.Max.Y), ColorR: 1, ColorG: 1, ColorB: 1, ColorA: 1},
 }
-is := []uint16{0, 1, 2, 1, 2, 3}
+is := []uint32{0, 1, 2, 1, 2, 3}
 
 op := &ebiten.DrawTrianglesShaderOptions{}
 op.Images[0] = src
 op.Images[1] = mask
 op.Uniforms = map[string]any{"Time": float32(t)}
-dst.DrawTrianglesShader(vs, is, shader, op)
+dst.DrawTrianglesShader32(vs, is, shader, op)
 ```
 
 `ColorR/G/B/A` reach the shader as the `color vec4` parameter, interpolated and
