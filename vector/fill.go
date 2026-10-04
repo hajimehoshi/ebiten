@@ -70,6 +70,14 @@ type DrawPathOptions struct {
 	// The default (zero) value is false.
 	AntiAlias bool
 
+	// Clip restricts the drawing to the given region.
+	// The default (zero) value is nil, which imposes no restriction.
+	// Paths, nodes, and slices may be modified after the drawing call returns.
+	// For a nil drawing path or one without sub-paths, [DrawPathOptions.Clip] is ignored.
+	// Otherwise, typed nil clip pointers, invalid [ClipSet.Operation] or [PathClip.FillRule]
+	// values, and cyclic clip definitions cause a panic.
+	Clip Clip
+
 	// ColorScale is the color scale to apply to the path.
 	// The default (zero) value is identity, which is (1, 1, 1, 1) (white).
 	ColorScale ebiten.ColorScale
@@ -95,7 +103,22 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 		fillOptions = &FillOptions{}
 	}
 
+	var hasEmptyClip bool
+	var clipState *clipPreparationState
+	if drawPathOptions.Clip != nil {
+		clipState = theClipPreparationStatesPool.Get().(*clipPreparationState)
+		defer clipState.release()
+		validateClip(drawPathOptions.Clip, clipState.visitStates)
+		hasEmptyClip = isEmptyClip(drawPathOptions.Clip, clipState.emptyClips)
+	}
+
 	bounds := dst.Bounds()
+	if hasEmptyClip {
+		switch fillOptions.FillRule {
+		case FillRuleNonZero, FillRuleEvenOdd:
+			return
+		}
+	}
 
 	// Get the original image if dst is a sub-image to integrate the callbacks.
 	dst = theImageBridge.OriginalImage(dst)
@@ -124,7 +147,11 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	s.antialias = drawPathOptions.AntiAlias
 	s.blend = drawPathOptions.Blend
 	s.fillRule = fillOptions.FillRule
-	s.addPath(path, bounds, drawPathOptions.ColorScale)
+	idx := s.addPath(path, bounds, drawPathOptions.ColorScale)
+	s.drawPathIndices = append(s.drawPathIndices, idx)
+	if drawPathOptions.Clip != nil {
+		s.addClip(idx, path, drawPathOptions.Clip, bounds, clipState.pathIndices, clipState.visitStates)
+	}
 
 	// Use an independent callback function to avoid unexpected captures.
 	theCallbackTokens[key] = theImageBridge.AddUsage(dst, fillPathCallback)
@@ -282,6 +309,10 @@ var (
 var theAtlas atlas
 
 type fillPathsState struct {
+	drawPathIndices         []int
+	drawPathIndexToClipPlan map[int]*clipPlan
+
+	// paths contains both drawing paths and clip paths.
 	paths  []*Path
 	colors []ebiten.ColorScale
 	bounds []image.Rectangle
@@ -299,6 +330,11 @@ type fillPathsState struct {
 }
 
 func (f *fillPathsState) reset() {
+	f.drawPathIndices = f.drawPathIndices[:0]
+	for _, plan := range f.drawPathIndexToClipPlan {
+		plan.release()
+	}
+	clear(f.drawPathIndexToClipPlan)
 	for _, p := range f.paths {
 		p.Reset()
 	}
@@ -307,16 +343,21 @@ func (f *fillPathsState) reset() {
 	f.colors = slices.Delete(f.colors, 0, len(f.colors))
 }
 
-func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.ColorScale) {
+const invalidPathIndex = -1
+
+// addPath adds a snapshot of path and returns its index.
+// A nil path returns invalidPathIndex without adding a path.
+func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.ColorScale) int {
 	if path == nil {
-		return
+		return invalidPathIndex
 	}
 
-	f.paths = slices.Grow(f.paths, 1)[:len(f.paths)+1]
-	if f.paths[len(f.paths)-1] == nil {
-		f.paths[len(f.paths)-1] = &Path{}
+	idx := len(f.paths)
+	f.paths = slices.Grow(f.paths, 1)[:idx+1]
+	if f.paths[idx] == nil {
+		f.paths[idx] = &Path{}
 	}
-	dst := f.paths[len(f.paths)-1]
+	dst := f.paths[idx]
 	dst.addSubPaths(len(path.subPaths))
 	for i, subPath := range path.subPaths {
 		dst.subPaths[i].start = subPath.start
@@ -327,6 +368,7 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 	}
 	f.bounds = append(f.bounds, bounds)
 	f.colors = append(f.colors, clr)
+	return idx
 }
 
 // fillPaths renders the paths added by addPath with their colors onto dst.
@@ -345,6 +387,11 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 	}()
 
 	theAtlas.setPaths(dst.Bounds(), f.paths, f.bounds, f.antialias)
+	var hasClip bool
+	for i, plan := range f.drawPathIndexToClipPlan {
+		plan.discardMissingStencils(f.antialias)
+		hasClip = hasClip || plan.kind != clipBatchKindEmpty && theAtlas.stencilBufferImageAt(i, f.antialias, 0) != nil
+	}
 
 	offsetAndColors := offsetAndColorsNonAA
 	if f.antialias {
@@ -549,8 +596,20 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		}
 	}
 
+	var clippedImages []*ebiten.Image
+	var maskUnclipped bool
+	if hasClip {
+		clippedImages = make([]*ebiten.Image, len(f.drawPathIndices))
+		maskUnclipped = f.canMaskUnclippedPaths()
+	}
+
 	// Render the stencil buffer with the specified color.
-	for i, path := range f.paths {
+	var clipChunkEnd int
+	for j, i := range f.drawPathIndices {
+		if len(clippedImages) > 0 && j == clipChunkEnd {
+			clipChunkEnd = f.prepareClipImages(clippedImages, j, maskUnclipped)
+		}
+		path := f.paths[i]
 		if path == nil {
 			continue
 		}
@@ -559,10 +618,30 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		if stencilImage == nil {
 			continue
 		}
+		if plan := f.drawPathIndexToClipPlan[i]; plan != nil && plan.kind == clipBatchKindEmpty {
+			switch f.fillRule {
+			case FillRuleNonZero, FillRuleEvenOdd:
+				continue
+			default:
+				panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
+			}
+		}
+		var clipped *ebiten.Image
+		if len(clippedImages) > 0 {
+			clipped = clippedImages[j]
+			if clipped != nil {
+				stencilImage = clipped
+			}
+		}
 		srcRegion := stencilImage.Bounds()
+		if clipped != nil && f.antialias {
+			srcRegion.Max.X = srcRegion.Min.X + srcRegion.Dx()/clipSamplePlanesAA
+		}
 
 		var offsetX, offsetY float32
-		if f.antialias {
+		if clipped != nil && f.antialias {
+			offsetX = float32(srcRegion.Dx())
+		} else if f.antialias {
 			stencilImage1 := theAtlas.stencilBufferImageAt(i, f.antialias, 1)
 			offsetX = float32(stencilImage1.Bounds().Min.X - stencilImage.Bounds().Min.X)
 			offsetY = float32(stencilImage1.Bounds().Min.Y - stencilImage.Bounds().Min.Y)
@@ -650,6 +729,9 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		default:
 			panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
 		}
+		if clipped != nil {
+			shader = ensureClipResolveShader(f.antialias)
+		}
 		dst2 := dst
 		var recycle bool
 		if dst.Bounds() != f.bounds[i] {
@@ -659,6 +741,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		dst2.DrawTrianglesShader32(vs, is, shader, op)
 		if recycle {
 			dst2.Recycle()
+		}
+		if clipped != nil {
+			theClipImages.put(clipped, f.drawPathIndexToClipPlan[i] == nil || f.drawPathIndexToClipPlan[i].kind != clipBatchKindNone)
+			clippedImages[j] = nil
 		}
 	}
 }
