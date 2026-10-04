@@ -153,6 +153,9 @@ can force queued rendering to complete and transfer pixels to the CPU. Keep CPU
 copies for CPU-side queries when appropriate. Consolidate necessary pixel
 uploads; do not rebuild static image contents every frame.
 
+For source pixel coordinates, vertex color modes, and opaque panel examples,
+see [rendering API contracts](../using-ebitengine-rendering-apis/SKILL.md).
+
 ## Verify the actual commands
 
 Run the application with `-tags=ebitenginedebug` to inspect internal graphics

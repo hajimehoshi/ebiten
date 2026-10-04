@@ -113,6 +113,10 @@ For animated zoom, consider rendering at a suitable larger size and scaling down
 as the face's godoc suggests. Treat this as a quality/cache tradeoff, not a reason
 to rasterize all static UI at a small size.
 
+For text anchors, positioned ink bounds, fixed-point units, and per-glyph
+transforms, read [text layout contracts](../using-ebitengine-rendering-apis/references/text-layout.md)
+before implementing a custom cache or layout helper.
+
 ## Choose sampling and placement deliberately
 
 - `FilterNearest` preserves hard texel boundaries. Integer magnification and
