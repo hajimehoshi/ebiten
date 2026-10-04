@@ -73,15 +73,18 @@ func (c *dummyContext) NewPlayer(r io.Reader) player {
 
 // stopPlayers stops the players' goroutines reading their sources, and waits for them to exit.
 func (c *dummyContext) stopPlayers() {
-	c.mu.Lock()
-	players := c.players
-	c.players = nil
-	c.mu.Unlock()
-
-	for _, p := range players {
+	for _, p := range c.takePlayers() {
 		p.PauseAndStopReading()
 		p.readers.Wait()
 	}
+}
+
+func (c *dummyContext) takePlayers() []*dummyPlayer {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	players := c.players
+	c.players = nil
+	return players
 }
 
 func (c *dummyContext) MaxBufferSize() int {
@@ -349,23 +352,21 @@ func ContextCreatedForTesting() bool {
 }
 
 // ResetContextForTesting discards the current context, so that a test can create a new one.
-// ResetContextForTesting waits for the goroutines the context and its players started to exit, so
-// that they do not outlive the test.
+// ResetContextForTesting stops the goroutine updating the players and the goroutines reading the
+// players' sources, and waits for them to exit.
 func ResetContextForTesting() {
+	if c := takeContextForTesting(); c != nil {
+		c.dispose()
+	}
+	dummyContextForTesting.stopPlayers()
+}
+
+func takeContextForTesting() *Context {
 	theContextLock.Lock()
+	defer theContextLock.Unlock()
 	c := theContext
 	theContext = nil
-	theContextLock.Unlock()
-
-	if c != nil {
-		c.m.Lock()
-		c.disposed = true
-		c.cond.Broadcast()
-		c.m.Unlock()
-		c.updater.Wait()
-	}
-
-	dummyContextForTesting.stopPlayers()
+	return c
 }
 
 func (i *InfiniteLoop) SetNoBlendForTesting(value bool) {

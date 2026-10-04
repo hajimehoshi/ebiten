@@ -71,8 +71,7 @@ func TestGC(t *testing.T) {
 			if err := audio.UpdateForTesting(); err != nil {
 				t.Error(err)
 			}
-			// 200[ms] should be enough for all the bytes to be consumed. The test runs on the fake
-			// clock of synctest, so this does not take real time.
+			// 200[ms] should be enough for all the bytes to be consumed.
 			time.Sleep(200 * time.Millisecond)
 		}
 		t.Errorf("time out")
@@ -658,8 +657,7 @@ func TestPositionNotGrowingAfterFinished(t *testing.T) {
 		}
 
 		p.Play()
-		// Wait until the player finishes its source. The test runs on the fake clock of synctest, so
-		// the deadline does not take real time.
+		// Wait until the player finishes its source.
 		var finished bool
 		deadline := time.Now().Add(10 * time.Second)
 		for time.Now().Before(deadline) {
@@ -889,7 +887,6 @@ func TestPlayOnIdleContext(t *testing.T) {
 		}
 
 		// waitUntil polls cond until it holds or the deadline passes, and reports whether it held.
-		// The test runs on the fake clock of synctest, so the deadline does not take real time.
 		waitUntil := func(cond func() bool) bool {
 			deadline := time.Now().Add(10 * time.Second)
 			for time.Now().Before(deadline) {

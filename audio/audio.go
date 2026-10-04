@@ -233,6 +233,19 @@ func (c *Context) waitForPlayingPlayers() bool {
 	return !c.disposed
 }
 
+// dispose makes the goroutine updating the players exit, and waits for it to exit.
+func (c *Context) dispose() {
+	c.markDisposed()
+	c.updater.Wait()
+}
+
+func (c *Context) markDisposed() {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.disposed = true
+	c.cond.Broadcast()
+}
+
 func (c *Context) addPlayingPlayer(p *playerImpl) {
 	c.m.Lock()
 	defer c.m.Unlock()
