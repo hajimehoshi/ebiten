@@ -90,6 +90,9 @@ an exact batching condition matters.
   shader or varying uniforms for an operation vertex colors already express.
 - Do not replace ordinary sprite calls with manual triangle assembly solely
   because there are many calls. First determine whether they already batch.
+- Use `DrawTriangles32` / `DrawTrianglesShader32` with `uint32` indices for
+  manually assembled meshes. The `uint16` versions convert indices to `uint32`
+  internally and can address only 65536 vertices.
 
 ### Kage builtins can introduce implicit uniforms
 

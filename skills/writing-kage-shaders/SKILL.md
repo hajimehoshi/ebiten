@@ -44,6 +44,7 @@ Check every one of these before declaring a shader done.
       coordinate space, never image N's.
 - [ ] The returned `vec4` is premultiplied alpha (each of `.r/.g/.b` ≤ `.a`).
 - [ ] No integer literal division in a float context (`2/3` is `0`).
+- [ ] `DrawRectShader`: every non-nil source image is exactly `width`×`height`.
 - [ ] The shader compiles: run the `go test` check in
       [Verifying a shader compiles](#verifying-a-shader-compiles).
 
