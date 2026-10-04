@@ -334,7 +334,7 @@ func (t *Tile) Draw(boardImage *ebiten.Image) {
 		x = mean(x, nx, rate)
 		y = mean(y, ny, rate)
 	case 0 < t.startPoppingCount:
-		rate := 1 - float64(t.startPoppingCount-1)/float64(maxPoppingCount-1)
+		rate := 1 - float64(t.startPoppingCount)/float64(maxPoppingCount)
 		scale := meanF(0.0, 1.0, rate)
 		numberScale = scale
 		op.GeoM.Translate(float64(-tileSize/2), float64(-tileSize/2))
