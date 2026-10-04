@@ -90,6 +90,9 @@ an exact batching condition matters.
   shader or varying uniforms for an operation vertex colors already express.
 - Do not replace ordinary sprite calls with manual triangle assembly solely
   because there are many calls. First determine whether they already batch.
+- Use `DrawTriangles32` / `DrawTrianglesShader32` with `uint32` indices for
+  manually assembled meshes. The `uint16` versions convert indices to `uint32`
+  internally and can address only 65536 vertices.
 
 ### Kage builtins can introduce implicit uniforms
 
@@ -152,11 +155,6 @@ Keep GPU readback (`At`, `ReadPixels`) out of per-object drawing loops. Readback
 can force queued rendering to complete and transfer pixels to the CPU. Keep CPU
 copies for CPU-side queries when appropriate. Consolidate necessary pixel
 uploads; do not rebuild static image contents every frame.
-
-## Use 32-bit indices for manually assembled meshes
-
-Use `DrawTriangles32` / `DrawTrianglesShader32` with `uint32` indices for
-manually assembled meshes.
 
 ## Verify the actual commands
 
