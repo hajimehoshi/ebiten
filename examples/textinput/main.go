@@ -146,15 +146,13 @@ func (t *TextField) textIndexByCursorPosition(x, y int) (int, bool) {
 		}
 		if r == '\n' {
 			x1 = int(math.MaxInt32)
-		} else if i < len(txt) {
+		} else {
 			nextI := i + 1
 			for !utf8.ValidString(txt[i:nextI]) {
 				nextI++
 			}
 			nextAdvance := text.Advance(txt[lineStart:nextI], fontFace)
 			x1 = int((currentAdvance + nextAdvance) / 2)
-		} else {
-			x1 = int(currentAdvance)
 		}
 		if x0 <= x && x < x1 && nlCount*lineSpacingInPixels <= y && y < (nlCount+1)*lineSpacingInPixels {
 			return i, true

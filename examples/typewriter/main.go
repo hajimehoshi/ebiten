@@ -69,8 +69,8 @@ func (g *Game) Update() error {
 
 	// If the backspace key is pressed, remove one character.
 	if repeatingKeyPressed(ebiten.KeyBackspace) {
-		if len(g.text) >= 1 {
-			g.text = g.text[:len(g.text)-1]
+		if rs := []rune(g.text); len(rs) >= 1 {
+			g.text = string(rs[:len(rs)-1])
 		}
 	}
 
