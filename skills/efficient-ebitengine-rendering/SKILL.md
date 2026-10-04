@@ -153,18 +153,10 @@ can force queued rendering to complete and transfer pixels to the CPU. Keep CPU
 copies for CPU-side queries when appropriate. Consolidate necessary pixel
 uploads; do not rebuild static image contents every frame.
 
-## Bound manually assembled meshes before casting indices
+## Use 32-bit indices for manually assembled meshes
 
-`DrawTriangles` uses `uint16` indices. For four-vertex quads, limit a batch to
-`min(1<<16, ebiten.MaxVertexCount)/4*4` vertices, flush before appending a quad
-that would exceed it, and restart local indices at zero. Cast to `uint16` only
-after bounding the batch. The number of index entries is not itself limited to
-65536; each index value must address a valid vertex.
-
-`DrawTriangles32` accepts `uint32` indices but still has `MaxVertexCount` and
-memory limits. Preserve blend/order constraints when splitting or sorting.
-Verify the quads immediately before and after a batch boundary and the final
-partial batch.
+Use `DrawTriangles32` / `DrawTrianglesShader32` with `uint32` indices for
+manually assembled meshes.
 
 ## Verify the actual commands
 

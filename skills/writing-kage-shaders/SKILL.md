@@ -44,35 +44,9 @@ Check every one of these before declaring a shader done.
       coordinate space, never image N's.
 - [ ] The returned `vec4` is premultiplied alpha (each of `.r/.g/.b` ≤ `.a`).
 - [ ] No integer literal division in a float context (`2/3` is `0`).
+- [ ] `DrawRectShader`: every non-nil source image is exactly `width`×`height`.
 - [ ] The shader compiles: run the `go test` check in
       [Verifying a shader compiles](#verifying-a-shader-compiles).
-
-## Validate the Go draw contract too
-
-`DrawRectShader(width, height, ...)` requires every non-nil source image to have
-those rectangle dimensions. Coordinate remapping in Kage cannot bypass this Go
-check. In pixel-unit `DrawTrianglesShader`, differently sized sources can be
-used; do not transfer that freedom to `DrawRectShader`.
-
-```go
-op := &ebiten.DrawRectShaderOptions{
-    Images: [4]*ebiten.Image{oldImage, nextImage},
-    Uniforms: map[string]any{"Progress": float32(progress)},
-}
-dst.DrawRectShader(width, height, shader, op)
-```
-
-Downsampled bloom is still possible: resample into a smaller image, blur between
-matching small images, then resample for full-size composition. Keep source and
-destination separate and account for filter and alpha behavior. Image-free
-procedural shaders can leave Images unset; explicitly choose image-local or
-draw-local coordinates as described below.
-
-`go build` does not compile an embedded Kage program. Execute `NewShader`, then
-draw on the target backend. When shader bytes are embedded, rebuild after edits;
-when they are read at runtime, reload the changed file instead. A variable may
-be assigned from an inner scope and shadowed in a separate scope; inspect the
-actual failing source rather than assuming all repeated names are forbidden.
 
 ## The coordinate model
 
@@ -434,9 +408,6 @@ Kage source kept with a `.go` extension so that Go tooling skips it, which is
 what `examples/shader/*.go` in this repository does.
 
 ## Reference
-
-- [reference/ray-integration.md](reference/ray-integration.md) — coordinate, step-length,
-  transmittance, and camera-size checks for custom 3D/volume shaders.
 
 - [reference/porting-to-kage.md](reference/porting-to-kage.md) — construct-by-construct
   translation table for GLSL, Shadertoy, HLSL, and Godot, plus the CPU-side
