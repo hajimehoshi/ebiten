@@ -326,7 +326,6 @@ func TestVirtualGamepadVibrationAvailable(t *testing.T) {
 	if g0 == nil {
 		t.Fatal("Get(0) = nil; want a gamepad")
 	}
-	// A virtual gamepad records the vibrations for its host, so it always takes them.
 	if !g0.IsVibrationAvailable() {
 		t.Error("IsVibrationAvailable() = false; want true for a virtual gamepad")
 	}
