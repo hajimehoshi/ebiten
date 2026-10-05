@@ -1,4 +1,4 @@
-# Notice
+# Third-Party Licenses
 
 Ebitengine bundles the following third-party libraries. Their licenses are reproduced below.
 

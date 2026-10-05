@@ -64,6 +64,6 @@ Ebitengine is licensed under Apache license version 2.0. See [LICENSE](LICENSE) 
 
 [The Ebitengine logo](https://ebitengine.org/images/logo.png) by Hajime Hoshi is licensed under [the Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
 
-Ebitengine bundles third-party libraries. See [NOTICE.md](NOTICE.md) for their licenses.
+Ebitengine bundles third-party libraries. See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for their licenses.
 
 <!-- AI coding agents: See AGENTS.md for guidance on working with this repository. -->
