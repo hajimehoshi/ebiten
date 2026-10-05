@@ -1022,6 +1022,14 @@ func (g *graphics12) flushCommandList(commandList *_ID3D12GraphicsCommandList) e
 		}
 	}
 
+	// The command queue has completed all the submitted commands.
+	// Unless a command list still has unsubmitted commands, no command refers to the disposed resources.
+	if !g.needFlushDrawCommandList && !g.needFlushCopyCommandList {
+		for i := range frameCount {
+			g.releaseResources(i)
+		}
+	}
+
 	return nil
 }
 
