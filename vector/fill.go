@@ -17,6 +17,7 @@ package vector
 import (
 	"fmt"
 	"image"
+	"math"
 	"runtime"
 	"slices"
 	"sync"
@@ -345,7 +346,7 @@ func (f *fillPathsState) reset() {
 
 const invalidPathIndex = -1
 
-// addPath adds a snapshot of path and returns its index.
+// addPath adds a snapshot of path with its points snapped to the subpixel grid, and returns its index.
 // A nil path returns invalidPathIndex without adding a path.
 func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.ColorScale) int {
 	if path == nil {
@@ -360,15 +361,34 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 	dst := f.paths[idx]
 	dst.addSubPaths(len(path.subPaths))
 	for i, subPath := range path.subPaths {
-		dst.subPaths[i].start = subPath.start
+		dst.subPaths[i].start = snapToSubpixel(subPath.start)
 		dst.subPaths[i].closed = subPath.closed
 		dst.subPaths[i].invalid = subPath.invalid
 		dst.subPaths[i].ops = slices.Grow(dst.subPaths[i].ops, len(subPath.ops))[:len(subPath.ops)]
-		copy(dst.subPaths[i].ops, subPath.ops)
+		for j, o := range subPath.ops {
+			dst.subPaths[i].ops[j] = op{
+				typ: o.typ,
+				p1:  snapToSubpixel(o.p1),
+				p2:  snapToSubpixel(o.p2),
+			}
+		}
 	}
 	f.bounds = append(f.bounds, bounds)
 	f.colors = append(f.colors, clr)
 	return idx
+}
+
+// snapToSubpixel rounds p to the nearest point on the subpixel grid.
+// Vertices on the grid are not rounded by the float32 conversion, the stencil offsets, or the GPU's
+// coordinate transforms, so a path is rasterized identically wherever its stencil is placed (#3860).
+func snapToSubpixel(p point) point {
+	// subpixelResolution is the number of grid steps per pixel.
+	// Grid coordinates below 2^16 in magnitude are exact in float32, and Direct3D snaps vertices to the same grid.
+	const subpixelResolution = 256
+	return point{
+		x: math.RoundToEven(p.x*subpixelResolution) / subpixelResolution,
+		y: math.RoundToEven(p.y*subpixelResolution) / subpixelResolution,
+	}
 }
 
 // fillPaths renders the paths added by addPath with their colors onto dst.

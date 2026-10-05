@@ -44,6 +44,27 @@ func clipCircle() *vector.Path {
 	return &p
 }
 
+// clipPolygon returns a regular polygon approximating clipCircle.
+// Straight edges are rasterized identically wherever their stencil is placed in the atlas, but samples very close
+// to a curve can flip with the placement (#3860). Use clipPolygon when a pixel comparison depends on the edges of
+// a shape whose copies are placed differently in the atlas, such as a clip path against the shape drawn alone.
+func clipPolygon() *vector.Path {
+	const n = 64
+	var p vector.Path
+	for i := range n {
+		a := 2 * math.Pi * float64(i) / n
+		x := float32(24.375 + 17*math.Cos(a))
+		y := float32(24.375 + 17*math.Sin(a))
+		if i == 0 {
+			p.MoveTo(x, y)
+			continue
+		}
+		p.LineTo(x, y)
+	}
+	p.Close()
+	return &p
+}
+
 func pathClip(paths ...*vector.Path) *vector.ClipSet {
 	clip := &vector.ClipSet{}
 	for _, path := range paths {
@@ -106,7 +127,7 @@ func TestClipViewport(t *testing.T) {
 					var shape vector.Path
 					transform := &vector.AddPathOptions{}
 					transform.GeoM.Translate(float64(i%8)*36-16, float64(i/8)*72-16)
-					shape.AddPath(clipCircle(), transform)
+					shape.AddPath(clipPolygon(), transform)
 					op := &vector.DrawPathOptions{
 						AntiAlias: aa,
 					}
@@ -233,7 +254,7 @@ func TestClipComposition(t *testing.T) {
 	right := clipRectangle(28, 4, 44, 36)
 	top := clipRectangle(0, 0, 48, 20)
 	bottom := clipRectangle(0, 20, 48, 48)
-	circle := clipCircle()
+	polygon := clipPolygon()
 	var disjoint, nested, opposite, nonzeroHole vector.Path
 	disjoint.AddPath(left, nil)
 	disjoint.AddPath(right, nil)
@@ -270,9 +291,9 @@ func TestClipComposition(t *testing.T) {
 			want:  &vector.Path{},
 		},
 		{
-			name:  "curve",
-			clips: []vector.Clip{pathClip(circle)},
-			want:  circle,
+			name:  "polygon",
+			clips: []vector.Clip{pathClip(polygon)},
+			want:  polygon,
 		},
 		{
 			name:  "disjoint-union",
@@ -291,8 +312,8 @@ func TestClipComposition(t *testing.T) {
 		},
 		{
 			name:  "shared-boundary",
-			clips: []vector.Clip{pathClip(clipRectangle(0, 0, 24.375, 48), clipRectangle(24.375, 0, 48, 48)), pathClip(circle)},
-			want:  circle,
+			clips: []vector.Clip{pathClip(clipRectangle(0, 0, 24.375, 48), clipRectangle(24.375, 0, 48, 48)), pathClip(polygon)},
+			want:  polygon,
 		},
 		{
 			name: "even-odd-hole",
@@ -843,7 +864,7 @@ func TestClipMissingStencil(t *testing.T) {
 }
 
 func TestClipMixedBlends(t *testing.T) {
-	shape := clipCircle()
+	shape := clipPolygon()
 	shape.AddPath(clipRectangle(16, 16, 32, 32), nil)
 	clip := &vector.PathClip{
 		Path: clipRectangle(0, 0, 24, 64),
@@ -973,7 +994,7 @@ func TestClipNodeSnapshot(t *testing.T) {
 func TestClipStrokeAndSnapshot(t *testing.T) {
 	for _, aa := range []bool{false, true} {
 		t.Run(fmt.Sprint(aa), func(t *testing.T) {
-			path := clipCircle()
+			path := clipPolygon()
 			stroke := &vector.StrokeOptions{
 				Width: 3.5,
 			}
@@ -1124,9 +1145,9 @@ func TestClipPartialStroke(t *testing.T) {
 			op := &vector.DrawPathOptions{
 				AntiAlias: aa,
 			}
-			vector.StrokePath(want.SubImage(bounds).(*ebiten.Image), clipCircle(), stroke, op)
+			vector.StrokePath(want.SubImage(bounds).(*ebiten.Image), clipPolygon(), stroke, op)
 			op.Clip = clipRoots([]vector.Clip{pathClip(clipRectangle(0, 0, 24, 48))})
-			vector.StrokePath(got, clipCircle(), stroke, op)
+			vector.StrokePath(got, clipPolygon(), stroke, op)
 			compareClipPixels(t, clipPixels(got), clipPixels(want))
 			got.Deallocate()
 			want.Deallocate()
@@ -1337,10 +1358,10 @@ func TestClipTransformed(t *testing.T) {
 func TestClipPointSampledOpacityGroup(t *testing.T) {
 	const scale = 4
 	const size = 48 * scale
-	var circle, rectangle vector.Path
+	var polygon, rectangle vector.Path
 	transform := &vector.AddPathOptions{}
 	transform.GeoM.Scale(scale, scale)
-	circle.AddPath(clipCircle(), transform)
+	polygon.AddPath(clipPolygon(), transform)
 	rectangle.AddPath(clipRectangle(0, 0, 24.375, 48), transform)
 	got := ebiten.NewImage(size, size)
 	defer got.Deallocate()
@@ -1348,12 +1369,12 @@ func TestClipPointSampledOpacityGroup(t *testing.T) {
 	defer want.Deallocate()
 	mask := ebiten.NewImage(size, size)
 	defer mask.Deallocate()
-	vector.FillPath(mask, &circle, nil, nil)
-	for _, shape := range []*vector.Path{&circle, &rectangle} {
+	vector.FillPath(mask, &polygon, nil, nil)
+	for _, shape := range []*vector.Path{&polygon, &rectangle} {
 		op := &vector.DrawPathOptions{}
 		op.ColorScale.ScaleAlpha(0.5)
 		vector.FillPath(want, shape, nil, op)
-		op.Clip = clipRoots([]vector.Clip{pathClip(&circle)})
+		op.Clip = clipRoots([]vector.Clip{pathClip(&polygon)})
 		vector.FillPath(got, shape, nil, op)
 	}
 	maskOp := &ebiten.DrawImageOptions{}
