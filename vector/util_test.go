@@ -23,10 +23,12 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
 func TestMain(m *testing.M) {
+	ui.SetPanicOnErrorOnReadingPixelsForTesting(true)
 	ebiten.SetWindowVisible(false)
 	t.MainWithRunLoop(m)
 }
