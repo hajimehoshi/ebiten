@@ -336,15 +336,21 @@ func (p *Path) cubicTo(x1, y1, x2, y2, x3, y3 float64, level int, allowance floa
 		cur = point{x: x1, y: y1}
 	}
 
+	p0 := cur
+	p1 := point{x: x1, y: y1}
+	p2 := point{x: x2, y: y2}
+	p3 := point{x: x3, y: y3}
+	if p0 == p1 && p0 == p2 && p0 == p3 {
+		// Preserve sub-path initialization without introducing rounding into a single point.
+		p.quadTo(x3, y3, x3, y3)
+		return
+	}
+
 	// Approximate a cubic Bézier curve to a quadratic Bézier curve.
 	// Assume that P0, P1, P2, and P3 are the control points of the cubic Bézier curve C.
 	// mid is the middle control point of the quadratic Bézier curve Q.
 	// mid equals 2 * Q(0.5) - (1/2)*(P0 + P3).
 	// If Q(0.5) = C(0.5) = (1/8)*(P0 + 3*P1 + 3*P2 + P3), mid will be (1/4)*(-P0 + 3*P1 + 3*P2 + -P3).
-	p0 := cur
-	p1 := point{x: x1, y: y1}
-	p2 := point{x: x2, y: y2}
-	p3 := point{x: x3, y: y3}
 	m := point{
 		x: -0.25*p0.x + 0.75*p1.x + 0.75*p2.x - 0.25*p3.x,
 		y: -0.25*p0.y + 0.75*p1.y + 0.75*p2.y - 0.25*p3.y,

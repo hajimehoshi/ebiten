@@ -898,6 +898,48 @@ func TestStrokeRoundCap(t *testing.T) {
 	}
 }
 
+func TestCubicSinglePoint(t *testing.T) {
+	for _, state := range []string{"empty", "open", "closed"} {
+		t.Run(state, func(t *testing.T) {
+			var p vector.Path
+			if state != "empty" {
+				p.MoveTo(1.1, 2.2)
+			}
+			if state == "closed" {
+				p.Close()
+			}
+			p.CubicTo(1.1, 2.2, 1.1, 2.2, 1.1, 2.2)
+			if b := p.Bounds(); !b.Empty() {
+				t.Errorf("Bounds of a single point: got %v, want empty", b)
+			}
+			p.LineTo(5, 6)
+			if got, want := p.Bounds(), image.Rect(1, 2, 5, 6); got != want {
+				t.Errorf("Bounds after LineTo: got %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestArcCollapsedCubic(t *testing.T) {
+	for _, dir := range []vector.Direction{vector.Clockwise, vector.CounterClockwise} {
+		var p vector.Path
+		start := float32(0.5)
+		end := math.Nextafter32(start, 1)
+		if dir == vector.CounterClockwise {
+			start, end = end, start
+		}
+		// The nonzero sweep produces coincident cubic points at float64 precision.
+		p.Arc(0.1, 2.2, 1e-10, start, end, dir)
+		if b := p.Bounds(); !b.Empty() {
+			t.Errorf("Direction %d: Bounds of a collapsed arc: got %v, want empty", dir, b)
+		}
+		p.LineTo(1, 3)
+		if got, want := p.Bounds(), image.Rect(0, 2, 1, 3); got != want {
+			t.Errorf("Direction %d: Bounds after LineTo: got %v, want %v", dir, got, want)
+		}
+	}
+}
+
 func TestQuadCuspIsKept(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(0, 0)
