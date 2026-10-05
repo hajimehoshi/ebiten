@@ -74,12 +74,12 @@ type Context struct {
 
 	m sync.Mutex
 	// cond is signalled under m when a player is added to playingPlayers or when the context is
-	// disposed. The goroutine updating the players waits on it while playingPlayers is empty.
+	// closed. The goroutine updating the players waits on it while playingPlayers is empty.
 	cond *sync.Cond
 
-	// disposed reports that the goroutine updating the players must exit. A context lives until the
+	// closed reports that the goroutine updating the players must exit. A context lives until the
 	// process exits, so this is set only when a test discards the context.
-	disposed bool
+	closed bool
 
 	// updater tracks the goroutine updating the players, so that a test discarding the context can wait
 	// for the goroutine to exit.
@@ -223,26 +223,26 @@ func (c *Context) setReady() {
 }
 
 // waitForPlayingPlayers blocks until at least one player is registered as playing, and reports
-// whether the players should be updated. It returns false once the context is disposed.
+// whether the players should be updated. It returns false once the context is closed.
 func (c *Context) waitForPlayingPlayers() bool {
 	c.m.Lock()
 	defer c.m.Unlock()
-	for len(c.playingPlayers) == 0 && !c.disposed {
+	for len(c.playingPlayers) == 0 && !c.closed {
 		c.cond.Wait()
 	}
-	return !c.disposed
+	return !c.closed
 }
 
-// dispose makes the goroutine updating the players exit, and waits for it to exit.
-func (c *Context) dispose() {
-	c.markDisposed()
+// close makes the goroutine updating the players exit, and waits for it to exit.
+func (c *Context) close() {
+	c.markClosed()
 	c.updater.Wait()
 }
 
-func (c *Context) markDisposed() {
+func (c *Context) markClosed() {
 	c.m.Lock()
 	defer c.m.Unlock()
-	c.disposed = true
+	c.closed = true
 	c.cond.Broadcast()
 }
 

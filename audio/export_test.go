@@ -356,7 +356,7 @@ func ContextCreatedForTesting() bool {
 // players' sources, and waits for them to exit.
 func ResetContextForTesting() {
 	if c := takeContextForTesting(); c != nil {
-		c.dispose()
+		c.close()
 	}
 	dummyContextForTesting.stopPlayers()
 }
