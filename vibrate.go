@@ -99,9 +99,6 @@ func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
 	if g == nil {
 		return
 	}
-	g.Vibrate(options.Duration, options.StrongMagnitude, options.WeakMagnitude)
-}
-
 // IsGamepadVibrationAvailable reports whether VibrateGamepad can vibrate the specified gamepad.
 //
 // IsGamepadVibrationAvailable might report true for a gamepad without vibration motors
