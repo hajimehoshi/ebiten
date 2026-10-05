@@ -1,3 +1,9 @@
+# SPDX-License-Identifier: Zlib
+# SPDX-FileCopyrightText: 1997-2025 Sam Lantinga <slouken@libsdl.org>
+#
+# Derived from SDL_GameControllerDB, filtered by platform for Ebitengine.
+# Source: https://github.com/mdqinc/SDL_GameControllerDB
+
 38653964633230666463343334313533,8BitDo Adapter,a:b0,b:b1,back:b15,dpdown:b12,dpleft:b13,dpright:b14,dpup:b11,leftshoulder:b9,leftstick:b7,lefttrigger:b17,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:b18,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Android,
 36666264316630653965636634386234,8BitDo Adapter 2,a:b0,b:b1,back:b15,dpdown:b12,dpleft:b13,dpright:b14,dpup:b11,guide:b19,leftshoulder:b9,leftstick:b7,lefttrigger:b17,leftx:a0,lefty:a1,rightshoulder:b10,rightstick:b8,righttrigger:b18,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Android,
 38426974446f20417263616465205374,8BitDo Arcade Stick,a:b0,b:b1,back:b15,dpdown:+a1,dpleft:-a0,dpright:+a0,dpup:-a1,guide:b5,leftshoulder:b9,lefttrigger:a4,rightshoulder:b10,righttrigger:a5,rightx:a2,righty:a3,start:b6,x:b2,y:b3,platform:Android,

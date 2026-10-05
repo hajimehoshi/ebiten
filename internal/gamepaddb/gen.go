@@ -51,9 +51,20 @@ const license = `// Copyright 2024 The Ebitengine Authors
 //go:embed gamecontrollerdb.txt
 var gameControllerDB []byte
 
+const databaseNotice = `# SPDX-License-Identifier: Zlib
+# SPDX-FileCopyrightText: 1997-2025 Sam Lantinga <slouken@libsdl.org>
+#
+# Derived from SDL_GameControllerDB, filtered by platform for Ebitengine.
+# Source: https://github.com/mdqinc/SDL_GameControllerDB
+
+`
+
 const dbTemplate string = `{{.License}}
 
 {{.DoNotEdit}}
+
+// The embedded database is adapted from SDL_GameControllerDB.
+// See the SDL_GameControllerDB section in THIRD_PARTY_LICENSES.md for its license.
 
 {{.BuildConstraints}}
 
@@ -138,7 +149,7 @@ func run() error {
 		}
 
 		// Write each chunk into separate text file for embedding into respective generated files.
-		if err = os.WriteFile(fmt.Sprintf("gamecontrollerdb_%s.txt", platform.filenameSuffix), []byte(controllerDB), 0666); err != nil {
+		if err = os.WriteFile(fmt.Sprintf("gamecontrollerdb_%s.txt", platform.filenameSuffix), []byte(databaseNotice+controllerDB), 0666); err != nil {
 			return err
 		}
 
