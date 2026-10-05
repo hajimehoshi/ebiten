@@ -379,12 +379,16 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 }
 
 // snapToSubpixel rounds p to the nearest point on the subpixel grid.
-// Vertices on the grid are not rounded by the float32 conversion, the stencil offsets, or the GPU's
-// coordinate transforms, so a path is rasterized identically wherever its stencil is placed (#3860).
+// Vertices on the grid are not moved by the float32 conversion, the stencil offsets, or the GPU's
+// coordinate transforms and snapping, so a path is rasterized identically wherever its stencil is placed (#3860).
 func snapToSubpixel(p point) point {
 	// subpixelResolution is the number of grid steps per pixel.
-	// Grid coordinates below 2^16 in magnitude are exact in float32, and Direct3D snaps vertices to the same grid.
-	const subpixelResolution = 256
+	// Every rasterizer must represent the grid exactly. A vertex halfway between two points of a rasterizer's grid
+	// is rounded either way by tiny errors in the coordinate transforms, and the errors depend on the placement.
+	// OpenGL and Vulkan guarantee only 4 bits of subpixel precision, which SwiftShader uses.
+	// Grid coordinates are integers divided by a power of two, so float32's 24 bits of precision represent them exactly
+	// between -2^24/subpixelResolution and 2^24/subpixelResolution pixels.
+	const subpixelResolution = 16
 	return point{
 		x: math.RoundToEven(p.x*subpixelResolution) / subpixelResolution,
 		y: math.RoundToEven(p.y*subpixelResolution) / subpixelResolution,
