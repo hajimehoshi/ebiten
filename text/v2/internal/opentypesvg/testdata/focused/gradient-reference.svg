@@ -1,0 +1,6 @@
+<!-- Copyright 2026 The Ebitengine Authors; SPDX-License-Identifier: Apache-2.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+<defs><linearGradient id="derived" xlink:href="#base" x1="0" y1="0" x2="1" y2="0"/><linearGradient id="base"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient></defs>
+<g id="glyph1"><rect x="4" y="4" width="40" height="16" fill="url(#derived)"/><rect x="4" y="24" width="40" height="16" fill="url(#radial)"/></g>
+<defs><radialGradient id="radial" gradientUnits="userSpaceOnUse" cx="24" cy="32" r="20" gradientTransform="translate(0 0)"><stop offset="0" stop-color="white"/><stop offset="1" stop-color="black" stop-opacity="0.5"/></radialGradient></defs>
+</svg>

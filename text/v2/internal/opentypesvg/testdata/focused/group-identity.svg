@@ -1,0 +1,5 @@
+<!-- Copyright 2026 The Ebitengine Authors; SPDX-License-Identifier: Apache-2.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+<defs><clipPath id="clip"><circle cx="24" cy="24" r="17"/></clipPath></defs>
+<g id="glyph1" opacity="0.5" clip-path="url(#clip)"><circle cx="24" cy="24" r="17" fill="blue"/><circle cx="24" cy="24" r="17" fill="blue"/></g>
+</svg>

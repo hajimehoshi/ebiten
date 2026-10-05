@@ -1,0 +1,5 @@
+<!-- Copyright 2026 The Ebitengine Authors; SPDX-License-Identifier: Apache-2.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+<defs><style>.red{fill:#ff0000;fill-opacity:0.5}.blue{fill:#0000ff;fill-opacity:0.5}</style></defs>
+<g id="glyph1"><rect width="8" height="8" class="red blue"/><rect x="8" width="8" height="8" class="blue red"/><rect x="16" width="8" height="8" class="blue blue"/></g>
+</svg>

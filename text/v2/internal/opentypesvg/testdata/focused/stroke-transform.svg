@@ -1,0 +1,4 @@
+<!-- Copyright 2026 The Ebitengine Authors; SPDX-License-Identifier: Apache-2.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+<g id="glyph1" transform="translate(8 8) scale(2)"><path d="M2 4H14" fill="none" stroke="green" stroke-width="2" stroke-linecap="round"/><path d="M2 12Q8 4 14 12T26 12" fill="none" stroke="blue" stroke-width="1"/></g>
+</svg>
