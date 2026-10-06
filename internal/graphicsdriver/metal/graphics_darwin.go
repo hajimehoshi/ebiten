@@ -871,7 +871,9 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 	structAlign := 1
 	for i, typ := range uniformTypes {
 		n := typ.DwordCount()
-		structAlign = max(structAlign, uniformAlignment(typ))
+		align := uniformAlignment(typ)
+		structAlign = max(structAlign, align)
+		values = fillZerosToFitAlignment(values, align)
 		switch typ.Main {
 		case shaderir.Bool:
 			if byteAlign == 0 {
@@ -879,23 +881,12 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 			} else {
 				values[len(values)-1] |= uniforms[idx] << (8 * byteAlign)
 			}
-		case shaderir.Float, shaderir.Int:
-			values = append(values, uniforms[idx:idx+n]...)
-		case shaderir.Vec2, shaderir.IVec2:
-			values = fillZerosToFitAlignment(values, 2)
+		case shaderir.Float, shaderir.Int, shaderir.Vec2, shaderir.IVec2, shaderir.Vec4, shaderir.IVec4, shaderir.Mat2:
 			values = append(values, uniforms[idx:idx+n]...)
 		case shaderir.Vec3, shaderir.IVec3:
-			values = fillZerosToFitAlignment(values, 4)
 			values = append(values, uniforms[idx:idx+n]...)
 			values = append(values, 0)
-		case shaderir.Vec4, shaderir.IVec4:
-			values = fillZerosToFitAlignment(values, 4)
-			values = append(values, uniforms[idx:idx+n]...)
-		case shaderir.Mat2:
-			values = fillZerosToFitAlignment(values, 2)
-			values = append(values, uniforms[idx:idx+n]...)
 		case shaderir.Mat3:
-			values = fillZerosToFitAlignment(values, 4)
 			values = append(values, uniforms[idx:idx+3]...)
 			values = append(values, 0)
 			values = append(values, uniforms[idx+3:idx+6]...)
@@ -903,7 +894,6 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 			values = append(values, uniforms[idx+6:idx+9]...)
 			values = append(values, 0)
 		case shaderir.Mat4:
-			values = fillZerosToFitAlignment(values, 4)
 			if i == graphics.ProjectionMatrixUniformVariableIndex {
 				// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 				// match. Then, the Y direction must be inverted.
@@ -928,25 +918,14 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 						values[len(values)-1] |= uniforms[idx+i] << (8 * ((i + byteAlign) % 4))
 					}
 				}
-			case shaderir.Float, shaderir.Int:
-				values = append(values, uniforms[idx:idx+n]...)
-			case shaderir.Vec2, shaderir.IVec2:
-				values = fillZerosToFitAlignment(values, 2)
+			case shaderir.Float, shaderir.Int, shaderir.Vec2, shaderir.IVec2, shaderir.Vec4, shaderir.IVec4, shaderir.Mat2, shaderir.Mat4:
 				values = append(values, uniforms[idx:idx+n]...)
 			case shaderir.Vec3, shaderir.IVec3:
-				values = fillZerosToFitAlignment(values, 4)
 				for j := 0; j < typ.Length; j++ {
 					values = append(values, uniforms[idx+3*j:idx+3*(j+1)]...)
 					values = append(values, 0)
 				}
-			case shaderir.Vec4, shaderir.IVec4:
-				values = fillZerosToFitAlignment(values, 4)
-				values = append(values, uniforms[idx:idx+n]...)
-			case shaderir.Mat2:
-				values = fillZerosToFitAlignment(values, 2)
-				values = append(values, uniforms[idx:idx+n]...)
 			case shaderir.Mat3:
-				values = fillZerosToFitAlignment(values, 4)
 				for j := 0; j < typ.Length; j++ {
 					values = append(values, uniforms[idx+9*j:idx+9*j+3]...)
 					values = append(values, 0)
@@ -955,9 +934,6 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 					values = append(values, uniforms[idx+9*j+6:idx+9*j+9]...)
 					values = append(values, 0)
 				}
-			case shaderir.Mat4:
-				values = fillZerosToFitAlignment(values, 4)
-				values = append(values, uniforms[idx:idx+n]...)
 			default:
 				panic(fmt.Sprintf("metal: not implemented type for uniform variables: %s", typ.String()))
 			}
