@@ -56,7 +56,8 @@ type Composer struct {
 	// [Composer.Confirm] does. Optional.
 	OnEndByUser func()
 
-	s *session
+	s        *session
+	draining bool
 }
 
 // SessionOptions describes the IME's view of the caret. It is returned
@@ -212,6 +213,16 @@ func (c *Composer) Update() (handled bool, err error) {
 // leaves text inputting in progress, so that Update starts the next session.
 // The session is dropped when it ends or fails.
 func (c *Composer) drain() (handled, next bool, err error) {
+	// A callback can call Update, Confirm, or Cancel. Do not dispatch the
+	// current session's events again while a callback is handling them.
+	if c.draining {
+		return false, false, nil
+	}
+	c.draining = true
+	defer func() {
+		c.draining = false
+	}()
+
 	if err = c.s.drain(); err != nil {
 		c.s = nil
 		c.dispatchEmptyComposition()
@@ -219,14 +230,15 @@ func (c *Composer) drain() (handled, next bool, err error) {
 	}
 
 	if c.s.IsCommitted() {
+		s := c.s
+		c.s = nil
 		if c.OnCommit != nil {
-			c.OnCommit(c.s.Commit())
+			c.OnCommit(s.Commit())
 		}
 		c.dispatchEmptyComposition()
 		// A commit whose key passes through to the game leaves handled false.
-		handled = !c.s.IsCommittedWithPassthroughKey()
-		endedByUser := c.s.IsClosedByUser()
-		c.s = nil
+		handled = !s.IsCommittedWithPassthroughKey()
+		endedByUser := s.IsClosedByUser()
 		if endedByUser {
 			c.dispatchEndByUser()
 			return handled, false, nil
@@ -237,11 +249,12 @@ func (c *Composer) drain() (handled, next bool, err error) {
 	if c.s.IsClosed() {
 		// The user's ending discards no composition: what the user last saw
 		// is committed, as Confirm does.
-		endedByUser := c.s.IsClosedByUser()
-		if endedByUser && c.OnCommit != nil && c.s.loadComposition().text != "" {
-			c.OnCommit(c.s.compositionAsCommit())
-		}
+		s := c.s
 		c.s = nil
+		endedByUser := s.IsClosedByUser()
+		if endedByUser && c.OnCommit != nil && s.loadComposition().text != "" {
+			c.OnCommit(s.compositionAsCommit())
+		}
 		c.dispatchEmptyComposition()
 		if endedByUser {
 			c.dispatchEndByUser()
@@ -250,8 +263,9 @@ func (c *Composer) drain() (handled, next bool, err error) {
 	}
 
 	// Active session: composing or idle.
+	handled = c.s.IsCompositing()
 	c.dispatchComposition(c.s.Composition())
-	return c.s.IsCompositing(), false, nil
+	return handled, false, nil
 }
 
 // Confirm ends the current session if any. Any in-progress composition is
@@ -279,15 +293,16 @@ func (c *Composer) end(commit bool) {
 	}
 	// Dispatch what the platform delivered since the last Update first, so
 	// that a delivered commit is not lost and the composition is current.
+	s := c.s
 	_, _, _ = c.drain()
-	if c.s == nil {
+	if c.s != s {
 		return
 	}
-	if commit && c.OnCommit != nil && c.s.loadComposition().text != "" {
-		c.OnCommit(c.s.compositionAsCommit())
-	}
-	c.s.Cancel()
 	c.s = nil
+	s.Cancel()
+	if commit && c.OnCommit != nil && s.loadComposition().text != "" {
+		c.OnCommit(s.compositionAsCommit())
+	}
 	c.dispatchEmptyComposition()
 }
 

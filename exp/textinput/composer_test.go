@@ -184,3 +184,75 @@ func TestComposerEndDispatchesUserEnding(t *testing.T) {
 		})
 	}
 }
+
+func TestComposerReentrantCallbacks(t *testing.T) {
+	for _, state := range []string{"commit", "closed", "confirm", "composition", "empty composition"} {
+		for _, action := range []string{"Cancel", "Confirm", "Update"} {
+			t.Run(state+"/"+action, func(t *testing.T) {
+				d := textinput.NewComposerDriver("", "")
+				d.Composer.OnNewSession = func() *textinput.SessionOptions { return nil }
+				var commits []string
+				calls := 0
+				reenter := func() {
+					calls++
+					if calls != 1 {
+						return
+					}
+					switch action {
+					case "Cancel":
+						d.Composer.Cancel()
+					case "Confirm":
+						d.Composer.Confirm()
+					case "Update":
+						if _, err := d.Composer.Update(); err != nil {
+							t.Fatal(err)
+						}
+					}
+				}
+				d.Composer.OnCommit = func(c *textinput.Commit) {
+					commits = append(commits, c.Text())
+					if state != "composition" && state != "empty composition" {
+						reenter()
+					}
+				}
+				d.Composer.OnComposition = func(c *textinput.Composition) {
+					if (state == "composition" && c.Text() != "") || (state == "empty composition" && c.Text() == "") {
+						reenter()
+					}
+				}
+				var wantCommits []string
+				switch state {
+				case "commit", "empty composition":
+					d.Send(commitState("にほんご"))
+					wantCommits = []string{"にほんご"}
+				case "closed":
+					d.Send(compositionState("にほんご"))
+					d.EndByUser()
+					wantCommits = []string{"にほんご"}
+				case "confirm":
+					d.Send(compositionState("にほんご"))
+					wantCommits = []string{"にほんご"}
+				case "composition":
+					d.Send(compositionState("にほんご"))
+					if action == "Confirm" {
+						wantCommits = []string{"にほんご"}
+					}
+				}
+				if state == "confirm" {
+					d.Composer.Confirm()
+				} else if _, err := d.Composer.Update(); err != nil {
+					t.Fatal(err)
+				}
+				if got, want := commits, wantCommits; !slices.Equal(got, want) {
+					t.Errorf("commits = %q, want %q", got, want)
+				}
+				if calls != 1 {
+					t.Errorf("callback calls = %d, want 1", calls)
+				}
+				if got, want := d.SessionOpen(), state == "composition" && action == "Update"; got != want {
+					t.Errorf("SessionOpen() = %t, want %t", got, want)
+				}
+			})
+		}
+	}
+}
