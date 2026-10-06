@@ -256,3 +256,60 @@ func TestComposerReentrantCallbacks(t *testing.T) {
 		}
 	}
 }
+
+func TestComposerEndReplacementDispatchesPendingCommit(t *testing.T) {
+	for _, confirm := range []bool{false, true} {
+		t.Run(map[bool]string{false: "Cancel", true: "Confirm"}[confirm], func(t *testing.T) {
+			d := textinput.NewComposerDriver("", "")
+			d.Composer.OnNewSession = func() *textinput.SessionOptions { return nil }
+			var commits []string
+			d.Composer.OnCommit = func(c *textinput.Commit) {
+				commits = append(commits, c.Text())
+				if c.Text() != "first" {
+					return
+				}
+				d.StartNextSession()
+				if confirm {
+					d.Composer.Confirm()
+				} else {
+					d.Composer.Cancel()
+				}
+			}
+			d.Send(commitState("first"))
+			d.Send(commitState("second"))
+			if _, err := d.Composer.Update(); err != nil {
+				t.Fatal(err)
+			}
+			if want := []string{"first", "second"}; !slices.Equal(commits, want) {
+				t.Errorf("commits = %q, want %q", commits, want)
+			}
+			if d.SessionOpen() {
+				t.Error("replacement session remains open")
+			}
+		})
+	}
+}
+
+func TestComposerConfirmPreservesReplacementComposition(t *testing.T) {
+	d := textinput.NewComposerDriver("", "")
+	d.Composer.OnNewSession = func() *textinput.SessionOptions { return nil }
+	var compositions []string
+	d.Composer.OnComposition = func(c *textinput.Composition) {
+		compositions = append(compositions, c.Text())
+	}
+	d.Composer.OnCommit = func(c *textinput.Commit) {
+		d.StartNextSession()
+		d.Send(compositionState("replacement"))
+		if _, err := d.Composer.Update(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	d.Send(compositionState("old"))
+	d.Composer.Confirm()
+	if got := compositions[len(compositions)-1]; got != "replacement" {
+		t.Errorf("last composition = %q, want replacement", got)
+	}
+	if !d.SessionOpen() {
+		t.Error("replacement session is not open")
+	}
+}

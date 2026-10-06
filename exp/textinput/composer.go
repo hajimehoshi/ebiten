@@ -57,7 +57,7 @@ type Composer struct {
 	OnEndByUser func()
 
 	s        *session
-	draining bool
+	draining *session
 }
 
 // SessionOptions describes the IME's view of the caret. It is returned
@@ -215,12 +215,13 @@ func (c *Composer) Update() (handled bool, err error) {
 func (c *Composer) drain() (handled, next bool, err error) {
 	// A callback can call Update, Confirm, or Cancel. Do not dispatch the
 	// current session's events again while a callback is handling them.
-	if c.draining {
+	if c.draining == c.s {
 		return false, false, nil
 	}
-	c.draining = true
+	previous := c.draining
+	c.draining = c.s
 	defer func() {
-		c.draining = false
+		c.draining = previous
 	}()
 
 	if err = c.s.drain(); err != nil {
@@ -235,7 +236,9 @@ func (c *Composer) drain() (handled, next bool, err error) {
 		if c.OnCommit != nil {
 			c.OnCommit(s.Commit())
 		}
-		c.dispatchEmptyComposition()
+		if c.s == nil {
+			c.dispatchEmptyComposition()
+		}
 		// A commit whose key passes through to the game leaves handled false.
 		handled = !s.IsCommittedWithPassthroughKey()
 		endedByUser := s.IsClosedByUser()
@@ -255,7 +258,9 @@ func (c *Composer) drain() (handled, next bool, err error) {
 		if endedByUser && c.OnCommit != nil && s.loadComposition().text != "" {
 			c.OnCommit(s.compositionAsCommit())
 		}
-		c.dispatchEmptyComposition()
+		if c.s == nil {
+			c.dispatchEmptyComposition()
+		}
 		if endedByUser {
 			c.dispatchEndByUser()
 		}
@@ -303,7 +308,9 @@ func (c *Composer) end(commit bool) {
 	if commit && c.OnCommit != nil && s.loadComposition().text != "" {
 		c.OnCommit(s.compositionAsCommit())
 	}
-	c.dispatchEmptyComposition()
+	if c.s == nil {
+		c.dispatchEmptyComposition()
+	}
 }
 
 func (c *Composer) dispatchComposition(comp Composition) {

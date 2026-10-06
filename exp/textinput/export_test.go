@@ -339,3 +339,9 @@ func (d *ComposerDriver) EndByUser() {
 func (d *ComposerDriver) SessionOpen() bool {
 	return d.Composer.s != nil
 }
+
+// StartNextSession installs a replacement session using the driver's event queue.
+func (d *ComposerDriver) StartNextSession() {
+	ch, end := d.events.start()
+	d.Composer.s = &session{ch: ch, end: end, events: &d.events}
+}
