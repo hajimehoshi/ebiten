@@ -296,7 +296,8 @@ func (g *nativeGamepadVirtual) vibrate(duration time.Duration, strongMagnitude f
 }
 
 func (g *nativeGamepadVirtual) isVibrationAvailable() bool {
-	return true // vibrations are recorded for the host
+	// TODO: Report whether the host can vibrate the gamepad. The host has no way to tell it yet.
+	return true
 }
 
 // setTouches places the touches in the surfaces' slots. A touch whose ID holds a slot keeps it; a new
