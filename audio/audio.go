@@ -154,7 +154,7 @@ func NewContext(sampleRate int) *Context {
 		// keeps the device from being created before the environment is known (#969, #970,
 		// #2715, #3438). This also initializes the device when there is no player and the
 		// program waits for IsReady() to be true.
-		ready, err := c.playerFactory.initContextIfNeeded(vmGuest)
+		ready, err := c.playerFactory.initDriverIfNeeded(vmGuest)
 		if err != nil {
 			return err
 		}

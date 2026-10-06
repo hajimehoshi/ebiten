@@ -41,7 +41,7 @@ type player interface {
 	io.Seeker
 }
 
-type context interface {
+type driver interface {
 	NewPlayer(io.Reader) player
 	Suspend() error
 	Resume() error
@@ -49,17 +49,17 @@ type context interface {
 }
 
 type playerFactory struct {
-	context    context
+	driver     driver
 	sampleRate int
 
-	// vmGuest is whether the context is a virtualization guest's virtual device (see the vmaudio
-	// package). It is set when the context is created.
+	// vmGuest is whether the driver is a virtualization guest's virtual device (see the vmaudio
+	// package). It is set when the driver is created.
 	vmGuest bool
 
 	m sync.Mutex
 }
 
-var driverForTesting context
+var driverForTesting driver
 
 func newPlayerFactory(sampleRate int) *playerFactory {
 	return &playerFactory{
@@ -125,61 +125,61 @@ func (f *playerFactory) suspend() error {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	if f.context == nil {
+	if f.driver == nil {
 		return nil
 	}
-	return addErrorInfo(f.context.Suspend())
+	return addErrorInfo(f.driver.Suspend())
 }
 
 func (f *playerFactory) resume() error {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	if f.context == nil {
+	if f.driver == nil {
 		return nil
 	}
-	return addErrorInfo(f.context.Resume())
+	return addErrorInfo(f.driver.Resume())
 }
 
 func (f *playerFactory) error() error {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	if f.context == nil {
+	if f.driver == nil {
 		return nil
 	}
-	return addErrorInfo(f.context.Err())
+	return addErrorInfo(f.driver.Err())
 }
 
-func (f *playerFactory) initContextIfNeeded(vmGuest bool) (<-chan struct{}, error) {
+func (f *playerFactory) initDriverIfNeeded(vmGuest bool) (<-chan struct{}, error) {
 	f.m.Lock()
 	defer f.m.Unlock()
 
-	if f.context != nil {
+	if f.driver != nil {
 		return nil, nil
 	}
 
 	f.vmGuest = vmGuest
 
 	if driverForTesting != nil {
-		f.context = driverForTesting
+		f.driver = driverForTesting
 		ready := make(chan struct{})
 		close(ready)
 		return ready, nil
 	}
 
-	c, ready, err := newContext(f.sampleRate, vmGuest)
+	d, ready, err := newDriver(f.sampleRate, vmGuest)
 	if err != nil {
 		return nil, err
 	}
-	f.context = c
+	f.driver = d
 	return ready, nil
 }
 
-func (f *playerFactory) currentContext() context {
+func (f *playerFactory) currentDriver() driver {
 	f.m.Lock()
 	defer f.m.Unlock()
-	return f.context
+	return f.driver
 }
 
 func (f *playerFactory) isVMGuest() bool {
@@ -214,12 +214,12 @@ func (p *playerImpl) ensurePlayer() error {
 		return nil
 	}
 
-	c := p.factory.currentContext()
-	if c == nil {
+	d := p.factory.currentDriver()
+	if d == nil {
 		return nil
 	}
 
-	pl := c.NewPlayer(p.stream)
+	pl := d.NewPlayer(p.stream)
 	if p.initBufferSize != 0 {
 		pl.SetBufferSize(p.initBufferSize)
 		p.initBufferSize = 0

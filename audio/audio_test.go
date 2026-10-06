@@ -183,7 +183,7 @@ func TestDeferredDeviceCreation(t *testing.T) {
 		p.SetVolume(0.5)
 		p.Play()
 
-		if audio.ContextCreatedForTesting() {
+		if audio.DriverCreatedForTesting() {
 			t.Errorf("the audio device must not be created before the first update")
 		}
 
@@ -202,7 +202,7 @@ func TestDeferredDeviceCreation(t *testing.T) {
 		if err := audio.UpdateForTesting(); err != nil {
 			t.Error(err)
 		}
-		if !audio.ContextCreatedForTesting() {
+		if !audio.DriverCreatedForTesting() {
 			t.Errorf("the audio device must be created after the first update")
 		}
 
@@ -238,7 +238,7 @@ func TestSetPositionBeforeDeviceCreation(t *testing.T) {
 	}
 
 	// SetPosition must not create the audio device.
-	if audio.ContextCreatedForTesting() {
+	if audio.DriverCreatedForTesting() {
 		t.Errorf("the audio device must not be created before the first update")
 	}
 
@@ -598,7 +598,7 @@ func TestSetVolumeInvalidValue(t *testing.T) {
 	if err := audio.UpdateForTesting(); err != nil {
 		t.Fatal(err)
 	}
-	if !audio.ContextCreatedForTesting() {
+	if !audio.DriverCreatedForTesting() {
 		t.Fatal("the audio device must be created after the first update")
 	}
 

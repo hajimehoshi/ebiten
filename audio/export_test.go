@@ -21,7 +21,7 @@ import (
 )
 
 type (
-	dummyContext struct {
+	dummyDriver struct {
 		// suspendErr and resumeErr are the errors Suspend and Resume return, to simulate a device
 		// which fails to suspend or resume.
 		suspendErr error
@@ -60,50 +60,50 @@ type (
 	}
 )
 
-func (c *dummyContext) NewPlayer(r io.Reader) player {
+func (d *dummyDriver) NewPlayer(r io.Reader) player {
 	p := &dummyPlayer{
 		r:      r,
 		volume: 1,
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.players = append(c.players, p)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.players = append(d.players, p)
 	return p
 }
 
 // stopPlayers stops the players' goroutines reading their sources, and waits for them to exit.
-func (c *dummyContext) stopPlayers() {
-	for _, p := range c.takePlayers() {
+func (d *dummyDriver) stopPlayers() {
+	for _, p := range d.takePlayers() {
 		p.PauseAndStopReading()
 		p.readers.Wait()
 	}
 }
 
-func (c *dummyContext) takePlayers() []*dummyPlayer {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	players := c.players
-	c.players = nil
+func (d *dummyDriver) takePlayers() []*dummyPlayer {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	players := d.players
+	d.players = nil
 	return players
 }
 
-func (c *dummyContext) MaxBufferSize() int {
+func (d *dummyDriver) MaxBufferSize() int {
 	return 48000 * channelCount * bitDepthInBytesInt16 / 4
 }
 
-func (c *dummyContext) Suspend() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.suspendErr
+func (d *dummyDriver) Suspend() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.suspendErr
 }
 
-func (c *dummyContext) Resume() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.resumeErr
+func (d *dummyDriver) Resume() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.resumeErr
 }
 
-func (c *dummyContext) Err() error {
+func (d *dummyDriver) Err() error {
 	return nil
 }
 
@@ -230,28 +230,28 @@ func (p *dummyPlayer) Seek(offset int64, whence int) (int64, error) {
 	return 0, nil
 }
 
-var dummyContextForTesting = &dummyContext{}
+var dummyDriverForTesting = &dummyDriver{}
 
 func init() {
-	driverForTesting = dummyContextForTesting
+	driverForTesting = dummyDriverForTesting
 }
 
 // SetSuspendErrorForTesting makes the simulated device fail to suspend with err, or succeed when err
 // is nil.
 func SetSuspendErrorForTesting(err error) {
-	c := dummyContextForTesting
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.suspendErr = err
+	d := dummyDriverForTesting
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.suspendErr = err
 }
 
 // SetResumeErrorForTesting makes the simulated device fail to resume with err, or succeed when err is
 // nil.
 func SetResumeErrorForTesting(err error) {
-	c := dummyContextForTesting
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.resumeErr = err
+	d := dummyDriverForTesting
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.resumeErr = err
 }
 
 type dummyHook struct {
@@ -342,13 +342,13 @@ func PlayingButUntrackedForTesting(p *Player) bool {
 	return !ok
 }
 
-// ContextCreatedForTesting reports whether the underlying audio device has been created.
-func ContextCreatedForTesting() bool {
+// DriverCreatedForTesting reports whether the underlying audio device has been created.
+func DriverCreatedForTesting() bool {
 	c := CurrentContext()
 	if c == nil {
 		return false
 	}
-	return c.playerFactory.currentContext() != nil
+	return c.playerFactory.currentDriver() != nil
 }
 
 // ResetContextForTesting discards the current context, so that a test can create a new one.
@@ -358,7 +358,7 @@ func ResetContextForTesting() {
 	if c := takeContextForTesting(); c != nil {
 		c.close()
 	}
-	dummyContextForTesting.stopPlayers()
+	dummyDriverForTesting.stopPlayers()
 }
 
 func takeContextForTesting() *Context {

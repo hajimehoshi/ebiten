@@ -22,7 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/internal/vmaudio"
 )
 
-func newContext(sampleRate int, vmGuest bool) (context, chan struct{}, error) {
+func newDriver(sampleRate int, vmGuest bool) (driver, chan struct{}, error) {
 	// A virtualization guest plays no audio of its own: its audio goes to a virtual device the host
 	// reads, instead of a real device.
 	if vmGuest {
@@ -42,22 +42,22 @@ func newContext(sampleRate int, vmGuest bool) (context, chan struct{}, error) {
 	return &otoContext{ctx}, ready, err
 }
 
-// otoContext is a proxy between oto.Context and context.
+// otoContext is a proxy between oto.Context and driver.
 type otoContext struct {
 	*oto.Context
 }
 
-// NewPlayer implements context.
+// NewPlayer implements driver.
 func (c *otoContext) NewPlayer(r io.Reader) player {
 	return c.Context.NewPlayer(r)
 }
 
-// vmaudioContext is a proxy between vmaudio.Context and context.
+// vmaudioContext is a proxy between vmaudio.Context and driver.
 type vmaudioContext struct {
 	*vmaudio.Context
 }
 
-// NewPlayer implements context.
+// NewPlayer implements driver.
 func (c *vmaudioContext) NewPlayer(r io.Reader) player {
 	return c.Context.NewPlayer(r)
 }
