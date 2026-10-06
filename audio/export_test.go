@@ -27,6 +27,10 @@ type (
 		suspendErr error
 		resumeErr  error
 
+		// players are the players created since the context was reset last. ResetContextForTesting
+		// stops them, so that a player reading an infinite source does not keep reading after its test.
+		players []*dummyPlayer
+
 		mu sync.Mutex
 	}
 	dummyPlayer struct {
@@ -45,6 +49,9 @@ type (
 		// readGen is incremented by PauseAndStopReading to stop the goroutine reading r.
 		readGen int
 
+		// readers tracks the goroutines reading r, so that a test can wait for them to stop.
+		readers sync.WaitGroup
+
 		// err is the first non-EOF error the source returned. Like the real players, a player
 		// whose source failed stops for good and reports the error from Err.
 		err error
@@ -54,10 +61,30 @@ type (
 )
 
 func (c *dummyContext) NewPlayer(r io.Reader) player {
-	return &dummyPlayer{
+	p := &dummyPlayer{
 		r:      r,
 		volume: 1,
 	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.players = append(c.players, p)
+	return p
+}
+
+// stopPlayers stops the players' goroutines reading their sources, and waits for them to exit.
+func (c *dummyContext) stopPlayers() {
+	for _, p := range c.takePlayers() {
+		p.PauseAndStopReading()
+		p.readers.Wait()
+	}
+}
+
+func (c *dummyContext) takePlayers() []*dummyPlayer {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	players := c.players
+	c.players = nil
+	return players
 }
 
 func (c *dummyContext) MaxBufferSize() int {
@@ -95,7 +122,7 @@ func (p *dummyPlayer) Play() {
 	}
 	p.playing = true
 	gen := p.readGen
-	go func() {
+	p.readers.Go(func() {
 		var buf [4096]byte
 		for {
 			stopped, err := p.readOnce(gen, buf[:])
@@ -114,7 +141,7 @@ func (p *dummyPlayer) Play() {
 		if p.playing {
 			p.eof = true
 		}
-	}()
+	})
 }
 
 // readOnce performs one read from the source with the mutex held, so that PauseAndStopReading waits
@@ -324,10 +351,22 @@ func ContextCreatedForTesting() bool {
 	return c.playerFactory.currentContext() != nil
 }
 
+// ResetContextForTesting discards the current context, so that a test can create a new one.
+// ResetContextForTesting stops the goroutine updating the players and the goroutines reading the
+// players' sources, and waits for them to exit.
 func ResetContextForTesting() {
+	if c := takeContextForTesting(); c != nil {
+		c.close()
+	}
+	dummyContextForTesting.stopPlayers()
+}
+
+func takeContextForTesting() *Context {
 	theContextLock.Lock()
 	defer theContextLock.Unlock()
+	c := theContext
 	theContext = nil
+	return c
 }
 
 func (i *InfiniteLoop) SetNoBlendForTesting(value bool) {

@@ -73,9 +73,17 @@ type Context struct {
 	playingPlayers map[*playerImpl]struct{}
 
 	m sync.Mutex
-	// cond is signalled under m when a player is added to playingPlayers. The goroutine
-	// updating the players waits on it while playingPlayers is empty.
+	// cond is signalled under m when a player is added to playingPlayers or when the context is
+	// closed. The goroutine updating the players waits on it while playingPlayers is empty.
 	cond *sync.Cond
+
+	// closed reports that the goroutine updating the players must exit. A context lives until the
+	// process exits, so this is set only when a test discards the context.
+	closed bool
+
+	// updater tracks the goroutine updating the players, so that a test discarding the context can wait
+	// for the goroutine to exit.
+	updater sync.WaitGroup
 }
 
 var (
@@ -162,12 +170,14 @@ func NewContext(sampleRate int) *Context {
 	// In the current Ebitengine implementation, update might not be called when the window is in the background (#3154).
 	// In this case, an audio player's position is not updated correctly with AppendHookOnBeforeUpdateWithVMGuestInfo.
 	// Use a distinct goroutine to update the player states.
-	go func() {
+	c.updater.Go(func() {
 		for {
 			// Block while there is no player to update, so that an idle context does not wake
 			// up periodically. The sweep itself can remove the last player, so the check is
 			// repeated after every sweep.
-			c.waitForPlayingPlayers()
+			if !c.waitForPlayingPlayers() {
+				return
+			}
 			// A failure is local to the player which reported it. Record it and keep updating
 			// the other players (#3647).
 			if err := c.updatePlayers(); err != nil {
@@ -175,7 +185,7 @@ func NewContext(sampleRate int) *Context {
 			}
 			time.Sleep(time.Second / 100)
 		}
-	}()
+	})
 
 	return c
 }
@@ -212,13 +222,28 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-// waitForPlayingPlayers blocks until at least one player is registered as playing.
-func (c *Context) waitForPlayingPlayers() {
+// waitForPlayingPlayers blocks until at least one player is registered as playing, and reports
+// whether the players should be updated. It returns false once the context is closed.
+func (c *Context) waitForPlayingPlayers() bool {
 	c.m.Lock()
 	defer c.m.Unlock()
-	for len(c.playingPlayers) == 0 {
+	for len(c.playingPlayers) == 0 && !c.closed {
 		c.cond.Wait()
 	}
+	return !c.closed
+}
+
+// close makes the goroutine updating the players exit, and waits for it to exit.
+func (c *Context) close() {
+	c.markClosed()
+	c.updater.Wait()
+}
+
+func (c *Context) markClosed() {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.closed = true
+	c.cond.Broadcast()
 }
 
 func (c *Context) addPlayingPlayer(p *playerImpl) {
