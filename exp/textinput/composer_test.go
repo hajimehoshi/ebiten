@@ -266,7 +266,6 @@ func TestComposerCallbackContract(t *testing.T) {
 					if (err != nil) != action.wantError {
 						t.Errorf("error = %v, wantError %t", err, action.wantError)
 					}
-
 				}
 				d.Composer.OnNewSession = func() *textinput.SessionOptions {
 					if tc.callback == "new" {

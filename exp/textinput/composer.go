@@ -30,9 +30,9 @@ import (
 // that position stale. Call [Composer.Confirm] before a caller-driven edit.
 //
 // Callbacks may call [Composer.Confirm] or [Composer.Cancel]. Calling
-// [Composer.Update] from a callback returns an error without changing the Composer.
-// End-of-session callbacks run after the session has ended, so Confirm and Cancel
-// have no effect there.
+// [Composer.Update] from a callback returns an error without changing the
+// Composer. End-of-session callbacks run after the session has ended, so
+// Confirm and Cancel have no effect there.
 //
 // See examples/textinput in the Ebitengine repository for a complete
 // usage example.
