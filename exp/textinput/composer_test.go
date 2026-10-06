@@ -197,51 +197,61 @@ func TestComposerCallbackContract(t *testing.T) {
 			name:        "commit",
 			prepare:     func(d *textinput.ComposerDriver) { d.Send(commitState("text")) },
 			callback:    "commit",
-			wantCommits: []string{"text"}},
+			wantCommits: []string{"text"},
+		},
 		{
 			name:        "closed",
 			prepare:     func(d *textinput.ComposerDriver) { d.Send(compositionState("text")); d.EndByUser() },
 			callback:    "commit",
-			wantCommits: []string{"text"}},
+			wantCommits: []string{"text"},
+		},
 		{
 			name:        "confirm",
 			prepare:     func(d *textinput.ComposerDriver) { d.Send(compositionState("text")) },
 			run:         func(d *textinput.ComposerDriver) error { d.Composer.Confirm(); return nil },
 			callback:    "commit",
-			wantCommits: []string{"text"}},
+			wantCommits: []string{"text"},
+		},
 		{
 			name:     "composition",
 			prepare:  func(d *textinput.ComposerDriver) { d.Send(compositionState("text")) },
-			callback: "composition"},
+			callback: "composition",
+		},
 		{
 			name:        "empty composition",
 			prepare:     func(d *textinput.ComposerDriver) { d.Send(commitState("text")) },
 			callback:    "empty",
-			wantCommits: []string{"text"}},
+			wantCommits: []string{"text"},
+		},
 		{
 			name:     "end by user",
 			prepare:  func(d *textinput.ComposerDriver) { d.EndByUser() },
-			callback: "end"},
+			callback: "end",
+		},
 		{
 			name:     "new session",
 			prepare:  func(d *textinput.ComposerDriver) { d.Composer.Cancel() },
-			callback: "new"},
+			callback: "new",
+		},
 	} {
 		for _, action := range []struct {
 			name      string
-			call      func(*textinput.Composer)
-			wantPanic bool
+			call      func(*textinput.Composer) error
+			wantError bool
 		}{
 			{
 				name: "Cancel",
-				call: (*textinput.Composer).Cancel},
+				call: func(c *textinput.Composer) error { c.Cancel(); return nil },
+			},
 			{
 				name: "Confirm",
-				call: (*textinput.Composer).Confirm},
+				call: func(c *textinput.Composer) error { c.Confirm(); return nil },
+			},
 			{
 				name:      "Update",
-				call:      func(c *textinput.Composer) { _, _ = c.Update() },
-				wantPanic: true},
+				call:      func(c *textinput.Composer) error { _, err := c.Update(); return err },
+				wantError: true,
+			},
 		} {
 			t.Run(tc.name+"/"+action.name, func(t *testing.T) {
 				d := textinput.NewComposerDriver("", "")
@@ -252,18 +262,11 @@ func TestComposerCallbackContract(t *testing.T) {
 					if calls != 1 {
 						return
 					}
-					panicked := false
-					func() {
-						defer func() {
-							if recover() != nil {
-								panicked = true
-							}
-						}()
-						action.call(&d.Composer)
-					}()
-					if panicked != action.wantPanic {
-						t.Errorf("panic = %t, want %t", panicked, action.wantPanic)
+					err := action.call(&d.Composer)
+					if (err != nil) != action.wantError {
+						t.Errorf("error = %v, wantError %t", err, action.wantError)
 					}
+
 				}
 				d.Composer.OnNewSession = func() *textinput.SessionOptions {
 					if tc.callback == "new" {
@@ -310,7 +313,7 @@ func TestComposerCallbackContract(t *testing.T) {
 				if calls != 1 {
 					t.Errorf("callback calls = %d, want 1", calls)
 				}
-				wantOpen := tc.callback == "composition" && action.wantPanic
+				wantOpen := tc.callback == "composition" && action.wantError
 				if d.SessionOpen() != wantOpen {
 					t.Errorf("session open = %t, want %t", d.SessionOpen(), wantOpen)
 				}
