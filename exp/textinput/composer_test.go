@@ -265,9 +265,8 @@ func TestComposerConfirmFromCallbacks(t *testing.T) {
 
 func TestComposerUpdateFromCallbacks(t *testing.T) {
 	for _, tc := range []struct {
-		name    string
-		setup   func(*textinput.ComposerDriver, func())
-		confirm bool
+		name  string
+		setup func(*textinput.ComposerDriver, func())
 	}{
 		{
 			name: "commit",
@@ -320,9 +319,7 @@ func TestComposerUpdateFromCallbacks(t *testing.T) {
 					t.Error("callback Update changed session")
 				}
 			})
-			if tc.confirm {
-				d.Composer.Confirm()
-			} else if _, err := d.Composer.Update(); err != nil {
+			if _, err := d.Composer.Update(); err != nil {
 				t.Fatal(err)
 			}
 			if calls != 1 {
