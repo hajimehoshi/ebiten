@@ -48,10 +48,6 @@ func _ID3D12CommandQueue_SuspendX(i *_ID3D12CommandQueue, flags uint32) uintptr 
 	panic("not implemented")
 }
 
-func _ID3D12GraphicsCommandList_ClearRenderTargetView(i *_ID3D12GraphicsCommandList, pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, rects []_D3D12_RECT) {
-	panic("not implemented")
-}
-
 func _ID3D12GraphicsCommandList_Close(i *_ID3D12GraphicsCommandList) uintptr {
 	panic("not implemented")
 }

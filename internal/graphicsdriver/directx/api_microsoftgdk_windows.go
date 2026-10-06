@@ -57,10 +57,6 @@ uintptr_t Ebitengine_ID3D12CommandQueue_SuspendX(void* i, uint32_t flags) {
 	return static_cast<uintptr_t>(r);
 }
 
-void Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView(void* i, uintptr_t pRenderTargetView, void* colorRGBA, uint32_t numRects, void* pRects) {
-    static_cast<ID3D12GraphicsCommandList*>(i)->ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE{ pRenderTargetView }, static_cast<FLOAT*>(colorRGBA), numRects, static_cast<D3D12_RECT*>(pRects));
-}
-
 uintptr_t Ebitengine_ID3D12GraphicsCommandList_Close(void* i) {
     auto r = static_cast<ID3D12GraphicsCommandList*>(i)->Close();
     return uintptr_t(r);
@@ -159,10 +155,6 @@ void Ebitengine_ID3D12GraphicsCommandList_SetPipelineState(void* i, void* pPipel
 // #cgo noescape Ebitengine_ID3D12CommandQueue_SuspendX
 // #cgo nocallback Ebitengine_ID3D12CommandQueue_SuspendX
 // uintptr_t Ebitengine_ID3D12CommandQueue_SuspendX(void* i, uint32_t flags);
-//
-// #cgo noescape Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView
-// #cgo nocallback Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView
-// void Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView(void* i, uintptr_t pRenderTargetView, void* colorRGBA, uint32_t numRects, void* pRects);
 //
 // #cgo noescape Ebitengine_ID3D12GraphicsCommandList_Close
 // #cgo nocallback Ebitengine_ID3D12GraphicsCommandList_Close
@@ -269,14 +261,6 @@ func _ID3D12CommandQueue_Signal(i *_ID3D12CommandQueue, pFence *_ID3D12Fence, va
 func _ID3D12CommandQueue_SuspendX(i *_ID3D12CommandQueue, flags uint32) uintptr {
 	r := C.Ebitengine_ID3D12CommandQueue_SuspendX(unsafe.Pointer(i), C.uint32_t(flags))
 	return uintptr(r)
-}
-
-func _ID3D12GraphicsCommandList_ClearRenderTargetView(i *_ID3D12GraphicsCommandList, pRenderTargetView _D3D12_CPU_DESCRIPTOR_HANDLE, colorRGBA [4]float32, rects []_D3D12_RECT) {
-	var pRects *_D3D12_RECT
-	if len(rects) > 0 {
-		pRects = &rects[0]
-	}
-	C.Ebitengine_ID3D12GraphicsCommandList_ClearRenderTargetView(unsafe.Pointer(i), C.uintptr_t(pRenderTargetView.ptr), unsafe.Pointer(&colorRGBA[0]), C.uint32_t(len(rects)), unsafe.Pointer(pRects))
 }
 
 func _ID3D12GraphicsCommandList_Close(i *_ID3D12GraphicsCommandList) uintptr {
