@@ -16,10 +16,13 @@ package metal
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"runtime"
 	"slices"
+	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -34,6 +37,14 @@ import (
 )
 
 var sel_supportsFamily = objc.RegisterName("supportsFamily:")
+
+const (
+	// residencyKeepAliveInterval is the maximum interval between render passes while the GPU is otherwise idle.
+	residencyKeepAliveInterval = 500 * time.Millisecond
+
+	// residencyKeepAliveDuration is how long the resources are kept resident after the last draw.
+	residencyKeepAliveDuration = 3 * time.Minute
+)
 
 type Graphics struct {
 	view view
@@ -72,6 +83,23 @@ type Graphics struct {
 	maxImageSize int
 	tmpBuffers   []mtl.Buffer
 	tmpUniforms  []uint32
+
+	// residencySet holds the textures and the buffers to keep resident in GPU memory.
+	// residencySet is zero if residency sets are not available.
+	residencySet mtl.ResidencySet
+
+	// residencySetDirty reports whether residencySet has uncommitted changes.
+	residencySetDirty bool
+
+	// lastRenderPassTime is the last time when a render pass was encoded.
+	lastRenderPassTime time.Time
+
+	// lastDrawTime is the last time when a render pass was encoded for drawing,
+	// excluding the render passes encoded at keepResidentIfIdle.
+	lastDrawTime time.Time
+
+	// keepAliveTexture is the render target of the render passes encoded at keepResidentIfIdle.
+	keepAliveTexture mtl.Texture
 
 	pool cocoa.NSAutoreleasePool
 }
@@ -130,6 +158,11 @@ func (g *Graphics) Begin() error {
 
 func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	g.flushCommandBufferIfNeeded(mode == graphicsdriver.FlushModePresent)
+	if err := g.keepResidentIfIdle(); err != nil {
+		return err
+	}
+	// The residency set retains its resources until their removals are committed.
+	g.commitResidencySetIfNeeded()
 	g.pool.Release()
 	g.pool.ID = 0
 	if mode != graphicsdriver.FlushModeIntermediate {
@@ -223,6 +256,7 @@ loop:
 		})
 		for _, b := range bufs[maxUnusedBuffers:] {
 			delete(g.unusedBuffers, b)
+			g.removeResidentResource(b)
 			b.Release()
 		}
 	}
@@ -264,6 +298,7 @@ func (g *Graphics) availableBuffer(length uintptr) (mtl.Buffer, error) {
 		if err != nil {
 			return mtl.Buffer{}, fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
 		}
+		g.addResidentResource(b)
 		newBuf = b
 	}
 
@@ -377,6 +412,7 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
 	}
+	g.addResidentResource(t)
 	i := &Image{
 		id:       g.genNextImageID(),
 		graphics: g,
@@ -482,6 +518,97 @@ func (g *Graphics) Initialize() error {
 		return fmt.Errorf("metal: device.NewCommandQueue failed: %w", err)
 	}
 	g.cq = cq
+
+	// The GPU driver makes resources non-resident when no command buffer has used them for about a second,
+	// and making them resident again stalls the next command buffer that uses them.
+	// A residency set attached to the command queue makes its resources used by every render pass in the queue.
+	// The residency set is only an optimization. Continue without it if it cannot be created.
+	rs, err := g.view.getMTLDevice().NewResidencySet()
+	if err != nil {
+		if !errors.Is(err, errors.ErrUnsupported) {
+			slog.Debug("metal: device.NewResidencySet failed", "error", err)
+		}
+		return nil
+	}
+	g.cq.AddResidencySet(rs)
+	g.residencySet = rs
+	return nil
+}
+
+func (g *Graphics) addResidentResource(r mtl.Resource) {
+	if g.residencySet == (mtl.ResidencySet{}) {
+		return
+	}
+	g.residencySet.AddAllocation(r)
+	g.residencySetDirty = true
+}
+
+func (g *Graphics) removeResidentResource(r mtl.Resource) {
+	if g.residencySet == (mtl.ResidencySet{}) {
+		return
+	}
+	g.residencySet.RemoveAllocation(r)
+	g.residencySetDirty = true
+}
+
+// commitResidencySetIfNeeded applies the pending changes of the residency set.
+func (g *Graphics) commitResidencySetIfNeeded() {
+	if !g.residencySetDirty {
+		return
+	}
+	g.residencySet.Commit()
+	g.residencySetDirty = false
+}
+
+// keepResidentIfIdle commits an empty render pass if no render pass has been encoded for a while,
+// so that the resources in the residency set stay resident.
+func (g *Graphics) keepResidentIfIdle() error {
+	if g.residencySet == (mtl.ResidencySet{}) {
+		return nil
+	}
+	if time.Since(g.lastRenderPassTime) < residencyKeepAliveInterval {
+		return nil
+	}
+	// Let the OS reclaim the memory when the resources are unlikely to be used soon.
+	if time.Since(g.lastDrawTime) >= residencyKeepAliveDuration {
+		return nil
+	}
+	if !g.view.isVisible() {
+		return nil
+	}
+
+	if g.keepAliveTexture == (mtl.Texture{}) {
+		t, err := g.view.getMTLDevice().NewTextureWithDescriptor(mtl.TextureDescriptor{
+			TextureType: mtl.TextureType2D,
+			PixelFormat: mtl.PixelFormatRGBA8UNorm,
+			Width:       1,
+			Height:      1,
+			StorageMode: mtl.StorageModePrivate,
+			Usage:       mtl.TextureUsageRenderTarget,
+		})
+		if err != nil {
+			return fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
+		}
+		g.keepAliveTexture = t
+	}
+
+	// A command buffer without a render pass, like an empty one or one with only blit commands,
+	// does not keep the resources resident.
+	cb, err := g.cq.CommandBuffer()
+	if err != nil {
+		return fmt.Errorf("metal: cq.CommandBuffer failed: %w", err)
+	}
+	var rpd mtl.RenderPassDescriptor
+	rpd.ColorAttachments[0].LoadAction = mtl.LoadActionClear
+	rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
+	rpd.ColorAttachments[0].Texture = g.keepAliveTexture
+	rce, err := cb.RenderCommandEncoderWithDescriptor(rpd)
+	if err != nil {
+		return fmt.Errorf("metal: cb.RenderCommandEncoderWithDescriptor failed: %w", err)
+	}
+	rce.EndEncoding()
+	cb.Commit()
+	g.lastRenderPassTime = time.Now()
 	return nil
 }
 
@@ -537,6 +664,8 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 			return fmt.Errorf("metal: cb.RenderCommandEncoderWithDescriptor failed: %w", err)
 		}
 		g.rce = rce
+		g.lastDrawTime = time.Now()
+		g.lastRenderPassTime = g.lastDrawTime
 	}
 
 	w, h := dst.internalSize()
@@ -719,6 +848,7 @@ func (i *Image) internalSize() (int, int) {
 
 func (i *Image) Dispose() {
 	if i.texture != (mtl.Texture{}) {
+		i.graphics.removeResidentResource(i.texture)
 		i.texture.Release()
 		i.texture = mtl.Texture{}
 	}

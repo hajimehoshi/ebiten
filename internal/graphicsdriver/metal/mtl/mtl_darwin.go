@@ -528,6 +528,10 @@ var (
 	sel_newFunctionWithName                                                                                                                        = objc.RegisterName("newFunctionWithName:")
 	sel_getBytes_bytesPerRow_fromRegion_mipmapLevel                                                                                                = objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")
 	sel_respondsToSelector                                                                                                                         = objc.RegisterName("respondsToSelector:")
+	sel_newResidencySetWithDescriptor_error                                                                                                        = objc.RegisterName("newResidencySetWithDescriptor:error:")
+	sel_addAllocation                                                                                                                              = objc.RegisterName("addAllocation:")
+	sel_removeAllocation                                                                                                                           = objc.RegisterName("removeAllocation:")
+	sel_addResidencySet                                                                                                                            = objc.RegisterName("addResidencySet:")
 )
 
 // CreateSystemDefaultDevice returns the preferred system default Metal device.
@@ -726,6 +730,34 @@ func (d Device) NewTextureWithDescriptor(td TextureDescriptor) (Texture, error) 
 	}, nil
 }
 
+// NewResidencySet creates a residency set, which can move resources in and out of memory residency.
+//
+// NewResidencySet returns an error wrapping [errors.ErrUnsupported] if residency sets are not available.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtldevice/makeresidencyset(descriptor:)?language=objc.
+func (d Device) NewResidencySet() (ResidencySet, error) {
+	class := objc.GetClass("MTLResidencySetDescriptor")
+	if class == 0 || !d.RespondsToSelector(sel_newResidencySetWithDescriptor_error) {
+		return ResidencySet{}, fmt.Errorf("mtl: residency sets are not available: %w", errors.ErrUnsupported)
+	}
+	// Residency sets require the Apple6 GPU family or later.
+	if !d.SupportsFamily(GPUFamilyApple6) {
+		return ResidencySet{}, fmt.Errorf("mtl: residency sets are not supported by the GPU: %w", errors.ErrUnsupported)
+	}
+	desc := objc.ID(class).Send(sel_new)
+	defer desc.Send(sel_release)
+
+	var err cocoa.NSError
+	r := d.device.Send(sel_newResidencySetWithDescriptor_error, desc, unsafe.Pointer(&err))
+	if r == 0 {
+		if err.ID == 0 {
+			return ResidencySet{}, errors.New("mtl: newResidencySetWithDescriptor:error: returned nil")
+		}
+		return ResidencySet{}, errors.New(cocoa.NSString{ID: err.Send(sel_localizedDescription)}.String())
+	}
+	return ResidencySet{r}, nil
+}
+
 // CompileOptions specifies optional compilation settings for
 // the graphics or compute functions within a library.
 //
@@ -748,6 +780,13 @@ type Drawable interface {
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandqueue?language=objc.
 type CommandQueue struct {
 	commandQueue objc.ID
+}
+
+// AddResidencySet applies a residency set to a queue, which Metal applies to the queue’s command buffers as you commit them.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandqueue/addresidencyset(_:)?language=objc.
+func (cq CommandQueue) AddResidencySet(r ResidencySet) {
+	cq.commandQueue.Send(sel_addResidencySet, r.residencySet)
 }
 
 // CommandBuffer returns a command buffer from the command queue that maintains strong references to resources.
@@ -1102,6 +1141,34 @@ func CopyToBufferAt[T byte | uint32 | float32](b Buffer, data []T, offset uintpt
 
 func (b Buffer) Release() {
 	b.buffer.Send(sel_release)
+}
+
+// ResidencySet is a collection of resource allocations that can move in and out of resident memory.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlresidencyset?language=objc.
+type ResidencySet struct {
+	residencySet objc.ID
+}
+
+// AddAllocation stages a single resource to join the residency set’s list of allocations.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlresidencyset/addallocation(_:)?language=objc.
+func (r ResidencySet) AddAllocation(resource Resource) {
+	r.residencySet.Send(sel_addAllocation, resource.resource())
+}
+
+// RemoveAllocation stages a single resource to leave the residency set’s list of allocations.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlresidencyset/removeallocation(_:)?language=objc.
+func (r ResidencySet) RemoveAllocation(resource Resource) {
+	r.residencySet.Send(sel_removeAllocation, resource.resource())
+}
+
+// Commit applies any pending additions to and removals from the residency set.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlresidencyset/commit()?language=objc.
+func (r ResidencySet) Commit() {
+	r.residencySet.Send(sel_commit)
 }
 
 // Function represents a programmable graphics or compute function executed by the GPU.

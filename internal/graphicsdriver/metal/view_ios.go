@@ -102,6 +102,11 @@ func (v *view) setDrawableSize(width, height int) {
 	v.ml.SetDrawableSize(width, height)
 }
 
+func (v *view) isVisible() bool {
+	// The game loop does not run while the app is in the background.
+	return true
+}
+
 func (v *view) updatePresentationState() {
 	// There is no user-driven window resizing on iOS, and presentsWithTransaction is always false.
 }
