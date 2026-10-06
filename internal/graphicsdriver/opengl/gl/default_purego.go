@@ -120,7 +120,8 @@ func boolToInt(b bool) int {
 // to purego.SyscallN directly, or pin its object with c.pinner around call, so that the object
 // stays alive and in place.
 func (c *defaultContext) call(fn uintptr, args ...uintptr) (r1, r2, err uintptr) {
-	n := copy(c.args[:], args)
+	n := len(args)
+	copy(c.args[:n], args)
 	return purego.SyscallN(fn, c.args[:n]...)
 }
 
