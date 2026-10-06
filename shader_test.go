@@ -1947,6 +1947,63 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+// Issue #3865
+func TestShaderAtFromSrc0PosFractional(t *testing.T) {
+	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, 1, 3), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	})
+	defer src0.Deallocate()
+
+	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, 1, 2050), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}).SubImage(image.Rect(0, 2047, 1, 2050)).(*ebiten.Image)
+	defer src1.Deallocate()
+
+	colors := []color.RGBA{
+		{R: 0xff, A: 0xff},
+		{G: 0xff, A: 0xff},
+		{B: 0xff, A: 0xff},
+	}
+	for j, c := range colors {
+		src1.Set(0, 2047+j, c)
+	}
+
+	for _, fn := range []string{
+		"imageSrc1AtFromSrc0Pos",
+		"imageSrc1UnsafeAtFromSrc0Pos",
+	} {
+		t.Run(fn, func(t *testing.T) {
+			shader, err := ebiten.NewShader(fmt.Appendf(nil, `//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return %s(src0Pos + vec2(0, 0.4999))
+}
+`, fn))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer shader.Deallocate()
+
+			dst := ebiten.NewImage(1, 3)
+			defer dst.Deallocate()
+
+			op := &ebiten.DrawRectShaderOptions{}
+			op.Images[0] = src0
+			op.Images[1] = src1
+			dst.DrawRectShader(1, 3, shader, op)
+
+			for j, want := range colors {
+				got := dst.At(0, j).(color.RGBA)
+				if got != want {
+					t.Errorf("dst.At(0, %d): got: %v, want: %v", j, got, want)
+				}
+			}
+		})
+	}
+}
+
 func TestShaderTextureSize(t *testing.T) {
 	// The sub-images are on textures far bigger than themselves, and the two textures have different
 	// shapes.

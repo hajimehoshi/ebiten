@@ -161,11 +161,13 @@ func imageSrc%[1]dTextureSize() vec2 {
 		}
 
 		// pos is in pixels of the 0th texture. Convert it to the i-th texture's pixels.
+		// pos is floored first, as __texelAt does, so that the conversion adds only integers and is exact.
+		// Adding the origins to a fractional pos can round it to the next pixel.
 		// The 0th source image needs no conversion, so its functions have no suffix.
 		texPos := "pos"
 		var suffix string
 		if i >= 1 {
-			texPos = fmt.Sprintf("pos - __imageSrcRegionOrigins[0] + __imageSrcRegionOrigins[%d]", i)
+			texPos = fmt.Sprintf("floor(pos) - __imageSrcRegionOrigins[0] + __imageSrcRegionOrigins[%d]", i)
 			suffix = "FromSrc0Pos"
 		}
 		// __t%d is a special variable for a texture variable.
