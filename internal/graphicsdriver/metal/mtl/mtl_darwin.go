@@ -459,77 +459,76 @@ var (
 )
 
 var (
-	sel_length                                                                                                                        = objc.RegisterName("length")
-	sel_isHeadless                                                                                                                    = objc.RegisterName("isHeadless")
-	sel_isLowPower                                                                                                                    = objc.RegisterName("isLowPower")
-	sel_name                                                                                                                          = objc.RegisterName("name")
-	sel_supportsFamily                                                                                                                = objc.RegisterName("supportsFamily:")
-	sel_supportsFeatureSet                                                                                                            = objc.RegisterName("supportsFeatureSet:")
-	sel_newCommandQueue                                                                                                               = objc.RegisterName("newCommandQueue")
-	sel_newLibraryWithSource_options_error                                                                                            = objc.RegisterName("newLibraryWithSource:options:error:")
-	sel_newLibraryWithData_error                                                                                                      = objc.RegisterName("newLibraryWithData:error:")
-	sel_release                                                                                                                       = objc.RegisterName("release")
-	sel_retain                                                                                                                        = objc.RegisterName("retain")
-	sel_new                                                                                                                           = objc.RegisterName("new")
-	sel_localizedDescription                                                                                                          = objc.RegisterName("localizedDescription")
-	sel_setVertexFunction                                                                                                             = objc.RegisterName("setVertexFunction:")
-	sel_setFragmentFunction                                                                                                           = objc.RegisterName("setFragmentFunction:")
-	sel_colorAttachments                                                                                                              = objc.RegisterName("colorAttachments")
-	sel_objectAtIndexedSubscript                                                                                                      = objc.RegisterName("objectAtIndexedSubscript:")
-	sel_setPixelFormat                                                                                                                = objc.RegisterName("setPixelFormat:")
-	sel_setBlendingEnabled                                                                                                            = objc.RegisterName("setBlendingEnabled:")
-	sel_setDestinationAlphaBlendFactor                                                                                                = objc.RegisterName("setDestinationAlphaBlendFactor:")
-	sel_setDestinationRGBBlendFactor                                                                                                  = objc.RegisterName("setDestinationRGBBlendFactor:")
-	sel_setSourceAlphaBlendFactor                                                                                                     = objc.RegisterName("setSourceAlphaBlendFactor:")
-	sel_setSourceRGBBlendFactor                                                                                                       = objc.RegisterName("setSourceRGBBlendFactor:")
-	sel_setAlphaBlendOperation                                                                                                        = objc.RegisterName("setAlphaBlendOperation:")
-	sel_setRgbBlendOperation                                                                                                          = objc.RegisterName("setRgbBlendOperation:")
-	sel_setWriteMask                                                                                                                  = objc.RegisterName("setWriteMask:")
-	sel_setStencilAttachmentPixelFormat                                                                                               = objc.RegisterName("setStencilAttachmentPixelFormat:")
-	sel_newRenderPipelineStateWithDescriptor_error                                                                                    = objc.RegisterName("newRenderPipelineStateWithDescriptor:error:")
-	sel_newBufferWithBytes_length_options                                                                                             = objc.RegisterName("newBufferWithBytes:length:options:")
-	sel_newBufferWithLength_options                                                                                                   = objc.RegisterName("newBufferWithLength:options:")
-	sel_setTextureType                                                                                                                = objc.RegisterName("setTextureType:")
-	sel_didModifyRange                                                                                                                = objc.RegisterName("didModifyRange:")
-	sel_setWidth                                                                                                                      = objc.RegisterName("setWidth:")
-	sel_setHeight                                                                                                                     = objc.RegisterName("setHeight:")
-	sel_width                                                                                                                         = objc.RegisterName("width")
-	sel_height                                                                                                                        = objc.RegisterName("height")
-	sel_contents                                                                                                                      = objc.RegisterName("contents")
-	sel_setStorageMode                                                                                                                = objc.RegisterName("setStorageMode:")
-	sel_setUsage                                                                                                                      = objc.RegisterName("setUsage:")
-	sel_newTextureWithDescriptor                                                                                                      = objc.RegisterName("newTextureWithDescriptor:")
-	sel_commandBuffer                                                                                                                 = objc.RegisterName("commandBuffer")
-	sel_status                                                                                                                        = objc.RegisterName("status")
-	sel_presentDrawable                                                                                                               = objc.RegisterName("presentDrawable:")
-	sel_commit                                                                                                                        = objc.RegisterName("commit")
-	sel_waitUntilCompleted                                                                                                            = objc.RegisterName("waitUntilCompleted")
-	sel_waitUntilScheduled                                                                                                            = objc.RegisterName("waitUntilScheduled")
-	sel_renderCommandEncoderWithDescriptor                                                                                            = objc.RegisterName("renderCommandEncoderWithDescriptor:")
-	sel_stencilAttachment                                                                                                             = objc.RegisterName("stencilAttachment")
-	sel_setLoadAction                                                                                                                 = objc.RegisterName("setLoadAction:")
-	sel_setStoreAction                                                                                                                = objc.RegisterName("setStoreAction:")
-	sel_setTexture                                                                                                                    = objc.RegisterName("setTexture:")
-	sel_setClearColor                                                                                                                 = objc.RegisterName("setClearColor:")
-	sel_blitCommandEncoder                                                                                                            = objc.RegisterName("blitCommandEncoder")
-	sel_endEncoding                                                                                                                   = objc.RegisterName("endEncoding")
-	sel_setRenderPipelineState                                                                                                        = objc.RegisterName("setRenderPipelineState:")
-	sel_setViewport                                                                                                                   = objc.RegisterName("setViewport:")
-	sel_setScissorRect                                                                                                                = objc.RegisterName("setScissorRect:")
-	sel_setVertexBuffer_offset_atIndex                                                                                                = objc.RegisterName("setVertexBuffer:offset:atIndex:")
-	sel_setVertexBytes_length_atIndex                                                                                                 = objc.RegisterName("setVertexBytes:length:atIndex:")
-	sel_setFragmentBytes_length_atIndex                                                                                               = objc.RegisterName("setFragmentBytes:length:atIndex:")
-	sel_setFragmentTexture_atIndex                                                                                                    = objc.RegisterName("setFragmentTexture:atIndex:")
-	sel_setBlendColorRed_green_blue_alpha                                                                                             = objc.RegisterName("setBlendColorRed:green:blue:alpha:")
-	sel_drawPrimitives_vertexStart_vertexCount                                                                                        = objc.RegisterName("drawPrimitives:vertexStart:vertexCount:")
-	sel_drawIndexedPrimitives_indexCount_indexType_indexBuffer_indexBufferOffset                                                      = objc.RegisterName("drawIndexedPrimitives:indexCount:indexType:indexBuffer:indexBufferOffset:")
-	sel_synchronizeResource                                                                                                           = objc.RegisterName("synchronizeResource:")
-	sel_synchronizeTexture_slice_level                                                                                                = objc.RegisterName("synchronizeTexture:slice:level:")
-	sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin = objc.RegisterName("copyFromTexture:sourceSlice:sourceLevel:sourceOrigin:sourceSize:toTexture:destinationSlice:destinationLevel:destinationOrigin:")
-	sel_newFunctionWithName                                                                                                           = objc.RegisterName("newFunctionWithName:")
-	sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow                                                                               = objc.RegisterName("replaceRegion:mipmapLevel:withBytes:bytesPerRow:")
-	sel_getBytes_bytesPerRow_fromRegion_mipmapLevel                                                                                   = objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")
-	sel_respondsToSelector                                                                                                            = objc.RegisterName("respondsToSelector:")
+	sel_length                                                                                                                                     = objc.RegisterName("length")
+	sel_isHeadless                                                                                                                                 = objc.RegisterName("isHeadless")
+	sel_isLowPower                                                                                                                                 = objc.RegisterName("isLowPower")
+	sel_name                                                                                                                                       = objc.RegisterName("name")
+	sel_supportsFamily                                                                                                                             = objc.RegisterName("supportsFamily:")
+	sel_supportsFeatureSet                                                                                                                         = objc.RegisterName("supportsFeatureSet:")
+	sel_newCommandQueue                                                                                                                            = objc.RegisterName("newCommandQueue")
+	sel_newLibraryWithSource_options_error                                                                                                         = objc.RegisterName("newLibraryWithSource:options:error:")
+	sel_newLibraryWithData_error                                                                                                                   = objc.RegisterName("newLibraryWithData:error:")
+	sel_release                                                                                                                                    = objc.RegisterName("release")
+	sel_retain                                                                                                                                     = objc.RegisterName("retain")
+	sel_new                                                                                                                                        = objc.RegisterName("new")
+	sel_localizedDescription                                                                                                                       = objc.RegisterName("localizedDescription")
+	sel_setVertexFunction                                                                                                                          = objc.RegisterName("setVertexFunction:")
+	sel_setFragmentFunction                                                                                                                        = objc.RegisterName("setFragmentFunction:")
+	sel_colorAttachments                                                                                                                           = objc.RegisterName("colorAttachments")
+	sel_objectAtIndexedSubscript                                                                                                                   = objc.RegisterName("objectAtIndexedSubscript:")
+	sel_setPixelFormat                                                                                                                             = objc.RegisterName("setPixelFormat:")
+	sel_setBlendingEnabled                                                                                                                         = objc.RegisterName("setBlendingEnabled:")
+	sel_setDestinationAlphaBlendFactor                                                                                                             = objc.RegisterName("setDestinationAlphaBlendFactor:")
+	sel_setDestinationRGBBlendFactor                                                                                                               = objc.RegisterName("setDestinationRGBBlendFactor:")
+	sel_setSourceAlphaBlendFactor                                                                                                                  = objc.RegisterName("setSourceAlphaBlendFactor:")
+	sel_setSourceRGBBlendFactor                                                                                                                    = objc.RegisterName("setSourceRGBBlendFactor:")
+	sel_setAlphaBlendOperation                                                                                                                     = objc.RegisterName("setAlphaBlendOperation:")
+	sel_setRgbBlendOperation                                                                                                                       = objc.RegisterName("setRgbBlendOperation:")
+	sel_setWriteMask                                                                                                                               = objc.RegisterName("setWriteMask:")
+	sel_setStencilAttachmentPixelFormat                                                                                                            = objc.RegisterName("setStencilAttachmentPixelFormat:")
+	sel_newRenderPipelineStateWithDescriptor_error                                                                                                 = objc.RegisterName("newRenderPipelineStateWithDescriptor:error:")
+	sel_newBufferWithBytes_length_options                                                                                                          = objc.RegisterName("newBufferWithBytes:length:options:")
+	sel_newBufferWithLength_options                                                                                                                = objc.RegisterName("newBufferWithLength:options:")
+	sel_setTextureType                                                                                                                             = objc.RegisterName("setTextureType:")
+	sel_didModifyRange                                                                                                                             = objc.RegisterName("didModifyRange:")
+	sel_setWidth                                                                                                                                   = objc.RegisterName("setWidth:")
+	sel_setHeight                                                                                                                                  = objc.RegisterName("setHeight:")
+	sel_width                                                                                                                                      = objc.RegisterName("width")
+	sel_height                                                                                                                                     = objc.RegisterName("height")
+	sel_contents                                                                                                                                   = objc.RegisterName("contents")
+	sel_setStorageMode                                                                                                                             = objc.RegisterName("setStorageMode:")
+	sel_setUsage                                                                                                                                   = objc.RegisterName("setUsage:")
+	sel_newTextureWithDescriptor                                                                                                                   = objc.RegisterName("newTextureWithDescriptor:")
+	sel_commandBuffer                                                                                                                              = objc.RegisterName("commandBuffer")
+	sel_status                                                                                                                                     = objc.RegisterName("status")
+	sel_presentDrawable                                                                                                                            = objc.RegisterName("presentDrawable:")
+	sel_commit                                                                                                                                     = objc.RegisterName("commit")
+	sel_waitUntilCompleted                                                                                                                         = objc.RegisterName("waitUntilCompleted")
+	sel_waitUntilScheduled                                                                                                                         = objc.RegisterName("waitUntilScheduled")
+	sel_renderCommandEncoderWithDescriptor                                                                                                         = objc.RegisterName("renderCommandEncoderWithDescriptor:")
+	sel_stencilAttachment                                                                                                                          = objc.RegisterName("stencilAttachment")
+	sel_setLoadAction                                                                                                                              = objc.RegisterName("setLoadAction:")
+	sel_setStoreAction                                                                                                                             = objc.RegisterName("setStoreAction:")
+	sel_setTexture                                                                                                                                 = objc.RegisterName("setTexture:")
+	sel_setClearColor                                                                                                                              = objc.RegisterName("setClearColor:")
+	sel_blitCommandEncoder                                                                                                                         = objc.RegisterName("blitCommandEncoder")
+	sel_endEncoding                                                                                                                                = objc.RegisterName("endEncoding")
+	sel_setRenderPipelineState                                                                                                                     = objc.RegisterName("setRenderPipelineState:")
+	sel_setViewport                                                                                                                                = objc.RegisterName("setViewport:")
+	sel_setScissorRect                                                                                                                             = objc.RegisterName("setScissorRect:")
+	sel_setVertexBuffer_offset_atIndex                                                                                                             = objc.RegisterName("setVertexBuffer:offset:atIndex:")
+	sel_setVertexBytes_length_atIndex                                                                                                              = objc.RegisterName("setVertexBytes:length:atIndex:")
+	sel_setFragmentBytes_length_atIndex                                                                                                            = objc.RegisterName("setFragmentBytes:length:atIndex:")
+	sel_setFragmentTexture_atIndex                                                                                                                 = objc.RegisterName("setFragmentTexture:atIndex:")
+	sel_setBlendColorRed_green_blue_alpha                                                                                                          = objc.RegisterName("setBlendColorRed:green:blue:alpha:")
+	sel_drawPrimitives_vertexStart_vertexCount                                                                                                     = objc.RegisterName("drawPrimitives:vertexStart:vertexCount:")
+	sel_drawIndexedPrimitives_indexCount_indexType_indexBuffer_indexBufferOffset                                                                   = objc.RegisterName("drawIndexedPrimitives:indexCount:indexType:indexBuffer:indexBufferOffset:")
+	sel_synchronizeResource                                                                                                                        = objc.RegisterName("synchronizeResource:")
+	sel_synchronizeTexture_slice_level                                                                                                             = objc.RegisterName("synchronizeTexture:slice:level:")
+	sel_copyFromBuffer_sourceOffset_sourceBytesPerRow_sourceBytesPerImage_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin = objc.RegisterName("copyFromBuffer:sourceOffset:sourceBytesPerRow:sourceBytesPerImage:sourceSize:toTexture:destinationSlice:destinationLevel:destinationOrigin:")
+	sel_newFunctionWithName                                                                                                                        = objc.RegisterName("newFunctionWithName:")
+	sel_getBytes_bytesPerRow_fromRegion_mipmapLevel                                                                                                = objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")
+	sel_respondsToSelector                                                                                                                         = objc.RegisterName("respondsToSelector:")
 )
 
 // CreateSystemDefaultDevice returns the preferred system default Metal device.
@@ -979,12 +978,12 @@ func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, lev
 	bce.commandEncoder.Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
 }
 
-// CopyFromTexture encodes a command that copies image data from a texture’s slice into another slice.
+// CopyFromBuffer encodes a command that copies image data from a buffer into a texture slice.
 //
-// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400754-copyfromtexture?language=objc.
-func (bce BlitCommandEncoder) CopyFromTexture(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
-	bce.commandEncoder.Send(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin,
-		sourceTexture, sourceSlice, sourceLevel, sourceOrigin, sourceSize, destinationTexture, destinationSlice, destinationLevel, destinationOrigin)
+// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/copy(from:sourceoffset:sourcebytesperrow:sourcebytesperimage:sourcesize:to:destinationslice:destinationlevel:destinationorigin:)?language=objc.
+func (bce BlitCommandEncoder) CopyFromBuffer(sourceBuffer Buffer, sourceOffset uintptr, sourceBytesPerRow uintptr, sourceBytesPerImage uintptr, sourceSize Size, destinationTexture Texture, destinationSlice int, destinationLevel int, destinationOrigin Origin) {
+	bce.commandEncoder.Send(sel_copyFromBuffer_sourceOffset_sourceBytesPerRow_sourceBytesPerImage_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin,
+		sourceBuffer.buffer, sourceOffset, sourceBytesPerRow, sourceBytesPerImage, sourceSize, destinationTexture, destinationSlice, destinationLevel, destinationOrigin)
 }
 
 // Library is a collection of compiled graphics or compute functions.
@@ -1062,19 +1061,6 @@ func (t Texture) GetBytes(pixels []byte, bytesPerRow int, region Region, level i
 	return nil
 }
 
-// ReplaceRegion copies a block of pixels from pixels into the storage allocation for slice 0 of a texture.
-//
-// ReplaceRegion returns an error if len(pixels) is less than region.Size.Height * bytesPerRow.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtltexture/1515464-replaceregion?language=objc.
-func (t Texture) ReplaceRegion(region Region, level int, pixels []byte, bytesPerRow int) error {
-	if err := checkPixelsForTransfer(pixels, bytesPerRow, region, "ReplaceRegion"); err != nil {
-		return err
-	}
-	t.texture.Send(sel_replaceRegion_mipmapLevel_withBytes_bytesPerRow, region, level, unsafe.Pointer(&pixels[0]), bytesPerRow)
-	return nil
-}
-
 // Width is the width of the texture image for the base level mipmap, in pixels.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtltexture/1515339-width?language=objc.
@@ -1114,6 +1100,23 @@ func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
 	copy(unsafe.Slice((*byte)(unsafe.Pointer(contents)), lengthInBytes), unsafe.Slice((*byte)(data), lengthInBytes))
 	if runtime.GOOS != "ios" {
 		b.buffer.Send(sel_didModifyRange, 0, lengthInBytes)
+	}
+}
+
+// CopyToContentsAt copies data into the buffer's contents starting at offset.
+//
+// CopyToContentsAt panics if data does not fit in the buffer.
+func (b Buffer) CopyToContentsAt(offset uintptr, data []byte) {
+	if len(data) == 0 {
+		return
+	}
+	if l := b.Length(); offset > l || uintptr(len(data)) > l-offset {
+		panic(fmt.Sprintf("mtl: data (offset: %d, length: %d) does not fit in the buffer (length: %d)", offset, len(data), l))
+	}
+	contents := b.buffer.Send(sel_contents)
+	copy(unsafe.Slice((*byte)(unsafe.Add(unsafe.Pointer(contents), offset)), len(data)), data)
+	if runtime.GOOS != "ios" {
+		b.buffer.Send(sel_didModifyRange, offset, uintptr(len(data)))
 	}
 }
 

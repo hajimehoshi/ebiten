@@ -17,7 +17,6 @@ package metal
 import (
 	"cmp"
 	"fmt"
-	"image"
 	"math"
 	"runtime"
 	"slices"
@@ -71,7 +70,7 @@ type Graphics struct {
 
 	transparent  bool
 	maxImageSize int
-	tmpTextures  []mtl.Texture
+	tmpBuffers   []mtl.Buffer
 	tmpUniforms  []uint32
 
 	pool cocoa.NSAutoreleasePool
@@ -324,10 +323,10 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 		g.view.presentDrawableWithTransaction(g.cb, drawableToPresentWithTransaction)
 	}
 
-	for _, t := range g.tmpTextures {
-		t.Release()
+	for _, b := range g.tmpBuffers {
+		b.Release()
 	}
-	g.tmpTextures = g.tmpTextures[:0]
+	g.tmpBuffers = g.tmpBuffers[:0]
 
 	g.cb = mtl.CommandBuffer{}
 
@@ -776,37 +775,29 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 
 	g.flushRenderCommandEncoderIfNeeded()
 
-	// Calculate the smallest texture size to include all the values in args.
-	var region image.Rectangle
+	// Use a temporary buffer to send pixels asynchronously, whichever the memory is shared (e.g., iOS) or
+	// managed (e.g., macOS). Writing the pixels to the existing texture directly with replaceRegion: tries to
+	// sync the pixel data between CPU and GPU, which is inefficient (#1418).
+	// The buffer cannot be reused until sending the pixels finishes, then create new ones for each call.
+	// The pixels of all the regions are packed in the buffer, so the buffer size is the total size of the regions.
+	var size uintptr
 	for _, a := range args {
-		region = region.Union(a.Region)
+		size += uintptr(4 * a.Region.Dx() * a.Region.Dy())
 	}
-
-	// Use a temporary texture to send pixels asynchronously, whichever the memory is shared (e.g., iOS) or
-	// managed (e.g., macOS). A temporary texture is needed since ReplaceRegion tries to sync the pixel
-	// data between CPU and GPU, and doing it on the existing texture is inefficient (#1418).
-	// The texture cannot be reused until sending the pixels finishes, then create new ones for each call.
-	td := mtl.TextureDescriptor{
-		TextureType: mtl.TextureType2D,
-		PixelFormat: mtl.PixelFormatRGBA8UNorm,
-		Width:       region.Dx(),
-		Height:      region.Dy(),
-		StorageMode: storageMode,
-		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
-	}
-	t, err := g.view.getMTLDevice().NewTextureWithDescriptor(td)
+	b, err := g.view.getMTLDevice().NewBufferWithLength(size, resourceStorageMode)
 	if err != nil {
-		return fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
+		return fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
 	}
-	g.tmpTextures = append(g.tmpTextures, t)
+	g.tmpBuffers = append(g.tmpBuffers, b)
 
+	var offset uintptr
 	for _, a := range args {
-		if err := t.ReplaceRegion(mtl.Region{
-			Origin: mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0},
-			Size:   mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1},
-		}, 0, a.Pixels, 4*a.Region.Dx()); err != nil {
-			return err
+		n := 4 * a.Region.Dx() * a.Region.Dy()
+		if len(a.Pixels) < n {
+			return fmt.Errorf("metal: len(pixels) must be at least %d but %d at WritePixels", n, len(a.Pixels))
 		}
+		b.CopyToContentsAt(offset, a.Pixels[:n])
+		offset += uintptr(n)
 	}
 
 	if err := g.ensureCommandBuffer(); err != nil {
@@ -816,11 +807,13 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	if err != nil {
 		return fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
 	}
+	offset = 0
 	for _, a := range args {
-		so := mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0}
-		ss := mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1}
+		w, h := a.Region.Dx(), a.Region.Dy()
+		ss := mtl.Size{Width: w, Height: h, Depth: 1}
 		do := mtl.Origin{X: a.Region.Min.X, Y: a.Region.Min.Y, Z: 0}
-		bce.CopyFromTexture(t, 0, 0, so, ss, i.texture, 0, 0, do)
+		bce.CopyFromBuffer(b, offset, uintptr(4*w), uintptr(4*w*h), ss, i.texture, 0, 0, do)
+		offset += uintptr(4 * w * h)
 	}
 	bce.EndEncoding()
 
