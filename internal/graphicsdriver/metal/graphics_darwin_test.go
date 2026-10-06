@@ -70,3 +70,46 @@ func TestAppendUniformVariablesShaderSwitch(t *testing.T) {
 		}
 	}
 }
+
+func TestAppendUniformVariablesStructSize(t *testing.T) {
+	layouts := []struct {
+		types       []shaderir.Type
+		input, want []uint32
+	}{
+		{
+			types: []shaderir.Type{{Main: shaderir.Mat4}, {Main: shaderir.Mat2}, {Main: shaderir.Float}},
+			input: sequence(21),
+			want:  append(sequence(21), 0, 0, 0),
+		},
+		{
+			types: []shaderir.Type{{Main: shaderir.Mat4}, arrayType(shaderir.Float, 2)},
+			input: sequence(18),
+			want:  append(sequence(18), 0, 0),
+		},
+		{
+			types: []shaderir.Type{{Main: shaderir.Vec3}, {Main: shaderir.Float}},
+			input: []uint32{1, 2, 3, 4},
+			want:  []uint32{1, 2, 3, 0, 4, 0, 0, 0},
+		},
+		{
+			types: []shaderir.Type{{Main: shaderir.Float}, {Main: shaderir.Vec2}, {Main: shaderir.Float}},
+			input: []uint32{1, 2, 3, 4},
+			want:  []uint32{1, 0, 2, 3, 4, 0},
+		},
+		{
+			types: []shaderir.Type{{Main: shaderir.Float}, {Main: shaderir.Int}, {Main: shaderir.Float}},
+			input: []uint32{1, 2, 3},
+			want:  []uint32{1, 2, 3},
+		},
+		{
+			types: []shaderir.Type{{Main: shaderir.Bool}, {Main: shaderir.Bool}},
+			input: []uint32{1, 1},
+			want:  []uint32{0x101},
+		},
+	}
+	for _, layout := range layouts {
+		if got := metal.AppendUniformVariables(nil, layout.types, layout.input); !slices.Equal(got, layout.want) {
+			t.Errorf("AppendUniformVariables(nil, %v, %#x) = %#x, want %#x", layout.types, layout.input, got, layout.want)
+		}
+	}
+}

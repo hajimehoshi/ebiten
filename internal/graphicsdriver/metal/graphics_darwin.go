@@ -868,8 +868,10 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 
 	var idx int
 	var byteAlign int
+	structAlign := 1
 	for i, typ := range uniformTypes {
 		n := typ.DwordCount()
+		structAlign = max(structAlign, uniformAlignment(typ))
 		switch typ.Main {
 		case shaderir.Bool:
 			if byteAlign == 0 {
@@ -973,5 +975,20 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 		}
 	}
 
-	return values
+	// The struct's size is a multiple of its alignment, and Metal requires bytes for the whole struct.
+	return fillZerosToFitAlignment(values, structAlign)
+}
+
+// uniformAlignment returns the alignment of a uniform variable of type t in Metal's memory layout, in dwords rounded up.
+func uniformAlignment(t shaderir.Type) int {
+	if t.Main == shaderir.Array {
+		t = t.Sub[0]
+	}
+	switch t.Main {
+	case shaderir.Vec2, shaderir.IVec2, shaderir.Mat2:
+		return 2
+	case shaderir.Vec3, shaderir.IVec3, shaderir.Vec4, shaderir.IVec4, shaderir.Mat3, shaderir.Mat4:
+		return 4
+	}
+	return 1
 }
