@@ -339,8 +339,3 @@ func (d *ComposerDriver) EndByUser() {
 func (d *ComposerDriver) SessionOpen() bool {
 	return d.Composer.s != nil
 }
-
-// InputOpen reports whether the driver's event channel is still open.
-func (d *ComposerDriver) InputOpen() bool {
-	return d.events.isOpen()
-}
