@@ -1095,28 +1095,21 @@ func (b Buffer) Length() uintptr {
 	return uintptr(b.buffer.Send(sel_length))
 }
 
-func (b Buffer) CopyToContents(data unsafe.Pointer, lengthInBytes uintptr) {
-	contents := b.buffer.Send(sel_contents)
-	copy(unsafe.Slice((*byte)(unsafe.Pointer(contents)), lengthInBytes), unsafe.Slice((*byte)(data), lengthInBytes))
-	if runtime.GOOS != "ios" {
-		b.buffer.Send(sel_didModifyRange, 0, lengthInBytes)
-	}
-}
-
-// CopyToContentsAt copies data into the buffer's contents starting at offset.
+// CopyToBufferAt copies data into the buffer's contents starting at offset, in bytes.
 //
-// CopyToContentsAt panics if data does not fit in the buffer.
-func (b Buffer) CopyToContentsAt(offset uintptr, data []byte) {
+// CopyToBufferAt panics if data does not fit in the buffer.
+func CopyToBufferAt[T byte | uint32 | float32](b Buffer, data []T, offset uintptr) {
 	if len(data) == 0 {
 		return
 	}
-	if l := b.Length(); offset > l || uintptr(len(data)) > l-offset {
-		panic(fmt.Sprintf("mtl: data (offset: %d, length: %d) does not fit in the buffer (length: %d)", offset, len(data), l))
+	size := unsafe.Sizeof(data[0]) * uintptr(len(data))
+	if l := b.Length(); offset > l || size > l-offset {
+		panic(fmt.Sprintf("mtl: data (offset: %d, length: %d) does not fit in the buffer (length: %d)", offset, size, l))
 	}
 	contents := b.buffer.Send(sel_contents)
-	copy(unsafe.Slice((*byte)(unsafe.Add(unsafe.Pointer(contents), offset)), len(data)), data)
+	copy(unsafe.Slice((*byte)(unsafe.Add(unsafe.Pointer(contents), offset)), size), unsafe.Slice((*byte)(unsafe.Pointer(&data[0])), size))
 	if runtime.GOOS != "ios" {
-		b.buffer.Send(sel_didModifyRange, offset, uintptr(len(data)))
+		b.buffer.Send(sel_didModifyRange, offset, size)
 	}
 }
 

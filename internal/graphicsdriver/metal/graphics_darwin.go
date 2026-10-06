@@ -283,14 +283,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 		return err
 	}
 	g.vb = vb
-	g.vb.CopyToContents(unsafe.Pointer(&vertices[0]), vbSize)
+	mtl.CopyToBufferAt(g.vb, vertices, 0)
 
 	ib, err := g.availableBuffer(ibSize)
 	if err != nil {
 		return err
 	}
 	g.ib = ib
-	g.ib.CopyToContents(unsafe.Pointer(&indices[0]), ibSize)
+	mtl.CopyToBufferAt(g.ib, indices, 0)
 
 	return nil
 }
@@ -796,7 +796,7 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		if len(a.Pixels) < n {
 			return fmt.Errorf("metal: len(pixels) must be at least %d but %d at WritePixels", n, len(a.Pixels))
 		}
-		b.CopyToContentsAt(offset, a.Pixels[:n])
+		mtl.CopyToBufferAt(b, a.Pixels[:n], offset)
 		offset += uintptr(n)
 	}
 
