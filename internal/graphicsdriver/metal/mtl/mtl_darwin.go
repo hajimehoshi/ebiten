@@ -520,7 +520,6 @@ var (
 	sel_setVertexBytes_length_atIndex                                                                                                              = objc.RegisterName("setVertexBytes:length:atIndex:")
 	sel_setFragmentBytes_length_atIndex                                                                                                            = objc.RegisterName("setFragmentBytes:length:atIndex:")
 	sel_setFragmentTexture_atIndex                                                                                                                 = objc.RegisterName("setFragmentTexture:atIndex:")
-	sel_setBlendColorRed_green_blue_alpha                                                                                                          = objc.RegisterName("setBlendColorRed:green:blue:alpha:")
 	sel_drawPrimitives_vertexStart_vertexCount                                                                                                     = objc.RegisterName("drawPrimitives:vertexStart:vertexCount:")
 	sel_drawIndexedPrimitives_indexCount_indexType_indexBuffer_indexBufferOffset                                                                   = objc.RegisterName("drawIndexedPrimitives:indexCount:indexType:indexBuffer:indexBufferOffset:")
 	sel_synchronizeResource                                                                                                                        = objc.RegisterName("synchronizeResource:")
@@ -751,10 +750,6 @@ type CommandQueue struct {
 	commandQueue objc.ID
 }
 
-func (cq CommandQueue) Release() {
-	cq.commandQueue.Send(sel_release)
-}
-
 // CommandBuffer returns a command buffer from the command queue that maintains strong references to resources.
 //
 // CommandBuffer returns an error if the queue cannot provide a command buffer.
@@ -880,10 +875,6 @@ type RenderCommandEncoder struct {
 	CommandEncoder
 }
 
-func (rce RenderCommandEncoder) Release() {
-	rce.commandEncoder.Send(sel_release)
-}
-
 // SetRenderPipelineState sets the current render pipeline state object.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515811-setrenderpipelinestate?language=objc.
@@ -926,10 +917,6 @@ func (rce RenderCommandEncoder) SetFragmentBytes(bytes unsafe.Pointer, length ui
 // Reference: https://developer.apple.com/documentation/metal/mtlrendercommandencoder/1515390-setfragmenttexture?language=objc.
 func (rce RenderCommandEncoder) SetFragmentTexture(texture Texture, index int) {
 	rce.commandEncoder.Send(sel_setFragmentTexture_atIndex, texture.texture, index)
-}
-
-func (rce RenderCommandEncoder) SetBlendColor(red, green, blue, alpha float32) {
-	rce.commandEncoder.Send(sel_setBlendColorRed_green_blue_alpha, red, green, blue, alpha)
 }
 
 // DrawPrimitives renders one instance of primitives using vertex data
@@ -1111,10 +1098,6 @@ func CopyToBufferAt[T byte | uint32 | float32](b Buffer, data []T, offset uintpt
 	if runtime.GOOS != "ios" {
 		b.buffer.Send(sel_didModifyRange, offset, size)
 	}
-}
-
-func (b Buffer) Retain() {
-	b.buffer.Send(sel_retain)
 }
 
 func (b Buffer) Release() {

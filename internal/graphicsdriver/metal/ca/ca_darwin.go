@@ -51,7 +51,6 @@ var (
 	sel_setDisplaySyncEnabled      = objc.RegisterName("setDisplaySyncEnabled:")
 	sel_setDrawableSize            = objc.RegisterName("setDrawableSize:")
 	sel_nextDrawable               = objc.RegisterName("nextDrawable")
-	sel_presentsWithTransaction    = objc.RegisterName("presentsWithTransaction")
 	sel_setPresentsWithTransaction = objc.RegisterName("setPresentsWithTransaction:")
 	sel_setFramebufferOnly         = objc.RegisterName("setFramebufferOnly:")
 	sel_texture                    = objc.RegisterName("texture")
@@ -60,7 +59,6 @@ var (
 	sel_initWithMetalLayer         = objc.RegisterName("initWithMetalLayer:")
 	sel_setDelegate                = objc.RegisterName("setDelegate:")
 	sel_addToRunLoop_forMode       = objc.RegisterName("addToRunLoop:forMode:")
-	sel_removeFromRunLoop_forMode  = objc.RegisterName("removeFromRunLoop:forMode:")
 	sel_setPaused                  = objc.RegisterName("setPaused:")
 	sel_invalidate                 = objc.RegisterName("invalidate")
 	sel_drawable                   = objc.RegisterName("drawable")
@@ -226,13 +224,6 @@ func (ml MetalLayer) NextDrawable() (MetalDrawable, error) {
 	return MetalDrawable{md}, nil
 }
 
-// PresentsWithTransaction returns a Boolean value that determines whether the layer presents its content using a Core Animation transaction.
-//
-// Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction?language=objc
-func (ml MetalLayer) PresentsWithTransaction() bool {
-	return ml.metalLayer.Send(sel_presentsWithTransaction) != 0
-}
-
 // SetPresentsWithTransaction sets a Boolean value that determines whether the layer presents its content using a Core Animation transaction.
 //
 // Reference: https://developer.apple.com/documentation/quartzcore/cametallayer/1478157-presentswithtransaction?language=objc
@@ -314,13 +305,6 @@ func (m MetalDisplayLink) SetDelegate(delegate objc.ID) {
 // Reference: https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/add(to:formode:)?language=objc
 func (m MetalDisplayLink) AddToRunLoop(runLoop cocoa.NSRunLoop, mode cocoa.NSRunLoopMode) {
 	m.Send(sel_addToRunLoop_forMode, runLoop, mode)
-}
-
-// RemoveFromRunLoop removes a mode’s display link from a run loop.
-//
-// Reference: https://developer.apple.com/documentation/quartzcore/cametaldisplaylink/remove(from:formode:)?language=objc
-func (m MetalDisplayLink) RemoveFromRunLoop(runLoop cocoa.NSRunLoop, mode cocoa.NSRunLoopMode) {
-	m.Send(sel_removeFromRunLoop_forMode, runLoop, mode)
 }
 
 // SetPaused sets a Boolean value that indicates whether the system suspends the display link’s notifications to the target.
