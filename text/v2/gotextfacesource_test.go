@@ -361,3 +361,73 @@ func TestGoTextFaceSourceMetricsConcurrentWithShaping(t *testing.T) {
 	}
 	wg.Wait()
 }
+
+func TestGlyphImageCacheAfterFaceChange(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "chromacheck-sbix.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		str     = "\U0000E901"
+		oldSize = 16
+		newSize = 64
+	)
+	src := newGoTextFaceSourceForTest(t, data)
+	face := &text.GoTextFace{
+		Source: src,
+		Size:   oldSize,
+	}
+
+	glyphs := text.AppendLazyGlyphs(nil, str, face, nil)
+	face.Size = newSize
+	if img := glyphs[0].Image(); img == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+
+	glyphs = text.AppendLazyGlyphs(nil, str, face, nil)
+	img := glyphs[0].Image()
+	if img == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+	if got, want := img.Bounds().Size(), glyphs[0].ImageBounds.Size(); got != want {
+		t.Errorf("the image size = %v, want %v", got, want)
+	}
+}
+
+func TestGlyphImageCacheAfterVariationChange(t *testing.T) {
+	data := variableFontData(t)
+	face := &text.GoTextFace{
+		Source: newGoTextFaceSourceForTest(t, data),
+		Size:   32,
+	}
+	weight := text.MustParseTag("wght")
+	face.SetVariation(weight, 100)
+	glyphs := text.AppendLazyGlyphs(nil, "J", face, nil)
+	face.SetVariation(weight, 900)
+	if glyphs[0].Image() == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+
+	got := text.AppendLazyGlyphs(nil, "J", face, nil)[0].Image()
+	fresh := &text.GoTextFace{
+		Source: newGoTextFaceSourceForTest(t, data),
+		Size:   32,
+	}
+	fresh.SetVariation(weight, 900)
+	want := text.AppendLazyGlyphs(nil, "J", fresh, nil)[0].Image()
+	if got == nil || want == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+	if got.Bounds().Size() != want.Bounds().Size() {
+		t.Errorf("image size = %v, want %v", got.Bounds().Size(), want.Bounds().Size())
+		return
+	}
+	gotPixels := make([]byte, 4*got.Bounds().Dx()*got.Bounds().Dy())
+	wantPixels := make([]byte, len(gotPixels))
+	got.ReadPixels(gotPixels)
+	want.ReadPixels(wantPixels)
+	if !bytes.Equal(gotPixels, wantPixels) {
+		t.Error("glyph pixels differ from a fresh face with the same variation")
+	}
+}

@@ -75,7 +75,7 @@ func HasGlyphImageCache(source *GoTextFaceSource, size float64) bool {
 // TouchGlyphImageCache creates or refreshes the glyph image cache for the size of the given face,
 // as if the face were used at the given tick.
 func TouchGlyphImageCache(face *GoTextFace, now int64) {
-	face.Source.glyphImageCache.cacheForFace(face, now)
+	face.Source.glyphImageCache.cacheForSize(face.Size, glyphVariationCount(face), now)
 }
 
 func NewCacheForTesting[Key comparable, Value any](softLimit int) *cache[Key, Value] {

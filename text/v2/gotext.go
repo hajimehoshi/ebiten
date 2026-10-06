@@ -332,8 +332,11 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 			if hasImage {
 				if imager == nil {
 					imager = &goTextLineImager{
-						face: g,
-						args: make([]goTextGlyphImageArgs, 0, len(gs)-i),
+						source:         g.Source,
+						size:           g.Size,
+						variations:     g.variationsString,
+						variationCount: int((1 << 6) / granularity),
+						args:           make([]goTextGlyphImageArgs, 0, len(gs)-i),
 					}
 				}
 				imager.args = append(imager.args, args)
@@ -365,8 +368,13 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 // invocation of [GoTextFace.appendLazyGlyphsForLine]. It satisfies
 // [glyphImager].
 type goTextLineImager struct {
-	face *GoTextFace
-	args []goTextGlyphImageArgs
+	// Capture the face state at layout time: the face can change before
+	// a LazyGlyph realizes its image.
+	source         *GoTextFaceSource
+	size           float64
+	variations     string
+	variationCount int
+	args           []goTextGlyphImageArgs
 }
 
 // goTextGlyphImageArgs is the per-glyph data needed by
@@ -382,7 +390,6 @@ type goTextGlyphImageArgs struct {
 func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 	args := &im.args[index]
 	glyph := args.glyph
-	face := im.face
 	rd := glyph.render
 	// A bitmap glyph is pixel-aligned and its subpixel offset is always
 	// zero (see goTextGlyphImageInfo), so one key form covers both the
@@ -391,11 +398,11 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		gid:        glyph.shapingGlyph.GlyphID,
 		xoffset:    args.subpixelOffset.X,
 		yoffset:    args.subpixelOffset.Y,
-		variations: face.variationsString,
+		variations: im.variations,
 		sideways:   rd.sideways,
 	}
 	subpixelOffset := args.subpixelOffset
-	return face.Source.getOrCreateGlyphImage(face, key, func() (*ebiten.Image, bool) {
+	return im.source.getOrCreateGlyphImage(im.size, im.variationCount, key, func() (*ebiten.Image, bool) {
 		if bm := rd.bitmap(); bm != nil {
 			return ebiten.NewImageFromImage(bm), true
 		}
