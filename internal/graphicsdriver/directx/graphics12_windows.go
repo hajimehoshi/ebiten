@@ -1073,6 +1073,10 @@ func (g *graphics12) SetTransparent(transparent bool) {
 // It must be called before the window is created, as it decides whether the window can be created
 // without a redirection surface.
 func (g *graphics12) SupportsDirectComposition() bool {
+	// graphicsInfra is nil on Xbox, where a swap chain is not used.
+	if g.graphicsInfra == nil {
+		return false
+	}
 	return g.graphicsInfra.supportsComposition(unsafe.Pointer(g.commandQueue))
 }
 
