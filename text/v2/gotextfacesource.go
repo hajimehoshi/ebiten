@@ -138,6 +138,7 @@ func (c *glyphImageCaches) getOrCreate(size float64, variationCount int, key goT
 }
 
 // cacheForSize returns the cache for the given size, creating it if necessary.
+// variationCount determines the capacity of a newly created cache.
 // n is the current tick.
 func (c *glyphImageCaches) cacheForSize(size float64, variationCount int, n int64) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
 	c.mu.Lock()

@@ -362,7 +362,7 @@ func TestGoTextFaceSourceMetricsConcurrentWithShaping(t *testing.T) {
 	wg.Wait()
 }
 
-func TestGlyphImageCacheAfterFaceChange(t *testing.T) {
+func TestGlyphImageCacheAfterSizeChange(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "chromacheck-sbix.ttf"))
 	if err != nil {
 		t.Fatal(err)

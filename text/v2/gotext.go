@@ -335,7 +335,7 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 						source:         g.Source,
 						size:           g.Size,
 						variations:     g.variationsString,
-						variationCount: int((1 << 6) / granularity),
+						variationCount: glyphVariationCount(g),
 						args:           make([]goTextGlyphImageArgs, 0, len(gs)-i),
 					}
 				}
