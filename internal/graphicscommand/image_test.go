@@ -190,9 +190,9 @@ func TestSuccessiveWritePixels(t *testing.T) {
 	}
 }
 
-func flushPresent(t *testing.T) {
+func flushEndFrame(t *testing.T) {
 	t.Helper()
-	if err := graphicscommand.FlushCommands(ui.Get().GraphicsDriverForTesting(), graphicsdriver.FlushModePresent); err != nil {
+	if err := graphicscommand.FlushCommands(ui.Get().GraphicsDriverForTesting(), graphicsdriver.FlushModeEndFrame); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -217,7 +217,7 @@ func requireReadPixelsAsyncResult(t *testing.T, ch <-chan error) error {
 			return err
 		default:
 		}
-		flushPresent(t)
+		flushEndFrame(t)
 		time.Sleep(time.Millisecond)
 	}
 	return fmt.Errorf("test: read-back timed out")
@@ -355,7 +355,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 				Region: region,
 			}})
 		}
-		flushPresent(t)
+		flushEndFrame(t)
 
 		pix := make([]byte, 4*w*h)
 		ch := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
