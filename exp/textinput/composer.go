@@ -30,6 +30,10 @@ import (
 //
 // See examples/textinput in the Ebitengine repository for a complete
 // usage example.
+//
+// Callbacks may call Confirm or Cancel, but must not call Update. A call to
+// Update from a callback panics. End-of-session callbacks run after the session
+// is detached; Confirm and Cancel have no effect when no session is active.
 type Composer struct {
 	// OnNewSession is called when Composer needs to start a new session
 	// (initial use, after a commit, or after a platform-side teardown).
@@ -56,8 +60,8 @@ type Composer struct {
 	// [Composer.Confirm] does. Optional.
 	OnEndByUser func()
 
-	s        *session
-	draining *session
+	s          *session
+	inCallback bool
 }
 
 // SessionOptions describes the IME's view of the caret. It is returned
@@ -170,13 +174,17 @@ func (c *Commit) SurroundingText() (before, after string) {
 // if the platform queued multiple compositions between ticks.
 //
 // Update should be called every tick (Update) during editing. It is safe to
-// call more often than once per tick.
+// call more often than once per tick. Calling Update from any Composer callback
+// panics.
 func (c *Composer) Update() (handled bool, err error) {
+	if c.inCallback {
+		panic("textinput: Composer.Update must not be called from a callback")
+	}
 	for {
 		if c.s == nil {
 			var opts *SessionOptions
 			if c.OnNewSession != nil {
-				opts = c.OnNewSession()
+				opts = c.newSessionOptions()
 				if opts == nil {
 					break
 				}
@@ -213,16 +221,6 @@ func (c *Composer) Update() (handled bool, err error) {
 // leaves text inputting in progress, so that Update starts the next session.
 // The session is dropped when it ends or fails.
 func (c *Composer) drain() (handled, next bool, err error) {
-	// A callback can call Update, Confirm, or Cancel. Do not dispatch the
-	// current session's events again while a callback is handling them.
-	if c.draining == c.s {
-		return false, false, nil
-	}
-	previous := c.draining
-	c.draining = c.s
-	defer func() {
-		c.draining = previous
-	}()
 
 	if err = c.s.drain(); err != nil {
 		c.s = nil
@@ -234,11 +232,9 @@ func (c *Composer) drain() (handled, next bool, err error) {
 		s := c.s
 		c.s = nil
 		if c.OnCommit != nil {
-			c.OnCommit(s.Commit())
+			c.dispatchCommit(s.Commit())
 		}
-		if c.s == nil {
-			c.dispatchEmptyComposition()
-		}
+		c.dispatchEmptyComposition()
 		// A commit whose key passes through to the game leaves handled false.
 		handled = !s.IsCommittedWithPassthroughKey()
 		endedByUser := s.IsClosedByUser()
@@ -256,11 +252,9 @@ func (c *Composer) drain() (handled, next bool, err error) {
 		c.s = nil
 		endedByUser := s.IsClosedByUser()
 		if endedByUser && c.OnCommit != nil && s.loadComposition().text != "" {
-			c.OnCommit(s.compositionAsCommit())
+			c.dispatchCommit(s.compositionAsCommit())
 		}
-		if c.s == nil {
-			c.dispatchEmptyComposition()
-		}
+		c.dispatchEmptyComposition()
 		if endedByUser {
 			c.dispatchEndByUser()
 		}
@@ -299,34 +293,52 @@ func (c *Composer) end(commit bool) {
 	// Dispatch what the platform delivered since the last Update first, so
 	// that a delivered commit is not lost and the composition is current.
 	s := c.s
-	_, _, _ = c.drain()
-	if c.s != s {
-		return
+	if !c.inCallback {
+		_, _, _ = c.drain()
+		if c.s == nil {
+			return
+		}
 	}
 	c.s = nil
 	s.Cancel()
 	if commit && c.OnCommit != nil && s.loadComposition().text != "" {
-		c.OnCommit(s.compositionAsCommit())
+		c.dispatchCommit(s.compositionAsCommit())
 	}
-	if c.s == nil {
-		c.dispatchEmptyComposition()
-	}
+	c.dispatchEmptyComposition()
 }
 
 func (c *Composer) dispatchComposition(comp Composition) {
 	if c.OnComposition != nil {
+		previous := c.inCallback
+		c.inCallback = true
+		defer func() { c.inCallback = previous }()
 		c.OnComposition(&comp)
 	}
 }
 
 func (c *Composer) dispatchEmptyComposition() {
-	if c.OnComposition != nil {
-		c.OnComposition(&Composition{})
-	}
+	c.dispatchComposition(Composition{})
+}
+
+func (c *Composer) newSessionOptions() *SessionOptions {
+	previous := c.inCallback
+	c.inCallback = true
+	defer func() { c.inCallback = previous }()
+	return c.OnNewSession()
+}
+
+func (c *Composer) dispatchCommit(commit *Commit) {
+	previous := c.inCallback
+	c.inCallback = true
+	defer func() { c.inCallback = previous }()
+	c.OnCommit(commit)
 }
 
 func (c *Composer) dispatchEndByUser() {
 	if c.OnEndByUser != nil {
+		previous := c.inCallback
+		c.inCallback = true
+		defer func() { c.inCallback = previous }()
 		c.OnEndByUser()
 	}
 }

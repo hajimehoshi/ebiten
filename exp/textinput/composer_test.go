@@ -185,131 +185,139 @@ func TestComposerEndDispatchesUserEnding(t *testing.T) {
 	}
 }
 
-func TestComposerReentrantCallbacks(t *testing.T) {
-	for _, state := range []string{"commit", "closed", "confirm", "composition", "empty composition"} {
-		for _, action := range []string{"Cancel", "Confirm", "Update"} {
-			t.Run(state+"/"+action, func(t *testing.T) {
+func TestComposerCallbackContract(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		prepare     func(*textinput.ComposerDriver)
+		run         func(*textinput.ComposerDriver) error
+		callback    string
+		wantCommits []string
+	}{
+		{
+			name:        "commit",
+			prepare:     func(d *textinput.ComposerDriver) { d.Send(commitState("text")) },
+			callback:    "commit",
+			wantCommits: []string{"text"}},
+		{
+			name:        "closed",
+			prepare:     func(d *textinput.ComposerDriver) { d.Send(compositionState("text")); d.EndByUser() },
+			callback:    "commit",
+			wantCommits: []string{"text"}},
+		{
+			name:        "confirm",
+			prepare:     func(d *textinput.ComposerDriver) { d.Send(compositionState("text")) },
+			run:         func(d *textinput.ComposerDriver) error { d.Composer.Confirm(); return nil },
+			callback:    "commit",
+			wantCommits: []string{"text"}},
+		{
+			name:     "composition",
+			prepare:  func(d *textinput.ComposerDriver) { d.Send(compositionState("text")) },
+			callback: "composition"},
+		{
+			name:        "empty composition",
+			prepare:     func(d *textinput.ComposerDriver) { d.Send(commitState("text")) },
+			callback:    "empty",
+			wantCommits: []string{"text"}},
+		{
+			name:     "end by user",
+			prepare:  func(d *textinput.ComposerDriver) { d.EndByUser() },
+			callback: "end"},
+		{
+			name:     "new session",
+			prepare:  func(d *textinput.ComposerDriver) { d.Composer.Cancel() },
+			callback: "new"},
+	} {
+		for _, action := range []struct {
+			name      string
+			call      func(*textinput.Composer)
+			wantPanic bool
+		}{
+			{
+				name: "Cancel",
+				call: (*textinput.Composer).Cancel},
+			{
+				name: "Confirm",
+				call: (*textinput.Composer).Confirm},
+			{
+				name:      "Update",
+				call:      func(c *textinput.Composer) { _, _ = c.Update() },
+				wantPanic: true},
+		} {
+			t.Run(tc.name+"/"+action.name, func(t *testing.T) {
 				d := textinput.NewComposerDriver("", "")
-				d.Composer.OnNewSession = func() *textinput.SessionOptions { return nil }
-				var commits []string
+				tc.prepare(d)
 				calls := 0
-				reenter := func() {
+				invoke := func() {
 					calls++
 					if calls != 1 {
 						return
 					}
-					switch action {
-					case "Cancel":
-						d.Composer.Cancel()
-					case "Confirm":
-						d.Composer.Confirm()
-					case "Update":
-						if _, err := d.Composer.Update(); err != nil {
-							t.Fatal(err)
-						}
+					panicked := false
+					func() {
+						defer func() {
+							if recover() != nil {
+								panicked = true
+							}
+						}()
+						action.call(&d.Composer)
+					}()
+					if panicked != action.wantPanic {
+						t.Errorf("panic = %t, want %t", panicked, action.wantPanic)
 					}
 				}
+				d.Composer.OnNewSession = func() *textinput.SessionOptions {
+					if tc.callback == "new" {
+						invoke()
+					}
+					return nil
+				}
+				var commits []string
 				d.Composer.OnCommit = func(c *textinput.Commit) {
+					if d.InputOpen() {
+						t.Error("input channel still open during OnCommit")
+					}
 					commits = append(commits, c.Text())
-					if state != "composition" && state != "empty composition" {
-						reenter()
+					if tc.callback == "commit" {
+						invoke()
 					}
 				}
+				var compositions []string
 				d.Composer.OnComposition = func(c *textinput.Composition) {
-					if (state == "composition" && c.Text() != "") || (state == "empty composition" && c.Text() == "") {
-						reenter()
+					compositions = append(compositions, c.Text())
+					if (tc.callback == "composition" && c.Text() != "") || (tc.callback == "empty" && c.Text() == "") {
+						invoke()
 					}
 				}
-				var wantCommits []string
-				switch state {
-				case "commit", "empty composition":
-					d.Send(commitState("にほんご"))
-					wantCommits = []string{"にほんご"}
-				case "closed":
-					d.Send(compositionState("にほんご"))
-					d.EndByUser()
-					wantCommits = []string{"にほんご"}
-				case "confirm":
-					d.Send(compositionState("にほんご"))
-					wantCommits = []string{"にほんご"}
-				case "composition":
-					d.Send(compositionState("にほんご"))
-					if action == "Confirm" {
-						wantCommits = []string{"にほんご"}
+				d.Composer.OnEndByUser = func() {
+					if tc.callback == "end" {
+						invoke()
 					}
 				}
-				if state == "confirm" {
-					d.Composer.Confirm()
+				if tc.run != nil {
+					if err := tc.run(d); err != nil {
+						t.Fatal(err)
+					}
 				} else if _, err := d.Composer.Update(); err != nil {
 					t.Fatal(err)
 				}
-				if got, want := commits, wantCommits; !slices.Equal(got, want) {
-					t.Errorf("commits = %q, want %q", got, want)
+				wantCommits := tc.wantCommits
+				if tc.callback == "composition" && action.name == "Confirm" {
+					wantCommits = []string{"text"}
+				}
+				if !slices.Equal(commits, wantCommits) {
+					t.Errorf("commits = %q, want %q", commits, wantCommits)
 				}
 				if calls != 1 {
 					t.Errorf("callback calls = %d, want 1", calls)
 				}
-				if got, want := d.SessionOpen(), state == "composition" && action == "Update"; got != want {
-					t.Errorf("SessionOpen() = %t, want %t", got, want)
+				wantOpen := tc.callback == "composition" && action.wantPanic
+				if d.SessionOpen() != wantOpen {
+					t.Errorf("session open = %t, want %t", d.SessionOpen(), wantOpen)
+				}
+				if !wantOpen && tc.callback != "new" && (len(compositions) == 0 || compositions[len(compositions)-1] != "") {
+					t.Errorf("composition not cleared: %q", compositions)
 				}
 			})
 		}
-	}
-}
-
-func TestComposerEndReplacementDispatchesPendingCommit(t *testing.T) {
-	for _, confirm := range []bool{false, true} {
-		t.Run(map[bool]string{false: "Cancel", true: "Confirm"}[confirm], func(t *testing.T) {
-			d := textinput.NewComposerDriver("", "")
-			d.Composer.OnNewSession = func() *textinput.SessionOptions { return nil }
-			var commits []string
-			d.Composer.OnCommit = func(c *textinput.Commit) {
-				commits = append(commits, c.Text())
-				if c.Text() != "first" {
-					return
-				}
-				d.StartNextSession()
-				if confirm {
-					d.Composer.Confirm()
-				} else {
-					d.Composer.Cancel()
-				}
-			}
-			d.Send(commitState("first"))
-			d.Send(commitState("second"))
-			if _, err := d.Composer.Update(); err != nil {
-				t.Fatal(err)
-			}
-			if want := []string{"first", "second"}; !slices.Equal(commits, want) {
-				t.Errorf("commits = %q, want %q", commits, want)
-			}
-			if d.SessionOpen() {
-				t.Error("replacement session remains open")
-			}
-		})
-	}
-}
-
-func TestComposerConfirmPreservesReplacementComposition(t *testing.T) {
-	d := textinput.NewComposerDriver("", "")
-	d.Composer.OnNewSession = func() *textinput.SessionOptions { return nil }
-	var compositions []string
-	d.Composer.OnComposition = func(c *textinput.Composition) {
-		compositions = append(compositions, c.Text())
-	}
-	d.Composer.OnCommit = func(c *textinput.Commit) {
-		d.StartNextSession()
-		d.Send(compositionState("replacement"))
-		if _, err := d.Composer.Update(); err != nil {
-			t.Fatal(err)
-		}
-	}
-	d.Send(compositionState("old"))
-	d.Composer.Confirm()
-	if got := compositions[len(compositions)-1]; got != "replacement" {
-		t.Errorf("last composition = %q, want replacement", got)
-	}
-	if !d.SessionOpen() {
-		t.Error("replacement session is not open")
 	}
 }
