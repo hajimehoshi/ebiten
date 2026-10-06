@@ -130,17 +130,18 @@ type glyphImageCaches struct {
 	mu sync.Mutex
 }
 
-func (c *glyphImageCaches) getOrCreate(face *GoTextFace, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
-	return c.cacheForFace(face, ebiten.Tick()).getOrCreate(key, create)
+func (c *glyphImageCaches) getOrCreate(size float64, variationCount int, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
+	return c.cacheForSize(size, variationCount, ebiten.Tick()).getOrCreate(key, create)
 }
 
-// cacheForFace returns the cache for the size of the given face, creating it if necessary.
+// cacheForSize returns the cache for the given size, creating it if necessary.
+// variationCount determines the capacity of a newly created cache.
 // n is the current tick, which is the criterion of the staleness of the caches.
-func (c *glyphImageCaches) cacheForFace(face *GoTextFace, n int64) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
+func (c *glyphImageCaches) cacheForSize(size float64, variationCount int, n int64) *cache[goTextGlyphImageCacheKey, *ebiten.Image] {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if e, ok := c.caches[face.Size]; ok {
+	if e, ok := c.caches[size]; ok {
 		e.atime = n
 		return e.cache
 	}
@@ -149,10 +150,10 @@ func (c *glyphImageCaches) cacheForFace(face *GoTextFace, n int64) *cache[goText
 		c.caches = map[float64]*glyphImageCacheEntry{}
 	}
 	e := &glyphImageCacheEntry{
-		cache: newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * glyphVariationCount(face)),
+		cache: newCache[goTextGlyphImageCacheKey, *ebiten.Image](128 * variationCount),
 		atime: n,
 	}
-	c.caches[face.Size] = e
+	c.caches[size] = e
 
 	// Clean up old caches. The glyph images in a removed cache are released by GC.
 	if c.atime < n {
@@ -1321,8 +1322,8 @@ func (g *GoTextFaceSource) scale(size float64) float64 {
 	return size / float64(g.f.Upem())
 }
 
-func (g *GoTextFaceSource) getOrCreateGlyphImage(goTextFace *GoTextFace, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
-	return g.glyphImageCache.getOrCreate(goTextFace, key, create)
+func (g *GoTextFaceSource) getOrCreateGlyphImage(size float64, variationCount int, key goTextGlyphImageCacheKey, create func() (*ebiten.Image, bool)) *ebiten.Image {
+	return g.glyphImageCache.getOrCreate(size, variationCount, key, create)
 }
 
 func (g *GoTextFaceSource) metrics(size float64) Metrics {
