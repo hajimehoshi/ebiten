@@ -16,7 +16,6 @@ package testing
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -32,31 +31,6 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	return vec4(%0.9f, %0.9f, %0.9f, %0.9f)
 }
 `, float64(r)/0xff, float64(g)/0xff, float64(b)/0xff, float64(a)/0xff))
-	if err != nil {
-		panic(err)
-	}
-	return ir
-}
-
-// ShaderProgramImages returns a shader source to render the framebuffer with the given images.
-func ShaderProgramImages(numImages int) *shaderir.Program {
-	if numImages <= 0 {
-		panic("testing: numImages must be >= 1")
-	}
-
-	var exprs []string
-	for i := range numImages {
-		exprs = append(exprs, fmt.Sprintf("imageSrc%dUnsafeAt(src0Pos)", i))
-	}
-
-	ir, err := graphics.CompileShader(fmt.Appendf(nil, `//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	return %s
-}
-`, strings.Join(exprs, " + ")))
 	if err != nil {
 		panic(err)
 	}

@@ -17,7 +17,6 @@ package graphicscommand
 import (
 	"fmt"
 	"image"
-	"math"
 	"slices"
 	"strings"
 	"sync"
@@ -186,28 +185,6 @@ func (c *drawTrianglesCommand) CanMergeWithDrawTrianglesCommand(dst *Image, srcs
 		return false
 	}
 	return true
-}
-
-var (
-	posInf32 = float32(math.Inf(1))
-	negInf32 = float32(math.Inf(-1))
-)
-
-func dstRegionFromVertices(vertices []float32) (minX, minY, maxX, maxY float32) {
-	minX = posInf32
-	minY = posInf32
-	maxX = negInf32
-	maxY = negInf32
-
-	for i := 0; i < len(vertices); i += graphics.VertexFloatCount {
-		x := vertices[i]
-		y := vertices[i+1]
-		minX = min(minX, x)
-		minY = min(minY, y)
-		maxX = max(maxX, x)
-		maxY = max(maxY, y)
-	}
-	return
 }
 
 // writePixelsCommand represents a command to replace pixels of an image.
