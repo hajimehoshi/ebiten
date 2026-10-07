@@ -1200,10 +1200,10 @@ type _ID3D12DebugCommandList_Vtbl struct {
 
 type _ID3D12DescriptorHeap struct {
 	_    structs.HostLayout
-	vtbl *_ID3D12DescriptrHeap_Vtbl
+	vtbl *_ID3D12DescriptorHeap_Vtbl
 }
 
-type _ID3D12DescriptrHeap_Vtbl struct {
+type _ID3D12DescriptorHeap_Vtbl struct {
 	_              structs.HostLayout
 	QueryInterface uintptr
 	AddRef         uintptr
