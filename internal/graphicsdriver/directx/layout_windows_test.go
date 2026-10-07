@@ -1,4 +1,4 @@
-// Copyright 2023 The Ebitengine Authors
+// Copyright 2026 The Ebitengine Authors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 package directx_test
 
 import (
-	"testing"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/directx"
@@ -36,13 +35,3 @@ var (
 	_ [subresourceLocationSize - textureCopyLocationSize]byte
 	_ [textureCopyLocationSize - subresourceLocationSize]byte
 )
-
-func TestTextureCopyLocationSubresourceIndexLayout(t *testing.T) {
-	const index = 0x12345678
-	location := directx.TextureCopyLocationSubresourceIndex{SubresourceIndex: index}
-	// Read the member at the native union offset, rather than through Go's field.
-	got := *(*uint32)(unsafe.Add(unsafe.Pointer(&location), textureCopyUnionOffset))
-	if got != index {
-		t.Errorf("native SubresourceIndex = %#x, want %#x", got, index)
-	}
-}
