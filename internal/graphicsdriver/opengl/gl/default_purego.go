@@ -59,7 +59,6 @@ type defaultContext struct {
 	gpGenFramebuffers         uintptr
 	gpGenTextures             uintptr
 	gpGenVertexArrays         uintptr
-	gpGetBufferSubData        uintptr
 	gpMapBufferRange          uintptr
 	gpGetError                uintptr
 	gpGetIntegerv             uintptr
@@ -318,12 +317,6 @@ func (c *defaultContext) Flush() {
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	c.call(c.gpFramebufferTexture2D, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
-}
-
-func (c *defaultContext) getBufferSubData(target uint32, offset int, dst []byte) {
-	c.pinner.Pin(&dst[0])
-	defer c.pinner.Unpin()
-	c.call(c.gpGetBufferSubData, uintptr(target), uintptr(offset), uintptr(len(dst)), uintptr(unsafe.Pointer(&dst[0])))
 }
 
 func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
@@ -621,9 +614,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = g.get("glGenFramebuffers")
 	c.gpGenTextures = g.get("glGenTextures")
 	c.gpGenVertexArrays = g.get("glGenVertexArrays")
-	if !c.isES {
-		c.gpGetBufferSubData = g.get("glGetBufferSubData")
-	}
 	c.gpMapBufferRange = g.get("glMapBufferRange")
 	c.gpGetError = g.get("glGetError")
 	c.gpGetIntegerv = g.get("glGetIntegerv")

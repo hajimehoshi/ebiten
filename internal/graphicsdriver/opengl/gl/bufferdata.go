@@ -30,11 +30,6 @@ func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) e
 		return nil
 	}
 
-	if !c.IsES() {
-		c.getBufferSubData(target, offset, dst)
-		return nil
-	}
-
 	src := c.mapBufferRange(target, offset, len(dst), MAP_READ_BIT)
 	if src == nil {
 		return errors.New("gl: mapping a buffer failed")

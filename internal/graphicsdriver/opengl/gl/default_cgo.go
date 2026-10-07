@@ -253,12 +253,6 @@ package gl
 //   ((fn)(fnptr))(n, textures);
 // }
 //
-// #cgo noescape glowGetBufferSubData
-// #cgo nocallback glowGetBufferSubData
-// static void glowGetBufferSubData(uintptr_t fnptr, GLenum target, GLintptr offset, GLsizeiptr size, void* data) {
-//   ((void (*)(GLenum, GLintptr, GLsizeiptr, void*))fnptr)(target, offset, size, data);
-// }
-//
 // #cgo noescape glowMapBufferRange
 // #cgo nocallback glowMapBufferRange
 // static void* glowMapBufferRange(uintptr_t fnptr, GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access) {
@@ -538,7 +532,6 @@ type defaultContext struct {
 	gpGenFramebuffers         C.uintptr_t
 	gpGenTextures             C.uintptr_t
 	gpGenVertexArrays         C.uintptr_t
-	gpGetBufferSubData        C.uintptr_t
 	gpMapBufferRange          C.uintptr_t
 	gpGetError                C.uintptr_t
 	gpGetIntegerv             C.uintptr_t
@@ -748,10 +741,6 @@ func (c *defaultContext) Flush() {
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	C.glowFramebufferTexture2D(c.gpFramebufferTexture2D, C.GLenum(target), C.GLenum(attachment), C.GLenum(textarget), C.GLuint(texture), C.GLint(level))
-}
-
-func (c *defaultContext) getBufferSubData(target uint32, offset int, dst []byte) {
-	C.glowGetBufferSubData(c.gpGetBufferSubData, C.GLenum(target), C.GLintptr(offset), C.GLsizeiptr(len(dst)), unsafe.Pointer(&dst[0]))
 }
 
 func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
@@ -979,9 +968,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = C.uintptr_t(g.get("glGenFramebuffers"))
 	c.gpGenTextures = C.uintptr_t(g.get("glGenTextures"))
 	c.gpGenVertexArrays = C.uintptr_t(g.get("glGenVertexArrays"))
-	if !c.isES {
-		c.gpGetBufferSubData = C.uintptr_t(g.get("glGetBufferSubData"))
-	}
 	c.gpMapBufferRange = C.uintptr_t(g.get("glMapBufferRange"))
 	c.gpGetError = C.uintptr_t(g.get("glGetError"))
 	c.gpGetIntegerv = C.uintptr_t(g.get("glGetIntegerv"))
