@@ -777,7 +777,7 @@ type _D3D12_TEX2D_SRV struct {
 	ResourceMinLODClamp float32
 }
 
-type _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint struct {
+type _D3D12_TEXTURE_COPY_LOCATION_PlacedFootprint struct {
 	_               structs.HostLayout
 	pResource       *_ID3D12Resource
 	Type            _D3D12_TEXTURE_COPY_TYPE
@@ -788,8 +788,9 @@ type _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex struct {
 	_                structs.HostLayout
 	pResource        *_ID3D12Resource
 	Type             _D3D12_TEXTURE_COPY_TYPE
+	_                [unsafe.Sizeof(uintptr(0)) - unsafe.Sizeof(uint32(0))]byte // Align the native union.
 	SubresourceIndex uint32
-	_                [unsafe.Sizeof(_D3D12_PLACED_SUBRESOURCE_FOOTPRINT{}) - unsafe.Sizeof(uint32(0))]byte // A padding for union
+	_                [32 - unsafe.Sizeof(uint32(0))]byte // The native union occupies 32 bytes on both 32-bit and 64-bit Windows.
 }
 
 type _D3D12_VERTEX_BUFFER_VIEW struct {
@@ -1725,7 +1726,7 @@ func (i *_ID3D12GraphicsCommandList) Close() error {
 	return nil
 }
 
-func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_SubresourceIndex(pDst *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, pSrcBox *_D3D12_BOX) {
+func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootprint_SubresourceIndex(pDst *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootprint, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, pSrcBox *_D3D12_BOX) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_CopyTextureRegion(i, unsafe.Pointer(pDst), dstX, dstY, dstZ, unsafe.Pointer(pSrc), pSrcBox)
 	} else {
@@ -1739,7 +1740,7 @@ func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_PlacedFootPrint_Subresour
 	runtime.KeepAlive(pSrcBox)
 }
 
-func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFootPrint(pDst *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint, pSrcBox *_D3D12_BOX) {
+func (i *_ID3D12GraphicsCommandList) CopyTextureRegion_SubresourceIndex_PlacedFootprint(pDst *_D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex, dstX uint32, dstY uint32, dstZ uint32, pSrc *_D3D12_TEXTURE_COPY_LOCATION_PlacedFootprint, pSrcBox *_D3D12_BOX) {
 	if microsoftgdk.IsXbox() {
 		_ID3D12GraphicsCommandList_CopyTextureRegion(i, unsafe.Pointer(pDst), dstX, dstY, dstZ, unsafe.Pointer(pSrc), pSrcBox)
 	} else {
