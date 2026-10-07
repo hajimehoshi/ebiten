@@ -1,28 +1,99 @@
 # OpenType SVG
 
-CPU-only document foundation for the planned internal glyph renderer
+CPU-only document and geometry foundation for the planned internal glyph renderer
 ([#3796](https://github.com/hajimehoshi/ebiten/issues/3796)), with
 [acceptance data](testdata/README.md) for the later rendering stages.
 
 The document model, local fragment lookup and glyph selection with bounded
-`use` href traversal are implemented. Geometry, CSS evaluation, paint,
-rendering and text integration remain future work. CSS and paint-reference
-traversal, including gradient and pattern href chains, must be bounded after
-effective properties are determined. Instance inheritance and CSS selector
-ancestry need interpreter-level tests. Embedded image decoding must check
-`image.DecodeConfig` dimensions against a pixel budget before `Decode`.
-go-text decompresses gzip-encoded SVG documents without a size limit before
-`parse` sees them, so the decoded byte limit does not protect against a
-compression bomb; integration must bound decompression or avoid that path.
-The document model and its operations are private to this package. External
-package tests access them through aliases and wrappers in `export_test.go`.
-Implementation constraints are documented in `document.go`.
+`use` href traversal, geometry parsing, transforms, units and viewport mapping
+are implemented. CSS evaluation, paint, rendering and text integration remain
+future work. CSS and paint-reference traversal, including gradient and pattern
+href chains, must be bounded after effective properties are determined.
+Instance inheritance and CSS selector ancestry need interpreter-level tests.
+Embedded image decoding must check `image.DecodeConfig` dimensions against a
+pixel budget before `Decode`. go-text decompresses gzip-encoded SVG documents
+without a size limit before `parse` sees them, so the decoded byte limit does
+not protect against a compression bomb; integration must bound decompression
+or avoid that path. The document model and its operations are private to this
+package. External-package tests access them through aliases and wrappers in
+`export_test.go`. Implementation constraints are documented in `document.go`.
 
 Run the CPU-only tests without a display or graphics harness:
 
 ```sh
 go test ./text/v2/internal/opentypesvg
 go test ./text/v2/internal/opentypesvg -run '^$' -fuzz FuzzDocument -fuzztime 10s
+```
+
+## Geometry
+
+Geometry types and operations are private to this package. `export_test.go`
+provides aliases and wrappers only for the external-package tests.
+
+`element.geometry` reads local shape attributes. `path` retains absolute lines,
+quadratic/cubic curves and endpoint-form elliptical arcs, without flattening or
+GPU dependencies. `element.localTransform` reads only the element's transform
+(and `use` x/y translation). Callers compose instance transforms explicitly with
+`matrix.mul`; `sourceParent` is never an instance transform parent.
+
+`resolveLength` takes viewport dimensions, font size, x-height and physical-unit
+scale explicitly. It does not infer font metrics or interpret CSS. Unitless
+numbers and px are user units; em/ex use the supplied metrics. Callers can supply
+96 pixels per inch for CSS physical-unit conversion. Percentages use the
+specified horizontal, vertical or normalized-diagonal basis.
+
+`document.viewport` uses the em square as the initial container in y-down font
+units. Root width/height resolve against that container and default to
+unitsPerEm; root x/y are ignored. With a viewBox, its coordinates map into the
+resolved width/height using aspect alignment, and its dimensions supply the
+returned length context. Without a viewBox, the transform is identity and the
+resolved viewport dimensions supply the length context. Zero viewport or
+viewBox dimensions disable artwork. Baseline y=0 and negative coordinates are
+preserved; overflow and clip attributes never create a root clip.
+
+The [OpenType coordinate-system specification][opentype-coordinates] describes
+root width/height as having "the effect of a scale transformation". The root
+mapping follows [Skia's `SkSVGSVG::onPrepareToRender`][skia-svg]: width/height
+set the destination viewport for viewBox mapping, without an additional
+em-square normalization. Output pixel scaling remains the caller's job.
+
+Parsing uses the SVG 1.1 [path grammar][svg-paths] and [basic shapes][svg-shapes].
+Transform arguments follow [CSS Transforms Level 1 section 7.2][svg-transforms],
+which permits omitted numeric separators. Transform lists also accept adjacent
+functions as a compatibility allowance, and retain repeated comma separators
+between functions. Point lists accept adjacent numbers at greedy token
+boundaries. Odd coordinate counts and trailing commas remain errors.
+
+[opentype-coordinates]: https://learn.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
+[skia-svg]: https://github.com/google/skia/blob/main/modules/svg/src/SkSVGSVG.cpp
+[svg-paths]: https://www.w3.org/TR/SVG11/paths.html#PathDataBNF
+[svg-shapes]: https://www.w3.org/TR/SVG11/shapes.html
+[svg-transforms]: https://www.w3.org/TR/css-transforms-1/#svg-syntax
+
+[Arc corrections](https://www.w3.org/TR/SVG11/implnote.html#ArcOutOfRangeParameters)
+normalize negative radii and rotation, enlarge insufficient radii, omit
+coincident-endpoint arcs and turn zero-radius arcs into lines. Textual flags
+must be 0 or 1. Missing shape dimensions resolve to zero; negative dimensions
+or malformed attributes return `errGeometry`. Rounded rectangle radii copy a
+missing counterpart and clamp to half the corresponding dimension.
+
+All geometry entry points share the document's 32 MiB input ceiling. Paths and
+transform lists allow at most 262,144 commands; point lists reserve one of that
+many segments for closure. Out-of-range numbers or nonfinite arithmetic return
+`errGeometry`, while resource ceilings return `errLimit`. `parsePath` and point
+lists return the completed prefix on malformed input; the later interpreter
+must choose how to report or paint that prefix. Large finite values can still
+be rejected when intermediate arithmetic exceeds float64 range. Future
+traversal and caches must additionally bound aggregate geometry and instance
+expansion.
+
+External-package tests exercise the checked-in real-font and focused fixtures,
+plus malformed input, limits and coordinate expectations. They do not establish
+pixel-level rendering compatibility. Fuzz the geometry separately:
+
+```sh
+go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzPath$' -fuzztime 10s
+go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzCoordinates$' -fuzztime 10s
 ```
 
 ## Supported profile

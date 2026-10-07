@@ -81,3 +81,66 @@ func (d *document) Resolve(reference string) (*element, error) {
 func (d *document) SelectGlyph(gid uint16) (*element, error) {
 	return d.selectGlyph(gid)
 }
+
+type (
+	Point         = point
+	SegmentKind   = segmentKind
+	Segment       = segment
+	Path          = path
+	Matrix        = matrix
+	ViewBox       = viewBox
+	GlyphViewport = glyphViewport
+	LengthContext = lengthContext
+	LengthAxis    = lengthAxis
+)
+
+const (
+	MoveTo     = moveTo
+	LineTo     = lineTo
+	QuadTo     = quadTo
+	CubicTo    = cubicTo
+	ArcTo      = arcTo
+	ClosePath  = closePath
+	Horizontal = horizontal
+	Vertical   = vertical
+	Diagonal   = diagonal
+)
+
+var (
+	ErrGeometry     = errGeometry
+	ParseNumber     = parseNumber
+	ResolveLength   = resolveLength
+	ParsePath       = parsePath
+	Identity        = identity
+	ParseTransform  = parseTransform
+	ParseViewBox    = parseViewBox
+	ViewportMapping = viewportMapping
+)
+
+func (p path) SegmentCount() int {
+	return p.segmentCount()
+}
+
+func (p path) Segment(index int) segment {
+	return p.segment(index)
+}
+
+func (m matrix) Apply(p point) (point, error) {
+	return m.apply(p)
+}
+
+func (m matrix) Mul(n matrix) (matrix, error) {
+	return m.mul(n)
+}
+
+func (e *element) Geometry(context lengthContext) (path, error) {
+	return e.geometry(context)
+}
+
+func (e *element) LocalTransform(context lengthContext) (matrix, error) {
+	return e.localTransform(context)
+}
+
+func (d *document) Viewport(unitsPerEm float64, context lengthContext) (glyphViewport, error) {
+	return d.viewport(unitsPerEm, context)
+}
