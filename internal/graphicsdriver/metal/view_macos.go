@@ -137,6 +137,14 @@ func (v *view) isFullscreen() bool {
 	return cocoa.NSWindow{ID: objc.ID(v.window)}.StyleMask()&cocoa.NSWindowStyleMaskFullScreen != 0
 }
 
+// isVisible reports whether any part of the window is visible on the screen.
+func (v *view) isVisible() bool {
+	if v.window == 0 {
+		return false
+	}
+	return cocoa.NSWindow{ID: objc.ID(v.window)}.OcclusionState()&cocoa.NSWindowOcclusionStateVisible != 0
+}
+
 // shouldPresentWithTransaction reports whether a drawable must be presented in sync with
 // Core Animation transactions. The state is updated at updatePresentationState.
 func (v *view) shouldPresentWithTransaction() bool {

@@ -336,20 +336,6 @@ type _D3D11_RENDER_TARGET_VIEW_DESC struct {
 	_             [3]uint32
 }
 
-type _D3D11_SAMPLER_DESC struct {
-	_              structs.HostLayout
-	Filter         _D3D11_FILTER
-	AddressU       _D3D11_TEXTURE_ADDRESS_MODE
-	AddressV       _D3D11_TEXTURE_ADDRESS_MODE
-	AddressW       _D3D11_TEXTURE_ADDRESS_MODE
-	MipLODBias     float32
-	MaxAnisotropy  uint32
-	ComparisonFunc _D3D11_COMPARISON_FUNC
-	BorderColor    [4]float32
-	MinLOD         float32
-	MaxLOD         float32
-}
-
 type _D3D11_SHADER_RESOURCE_VIEW_DESC struct {
 	_             structs.HostLayout
 	Format        _DXGI_FORMAT
@@ -442,11 +428,6 @@ type _ID3D11BlendState_Vtbl struct {
 	SetPrivateDataInterface uintptr
 
 	GetDesc uintptr
-}
-
-func (i *_ID3D11BlendState) Release() uint32 {
-	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
-	return uint32(r)
 }
 
 type _ID3D11Buffer struct {
@@ -657,17 +638,6 @@ func (i *_ID3D11Device) CreateRenderTargetView(pResource unsafe.Pointer, pDesc *
 	return rtView, nil
 }
 
-func (i *_ID3D11Device) CreateSamplerState(pSamplerDesc *_D3D11_SAMPLER_DESC) (*_ID3D11SamplerState, error) {
-	var samplerState *_ID3D11SamplerState
-	r, _, _ := syscall.Syscall(i.vtbl.CreateSamplerState, 3, uintptr(unsafe.Pointer(i)),
-		uintptr(unsafe.Pointer(pSamplerDesc)), uintptr(unsafe.Pointer(&samplerState)))
-	runtime.KeepAlive(pSamplerDesc)
-	if uint32(r) != uint32(windows.S_OK) {
-		return nil, fmt.Errorf("directx: ID3D11Device::CreateSamplerState failed: %w", handleError(windows.Handle(uint32(r))))
-	}
-	return samplerState, nil
-}
-
 func (i *_ID3D11Device) CreateShaderResourceView(pResource unsafe.Pointer, pDesc *_D3D11_SHADER_RESOURCE_VIEW_DESC) (*_ID3D11ShaderResourceView, error) {
 	var srView *_ID3D11ShaderResourceView
 	r, _, _ := syscall.Syscall6(i.vtbl.CreateShaderResourceView, 4, uintptr(unsafe.Pointer(i)),
@@ -847,11 +817,6 @@ type _ID3D11DeviceContext_Vtbl struct {
 	FinishCommandList                         uintptr
 }
 
-func (i *_ID3D11DeviceContext) ClearState() {
-	_, _, _ = syscall.Syscall(i.vtbl.ClearState, 1, uintptr(unsafe.Pointer(i)),
-		0, 0)
-}
-
 func (i *_ID3D11DeviceContext) CopySubresourceRegion(pDstResource unsafe.Pointer, dstSubresource uint32, dstX uint32, dstY uint32, dstZ uint32, pSrcResource unsafe.Pointer, srcSubresource uint32, pSrcBox *_D3D11_BOX) {
 	_, _, _ = syscall.Syscall9(i.vtbl.CopySubresourceRegion, 9, uintptr(unsafe.Pointer(i)),
 		uintptr(pDstResource), uintptr(dstSubresource), uintptr(dstX),
@@ -937,17 +902,6 @@ func (i *_ID3D11DeviceContext) PSSetConstantBuffers(startSlot uint32, constantBu
 		uintptr(startSlot), uintptr(len(constantBuffers)), uintptr(unsafe.Pointer(ppConstantBuffers)),
 		0, 0)
 	runtime.KeepAlive(constantBuffers)
-}
-
-func (i *_ID3D11DeviceContext) PSSetSamplers(startSlot uint32, samplers []*_ID3D11SamplerState) {
-	var ppSamplers **_ID3D11SamplerState
-	if len(samplers) > 0 {
-		ppSamplers = &samplers[0]
-	}
-	_, _, _ = syscall.Syscall6(i.vtbl.PSSetSamplers, 4, uintptr(unsafe.Pointer(i)),
-		uintptr(startSlot), uintptr(len(samplers)), uintptr(unsafe.Pointer(ppSamplers)),
-		0, 0)
-	runtime.KeepAlive(samplers)
 }
 
 func (i *_ID3D11DeviceContext) PSSetShader(pPixelShader *_ID3D11PixelShader, classInstances []*_ID3D11ClassInstance) {
@@ -1158,11 +1112,6 @@ type _ID3D11SamplerState_Vtbl struct {
 	SetPrivateDataInterface uintptr
 
 	GetDesc uintptr
-}
-
-func (i *_ID3D11SamplerState) Release() uint32 {
-	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
-	return uint32(r)
 }
 
 type _ID3D11ShaderResourceView struct {

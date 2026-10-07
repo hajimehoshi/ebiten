@@ -86,6 +86,8 @@ type VibrateGamepadOptions struct {
 // On macOS, VibrateGamepad works only for gamepads the GameController framework supports
 // (e.g. Xbox, PlayStation, and MFi controllers). VibrateGamepad does nothing for other gamepads.
 //
+// Use [IsGamepadVibrationAvailable] to know whether VibrateGamepad can vibrate a gamepad.
+//
 // VibrateGamepad does nothing before the game starts.
 //
 // VibrateGamepad is concurrent-safe.
@@ -98,4 +100,20 @@ func VibrateGamepad(gamepadID GamepadID, options *VibrateGamepadOptions) {
 		return
 	}
 	g.Vibrate(options.Duration, options.StrongMagnitude, options.WeakMagnitude)
+}
+
+// IsGamepadVibrationAvailable reports whether VibrateGamepad can vibrate the specified gamepad.
+//
+// IsGamepadVibrationAvailable might report true for a gamepad without vibration motors
+// when the platform cannot detect them.
+//
+// IsGamepadVibrationAvailable returns false before the game starts.
+//
+// IsGamepadVibrationAvailable is concurrent-safe.
+func IsGamepadVibrationAvailable(gamepadID GamepadID) bool {
+	g := gamepad.Get(gamepadID)
+	if g == nil {
+		return false
+	}
+	return g.IsVibrationAvailable()
 }

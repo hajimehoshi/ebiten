@@ -1203,3 +1203,27 @@ func TestResamplingShortBufferEOF(t *testing.T) {
 		t.Error("resampled audio changed after a short read with a source error")
 	}
 }
+
+func TestResamplingNonSeeker(t *testing.T) {
+	for _, depth := range []int{2, 4} {
+		t.Run(fmt.Sprintf("depth%d", depth), func(t *testing.T) {
+			const from = 48000
+			const to = 1
+			data := make([]byte, 2*from*2*depth)
+			r := convert.NewResampling(bytes.NewBuffer(data), int64(len(data)), from, to, depth)
+			for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+				if _, err := r.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
+					t.Errorf("Seek(0, %d): got %v, want errors.ErrUnsupported", whence, err)
+				}
+			}
+			buf := make([]byte, 2*depth)
+			if _, err := io.ReadFull(r, buf); err != nil {
+				t.Fatal(err)
+			}
+			// The next output frame requires skipping source frames at this sample rate.
+			if _, err := r.Read(buf); !errors.Is(err, errors.ErrUnsupported) {
+				t.Errorf("Read requiring a source seek: got %v, want errors.ErrUnsupported", err)
+			}
+		})
+	}
+}

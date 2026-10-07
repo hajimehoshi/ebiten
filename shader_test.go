@@ -1978,7 +1978,9 @@ func TestShaderAtFromSrc0PosFractional(t *testing.T) {
 package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-	return %s(src0Pos + vec2(0, 0.4999))
+	// Interpolation can move src0Pos slightly away from the pixel center.
+	// Keep the fractional part fixed to test only the source-origin conversion.
+	return %s(floor(src0Pos) + vec2(0.5, 0.9999))
 }
 `, fn))
 			if err != nil {

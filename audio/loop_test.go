@@ -658,9 +658,11 @@ func TestInfiniteLoopSeekInvalidWhence(t *testing.T) {
 	src := make([]byte, 256)
 	l := audio.NewInfiniteLoop(bytes.NewReader(src), int64(len(src)))
 
-	for _, whence := range []int{io.SeekEnd, -1, 3, 100} {
+	for _, whence := range []int{-1, 3, 100} {
 		if _, err := l.Seek(0, whence); err == nil {
 			t.Errorf("Seek(0, %d): got no error, want an error", whence)
+		} else if errors.Is(err, errors.ErrUnsupported) {
+			t.Errorf("Seek(0, %d): got unsupported operation for invalid whence", whence)
 		}
 	}
 }
@@ -1430,5 +1432,13 @@ func TestInfiniteLoopSeekCurrentInBlendWindow(t *testing.T) {
 				t.Errorf("reading after Seek(0, io.SeekCurrent) in the blend window: got %v, want %v", got, want)
 			}
 		})
+	}
+}
+
+func TestInfiniteLoopSeekEndUnsupported(t *testing.T) {
+	src := make([]byte, 8)
+	l := audio.NewInfiniteLoop(bytes.NewReader(src), int64(len(src)))
+	if _, err := l.Seek(0, io.SeekEnd); !errors.Is(err, errors.ErrUnsupported) {
+		t.Errorf("Seek(0, io.SeekEnd): got %v, want errors.ErrUnsupported", err)
 	}
 }
