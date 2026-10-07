@@ -87,8 +87,8 @@ type defaultContext struct {
 	gpVertexAttribPointer     uintptr
 	gpViewport                uintptr
 
-	// args holds the arguments of call. args, pinner, nameBuf, intBuf, and uniformBuf are shared by
-	// every call, so defaultContext must not be used concurrently.
+	// args holds the arguments of call. args, pinner, nameBuf, intBuf, strBuf, and uniformBuf are
+	// shared by every call, so defaultContext must not be used concurrently.
 	args [15]uintptr
 
 	// pinner pins the Go memory passed to call during the call.
@@ -99,6 +99,11 @@ type defaultContext struct {
 
 	// intBuf holds the result of a glGet*iv call.
 	intBuf int32
+
+	// strBuf holds a NUL-terminated copy of the string argument of a call. strAddr holds the
+	// address of strBuf for ShaderSource, which takes an array of string addresses.
+	strBuf  []byte
+	strAddr uintptr
 
 	// uniformBuf holds a copy of the value of a Uniform*v call. uniformPinner keeps it pinned, so
 	// defaultContext must never be garbage-collected.
@@ -170,6 +175,13 @@ func (c *defaultContext) deleteName(fn uintptr, name uint32) {
 	c.call(fn, 1, uintptr(unsafe.Pointer(&c.nameBuf)))
 }
 
+// cString returns a NUL-terminated copy of str. The copy is valid until the next call.
+func (c *defaultContext) cString(str string) *byte {
+	c.strBuf = append(c.strBuf[:0], str...)
+	c.strBuf = append(c.strBuf, 0)
+	return &c.strBuf[0]
+}
+
 func (c *defaultContext) IsES() bool {
 	return c.isES
 }
@@ -183,9 +195,10 @@ func (c *defaultContext) AttachShader(program uint32, shader uint32) {
 }
 
 func (c *defaultContext) BindAttribLocation(program uint32, index uint32, name string) {
-	cname, free := cStr(name)
-	defer free()
-	purego.SyscallN(c.gpBindAttribLocation, uintptr(program), uintptr(index), uintptr(unsafe.Pointer(cname)))
+	cname := c.cString(name)
+	c.pinner.Pin(cname)
+	defer c.pinner.Unpin()
+	c.call(c.gpBindAttribLocation, uintptr(program), uintptr(index), uintptr(unsafe.Pointer(cname)))
 }
 
 func (c *defaultContext) BindBuffer(target uint32, buffer uint32) {
@@ -331,7 +344,9 @@ func (c *defaultContext) GetProgramInfoLog(program uint32) string {
 		return ""
 	}
 	infoLog := make([]byte, bufSize)
-	purego.SyscallN(c.gpGetProgramInfoLog, uintptr(program), uintptr(bufSize), 0, uintptr(unsafe.Pointer(&infoLog[0])))
+	c.pinner.Pin(&infoLog[0])
+	defer c.pinner.Unpin()
+	c.call(c.gpGetProgramInfoLog, uintptr(program), uintptr(bufSize), 0, uintptr(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
 }
 
@@ -348,7 +363,9 @@ func (c *defaultContext) GetShaderInfoLog(shader uint32) string {
 		return ""
 	}
 	infoLog := make([]byte, bufSize)
-	purego.SyscallN(c.gpGetShaderInfoLog, uintptr(shader), uintptr(bufSize), 0, uintptr(unsafe.Pointer(&infoLog[0])))
+	c.pinner.Pin(&infoLog[0])
+	defer c.pinner.Unpin()
+	c.call(c.gpGetShaderInfoLog, uintptr(shader), uintptr(bufSize), 0, uintptr(unsafe.Pointer(&infoLog[0])))
 	return string(infoLog)
 }
 
@@ -360,9 +377,10 @@ func (c *defaultContext) GetShaderi(shader uint32, pname uint32) int {
 }
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
-	cname, free := cStr(name)
-	defer free()
-	ret, _, _ := purego.SyscallN(c.gpGetUniformLocation, uintptr(program), uintptr(unsafe.Pointer(cname)))
+	cname := c.cString(name)
+	c.pinner.Pin(cname)
+	defer c.pinner.Unpin()
+	ret, _, _ := c.call(c.gpGetUniformLocation, uintptr(program), uintptr(unsafe.Pointer(cname)))
 	return int32(ret)
 }
 
@@ -390,9 +408,12 @@ func (c *defaultContext) Scissor(x int32, y int32, width int32, height int32) {
 }
 
 func (c *defaultContext) ShaderSource(shader uint32, xstring string) {
-	cstring, free := cStr(xstring)
-	defer free()
-	purego.SyscallN(c.gpShaderSource, uintptr(shader), 1, uintptr(unsafe.Pointer(&cstring)), 0)
+	cstring := c.cString(xstring)
+	c.strAddr = uintptr(unsafe.Pointer(cstring))
+	c.pinner.Pin(cstring)
+	c.pinner.Pin(&c.strAddr)
+	defer c.pinner.Unpin()
+	c.call(c.gpShaderSource, uintptr(shader), 1, uintptr(unsafe.Pointer(&c.strAddr)), 0)
 }
 
 func (c *defaultContext) TexImage2D(target uint32, level int32, internalformat int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
@@ -542,21 +563,4 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpViewport = g.get("glViewport")
 
 	return g.error()
-}
-
-// cStr takes a Go string (with or without null-termination)
-// and returns the C counterpart.
-//
-// The bytes are Go-managed memory, so the returned function frees nothing. It
-// must be called once the string is no longer used, as it keeps it alive until
-// then.
-func cStr(str string) (cstr *byte, free func()) {
-	bs := []byte(str)
-	if len(bs) == 0 || bs[len(bs)-1] != 0 {
-		bs = append(bs, 0)
-	}
-	return &bs[0], func() {
-		runtime.KeepAlive(bs)
-		bs = nil
-	}
 }
