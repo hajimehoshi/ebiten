@@ -59,6 +59,7 @@ type defaultContext struct {
 	gpGenFramebuffers         uintptr
 	gpGenTextures             uintptr
 	gpGenVertexArrays         uintptr
+	gpGetBufferSubData        uintptr
 	gpMapBufferRange          uintptr
 	gpGetError                uintptr
 	gpGetIntegerv             uintptr
@@ -221,10 +222,10 @@ func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 func (c *defaultContext) ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32 {
 	// GLuint64 occupies two argument words on 32-bit platforms.
 	if bits.UintSize == 32 {
-		ret, _, _ := purego.SyscallN(c.gpClientWaitSync, sync, uintptr(flags), uintptr(uint32(timeout)), uintptr(timeout>>32))
+		ret, _, _ := c.call(c.gpClientWaitSync, sync, uintptr(flags), uintptr(uint32(timeout)), uintptr(timeout>>32))
 		return uint32(ret)
 	}
-	ret, _, _ := purego.SyscallN(c.gpClientWaitSync, sync, uintptr(flags), uintptr(timeout))
+	ret, _, _ := c.call(c.gpClientWaitSync, sync, uintptr(flags), uintptr(timeout))
 	return uint32(ret)
 }
 
@@ -279,7 +280,7 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 }
 
 func (c *defaultContext) DeleteSync(sync uintptr) {
-	purego.SyscallN(c.gpDeleteSync, sync)
+	c.call(c.gpDeleteSync, sync)
 }
 
 func (c *defaultContext) DeleteTexture(texture uint32) {
@@ -303,7 +304,7 @@ func (c *defaultContext) EnableVertexAttribArray(index uint32) {
 }
 
 func (c *defaultContext) FenceSync(condition uint32, flags uint32) uintptr {
-	ret, _, _ := purego.SyscallN(c.gpFenceSync, uintptr(condition), uintptr(flags))
+	ret, _, _ := c.call(c.gpFenceSync, uintptr(condition), uintptr(flags))
 	return ret
 }
 
@@ -319,8 +320,14 @@ func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, 
 	c.call(c.gpFramebufferTexture2D, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
 }
 
+func (c *defaultContext) getBufferSubData(target uint32, offset int, dst []byte) {
+	c.pinner.Pin(&dst[0])
+	defer c.pinner.Unpin()
+	c.call(c.gpGetBufferSubData, uintptr(target), uintptr(offset), uintptr(len(dst)), uintptr(unsafe.Pointer(&dst[0])))
+}
+
 func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
-	p, _, _ := purego.SyscallN(c.gpMapBufferRange, uintptr(target), uintptr(offset), uintptr(length), uintptr(access))
+	p, _, _ := c.call(c.gpMapBufferRange, uintptr(target), uintptr(offset), uintptr(length), uintptr(access))
 	if p == 0 {
 		return nil
 	}
@@ -328,7 +335,7 @@ func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, a
 }
 
 func (c *defaultContext) unmapBuffer(target uint32) bool {
-	r, _, _ := purego.SyscallN(c.gpUnmapBuffer, uintptr(target))
+	r, _, _ := c.call(c.gpUnmapBuffer, uintptr(target))
 	return r != 0
 }
 
@@ -614,6 +621,9 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = g.get("glGenFramebuffers")
 	c.gpGenTextures = g.get("glGenTextures")
 	c.gpGenVertexArrays = g.get("glGenVertexArrays")
+	if !c.isES {
+		c.gpGetBufferSubData = g.get("glGetBufferSubData")
+	}
 	c.gpMapBufferRange = g.get("glMapBufferRange")
 	c.gpGetError = g.get("glGetError")
 	c.gpGetIntegerv = g.get("glGetIntegerv")
