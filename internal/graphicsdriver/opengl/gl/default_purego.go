@@ -87,12 +87,18 @@ type defaultContext struct {
 	gpVertexAttribPointer     uintptr
 	gpViewport                uintptr
 
-	// args holds the arguments of call. args, pinner, and uniformBuf are shared by every call, so
-	// defaultContext must not be used concurrently.
+	// args holds the arguments of call. args, pinner, nameBuf, intBuf, and uniformBuf are shared by
+	// every call, so defaultContext must not be used concurrently.
 	args [15]uintptr
 
-	// pinner pins the byte slices passed to call.
+	// pinner pins the Go memory passed to call during the call.
 	pinner runtime.Pinner
+
+	// nameBuf holds the object name of a glGen* or glDelete* call.
+	nameBuf uint32
+
+	// intBuf holds the result of a glGet*iv call.
+	intBuf int32
 
 	// uniformBuf holds a copy of the value of a Uniform*v call. uniformPinner keeps it pinned, so
 	// defaultContext must never be garbage-collected.
@@ -146,6 +152,22 @@ func (c *defaultContext) int32s(value []int32) uintptr {
 	p := c.uniformBuffer(len(value))
 	copy(unsafe.Slice((*int32)(p), len(value)), value)
 	return uintptr(p)
+}
+
+// genName calls fn, a glGen* function, for one object and returns its name.
+func (c *defaultContext) genName(fn uintptr) uint32 {
+	c.pinner.Pin(&c.nameBuf)
+	defer c.pinner.Unpin()
+	c.call(fn, 1, uintptr(unsafe.Pointer(&c.nameBuf)))
+	return c.nameBuf
+}
+
+// deleteName calls fn, a glDelete* function, for the object name.
+func (c *defaultContext) deleteName(fn uintptr, name uint32) {
+	c.nameBuf = name
+	c.pinner.Pin(&c.nameBuf)
+	defer c.pinner.Unpin()
+	c.call(fn, 1, uintptr(unsafe.Pointer(&c.nameBuf)))
 }
 
 func (c *defaultContext) IsES() bool {
@@ -210,15 +232,11 @@ func (c *defaultContext) CompileShader(shader uint32) {
 }
 
 func (c *defaultContext) CreateBuffer() uint32 {
-	var buffer uint32
-	purego.SyscallN(c.gpGenBuffers, 1, uintptr(unsafe.Pointer(&buffer)))
-	return buffer
+	return c.genName(c.gpGenBuffers)
 }
 
 func (c *defaultContext) CreateFramebuffer() uint32 {
-	var framebuffer uint32
-	purego.SyscallN(c.gpGenFramebuffers, 1, uintptr(unsafe.Pointer(&framebuffer)))
-	return framebuffer
+	return c.genName(c.gpGenFramebuffers)
 }
 
 func (c *defaultContext) CreateProgram() uint32 {
@@ -232,23 +250,19 @@ func (c *defaultContext) CreateShader(xtype uint32) uint32 {
 }
 
 func (c *defaultContext) CreateTexture() uint32 {
-	var texture uint32
-	purego.SyscallN(c.gpGenTextures, 1, uintptr(unsafe.Pointer(&texture)))
-	return texture
+	return c.genName(c.gpGenTextures)
 }
 
 func (c *defaultContext) CreateVertexArray() uint32 {
-	var array uint32
-	purego.SyscallN(c.gpGenVertexArrays, 1, uintptr(unsafe.Pointer(&array)))
-	return array
+	return c.genName(c.gpGenVertexArrays)
 }
 
 func (c *defaultContext) DeleteBuffer(buffer uint32) {
-	purego.SyscallN(c.gpDeleteBuffers, 1, uintptr(unsafe.Pointer(&buffer)))
+	c.deleteName(c.gpDeleteBuffers, buffer)
 }
 
 func (c *defaultContext) DeleteFramebuffer(framebuffer uint32) {
-	purego.SyscallN(c.gpDeleteFramebuffers, 1, uintptr(unsafe.Pointer(&framebuffer)))
+	c.deleteName(c.gpDeleteFramebuffers, framebuffer)
 }
 
 func (c *defaultContext) DeleteProgram(program uint32) {
@@ -264,11 +278,11 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 }
 
 func (c *defaultContext) DeleteTexture(texture uint32) {
-	purego.SyscallN(c.gpDeleteTextures, 1, uintptr(unsafe.Pointer(&texture)))
+	c.deleteName(c.gpDeleteTextures, texture)
 }
 
 func (c *defaultContext) DeleteVertexArray(array uint32) {
-	purego.SyscallN(c.gpDeleteVertexArrays, 1, uintptr(unsafe.Pointer(&array)))
+	c.deleteName(c.gpDeleteVertexArrays, array)
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {
@@ -305,9 +319,10 @@ func (c *defaultContext) GetExtension(name string) any {
 }
 
 func (c *defaultContext) GetInteger(pname uint32) int {
-	var dst int32
-	purego.SyscallN(c.gpGetIntegerv, uintptr(pname), uintptr(unsafe.Pointer(&dst)))
-	return int(dst)
+	c.pinner.Pin(&c.intBuf)
+	defer c.pinner.Unpin()
+	c.call(c.gpGetIntegerv, uintptr(pname), uintptr(unsafe.Pointer(&c.intBuf)))
+	return int(c.intBuf)
 }
 
 func (c *defaultContext) GetProgramInfoLog(program uint32) string {
@@ -321,9 +336,10 @@ func (c *defaultContext) GetProgramInfoLog(program uint32) string {
 }
 
 func (c *defaultContext) GetProgrami(program uint32, pname uint32) int {
-	var dst int32
-	purego.SyscallN(c.gpGetProgramiv, uintptr(program), uintptr(pname), uintptr(unsafe.Pointer(&dst)))
-	return int(dst)
+	c.pinner.Pin(&c.intBuf)
+	defer c.pinner.Unpin()
+	c.call(c.gpGetProgramiv, uintptr(program), uintptr(pname), uintptr(unsafe.Pointer(&c.intBuf)))
+	return int(c.intBuf)
 }
 
 func (c *defaultContext) GetShaderInfoLog(shader uint32) string {
@@ -337,9 +353,10 @@ func (c *defaultContext) GetShaderInfoLog(shader uint32) string {
 }
 
 func (c *defaultContext) GetShaderi(shader uint32, pname uint32) int {
-	var dst int32
-	purego.SyscallN(c.gpGetShaderiv, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(&dst)))
-	return int(dst)
+	c.pinner.Pin(&c.intBuf)
+	defer c.pinner.Unpin()
+	c.call(c.gpGetShaderiv, uintptr(shader), uintptr(pname), uintptr(unsafe.Pointer(&c.intBuf)))
+	return int(c.intBuf)
 }
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
