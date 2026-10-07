@@ -36,6 +36,10 @@ func (u *UserInterface) updateInputStateFromOutside(keys []KeyEvent, runes []run
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
+	if !u.foreground.Load() {
+		return
+	}
+
 	for _, key := range keys {
 		t := u.inputState.nextInputTime()
 		if key.Pressed {

@@ -118,11 +118,18 @@ func Update() error {
 }
 
 func Suspend() error {
+	inputMu.Lock()
+	defer inputMu.Unlock()
+	resetInput()
 	return ui.Get().SetForeground(false)
 }
 
 func Resume() error {
 	atlas.ResumeApp()
+	inputMu.Lock()
+	defer inputMu.Unlock()
+	// Input can arrive while suspended. Do not carry it into the next foreground session.
+	resetInput()
 	return ui.Get().SetForeground(true)
 }
 

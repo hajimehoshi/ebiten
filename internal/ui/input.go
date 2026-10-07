@@ -208,7 +208,7 @@ func (i *InputState) setMouseButtonReleased(button MouseButton, t InputTime) {
 	i.MouseButtonReleasedTimes[button] = t
 }
 
-// releaseAllButtons is called when the browser window loses focus.
+// releaseAllButtons is called when the application loses focus.
 func (i *InputState) releaseAllButtons(t InputTime) {
 	for j := range i.KeyPressedTimes {
 		if i.KeyPressedTimes[Key(j)] <= i.KeyReleasedTimes[Key(j)] {
