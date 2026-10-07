@@ -87,10 +87,6 @@ func (d *dummyDriver) takePlayers() []*dummyPlayer {
 	return players
 }
 
-func (d *dummyDriver) MaxBufferSize() int {
-	return 48000 * channelCount * bitDepthInBytesInt16 / 4
-}
-
 func (d *dummyDriver) Suspend() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
