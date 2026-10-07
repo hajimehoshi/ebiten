@@ -583,7 +583,7 @@ func TestCorpus(t *testing.T) {
 		t.Run(filepath.Base(path), func(t *testing.T) {
 			document := parse(t, string(read(t, path)))
 			gid := uint16(1)
-			if strings.Contains(path, "/real/") {
+			if filepath.Base(filepath.Dir(path)) == "real" {
 				var first, last uint16
 				name := strings.TrimSuffix(filepath.Base(path), ".svg")
 				if _, err := fmt.Sscanf(name[strings.IndexByte(name, '-')+1:], "%d-%d", &first, &last); err != nil {
