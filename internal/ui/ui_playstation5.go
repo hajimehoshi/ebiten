@@ -87,7 +87,6 @@ func (u *UserInterface) loopGame() error {
 			return err
 		}
 	}
-	return nil
 }
 
 func (*UserInterface) IsFocused() bool {
