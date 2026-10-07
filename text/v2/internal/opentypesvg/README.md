@@ -1,8 +1,27 @@
 # OpenType SVG
 
-Compatibility baseline for the planned internal glyph renderer
-([#3796](https://github.com/hajimehoshi/ebiten/issues/3796)). This directory
-currently contains [acceptance data](testdata/README.md); implementation is pending.
+CPU-only document foundation for the planned internal glyph renderer
+([#3796](https://github.com/hajimehoshi/ebiten/issues/3796)), with
+[acceptance data](testdata/README.md) for the later rendering stages.
+
+The document model, local fragment lookup and glyph selection with bounded
+`use` href traversal are implemented. Geometry, CSS evaluation, paint,
+rendering and text integration remain future work. CSS and paint-reference
+traversal, including gradient and pattern href chains, must be bounded after
+effective properties are determined. Instance inheritance and CSS selector
+ancestry need interpreter-level tests. Embedded image decoding must check
+`image.DecodeConfig` dimensions against a pixel budget before `Decode`.
+go-text decompresses gzip-encoded SVG documents without a size limit before
+`Parse` sees them, so the decoded byte limit does not protect against a
+compression bomb; integration must bound decompression or avoid that path.
+Implementation constraints are documented in `document.go`.
+
+Run the CPU-only tests without a display or graphics harness:
+
+```sh
+go test ./text/v2/internal/opentypesvg
+go test ./text/v2/internal/opentypesvg -run '^$' -fuzz FuzzDocument -fuzztime 10s
+```
 
 ## Supported profile
 
@@ -18,7 +37,7 @@ Fixture names refer to `testdata/`.
 | Required | Fill/stroke properties, inheritance and fill rules | evenodd-clip; stroke-transform |
 | Required | Linear/radial gradients and references | Noto 3330/3629; gradient-reference |
 | Required | Clipping and isolated opacity | Twemoji 1039/1355; group-identity; nested-groups |
-| Required | Named/numeric colors and currentColor | CSS fixture; shared-context; palette |
+| Required | Named/numeric colors and currentColor | CSS fixture; palette |
 | Required | Embedded PNG/JPEG | embedded-png; JPEG fixture still needed |
 | Optional, preserve | Inline styles and simple CSS class rules | CSS fixture; existing oksvg tests |
 | Optional, planned | CPAL variables and color fallbacks | palette |
@@ -26,17 +45,25 @@ Fixture names refer to `testdata/`.
 | Restricted | Ignore prohibited elements; no scripts or external resources | restricted |
 
 
-Preserve useful behavior covered by the [oksvg tests](../oksvg/oksvg_test.go)
-and [glyph-document tests](../../gotextsvgdoc_test.go), including CSS classes,
-transforms and shared definitions. Class declaration order must win independently
-of class-token order; repeated classes must not compound opacity. Preserve CSS
-and ancestor context during glyph selection. Use the specification and independent
+Use the [oksvg tests](../oksvg/oksvg_test.go) and
+[glyph-document tests](../../gotextsvgdoc_test.go) as compatibility references.
+The first retained element in document order wins for each duplicate ID.
+Malformed XML is rejected, and an unresolved structural reference fails that
+glyph's selection. A document without the requested `glyphN` returns
+`ErrGlyphNotFound`. Integration may render the whole document using `Root()`
+only when no `glyphN` element exists anywhere in the document and the root
+carries no glyph ID. When other `glyphN` elements exist, the missing glyph has
+no SVG artwork, and text rendering falls back to its outline glyph, as the
+current `text/v2` integration does.
+
+CSS class declaration order must win independently of class-token order;
+repeated classes must not compound opacity. Use specifications and independent
 renderers as references, not oksvg output.
 
-Remaining acceptance work includes JPEG, namespace/unit handling, gradient
-spread/focal behavior, stroke joins/dashes, image aspect ratio, invalid input and
-bounded reference expansion. Compare real glyphs independently at 16, 24, 64 and
-256 pixels with offsets 0 and 0.375 before replacing oksvg.
+Remaining rendering acceptance work includes JPEG, units, gradient spread/focal
+behavior, stroke joins/dashes and image aspect ratio. Compare real glyphs
+independently at 16, 24, 64 and 256 pixels with offsets 0 and 0.375 before
+replacing oksvg.
 
 ## Composition baseline
 
