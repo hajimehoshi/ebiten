@@ -87,8 +87,8 @@ type defaultContext struct {
 	gpVertexAttribPointer     uintptr
 	gpViewport                uintptr
 
-	// args holds the arguments of call. args, pinner, nameBuf, intBuf, strBuf, and uniformBuf are
-	// shared by every call, so defaultContext must not be used concurrently.
+	// args holds the arguments of call. args, pinner, nameBuf, intBuf, and strBuf are shared by
+	// every call, so defaultContext must not be used concurrently.
 	args [15]uintptr
 
 	// pinner pins the Go memory passed to call during the call.
@@ -104,11 +104,6 @@ type defaultContext struct {
 	// address of strBuf for ShaderSource, which takes an array of string addresses.
 	strBuf  []byte
 	strAddr uintptr
-
-	// uniformBuf holds a copy of the value of a Uniform*v call. uniformPinner keeps it pinned, so
-	// defaultContext must never be garbage-collected.
-	uniformBuf    []uint32
-	uniformPinner runtime.Pinner
 
 	isES bool
 }
@@ -134,29 +129,6 @@ func (c *defaultContext) call(fn uintptr, args ...uintptr) (r1, r2, err uintptr)
 	n := len(args)
 	copy(c.args[:n], args)
 	return purego.SyscallN(fn, c.args[:n]...)
-}
-
-// uniformBuffer returns the address of a pinned buffer with room for n values. The address is
-// valid until the next call.
-func (c *defaultContext) uniformBuffer(n int) unsafe.Pointer {
-	if len(c.uniformBuf) < n || c.uniformBuf == nil {
-		c.uniformPinner.Unpin()
-		c.uniformBuf = make([]uint32, max(n, 2*len(c.uniformBuf), 256))
-		c.uniformPinner.Pin(&c.uniformBuf[0])
-	}
-	return unsafe.Pointer(&c.uniformBuf[0])
-}
-
-func (c *defaultContext) float32s(value []float32) uintptr {
-	p := c.uniformBuffer(len(value))
-	copy(unsafe.Slice((*float32)(p), len(value)), value)
-	return uintptr(p)
-}
-
-func (c *defaultContext) int32s(value []int32) uintptr {
-	p := c.uniformBuffer(len(value))
-	copy(unsafe.Slice((*int32)(p), len(value)), value)
-	return uintptr(p)
 }
 
 // genName calls fn, a glGen* function, for one object and returns its name.
@@ -437,7 +409,13 @@ func (c *defaultContext) TexSubImage2D(target uint32, level int32, xoffset int32
 }
 
 func (c *defaultContext) Uniform1fv(location int32, value []float32) {
-	c.call(c.gpUniform1fv, uintptr(location), uintptr(len(value)), c.float32s(value))
+	var ptr *float32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform1fv, uintptr(location), uintptr(len(value)), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) Uniform1i(location int32, v0 int32) {
@@ -445,43 +423,103 @@ func (c *defaultContext) Uniform1i(location int32, v0 int32) {
 }
 
 func (c *defaultContext) Uniform1iv(location int32, value []int32) {
-	c.call(c.gpUniform1iv, uintptr(location), uintptr(len(value)), c.int32s(value))
+	var ptr *int32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform1iv, uintptr(location), uintptr(len(value)), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) Uniform2fv(location int32, value []float32) {
-	c.call(c.gpUniform2fv, uintptr(location), uintptr(len(value)/2), c.float32s(value))
+	var ptr *float32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform2fv, uintptr(location), uintptr(len(value)/2), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) Uniform2iv(location int32, value []int32) {
-	c.call(c.gpUniform2iv, uintptr(location), uintptr(len(value)/2), c.int32s(value))
+	var ptr *int32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform2iv, uintptr(location), uintptr(len(value)/2), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) Uniform3fv(location int32, value []float32) {
-	c.call(c.gpUniform3fv, uintptr(location), uintptr(len(value)/3), c.float32s(value))
+	var ptr *float32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform3fv, uintptr(location), uintptr(len(value)/3), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) Uniform3iv(location int32, value []int32) {
-	c.call(c.gpUniform3iv, uintptr(location), uintptr(len(value)/3), c.int32s(value))
+	var ptr *int32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform3iv, uintptr(location), uintptr(len(value)/3), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) Uniform4fv(location int32, value []float32) {
-	c.call(c.gpUniform4fv, uintptr(location), uintptr(len(value)/4), c.float32s(value))
+	var ptr *float32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform4fv, uintptr(location), uintptr(len(value)/4), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) Uniform4iv(location int32, value []int32) {
-	c.call(c.gpUniform4iv, uintptr(location), uintptr(len(value)/4), c.int32s(value))
+	var ptr *int32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniform4iv, uintptr(location), uintptr(len(value)/4), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) UniformMatrix2fv(location int32, value []float32) {
-	c.call(c.gpUniformMatrix2fv, uintptr(location), uintptr(len(value)/4), 0, c.float32s(value))
+	var ptr *float32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniformMatrix2fv, uintptr(location), uintptr(len(value)/4), 0, uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) UniformMatrix3fv(location int32, value []float32) {
-	c.call(c.gpUniformMatrix3fv, uintptr(location), uintptr(len(value)/9), 0, c.float32s(value))
+	var ptr *float32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniformMatrix3fv, uintptr(location), uintptr(len(value)/9), 0, uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
-	c.call(c.gpUniformMatrix4fv, uintptr(location), uintptr(len(value)/16), 0, c.float32s(value))
+	var ptr *float32
+	if len(value) > 0 {
+		ptr = &value[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
+	}
+	c.call(c.gpUniformMatrix4fv, uintptr(location), uintptr(len(value)/16), 0, uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) UseProgram(program uint32) {
