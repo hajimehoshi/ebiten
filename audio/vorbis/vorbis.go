@@ -49,6 +49,8 @@ func (s *Stream) Read(p []byte) (int, error) {
 
 // Seek is an implementation of io.Seeker's Seek.
 //
+// When seeking fails because the source is not an io.Seeker, the error wraps [errors.ErrUnsupported].
+//
 // Note that Seek can take long since decoding is a relatively heavy task.
 //
 // The returned position can differ from the requested one with a nil error: a position in the middle of a sample is
