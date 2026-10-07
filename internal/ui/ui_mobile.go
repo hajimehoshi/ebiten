@@ -128,7 +128,14 @@ type userInterfaceImpl struct {
 }
 
 func (u *UserInterface) SetForeground(foreground bool) error {
+	u.mu.Lock()
 	u.foreground.Store(foreground)
+	if !foreground {
+		u.inputState.releaseAllButtons(u.inputState.nextInputTime())
+		u.touches = u.touches[:0]
+		u.touchIDs.nextTouches()
+	}
+	u.mu.Unlock()
 	clock.SetDurationSuspended(!foreground)
 
 	if foreground {

@@ -61,6 +61,12 @@ func dispatchKeyUp(key ui.Key) {
 
 var ptrToID = map[int64]int{}
 
+func resetInput() {
+	keyEvents = keyEvents[:0]
+	clear(touches)
+	clear(ptrToID)
+}
+
 func getIDFromPtr(ptr int64) int {
 	if id, ok := ptrToID[ptr]; ok {
 		return id
