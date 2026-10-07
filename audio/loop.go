@@ -15,6 +15,7 @@
 package audio
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -359,12 +360,15 @@ func (i *InfiniteLoop) rewind() error {
 // Seek is an implementation of ReadSeeker's Seek.
 //
 // whence must be [io.SeekStart] or [io.SeekCurrent] since an [InfiniteLoop] has no end.
+// Seek returns an error wrapping [errors.ErrUnsupported] for [io.SeekEnd].
 //
 // The returned position can differ from the requested one with a nil error: a position beyond the loop end is folded
 // into the loop, and a position in the middle of a sample is rounded down to a sample boundary.
 func (i *InfiniteLoop) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
 	case io.SeekStart, io.SeekCurrent:
+	case io.SeekEnd:
+		return 0, fmt.Errorf("audio: InfiniteLoop has no end: %w", errors.ErrUnsupported)
 	default:
 		return 0, fmt.Errorf("audio: whence must be io.SeekStart or io.SeekCurrent for InfiniteLoop but was %d", whence)
 	}

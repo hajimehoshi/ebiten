@@ -37,5 +37,6 @@ func main() {
 		atomicalign.Analyzer,
 		copylock.Analyzer,
 		errcheck.Analyzer,
-		imageImportCheckAnalyzer)
+		imageImportCheckAnalyzer,
+		unixSyscallCheckAnalyzer)
 }

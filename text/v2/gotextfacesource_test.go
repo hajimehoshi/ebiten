@@ -16,12 +16,13 @@ package text_test
 
 import (
 	"bytes"
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 
+	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/font/opentype"
 	"golang.org/x/image/font/gofont/goregular"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -55,51 +56,55 @@ func TestGlyphImageCacheConcurrent(t *testing.T) {
 }
 
 func TestGlyphImageCacheSizeEviction(t *testing.T) {
-	for _, tps := range []int{30, 120} {
-		t.Run(fmt.Sprint(tps), func(t *testing.T) {
-			src, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
-			if err != nil {
-				t.Fatal(err)
-			}
+	src, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
 
-			dst := ebiten.NewImage(64, 64)
+	dst := ebiten.NewImage(64, 64)
 
-			// Draw with many distinct sizes, like a game animating its font size.
-			const drawnSizeCount = 100
-			for i := range drawnSizeCount {
-				face := &text.GoTextFace{Source: src, Size: 12 + float64(i)/4}
-				text.Draw(dst, "Hello", face, nil)
-			}
-			if got := text.GlyphImageCacheCount(src); got == 0 {
-				t.Fatal("no glyph image cache was created")
-			}
+	// Draw with many distinct sizes, like a game animating its font size.
+	const drawnSizeCount = 100
+	for i := range drawnSizeCount {
+		face := &text.GoTextFace{
+			Source: src,
+			Size:   12 + float64(i)/4,
+		}
+		text.Draw(dst, "Hello", face, nil)
+	}
+	if got := text.GlyphImageCacheCount(src); got == 0 {
+		t.Fatal("no glyph image cache was created")
+	}
 
-			// Pass explicit logical times to simulate frames.
-			// Each frame uses a new size, and one size is kept in use all the time.
-			const (
-				firstTick = 1000
-				tickCount = 300
-				hotSize   = 12
-				// The tested rates retain fewer than 128 recent sizes.
-				maxCacheCount = 128
-			)
-			for i := range tickCount {
-				now := ebiten.Duration(firstTick+i) * ebiten.DurationSecond / ebiten.Duration(tps)
-				text.TouchGlyphImageCache(&text.GoTextFace{Source: src, Size: hotSize}, now)
-				text.TouchGlyphImageCache(&text.GoTextFace{Source: src, Size: 1000 + float64(i)}, now)
-				if got := text.GlyphImageCacheCount(src); got > maxCacheCount {
-					t.Errorf("the number of the glyph image caches must be <= %d but was %d at time %d", maxCacheCount, got, now)
-				}
-			}
+	// Pass explicit ticks to simulate updates.
+	// Each frame uses a new size, and one size is kept in use all the time.
+	const (
+		firstTick = 1000
+		tickCount = 300
+		hotSize   = 12
+		// The recent sizes fit below this bound.
+		maxCacheCount = 128
+	)
+	for i := range tickCount {
+		now := int64(firstTick + i)
+		text.TouchGlyphImageCache(&text.GoTextFace{
+			Source: src,
+			Size:   hotSize,
+		}, now)
+		text.TouchGlyphImageCache(&text.GoTextFace{
+			Source: src,
+			Size:   1000 + float64(i),
+		}, now)
+		if got := text.GlyphImageCacheCount(src); got > maxCacheCount {
+			t.Errorf("the number of the glyph image caches must be <= %d but was %d at tick %d", maxCacheCount, got, now)
+		}
+	}
 
-			if !text.HasGlyphImageCache(src, hotSize) {
-				t.Errorf("the cache for the size %v must not be dropped", float64(hotSize))
-			}
-			if staleSize := 1000.0; text.HasGlyphImageCache(src, staleSize) {
-				t.Errorf("the cache for the size %v must be dropped", staleSize)
-			}
-
-		})
+	if !text.HasGlyphImageCache(src, hotSize) {
+		t.Errorf("the cache for the size %v must not be dropped", float64(hotSize))
+	}
+	if staleSize := 1000.0; text.HasGlyphImageCache(src, staleSize) {
+		t.Errorf("the cache for the size %v must be dropped", staleSize)
 	}
 }
 
@@ -178,45 +183,251 @@ func newGoTextFaceSourceForTest(t *testing.T, data []byte) *text.GoTextFaceSourc
 	return src
 }
 
+func parseTestFont(t *testing.T, data []byte) *font.Font {
+	t.Helper()
+	l, err := opentype.NewLoader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := font.NewFont(l)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return f
+}
+
+func goTextFaceMetrics(t *testing.T, f *font.Font, size float64, variations []font.Variation) text.Metrics {
+	t.Helper()
+
+	face := font.NewFace(f)
+	face.SetVariations(variations)
+
+	var m text.Metrics
+	if h, ok := face.FontHExtents(); ok {
+		m.HLineGap = float64(h.LineGap)
+		m.HAscent = float64(h.Ascender)
+		m.HDescent = float64(-h.Descender)
+	}
+	if v, ok := face.FontVExtents(); ok {
+		m.VLineGap = float64(v.LineGap)
+		m.VAscent = float64(v.Ascender)
+		m.VDescent = float64(-v.Descender)
+	}
+	m.XHeight = float64(face.LineMetric(font.XHeight))
+	m.CapHeight = float64(face.LineMetric(font.CapHeight))
+
+	scale := size / float64(face.Upem())
+	m.HLineGap *= scale
+	m.HAscent *= scale
+	m.HDescent *= scale
+	m.VLineGap *= scale
+	m.VAscent *= scale
+	m.VDescent *= scale
+	m.XHeight *= scale
+	m.CapHeight *= scale
+	return m
+}
+
+func newVariedGoTextFace(src *text.GoTextFaceSource, size float64, variations []font.Variation) *text.GoTextFace {
+	face := &text.GoTextFace{Source: src, Size: size}
+	for _, v := range variations {
+		face.SetVariation(text.Tag(v.Tag), v.Value)
+	}
+	return face
+}
+
 func TestGoTextFaceSourceMetricsWithVariations(t *testing.T) {
 	data := variableFontData(t)
-	const size = 16
-
-	want := (&text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: size}).Metrics()
-
+	f := parseTestFont(t, data)
+	const (
+		size   = 16
+		sample = "Hello, world!"
+	)
 	wght := text.MustParseTag("wght")
-	for _, weight := range []float32{100, 400, 900} {
-		src := newGoTextFaceSourceForTest(t, data)
-		varied := &text.GoTextFace{Source: src, Size: size}
-		varied.SetVariation(wght, weight)
-		text.Measure("Hello, world!", varied, 0)
 
-		if got := (&text.GoTextFace{Source: src, Size: size}).Metrics(); got != want {
-			t.Errorf("Metrics() after shaping with wght=%v: got: %v, want: %v", weight, got, want)
+	src := newGoTextFaceSourceForTest(t, data)
+	defaultFace := &text.GoTextFace{Source: src, Size: size}
+	defaultMetrics := defaultFace.Metrics()
+	if got, want := defaultMetrics, goTextFaceMetrics(t, f, size, nil); got != want {
+		t.Errorf("default Metrics(): got: %v, want: %v", got, want)
+	}
+
+	var changed bool
+	for _, weight := range []float32{100, 400, 900} {
+		variations := []font.Variation{
+			{
+				Tag:   font.Tag(wght),
+				Value: weight,
+			},
 		}
+		varied := newVariedGoTextFace(src, size, variations)
+		got := varied.Metrics()
+		want := goTextFaceMetrics(t, f, size, variations)
+		if got != want {
+			t.Errorf("wght=%v Metrics(): got: %v, want: %v", weight, got, want)
+		}
+		if got.XHeight != defaultMetrics.XHeight || got.CapHeight != defaultMetrics.CapHeight {
+			changed = true
+		}
+
+		fresh := newVariedGoTextFace(newGoTextFaceSourceForTest(t, data), size, variations)
+		if got, want := text.Advance(sample, varied), text.Advance(sample, fresh); got != want {
+			t.Errorf("wght=%v Advance after Metrics(): got: %v, want: %v", weight, got, want)
+		}
+
+		text.Measure(sample, varied, 0)
+		if got := defaultFace.Metrics(); got != defaultMetrics {
+			t.Errorf("default Metrics() after shaping wght=%v: got: %v, want: %v", weight, got, defaultMetrics)
+		}
+		if got := (&text.GoTextFace{Source: src, Size: size}).Metrics(); got != defaultMetrics {
+			t.Errorf("new default Metrics() after shaping wght=%v: got: %v, want: %v", weight, got, defaultMetrics)
+		}
+	}
+	if !changed {
+		t.Error("RobotoFlex wght did not change XHeight or CapHeight")
+	}
+
+	regularFont := parseTestFont(t, goregular.TTF)
+	regular := newGoTextFaceSourceForTest(t, goregular.TTF)
+	variations := []font.Variation{
+		{
+			Tag:   font.Tag(wght),
+			Value: 900,
+		},
+	}
+	got := newVariedGoTextFace(regular, size, variations).Metrics()
+	if want := goTextFaceMetrics(t, regularFont, size, variations); got != want {
+		t.Errorf("non-variable font Metrics(): got: %v, want: %v", got, want)
+	}
+	if plain := (&text.GoTextFace{Source: regular, Size: size}).Metrics(); got != plain {
+		t.Errorf("variation changed a non-variable font: plain %v, varied %v", plain, got)
 	}
 }
 
 func TestGoTextFaceSourceMetricsConcurrentWithShaping(t *testing.T) {
 	data := variableFontData(t)
+	f := parseTestFont(t, data)
+	const size = 16
 	wght := text.MustParseTag("wght")
+	wdth := text.MustParseTag("wdth")
 
-	// A source reads its metrics only once, so a fresh source is needed on
-	// every iteration.
-	const iterations = 50
-	for i := range iterations {
-		src := newGoTextFaceSourceForTest(t, data)
-		varied := &text.GoTextFace{Source: src, Size: 16}
-		varied.SetVariation(wght, float32(100+i*10))
-		plain := &text.GoTextFace{Source: src, Size: 16}
+	variations := [][]font.Variation{
+		nil,
+		{
+			{
+				Tag:   font.Tag(wght),
+				Value: 900,
+			},
+		},
+		{
+			{
+				Tag:   font.Tag(wght),
+				Value: 250,
+			},
+			{
+				Tag:   font.Tag(wdth),
+				Value: 120,
+			},
+		},
+	}
 
-		var wg sync.WaitGroup
-		wg.Go(func() {
-			text.Measure("Hello, world!", varied, 0)
-		})
-		wg.Go(func() {
-			plain.Metrics()
-		})
-		wg.Wait()
+	src := newGoTextFaceSourceForTest(t, data)
+	faces := make([]*text.GoTextFace, len(variations))
+	wants := make([]text.Metrics, len(variations))
+	for i, v := range variations {
+		faces[i] = newVariedGoTextFace(src, size, v)
+		wants[i] = goTextFaceMetrics(t, f, size, v)
+	}
+
+	const (
+		goroutines = 4
+		iterations = 20
+		sample     = "Hello, world!"
+	)
+	var wg sync.WaitGroup
+	for i := range faces {
+		face := faces[i]
+		want := wants[i]
+		for range goroutines {
+			wg.Go(func() {
+				for range iterations {
+					if got := face.Metrics(); got != want {
+						t.Errorf("Metrics(): got: %v, want: %v", got, want)
+					}
+					text.Measure(sample, face, 2)
+				}
+			})
+		}
+	}
+	wg.Wait()
+}
+
+func TestGlyphImageCacheAfterSizeChange(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "chromacheck-sbix.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	const (
+		str     = "\U0000E901"
+		oldSize = 16
+		newSize = 64
+	)
+	src := newGoTextFaceSourceForTest(t, data)
+	face := &text.GoTextFace{
+		Source: src,
+		Size:   oldSize,
+	}
+
+	glyphs := text.AppendLazyGlyphs(nil, str, face, nil)
+	face.Size = newSize
+	if img := glyphs[0].Image(); img == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+
+	glyphs = text.AppendLazyGlyphs(nil, str, face, nil)
+	img := glyphs[0].Image()
+	if img == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+	if got, want := img.Bounds().Size(), glyphs[0].ImageBounds.Size(); got != want {
+		t.Errorf("the image size = %v, want %v", got, want)
+	}
+}
+
+func TestGlyphImageCacheAfterVariationChange(t *testing.T) {
+	data := variableFontData(t)
+	face := &text.GoTextFace{
+		Source: newGoTextFaceSourceForTest(t, data),
+		Size:   32,
+	}
+	weight := text.MustParseTag("wght")
+	face.SetVariation(weight, 100)
+	glyphs := text.AppendLazyGlyphs(nil, "J", face, nil)
+	face.SetVariation(weight, 900)
+	if glyphs[0].Image() == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+
+	got := text.AppendLazyGlyphs(nil, "J", face, nil)[0].Image()
+	fresh := &text.GoTextFace{
+		Source: newGoTextFaceSourceForTest(t, data),
+		Size:   32,
+	}
+	fresh.SetVariation(weight, 900)
+	want := text.AppendLazyGlyphs(nil, "J", fresh, nil)[0].Image()
+	if got == nil || want == nil {
+		t.Fatal("Image() = nil, want an image")
+	}
+	if got.Bounds().Size() != want.Bounds().Size() {
+		t.Errorf("image size = %v, want %v", got.Bounds().Size(), want.Bounds().Size())
+		return
+	}
+	gotPixels := make([]byte, 4*got.Bounds().Dx()*got.Bounds().Dy())
+	wantPixels := make([]byte, len(gotPixels))
+	got.ReadPixels(gotPixels)
+	want.ReadPixels(wantPixels)
+	if !bytes.Equal(gotPixels, wantPixels) {
+		t.Error("glyph pixels differ from a fresh face with the same variation")
 	}
 }

@@ -141,6 +141,11 @@ var androidKeyToSDL = map[int]int{
 	keycodeButton16:     35,
 }
 
+func resetInput() {
+	keyEvents = keyEvents[:0]
+	clear(touches)
+}
+
 func UpdateTouchesOnAndroid(action int, id int, x, y float64) {
 	inputMu.Lock()
 	defer inputMu.Unlock()

@@ -75,7 +75,7 @@ func runImageImportCheck(pass *analysis.Pass) (any, error) {
 			}
 			if path == "image/gif" || path == "image/jpeg" || path == "image/png" {
 				err := imageImportCheckError{
-					Pos:    pass.Fset.File(f.Pos()).Pos(int(i.Pos())),
+					Pos:    i.Pos(),
 					Import: path,
 				}
 				errs = append(errs, err)

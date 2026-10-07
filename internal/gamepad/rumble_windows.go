@@ -42,6 +42,9 @@ type rumbler interface {
 	// close releases the rumbler's resources when the gamepad is
 	// disconnected.
 	close()
+
+	// available reports whether vibrate can vibrate the device.
+	available() bool
 }
 
 // noRumbler is for devices whose rumble is not supported.
@@ -56,6 +59,10 @@ func (noRumbler) update() {
 }
 
 func (noRumbler) close() {
+}
+
+func (noRumbler) available() bool {
+	return false
 }
 
 // xinputRumbler drives an XInput device's motors.
@@ -96,6 +103,10 @@ func (x *xinputRumbler) stop() {
 func (x *xinputRumbler) close() {
 }
 
+func (x *xinputRumbler) available() bool {
+	return true
+}
+
 // sonyRumbler adapts a PlayStation HID device to the gamepad rumble interface.
 type sonyRumbler struct {
 	device *sonyhid.Device
@@ -111,4 +122,8 @@ func (s *sonyRumbler) update() {
 
 func (s *sonyRumbler) close() {
 	s.device.Close()
+}
+
+func (s *sonyRumbler) available() bool {
+	return true
 }

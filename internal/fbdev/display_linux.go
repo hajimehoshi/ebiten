@@ -20,6 +20,7 @@ package fbdev
 import (
 	"fmt"
 	"structs"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -100,7 +101,8 @@ func OpenDisplay() (*Display, error) {
 	}()
 
 	var vi fbVarScreeninfo
-	if _, _, e := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), _FBIOGET_VSCREENINFO, uintptr(unsafe.Pointer(&vi))); e != 0 {
+	// syscall.Syscall keeps vi alive during the call on every architecture.
+	if _, _, e := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), _FBIOGET_VSCREENINFO, uintptr(unsafe.Pointer(&vi))); e != 0 {
 		return nil, fmt.Errorf("fbdev: FBIOGET_VSCREENINFO failed: %w", unix.Errno(e))
 	}
 

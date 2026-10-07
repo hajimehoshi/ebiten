@@ -76,9 +76,80 @@ type Node struct {
 	region image.Rectangle
 	used   bool
 
+	// maxFree bounds the sizes of the unused leaves in the subtree rooted at this node.
+	maxFree freeSize
+
 	parent *Node
 	child0 *Node
 	child1 *Node
+}
+
+// freeSize is the largest width, the largest height, and the largest shorter side of a set of unused leaves.
+// Each value can come from a different leaf.
+type freeSize struct {
+	width     int
+	height    int
+	shortSide int
+}
+
+func freeSizeOf(region image.Rectangle) freeSize {
+	return freeSize{
+		width:     region.Dx(),
+		height:    region.Dy(),
+		shortSide: min(region.Dx(), region.Dy()),
+	}
+}
+
+func (f freeSize) union(other freeSize) freeSize {
+	return freeSize{
+		width:     max(f.width, other.width),
+		height:    max(f.height, other.height),
+		shortSide: max(f.shortSide, other.shortSide),
+	}
+}
+
+// mightContain reports whether one of the leaves might contain the given size.
+// A false result means that none of them can.
+func (f freeSize) mightContain(width, height int) bool {
+	return f.width >= width && f.height >= height && f.shortSide >= min(width, height)
+}
+
+func newFreeLeaf(region image.Rectangle, parent *Node) *Node {
+	return &Node{
+		region:  region,
+		maxFree: freeSizeOf(region),
+		parent:  parent,
+	}
+}
+
+// updateMaxFree updates n.maxFree from n's children, or from n itself if n is a leaf.
+func (n *Node) updateMaxFree() {
+	switch {
+	case n.child0 != nil && n.child1 != nil:
+		n.maxFree = n.child0.maxFree.union(n.child1.maxFree)
+	case n.used:
+		n.maxFree = freeSize{}
+	default:
+		n.maxFree = freeSizeOf(n.region)
+	}
+}
+
+// updateMaxFreeToRoot updates maxFree of n and its ancestors.
+func (n *Node) updateMaxFreeToRoot() {
+	for ; n != nil; n = n.parent {
+		n.updateMaxFree()
+	}
+}
+
+// updateMaxFreeInSubtree updates maxFree of all the nodes in the subtree rooted at n.
+func (n *Node) updateMaxFreeInSubtree() {
+	if n.child0 != nil {
+		n.child0.updateMaxFreeInSubtree()
+	}
+	if n.child1 != nil {
+		n.child1.updateMaxFreeInSubtree()
+	}
+	n.updateMaxFree()
 }
 
 func (n *Node) canFree() bool {
@@ -115,31 +186,24 @@ func alloc(n *Node, width, height int) *Node {
 	if n.used {
 		return nil
 	}
+	// No unused leaf in this subtree can contain the requested size.
+	if !n.maxFree.mightContain(width, height) {
+		return nil
+	}
 	if n.child0 == nil && n.child1 == nil {
 		if n.region.Dx() == width && n.region.Dy() == height {
 			n.used = true
+			n.updateMaxFree()
 			return n
 		}
 		if square(n.region.Dx()-width, n.region.Dy()) >= square(n.region.Dx(), n.region.Dy()-height) {
 			// Split vertically
-			n.child0 = &Node{
-				region: image.Rect(n.region.Min.X, n.region.Min.Y, n.region.Min.X+width, n.region.Max.Y),
-				parent: n,
-			}
-			n.child1 = &Node{
-				region: image.Rect(n.region.Min.X+width, n.region.Min.Y, n.region.Max.X, n.region.Max.Y),
-				parent: n,
-			}
+			n.child0 = newFreeLeaf(image.Rect(n.region.Min.X, n.region.Min.Y, n.region.Min.X+width, n.region.Max.Y), n)
+			n.child1 = newFreeLeaf(image.Rect(n.region.Min.X+width, n.region.Min.Y, n.region.Max.X, n.region.Max.Y), n)
 		} else {
 			// Split horizontally
-			n.child0 = &Node{
-				region: image.Rect(n.region.Min.X, n.region.Min.Y, n.region.Max.X, n.region.Min.Y+height),
-				parent: n,
-			}
-			n.child1 = &Node{
-				region: image.Rect(n.region.Min.X, n.region.Min.Y+height, n.region.Max.X, n.region.Max.Y),
-				parent: n,
-			}
+			n.child0 = newFreeLeaf(image.Rect(n.region.Min.X, n.region.Min.Y, n.region.Max.X, n.region.Min.Y+height), n)
+			n.child1 = newFreeLeaf(image.Rect(n.region.Min.X, n.region.Min.Y+height, n.region.Max.X, n.region.Max.Y), n)
 		}
 		// Note: it now MUST fit, due to above preconditions (repeated here).
 		if n.child0.region.Dx() < width || n.child0.region.Dy() < height {
@@ -151,15 +215,18 @@ func alloc(n *Node, width, height int) *Node {
 		if node == nil {
 			panic(fmt.Sprintf("packing: could not allocate the requested size (%d, %d) in the newly created child node (%d, %d)", width, height, n.child0.region.Dx(), n.child0.region.Dy()))
 		}
+		n.updateMaxFree()
 		return node
 	}
 	if n.child0 == nil || n.child1 == nil {
 		panic("packing: both children must not be nil at alloc")
 	}
 	if node := alloc(n.child0, width, height); node != nil {
+		n.updateMaxFree()
 		return node
 	}
 	if node := alloc(n.child1, width, height); node != nil {
+		n.updateMaxFree()
 		return node
 	}
 	return nil
@@ -176,9 +243,7 @@ func (p *Page) Alloc(width, height int) *Node {
 
 	if p.root == nil {
 		w, h := p.allocatableSize()
-		p.root = &Node{
-			region: image.Rect(0, 0, w, h),
-		}
+		p.root = newFreeLeaf(image.Rect(0, 0, w, h), nil)
 	}
 	return p.extendAndAlloc(width, height)
 }
@@ -189,6 +254,7 @@ func (p *Page) Free(node *Node) {
 	}
 	node.used = false
 	if node.parent == nil {
+		node.updateMaxFree()
 		return
 	}
 	if node.parent.child0 == nil || node.parent.child1 == nil {
@@ -198,7 +264,9 @@ func (p *Page) Free(node *Node) {
 		node.parent.child0 = nil
 		node.parent.child1 = nil
 		p.Free(node.parent)
+		return
 	}
+	node.updateMaxFreeToRoot()
 }
 
 var (
@@ -300,9 +368,7 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 		// Extend the page in the vertical direction.
 		if newHeight-p.height > 0 {
 			upper := p.root
-			lower := &Node{
-				region: image.Rect(0, allocatableHeight, allocatableWidth, newAllocatableHeight),
-			}
+			lower := newFreeLeaf(image.Rect(0, allocatableHeight, allocatableWidth, newAllocatableHeight), nil)
 			p.root = &Node{
 				region: image.Rect(0, 0, allocatableWidth, newAllocatableHeight),
 				child0: upper,
@@ -310,14 +376,13 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 			}
 			upper.parent = p.root
 			lower.parent = p.root
+			p.root.updateMaxFree()
 		}
 
 		// Extend the page in the horizontal direction.
 		if newWidth-p.width > 0 {
 			left := p.root
-			right := &Node{
-				region: image.Rect(allocatableWidth, 0, newAllocatableWidth, newAllocatableHeight),
-			}
+			right := newFreeLeaf(image.Rect(allocatableWidth, 0, newAllocatableWidth, newAllocatableHeight), nil)
 			p.root = &Node{
 				region: image.Rect(0, 0, newAllocatableWidth, newAllocatableHeight),
 				child0: left,
@@ -325,6 +390,7 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 			}
 			left.parent = p.root
 			right.parent = p.root
+			p.root.updateMaxFree()
 		}
 
 		origWidth, origHeight := p.width, p.height
@@ -353,6 +419,9 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 				n.region.Max.Y = newAllocatableHeight
 			}
 		}
+		if p.root != nil {
+			p.root.updateMaxFreeInSubtree()
+		}
 
 		rollback = func() {
 			p.width = origWidth
@@ -362,6 +431,9 @@ func (p *Page) extend(newWidth int, newHeight int) func() {
 			}
 			for n, y := range origMaxYs {
 				n.region.Max.Y = y
+			}
+			if p.root != nil {
+				p.root.updateMaxFreeInSubtree()
 			}
 		}
 	}

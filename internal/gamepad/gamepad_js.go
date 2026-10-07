@@ -231,3 +231,14 @@ func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude floa
 		return
 	}
 }
+
+func (g *nativeGamepadImpl) isVibrationAvailable() bool {
+	// vibrationActuator is available on Chrome, hapticActuators on Firefox.
+	if va := g.value.Get("vibrationActuator"); va.Truthy() {
+		return va.Get("playEffect").Truthy()
+	}
+	if ha := g.value.Get("hapticActuators"); ha.Truthy() {
+		return ha.Length() > 0
+	}
+	return false
+}

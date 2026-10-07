@@ -304,6 +304,8 @@ func (s *GameScene) Update(state *GameState) error {
 			}
 
 		}
+	} else {
+		s.landingCount = 0
 	}
 	return nil
 }

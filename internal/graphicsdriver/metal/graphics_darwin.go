@@ -16,11 +16,13 @@ package metal
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
-	"image"
+	"log/slog"
 	"math"
 	"runtime"
 	"slices"
+	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego/objc"
@@ -35,6 +37,14 @@ import (
 )
 
 var sel_supportsFamily = objc.RegisterName("supportsFamily:")
+
+const (
+	// residencyKeepAliveInterval is the maximum interval between render passes while the GPU is otherwise idle.
+	residencyKeepAliveInterval = 500 * time.Millisecond
+
+	// residencyKeepAliveDuration is how long the resources are kept resident after the last draw.
+	residencyKeepAliveDuration = 3 * time.Minute
+)
 
 type Graphics struct {
 	view view
@@ -71,8 +81,25 @@ type Graphics struct {
 
 	transparent  bool
 	maxImageSize int
-	tmpTextures  []mtl.Texture
+	tmpBuffers   []mtl.Buffer
 	tmpUniforms  []uint32
+
+	// residencySet holds the textures and the buffers to keep resident in GPU memory.
+	// residencySet is zero if residency sets are not available.
+	residencySet mtl.ResidencySet
+
+	// residencySetDirty reports whether residencySet has uncommitted changes.
+	residencySetDirty bool
+
+	// lastRenderPassTime is the last time when a render pass was encoded.
+	lastRenderPassTime time.Time
+
+	// lastDrawTime is the last time when a render pass was encoded for drawing,
+	// excluding the render passes encoded at keepResidentIfIdle.
+	lastDrawTime time.Time
+
+	// keepAliveTexture is the render target of the render passes encoded at keepResidentIfIdle.
+	keepAliveTexture mtl.Texture
 
 	pool cocoa.NSAutoreleasePool
 }
@@ -131,10 +158,16 @@ func (g *Graphics) Begin() error {
 
 func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	g.flushCommandBufferIfNeeded(mode == graphicsdriver.FlushModePresent)
+	if err := g.keepResidentIfIdle(); err != nil {
+		return err
+	}
+	// The residency set retains its resources until their removals are committed.
+	g.commitResidencySetIfNeeded()
 	g.pool.Release()
 	g.pool.ID = 0
 	if mode != graphicsdriver.FlushModeIntermediate {
 		g.frame++
+		g.view.endFrame()
 	}
 	// Reclaim the resources for the past frames here, as a drawable is not always obtained in a frame.
 	g.gcBuffers()
@@ -223,6 +256,7 @@ loop:
 		})
 		for _, b := range bufs[maxUnusedBuffers:] {
 			delete(g.unusedBuffers, b)
+			g.removeResidentResource(b)
 			b.Release()
 		}
 	}
@@ -264,6 +298,7 @@ func (g *Graphics) availableBuffer(length uintptr) (mtl.Buffer, error) {
 		if err != nil {
 			return mtl.Buffer{}, fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
 		}
+		g.addResidentResource(b)
 		newBuf = b
 	}
 
@@ -283,14 +318,14 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 		return err
 	}
 	g.vb = vb
-	g.vb.CopyToContents(unsafe.Pointer(&vertices[0]), vbSize)
+	mtl.CopyToBufferAt(g.vb, vertices, 0)
 
 	ib, err := g.availableBuffer(ibSize)
 	if err != nil {
 		return err
 	}
 	g.ib = ib
-	g.ib.CopyToContents(unsafe.Pointer(&indices[0]), ibSize)
+	mtl.CopyToBufferAt(g.ib, indices, 0)
 
 	return nil
 }
@@ -323,10 +358,10 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 		g.view.presentDrawableWithTransaction(g.cb, drawableToPresentWithTransaction)
 	}
 
-	for _, t := range g.tmpTextures {
-		t.Release()
+	for _, b := range g.tmpBuffers {
+		b.Release()
 	}
-	g.tmpTextures = g.tmpTextures[:0]
+	g.tmpBuffers = g.tmpBuffers[:0]
 
 	g.cb = mtl.CommandBuffer{}
 
@@ -377,6 +412,7 @@ func (g *Graphics) NewImage(width, height int) (graphicsdriver.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
 	}
+	g.addResidentResource(t)
 	i := &Image{
 		id:       g.genNextImageID(),
 		graphics: g,
@@ -482,6 +518,97 @@ func (g *Graphics) Initialize() error {
 		return fmt.Errorf("metal: device.NewCommandQueue failed: %w", err)
 	}
 	g.cq = cq
+
+	// The GPU driver makes resources non-resident when no command buffer has used them for about a second,
+	// and making them resident again stalls the next command buffer that uses them.
+	// A residency set attached to the command queue makes its resources used by every render pass in the queue.
+	// The residency set is only an optimization. Continue without it if it cannot be created.
+	rs, err := g.view.getMTLDevice().NewResidencySet()
+	if err != nil {
+		if !errors.Is(err, errors.ErrUnsupported) {
+			slog.Debug("metal: device.NewResidencySet failed", "error", err)
+		}
+		return nil
+	}
+	g.cq.AddResidencySet(rs)
+	g.residencySet = rs
+	return nil
+}
+
+func (g *Graphics) addResidentResource(r mtl.Resource) {
+	if g.residencySet == (mtl.ResidencySet{}) {
+		return
+	}
+	g.residencySet.AddAllocation(r)
+	g.residencySetDirty = true
+}
+
+func (g *Graphics) removeResidentResource(r mtl.Resource) {
+	if g.residencySet == (mtl.ResidencySet{}) {
+		return
+	}
+	g.residencySet.RemoveAllocation(r)
+	g.residencySetDirty = true
+}
+
+// commitResidencySetIfNeeded applies the pending changes of the residency set.
+func (g *Graphics) commitResidencySetIfNeeded() {
+	if !g.residencySetDirty {
+		return
+	}
+	g.residencySet.Commit()
+	g.residencySetDirty = false
+}
+
+// keepResidentIfIdle commits an empty render pass if no render pass has been encoded for a while,
+// so that the resources in the residency set stay resident.
+func (g *Graphics) keepResidentIfIdle() error {
+	if g.residencySet == (mtl.ResidencySet{}) {
+		return nil
+	}
+	if time.Since(g.lastRenderPassTime) < residencyKeepAliveInterval {
+		return nil
+	}
+	// Let the OS reclaim the memory when the resources are unlikely to be used soon.
+	if time.Since(g.lastDrawTime) >= residencyKeepAliveDuration {
+		return nil
+	}
+	if !g.view.isVisible() {
+		return nil
+	}
+
+	if g.keepAliveTexture == (mtl.Texture{}) {
+		t, err := g.view.getMTLDevice().NewTextureWithDescriptor(mtl.TextureDescriptor{
+			TextureType: mtl.TextureType2D,
+			PixelFormat: mtl.PixelFormatRGBA8UNorm,
+			Width:       1,
+			Height:      1,
+			StorageMode: mtl.StorageModePrivate,
+			Usage:       mtl.TextureUsageRenderTarget,
+		})
+		if err != nil {
+			return fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
+		}
+		g.keepAliveTexture = t
+	}
+
+	// A command buffer without a render pass, like an empty one or one with only blit commands,
+	// does not keep the resources resident.
+	cb, err := g.cq.CommandBuffer()
+	if err != nil {
+		return fmt.Errorf("metal: cq.CommandBuffer failed: %w", err)
+	}
+	var rpd mtl.RenderPassDescriptor
+	rpd.ColorAttachments[0].LoadAction = mtl.LoadActionClear
+	rpd.ColorAttachments[0].StoreAction = mtl.StoreActionStore
+	rpd.ColorAttachments[0].Texture = g.keepAliveTexture
+	rce, err := cb.RenderCommandEncoderWithDescriptor(rpd)
+	if err != nil {
+		return fmt.Errorf("metal: cb.RenderCommandEncoderWithDescriptor failed: %w", err)
+	}
+	rce.EndEncoding()
+	cb.Commit()
+	g.lastRenderPassTime = time.Now()
 	return nil
 }
 
@@ -537,6 +664,8 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 			return fmt.Errorf("metal: cb.RenderCommandEncoderWithDescriptor failed: %w", err)
 		}
 		g.rce = rce
+		g.lastDrawTime = time.Now()
+		g.lastRenderPassTime = g.lastDrawTime
 	}
 
 	w, h := dst.internalSize()
@@ -719,6 +848,7 @@ func (i *Image) internalSize() (int, int) {
 
 func (i *Image) Dispose() {
 	if i.texture != (mtl.Texture{}) {
+		i.graphics.removeResidentResource(i.texture)
 		i.texture.Release()
 		i.texture = mtl.Texture{}
 	}
@@ -775,37 +905,29 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 
 	g.flushRenderCommandEncoderIfNeeded()
 
-	// Calculate the smallest texture size to include all the values in args.
-	var region image.Rectangle
+	// Use a temporary buffer to send pixels asynchronously, whichever the memory is shared (e.g., iOS) or
+	// managed (e.g., macOS). Writing the pixels to the existing texture directly with replaceRegion: tries to
+	// sync the pixel data between CPU and GPU, which is inefficient (#1418).
+	// The buffer cannot be reused until sending the pixels finishes, then create new ones for each call.
+	// The pixels of all the regions are packed in the buffer, so the buffer size is the total size of the regions.
+	var size uintptr
 	for _, a := range args {
-		region = region.Union(a.Region)
+		size += uintptr(4 * a.Region.Dx() * a.Region.Dy())
 	}
-
-	// Use a temporary texture to send pixels asynchronously, whichever the memory is shared (e.g., iOS) or
-	// managed (e.g., macOS). A temporary texture is needed since ReplaceRegion tries to sync the pixel
-	// data between CPU and GPU, and doing it on the existing texture is inefficient (#1418).
-	// The texture cannot be reused until sending the pixels finishes, then create new ones for each call.
-	td := mtl.TextureDescriptor{
-		TextureType: mtl.TextureType2D,
-		PixelFormat: mtl.PixelFormatRGBA8UNorm,
-		Width:       region.Dx(),
-		Height:      region.Dy(),
-		StorageMode: storageMode,
-		Usage:       mtl.TextureUsageShaderRead | mtl.TextureUsageRenderTarget,
-	}
-	t, err := g.view.getMTLDevice().NewTextureWithDescriptor(td)
+	b, err := g.view.getMTLDevice().NewBufferWithLength(size, resourceStorageMode)
 	if err != nil {
-		return fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
+		return fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
 	}
-	g.tmpTextures = append(g.tmpTextures, t)
+	g.tmpBuffers = append(g.tmpBuffers, b)
 
+	var offset uintptr
 	for _, a := range args {
-		if err := t.ReplaceRegion(mtl.Region{
-			Origin: mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0},
-			Size:   mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1},
-		}, 0, a.Pixels, 4*a.Region.Dx()); err != nil {
-			return err
+		n := 4 * a.Region.Dx() * a.Region.Dy()
+		if len(a.Pixels) < n {
+			return fmt.Errorf("metal: len(pixels) must be at least %d but %d at WritePixels", n, len(a.Pixels))
 		}
+		mtl.CopyToBufferAt(b, a.Pixels[:n], offset)
+		offset += uintptr(n)
 	}
 
 	if err := g.ensureCommandBuffer(); err != nil {
@@ -815,11 +937,13 @@ func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	if err != nil {
 		return fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
 	}
+	offset = 0
 	for _, a := range args {
-		so := mtl.Origin{X: a.Region.Min.X - region.Min.X, Y: a.Region.Min.Y - region.Min.Y, Z: 0}
-		ss := mtl.Size{Width: a.Region.Dx(), Height: a.Region.Dy(), Depth: 1}
+		w, h := a.Region.Dx(), a.Region.Dy()
+		ss := mtl.Size{Width: w, Height: h, Depth: 1}
 		do := mtl.Origin{X: a.Region.Min.X, Y: a.Region.Min.Y, Z: 0}
-		bce.CopyFromTexture(t, 0, 0, so, ss, i.texture, 0, 0, do)
+		bce.CopyFromBuffer(b, offset, uintptr(4*w), uintptr(4*w*h), ss, i.texture, 0, 0, do)
+		offset += uintptr(4 * w * h)
 	}
 	bce.EndEncoding()
 
@@ -867,8 +991,12 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 
 	var idx int
 	var byteAlign int
+	structAlign := 1
 	for i, typ := range uniformTypes {
 		n := typ.DwordCount()
+		align := uniformAlignment(typ)
+		structAlign = max(structAlign, align)
+		values = fillZerosToFitAlignment(values, align)
 		switch typ.Main {
 		case shaderir.Bool:
 			if byteAlign == 0 {
@@ -876,23 +1004,12 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 			} else {
 				values[len(values)-1] |= uniforms[idx] << (8 * byteAlign)
 			}
-		case shaderir.Float, shaderir.Int:
-			values = append(values, uniforms[idx:idx+n]...)
-		case shaderir.Vec2, shaderir.IVec2:
-			values = fillZerosToFitAlignment(values, 2)
+		case shaderir.Float, shaderir.Int, shaderir.Vec2, shaderir.IVec2, shaderir.Vec4, shaderir.IVec4, shaderir.Mat2:
 			values = append(values, uniforms[idx:idx+n]...)
 		case shaderir.Vec3, shaderir.IVec3:
-			values = fillZerosToFitAlignment(values, 4)
 			values = append(values, uniforms[idx:idx+n]...)
 			values = append(values, 0)
-		case shaderir.Vec4, shaderir.IVec4:
-			values = fillZerosToFitAlignment(values, 4)
-			values = append(values, uniforms[idx:idx+n]...)
-		case shaderir.Mat2:
-			values = fillZerosToFitAlignment(values, 2)
-			values = append(values, uniforms[idx:idx+n]...)
 		case shaderir.Mat3:
-			values = fillZerosToFitAlignment(values, 4)
 			values = append(values, uniforms[idx:idx+3]...)
 			values = append(values, 0)
 			values = append(values, uniforms[idx+3:idx+6]...)
@@ -900,7 +1017,6 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 			values = append(values, uniforms[idx+6:idx+9]...)
 			values = append(values, 0)
 		case shaderir.Mat4:
-			values = fillZerosToFitAlignment(values, 4)
 			if i == graphics.ProjectionMatrixUniformVariableIndex {
 				// In Metal, the NDC's Y direction (upward) and the framebuffer's Y direction (downward) don't
 				// match. Then, the Y direction must be inverted.
@@ -925,25 +1041,14 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 						values[len(values)-1] |= uniforms[idx+i] << (8 * ((i + byteAlign) % 4))
 					}
 				}
-			case shaderir.Float, shaderir.Int:
-				values = append(values, uniforms[idx:idx+n]...)
-			case shaderir.Vec2, shaderir.IVec2:
-				values = fillZerosToFitAlignment(values, 2)
+			case shaderir.Float, shaderir.Int, shaderir.Vec2, shaderir.IVec2, shaderir.Vec4, shaderir.IVec4, shaderir.Mat2, shaderir.Mat4:
 				values = append(values, uniforms[idx:idx+n]...)
 			case shaderir.Vec3, shaderir.IVec3:
-				values = fillZerosToFitAlignment(values, 4)
 				for j := 0; j < typ.Length; j++ {
 					values = append(values, uniforms[idx+3*j:idx+3*(j+1)]...)
 					values = append(values, 0)
 				}
-			case shaderir.Vec4, shaderir.IVec4:
-				values = fillZerosToFitAlignment(values, 4)
-				values = append(values, uniforms[idx:idx+n]...)
-			case shaderir.Mat2:
-				values = fillZerosToFitAlignment(values, 2)
-				values = append(values, uniforms[idx:idx+n]...)
 			case shaderir.Mat3:
-				values = fillZerosToFitAlignment(values, 4)
 				for j := 0; j < typ.Length; j++ {
 					values = append(values, uniforms[idx+9*j:idx+9*j+3]...)
 					values = append(values, 0)
@@ -952,9 +1057,6 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 					values = append(values, uniforms[idx+9*j+6:idx+9*j+9]...)
 					values = append(values, 0)
 				}
-			case shaderir.Mat4:
-				values = fillZerosToFitAlignment(values, 4)
-				values = append(values, uniforms[idx:idx+n]...)
 			default:
 				panic(fmt.Sprintf("metal: not implemented type for uniform variables: %s", typ.String()))
 			}
@@ -972,5 +1074,20 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 		}
 	}
 
-	return values
+	// The struct's size is a multiple of its alignment, and Metal requires bytes for the whole struct.
+	return fillZerosToFitAlignment(values, structAlign)
+}
+
+// uniformAlignment returns the alignment of a uniform variable of type t in Metal's memory layout, in dwords rounded up.
+func uniformAlignment(t shaderir.Type) int {
+	if t.Main == shaderir.Array {
+		t = t.Sub[0]
+	}
+	switch t.Main {
+	case shaderir.Vec2, shaderir.IVec2, shaderir.Mat2:
+		return 2
+	case shaderir.Vec3, shaderir.IVec3, shaderir.Vec4, shaderir.IVec4, shaderir.Mat3, shaderir.Mat4:
+		return 4
+	}
+	return 1
 }

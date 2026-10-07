@@ -21,11 +21,15 @@ import (
 )
 
 type (
-	dummyContext struct {
+	dummyDriver struct {
 		// suspendErr and resumeErr are the errors Suspend and Resume return, to simulate a device
 		// which fails to suspend or resume.
 		suspendErr error
 		resumeErr  error
+
+		// players are the players created since the context was reset last. ResetContextForTesting
+		// stops them, so that a player reading an infinite source does not keep reading after its test.
+		players []*dummyPlayer
 
 		mu sync.Mutex
 	}
@@ -45,6 +49,9 @@ type (
 		// readGen is incremented by PauseAndStopReading to stop the goroutine reading r.
 		readGen int
 
+		// readers tracks the goroutines reading r, so that a test can wait for them to stop.
+		readers sync.WaitGroup
+
 		// err is the first non-EOF error the source returned. Like the real players, a player
 		// whose source failed stops for good and reports the error from Err.
 		err error
@@ -53,30 +60,50 @@ type (
 	}
 )
 
-func (c *dummyContext) NewPlayer(r io.Reader) player {
-	return &dummyPlayer{
+func (d *dummyDriver) NewPlayer(r io.Reader) player {
+	p := &dummyPlayer{
 		r:      r,
 		volume: 1,
 	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.players = append(d.players, p)
+	return p
 }
 
-func (c *dummyContext) MaxBufferSize() int {
+// stopPlayers stops the players' goroutines reading their sources, and waits for them to exit.
+func (d *dummyDriver) stopPlayers() {
+	for _, p := range d.takePlayers() {
+		p.PauseAndStopReading()
+		p.readers.Wait()
+	}
+}
+
+func (d *dummyDriver) takePlayers() []*dummyPlayer {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	players := d.players
+	d.players = nil
+	return players
+}
+
+func (d *dummyDriver) MaxBufferSize() int {
 	return 48000 * channelCount * bitDepthInBytesInt16 / 4
 }
 
-func (c *dummyContext) Suspend() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.suspendErr
+func (d *dummyDriver) Suspend() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.suspendErr
 }
 
-func (c *dummyContext) Resume() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return c.resumeErr
+func (d *dummyDriver) Resume() error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.resumeErr
 }
 
-func (c *dummyContext) Err() error {
+func (d *dummyDriver) Err() error {
 	return nil
 }
 
@@ -95,7 +122,7 @@ func (p *dummyPlayer) Play() {
 	}
 	p.playing = true
 	gen := p.readGen
-	go func() {
+	p.readers.Go(func() {
 		var buf [4096]byte
 		for {
 			stopped, err := p.readOnce(gen, buf[:])
@@ -114,7 +141,7 @@ func (p *dummyPlayer) Play() {
 		if p.playing {
 			p.eof = true
 		}
-	}()
+	})
 }
 
 // readOnce performs one read from the source with the mutex held, so that PauseAndStopReading waits
@@ -203,28 +230,28 @@ func (p *dummyPlayer) Seek(offset int64, whence int) (int64, error) {
 	return 0, nil
 }
 
-var dummyContextForTesting = &dummyContext{}
+var dummyDriverForTesting = &dummyDriver{}
 
 func init() {
-	driverForTesting = dummyContextForTesting
+	driverForTesting = dummyDriverForTesting
 }
 
 // SetSuspendErrorForTesting makes the simulated device fail to suspend with err, or succeed when err
 // is nil.
 func SetSuspendErrorForTesting(err error) {
-	c := dummyContextForTesting
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.suspendErr = err
+	d := dummyDriverForTesting
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.suspendErr = err
 }
 
 // SetResumeErrorForTesting makes the simulated device fail to resume with err, or succeed when err is
 // nil.
 func SetResumeErrorForTesting(err error) {
-	c := dummyContextForTesting
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.resumeErr = err
+	d := dummyDriverForTesting
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.resumeErr = err
 }
 
 type dummyHook struct {
@@ -315,19 +342,31 @@ func PlayingButUntrackedForTesting(p *Player) bool {
 	return !ok
 }
 
-// ContextCreatedForTesting reports whether the underlying audio device has been created.
-func ContextCreatedForTesting() bool {
+// DriverCreatedForTesting reports whether the underlying audio device has been created.
+func DriverCreatedForTesting() bool {
 	c := CurrentContext()
 	if c == nil {
 		return false
 	}
-	return c.playerFactory.currentContext() != nil
+	return c.playerFactory.currentDriver() != nil
 }
 
+// ResetContextForTesting discards the current context, so that a test can create a new one.
+// ResetContextForTesting stops the goroutine updating the players and the goroutines reading the
+// players' sources, and waits for them to exit.
 func ResetContextForTesting() {
+	if c := takeContextForTesting(); c != nil {
+		c.close()
+	}
+	dummyDriverForTesting.stopPlayers()
+}
+
+func takeContextForTesting() *Context {
 	theContextLock.Lock()
 	defer theContextLock.Unlock()
+	c := theContext
 	theContext = nil
+	return c
 }
 
 func (i *InfiniteLoop) SetNoBlendForTesting(value bool) {

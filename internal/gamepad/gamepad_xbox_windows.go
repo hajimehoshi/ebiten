@@ -331,3 +331,8 @@ func (n *nativeGamepadXbox) vibrate(duration time.Duration, strongMagnitude floa
 		highFrequency: float32(weakMagnitude),
 	}, 0)
 }
+
+func (n *nativeGamepadXbox) isVibrationAvailable() bool {
+	// The device is released on disconnection, and a caller may still hold the gamepad.
+	return n.gameInputDevice != nil
+}

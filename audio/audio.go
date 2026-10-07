@@ -73,9 +73,17 @@ type Context struct {
 	playingPlayers map[*playerImpl]struct{}
 
 	m sync.Mutex
-	// cond is signalled under m when a player is added to playingPlayers. The goroutine
-	// updating the players waits on it while playingPlayers is empty.
+	// cond is signalled under m when a player is added to playingPlayers or when the context is
+	// closed. The goroutine updating the players waits on it while playingPlayers is empty.
 	cond *sync.Cond
+
+	// closed reports that the goroutine updating the players must exit. A context lives until the
+	// process exits, so this is set only when a test discards the context.
+	closed bool
+
+	// updater tracks the goroutine updating the players, so that a test discarding the context can wait
+	// for the goroutine to exit.
+	updater sync.WaitGroup
 }
 
 var (
@@ -146,7 +154,7 @@ func NewContext(sampleRate int) *Context {
 		// keeps the device from being created before the environment is known (#969, #970,
 		// #2715, #3438). This also initializes the device when there is no player and the
 		// program waits for IsReady() to be true.
-		ready, err := c.playerFactory.initContextIfNeeded(vmGuest)
+		ready, err := c.playerFactory.initDriverIfNeeded(vmGuest)
 		if err != nil {
 			return err
 		}
@@ -162,12 +170,14 @@ func NewContext(sampleRate int) *Context {
 	// In the current Ebitengine implementation, update might not be called when the window is in the background (#3154).
 	// In this case, an audio player's position is not updated correctly with AppendHookOnBeforeUpdateWithVMGuestInfo.
 	// Use a distinct goroutine to update the player states.
-	go func() {
+	c.updater.Go(func() {
 		for {
 			// Block while there is no player to update, so that an idle context does not wake
 			// up periodically. The sweep itself can remove the last player, so the check is
 			// repeated after every sweep.
-			c.waitForPlayingPlayers()
+			if !c.waitForPlayingPlayers() {
+				return
+			}
 			// A failure is local to the player which reported it. Record it and keep updating
 			// the other players (#3647).
 			if err := c.updatePlayers(); err != nil {
@@ -175,7 +185,7 @@ func NewContext(sampleRate int) *Context {
 			}
 			time.Sleep(time.Second / 100)
 		}
-	}()
+	})
 
 	return c
 }
@@ -212,13 +222,28 @@ func (c *Context) setReady() {
 	c.m.Unlock()
 }
 
-// waitForPlayingPlayers blocks until at least one player is registered as playing.
-func (c *Context) waitForPlayingPlayers() {
+// waitForPlayingPlayers blocks until at least one player is registered as playing, and reports
+// whether the players should be updated. It returns false once the context is closed.
+func (c *Context) waitForPlayingPlayers() bool {
 	c.m.Lock()
 	defer c.m.Unlock()
-	for len(c.playingPlayers) == 0 {
+	for len(c.playingPlayers) == 0 && !c.closed {
 		c.cond.Wait()
 	}
+	return !c.closed
+}
+
+// close makes the goroutine updating the players exit, and waits for it to exit.
+func (c *Context) close() {
+	c.markClosed()
+	c.updater.Wait()
+}
+
+func (c *Context) markClosed() {
+	c.m.Lock()
+	defer c.m.Unlock()
+	c.closed = true
+	c.cond.Broadcast()
 }
 
 func (c *Context) addPlayingPlayer(p *playerImpl) {
@@ -642,9 +667,9 @@ func (h *hookerImpl) AppendHookOnBeforeUpdateWithVMGuestInfo(f func(vmGuest bool
 // the middle of a sample down to a sample boundary.
 // For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 //
-// The returned value implements io.Seeker when the source implements io.Seeker.
-// The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
-// there is no guarantee that the Seek function works correctly.
+// When the rates differ, the returned value implements [io.Seeker]. Its Seek returns an error wrapping
+// [errors.ErrUnsupported] if source is not an io.Seeker, or if seeking from the end when the length is unknown.
+// Its Read returns an error wrapping [errors.ErrUnsupported] if it requires seeking a non-seekable source.
 func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
 	validateResamplingSampleRates(from, to)
 	if from == to {
@@ -666,9 +691,9 @@ func ResampleReader(source io.Reader, length int64, from, to int) io.Reader {
 // the middle of a sample down to a sample boundary.
 // For a non-empty buffer shorter than one sample, Read returns [io.ErrShortBuffer], or [io.EOF] once the stream has ended.
 //
-// The returned value implements io.Seeker when the source implements io.Seeker.
-// The returned value might implement io.Seeker even when the source doesn't implement io.Seeker, but
-// there is no guarantee that the Seek function works correctly.
+// When the rates differ, the returned value implements [io.Seeker]. Its Seek returns an error wrapping
+// [errors.ErrUnsupported] if source is not an io.Seeker, or if seeking from the end when the length is unknown.
+// Its Read returns an error wrapping [errors.ErrUnsupported] if it requires seeking a non-seekable source.
 func ResampleReaderF32(source io.Reader, length int64, from, to int) io.Reader {
 	validateResamplingSampleRates(from, to)
 	if from == to {

@@ -319,6 +319,10 @@ func (g *nativeGamepadGC) vibrate(duration time.Duration, strongMagnitude float6
 	vibrateGCGamepad(g.leftMotor, g.rightMotor, strongMagnitude, weakMagnitude)
 }
 
+func (g *nativeGamepadGC) isVibrationAvailable() bool {
+	return g.leftMotor != nil || g.rightMotor != nil
+}
+
 // isKnownRejectedHIDDevice reports whether the device is known to belong to a rejected GC controller.
 func (g *nativeGamepadsGC) isKnownRejectedHIDDevice(id uint64) bool {
 	for _, rejected := range g.rejectedControllerHIDLookups {

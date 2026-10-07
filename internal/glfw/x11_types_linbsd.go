@@ -489,8 +489,8 @@ type _XWMHints struct {
 
 type _XClassHint struct {
 	_        structs.HostLayout
-	ResName  uintptr
-	ResClass uintptr
+	ResName  *byte
+	ResClass *byte
 }
 
 type _XIMStyles struct {
@@ -514,9 +514,9 @@ type _XIMCallback struct {
 type _XIMText struct {
 	_               structs.HostLayout
 	Length          uint16
-	Feedback        uintptr // *XIMFeedback
-	EncodingIsWChar int32   // Bool
-	String          uintptr // union { char *multi_byte; wchar_t *wide_char; }
+	Feedback        *_XIMFeedback
+	EncodingIsWChar int32          // Bool
+	String          unsafe.Pointer // union { char *multi_byte; wchar_t *wide_char; }
 }
 
 // _XIMPreeditDrawCallbackStruct is the XIMPreeditDrawCallbackStruct struct.
@@ -526,7 +526,7 @@ type _XIMPreeditDrawCallbackStruct struct {
 	Caret     int32
 	ChgFirst  int32
 	ChgLength int32
-	Text      uintptr // *XIMText
+	Text      *_XIMText
 }
 
 // _XIMPreeditCaretCallbackStruct is the XIMPreeditCaretCallbackStruct struct.
@@ -744,7 +744,7 @@ type _XIEventMask struct {
 	_        structs.HostLayout
 	Deviceid int32
 	MaskLen  int32
-	Mask     uintptr // *byte
+	Mask     *byte
 }
 
 type _XIValuatorState struct {

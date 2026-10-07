@@ -158,27 +158,33 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		return err
 	}
 
-	var region image.Rectangle
+	// Place each region's pixels in its own footprint in one staging buffer, so that the buffer size is the
+	// total size of the regions regardless of how far apart the regions are.
+	layouts := make([]_D3D12_PLACED_SUBRESOURCE_FOOTPRINT, 0, len(args))
+	var totalBytes uint64
 	for _, a := range args {
-		region = region.Union(a.Region)
+		desc := _D3D12_RESOURCE_DESC{
+			Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
+			Alignment:        0,
+			Width:            uint64(a.Region.Dx()),
+			Height:           uint32(a.Region.Dy()),
+			DepthOrArraySize: 1,
+			MipLevels:        0,
+			Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
+			SampleDesc: _DXGI_SAMPLE_DESC{
+				Count:   1,
+				Quality: 0,
+			},
+			Layout: _D3D12_TEXTURE_LAYOUT_UNKNOWN,
+			Flags:  _D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
+		}
+		// A placed footprint must start at a multiple of the placement alignment.
+		offset := (totalBytes + _D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1) &^ (_D3D12_TEXTURE_DATA_PLACEMENT_ALIGNMENT - 1)
+		layout, _, _, n := i.graphics.device.GetCopyableFootprints(&desc, 0, 1, offset)
+		layouts = append(layouts, layout)
+		totalBytes = layout.Offset + n
 	}
 
-	desc := _D3D12_RESOURCE_DESC{
-		Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-		Alignment:        0,
-		Width:            uint64(region.Dx()),
-		Height:           uint32(region.Dy()),
-		DepthOrArraySize: 1,
-		MipLevels:        0,
-		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
-		SampleDesc: _DXGI_SAMPLE_DESC{
-			Count:   1,
-			Quality: 0,
-		},
-		Layout: _D3D12_TEXTURE_LAYOUT_UNKNOWN,
-		Flags:  _D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
-	}
-	layouts, _, _, totalBytes := i.graphics.device.GetCopyableFootprints(&desc, 0, 1, 0)
 	uploadingStagingBuffer, err := createBuffer(i.graphics.device, totalBytes, _D3D12_HEAP_TYPE_UPLOAD)
 	if err != nil {
 		return err
@@ -197,13 +203,15 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	i.graphics.needFlushCopyCommandList = true
 
 	srcBytes := unsafe.Slice((*byte)(unsafe.Pointer(m)), totalBytes)
-	for _, a := range args {
+	for idx, a := range args {
+		layout := layouts[idx]
+		w := 4 * a.Region.Dx()
 		for j := 0; j < a.Region.Dy(); j++ {
-			copy(srcBytes[((a.Region.Min.Y-region.Min.Y)+j)*int(layouts.Footprint.RowPitch)+(a.Region.Min.X-region.Min.X)*4:], a.Pixels[j*a.Region.Dx()*4:(j+1)*a.Region.Dx()*4])
+			copy(srcBytes[layout.Offset+uint64(j)*uint64(layout.Footprint.RowPitch):], a.Pixels[j*w:(j+1)*w])
 		}
 	}
 
-	for _, a := range args {
+	for idx, a := range args {
 		dst := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
 			pResource:        i.texture,
 			Type:             _D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
@@ -212,15 +220,15 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 		src := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint{
 			pResource:       uploadingStagingBuffer,
 			Type:            _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-			PlacedFootprint: layouts,
+			PlacedFootprint: layouts[idx],
 		}
 		i.graphics.copyCommandList.CopyTextureRegion_SubresourceIndex_PlacedFootPrint(
 			&dst, uint32(a.Region.Min.X), uint32(a.Region.Min.Y), 0, &src, &_D3D12_BOX{
-				left:   uint32(a.Region.Min.X - region.Min.X),
-				top:    uint32(a.Region.Min.Y - region.Min.Y),
+				left:   0,
+				top:    0,
 				front:  0,
-				right:  uint32(a.Region.Max.X - region.Min.X),
-				bottom: uint32(a.Region.Max.Y - region.Min.Y),
+				right:  uint32(a.Region.Dx()),
+				bottom: uint32(a.Region.Dy()),
 				back:   1,
 			})
 	}

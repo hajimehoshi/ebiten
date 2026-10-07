@@ -518,6 +518,8 @@ func (s *textInputEvents) doSend(state textInputState) {
 			case <-s.ch:
 			case <-s.done:
 				return
+			default:
+				// A receiver drained the channel after the send found it full.
 			}
 		}
 	}

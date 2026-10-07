@@ -63,7 +63,7 @@ func InheritedFeedback(feedback []XIMFeedback, first, length, n int) []XIMFeedba
 	return inheritedFeedback(feedback, first, length, n)
 }
 
-func DecodeMultiByte(s uintptr, n int) []rune {
+func DecodeMultiByte(s *byte, n int) []rune {
 	return decodeMultiByte(s, n)
 }
 

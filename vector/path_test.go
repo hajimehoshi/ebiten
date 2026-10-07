@@ -26,6 +26,98 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+func TestArePointsCollinear(t *testing.T) {
+	const large = math.MaxFloat32
+	const tiny = math.SmallestNonzeroFloat32
+	tests := []struct {
+		name       string
+		p0, p1, p2 vector.Point
+		want       bool
+	}{
+		{
+			name: "horizontal",
+			p0:   vector.Point{X: -2, Y: 3},
+			p1:   vector.Point{X: 1, Y: 3},
+			p2:   vector.Point{X: 4, Y: 3},
+			want: true,
+		},
+		{
+			name: "vertical",
+			p0:   vector.Point{X: 3, Y: -2},
+			p1:   vector.Point{X: 3, Y: 1},
+			p2:   vector.Point{X: 3, Y: 4},
+			want: true,
+		},
+		{
+			name: "diagonal",
+			p0:   vector.Point{X: -2, Y: 5},
+			p1:   vector.Point{X: 1, Y: -1},
+			p2:   vector.Point{X: 4, Y: -7},
+			want: true,
+		},
+		{
+			name: "noncollinear",
+			p0:   vector.Point{X: -2, Y: 5},
+			p1:   vector.Point{X: 1, Y: -1},
+			p2:   vector.Point{X: 4, Y: -6},
+		},
+		{
+			name: "two coincident points",
+			p0:   vector.Point{X: 1, Y: 2},
+			p1:   vector.Point{X: 1, Y: 2},
+			p2:   vector.Point{X: -3, Y: 5},
+			want: true,
+		},
+		{
+			name: "all coincident points",
+			p0:   vector.Point{X: 1, Y: 2},
+			p1:   vector.Point{X: 1, Y: 2},
+			p2:   vector.Point{X: 1, Y: 2},
+			want: true,
+		},
+		{
+			name: "large horizontal differences",
+			p0:   vector.Point{X: -large, Y: 3},
+			p1:   vector.Point{X: large, Y: 3},
+			p2:   vector.Point{X: 0, Y: 3},
+			want: true,
+		},
+		{
+			name: "large diagonal products",
+			p0:   vector.Point{X: -large, Y: -large},
+			p1:   vector.Point{X: 0, Y: 0},
+			p2:   vector.Point{X: large, Y: large},
+			want: true,
+		},
+		{
+			name: "large noncollinear products",
+			p0:   vector.Point{X: 0, Y: 0},
+			p1:   vector.Point{X: large, Y: large},
+			p2:   vector.Point{X: large / 2, Y: large / 4},
+		},
+		{
+			name: "tiny diagonal products",
+			p0:   vector.Point{X: -tiny, Y: -tiny},
+			p1:   vector.Point{X: 0, Y: 0},
+			p2:   vector.Point{X: tiny, Y: tiny},
+			want: true,
+		},
+		{
+			name: "tiny noncollinear products",
+			p0:   vector.Point{X: 0, Y: 0},
+			p1:   vector.Point{X: tiny, Y: 0},
+			p2:   vector.Point{X: 0, Y: tiny},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := vector.ArePointsCollinear(test.p0, test.p1, test.p2); got != test.want {
+				t.Errorf("ArePointsCollinear(%v, %v, %v): got %v, want %v", test.p0, test.p1, test.p2, got, test.want)
+			}
+		})
+	}
+}
+
 func TestIsPointCloseToSegment(t *testing.T) {
 	testCases := []struct {
 		p     vector.Point
@@ -806,6 +898,48 @@ func TestStrokeRoundCap(t *testing.T) {
 	}
 }
 
+func TestCubicSinglePoint(t *testing.T) {
+	for _, state := range []string{"empty", "open", "closed"} {
+		t.Run(state, func(t *testing.T) {
+			var p vector.Path
+			if state != "empty" {
+				p.MoveTo(1.1, 2.2)
+			}
+			if state == "closed" {
+				p.Close()
+			}
+			p.CubicTo(1.1, 2.2, 1.1, 2.2, 1.1, 2.2)
+			if b := p.Bounds(); !b.Empty() {
+				t.Errorf("Bounds of a single point: got %v, want empty", b)
+			}
+			p.LineTo(5, 6)
+			if got, want := p.Bounds(), image.Rect(1, 2, 5, 6); got != want {
+				t.Errorf("Bounds after LineTo: got %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+func TestArcCollapsedCubic(t *testing.T) {
+	for _, dir := range []vector.Direction{vector.Clockwise, vector.CounterClockwise} {
+		var p vector.Path
+		start := float32(0.5)
+		end := math.Nextafter32(start, 1)
+		if dir == vector.CounterClockwise {
+			start, end = end, start
+		}
+		// The nonzero sweep produces coincident cubic points at float64 precision.
+		p.Arc(0.1, 2.2, 1e-10, start, end, dir)
+		if b := p.Bounds(); !b.Empty() {
+			t.Errorf("Direction %d: Bounds of a collapsed arc: got %v, want empty", dir, b)
+		}
+		p.LineTo(1, 3)
+		if got, want := p.Bounds(), image.Rect(0, 2, 1, 3); got != want {
+			t.Errorf("Direction %d: Bounds after LineTo: got %v, want %v", dir, got, want)
+		}
+	}
+}
+
 func TestQuadCuspIsKept(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(0, 0)
@@ -862,17 +996,22 @@ func TestStrokeQuadCusp(t *testing.T) {
 }
 
 func TestStrokeTinyQuadCusp(t *testing.T) {
-	// The midpoint of this cusp is rounded back to the start point in float32, so there is nothing to stroke.
+	// The cusp's extremum is halfway between adjacent float32 input coordinates.
 	var p vector.Path
 	p.MoveTo(1e7, 0)
 	p.QuadTo(1e7+1, 0, 1e7, 0)
 
 	op := &vector.AddStrokeOptions{}
 	op.StrokeOptions.Width = 4
+	op.GeoM.Translate(-1e7, 0)
+	op.GeoM.Scale(2, 1)
 
 	var sp vector.Path
 	sp.AddStroke(&p, op)
-	if got, want := vector.SubPathCount(&sp), 0; got != want {
+	if got, want := vector.SubPathCount(&sp), 1; got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+	if got, want := sp.Bounds(), image.Rect(0, -2, 1, 2); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
 	}
 }
@@ -882,6 +1021,7 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	var p vector.Path
 	p.MoveTo(3.0e38, 1)
 	p.QuadTo(3.4e38, 1, 3.0e38, 1)
+	before := vector.PathOperationsString(&p)
 
 	op := &vector.AddStrokeOptions{}
 	op.StrokeOptions.Width = 4
@@ -890,7 +1030,7 @@ func TestStrokeHugeQuadCusp(t *testing.T) {
 	sp.AddStroke(&p, op)
 
 	// AddStroke must not modify the source path.
-	if got, want := vector.PathOperationsString(&p), "MoveTo(3e+38, 1)\nQuadTo(3.4e+38, 1, 3e+38, 1)\n"; got != want {
+	if got, want := vector.PathOperationsString(&p), before; got != want {
 		t.Errorf("got:\n%v\nwant:\n%v", got, want)
 	}
 

@@ -15,7 +15,10 @@
 package packing_test
 
 import (
+	"fmt"
 	"image"
+	"math/rand/v2"
+	"slices"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/packing"
@@ -494,5 +497,48 @@ func TestAllocatedRegionWithOverhang(t *testing.T) {
 	// The allocated region never sticks out of the page.
 	if got, want := p.AllocatedRegion(), image.Rect(0, 0, w, h); got != want {
 		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+func BenchmarkAllocFreeFragmented(b *testing.B) {
+	for _, kept := range []int{3000, 18000} {
+		b.Run(fmt.Sprintf("kept=%d", kept), func(b *testing.B) {
+			r := rand.New(rand.NewPCG(1, 0))
+			p := packing.NewPage(1024, 1024, 16384, 1)
+			nodes := make([]*packing.Node, 0, 3000)
+			for range cap(nodes) {
+				nodes = append(nodes, p.Alloc(9+r.IntN(41), 9+r.IntN(41)))
+			}
+			r.Shuffle(len(nodes), func(i, j int) {
+				nodes[i], nodes[j] = nodes[j], nodes[i]
+			})
+			for _, n := range nodes[:len(nodes)/2] {
+				p.Free(n)
+			}
+
+			var fifo []*packing.Node
+			frame := func() {
+				for range 300 {
+					n := p.Alloc(17+r.IntN(9), 17+r.IntN(9))
+					if n == nil {
+						b.Fatal("p.Alloc failed")
+					}
+					fifo = append(fifo, n)
+				}
+				if len(fifo) > kept {
+					for _, n := range fifo[:len(fifo)-kept] {
+						p.Free(n)
+					}
+					fifo = slices.Delete(fifo, 0, len(fifo)-kept)
+				}
+			}
+			for range 2 * kept / 300 {
+				frame()
+			}
+			b.ResetTimer()
+			for range b.N {
+				frame()
+			}
+		})
 	}
 }

@@ -56,7 +56,8 @@ type view struct {
 	device mtl.Device
 	ml     ca.MetalLayer
 
-	once sync.Once
+	// attachedUIView is used only on the rendering thread, and only on iOS.
+	attachedUIView uintptr
 
 	caDisplayLink    uintptr
 	metalDisplayLink uintptr
@@ -105,6 +106,14 @@ type view struct {
 	metalDisplayLinkDelegate    objc.ID
 	completionChannelPool       sync.Pool
 	metalDisplayLinkChannelPool sync.Pool
+
+	// drawableRequested reports whether a drawable has been requested in the current frame.
+	// This is used only on the rendering thread.
+	drawableRequested bool
+
+	// metalDisplayLinkPaused reports whether the display link is paused.
+	// This is used only on the rendering thread.
+	metalDisplayLinkPaused bool
 
 	// The following members are used only with CADisplayLink.
 	handleToSelf viewHandle

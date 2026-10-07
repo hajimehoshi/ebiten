@@ -22,6 +22,7 @@ import (
 
 const (
 	BaseCountToPutOnSourceBackend = baseCountToPutOnSourceBackend
+	MaxPageSizeOn32Bit            = maxPageSizeOn32Bit
 )
 
 func PutImagesOnSourceBackendForTesting() {

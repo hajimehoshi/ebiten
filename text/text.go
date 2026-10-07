@@ -64,7 +64,7 @@ type glyphImageCacheKey struct {
 
 type glyphImageCacheEntry struct {
 	image *ebiten.Image
-	atime ebiten.Duration
+	atime int64
 }
 
 var (
@@ -81,7 +81,7 @@ func getGlyphImage(face *faceWithCache, r rune, offset fixed.Point26_6) *ebiten.
 		xoffset: offset.X,
 	}
 	if e, ok := glyphImageCache[face][key]; ok {
-		e.atime = ebiten.DurationTime()
+		e.atime = ebiten.Tick()
 		return e.image
 	}
 
@@ -90,7 +90,7 @@ func getGlyphImage(face *faceWithCache, r rune, offset fixed.Point26_6) *ebiten.
 	if w == 0 || h == 0 {
 		glyphImageCache[face][key] = &glyphImageCacheEntry{
 			image: nil,
-			atime: ebiten.DurationTime(),
+			atime: ebiten.Tick(),
 		}
 		return nil
 	}
@@ -118,7 +118,7 @@ func getGlyphImage(face *faceWithCache, r rune, offset fixed.Point26_6) *ebiten.
 	img := ebiten.NewImageFromImage(rgba)
 	glyphImageCache[face][key] = &glyphImageCacheEntry{
 		image: img,
-		atime: ebiten.DurationTime(),
+		atime: ebiten.Tick(),
 	}
 
 	return img
@@ -238,9 +238,9 @@ func DrawWithOptions(dst *ebiten.Image, text string, face font.Face, options *eb
 
 	// Clean up the cache.
 	if len(glyphImageCache[fc]) > cacheSoftLimit {
-		now := ebiten.DurationTime()
+		now := ebiten.Tick()
 		for r, e := range glyphImageCache[fc] {
-			if e.atime < now-ebiten.DurationSecond {
+			if e.atime < now-60 {
 				delete(glyphImageCache[fc], r)
 			}
 		}

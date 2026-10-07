@@ -219,6 +219,9 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+		if res.StatusCode < 200 || 300 <= res.StatusCode {
+			log.Fatalf("fetching %s failed: %s", emojiFontURL, res.Status)
+		}
 		fontData, err := io.ReadAll(res.Body)
 		_ = res.Body.Close()
 		if err != nil {

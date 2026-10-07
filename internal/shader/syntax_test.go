@@ -7443,3 +7443,70 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestSyntaxArgumentWithoutValue(t *testing.T) {
+	for _, expr := range []string{
+		"_ = min(bar(), 1.0, 2.0)",
+		"_ = min(discard(), 1.0, 2.0)",
+		"_ = foo(bar(), 1.0, 2.0)",
+		"bar(bar())",
+	} {
+		t.Run(expr, func(t *testing.T) {
+			src := `package main
+func bar() {}
+func foo(x, y float) float { return x + y }
+func Fragment() vec4 {
+	` + expr + `
+	return vec4(0)
+}
+`
+			if _, err := compileToIR([]byte(src)); err == nil {
+				t.Error("compileToIR must return an error but did not")
+			}
+		})
+	}
+
+	if _, err := compileToIR([]byte(`package main
+func pair() (float, float) { return 1, 2 }
+func foo(x, y float) float { return x + y }
+func Fragment() vec4 {
+	return vec4(foo(pair()) + min(pair()))
+}
+`)); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestSyntaxUnusedBuiltinCall(t *testing.T) {
+	for _, expr := range []string{
+		"int(1.0)", "float(2)", "bool(true)",
+		"len([2]float{})", "cap([2]float{})",
+		"int(x)", "float(x)", "bool(b)", "(int)(1.0)",
+	} {
+		t.Run(expr, func(t *testing.T) {
+			src := `package main
+func foo(x float, b bool) {
+	` + expr + `
+}
+`
+			if _, err := compileToIR([]byte(src)); err == nil {
+				t.Error("compileToIR must return an error but did not")
+			}
+		})
+	}
+
+	if _, err := compileToIR([]byte(`package main
+func foo() float { return 1 }
+func pair() (float, float) { return 1, 2 }
+func bar() {}
+func Fragment() vec4 {
+	foo()
+	pair()
+	bar()
+	discard()
+	return vec4(0)
+}
+`)); err != nil {
+		t.Error(err)
+	}
+}

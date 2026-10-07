@@ -969,3 +969,7 @@ func (g *nativeGamepadDesktop) hatState(hat int) int {
 func (g *nativeGamepadDesktop) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 	g.rumble.vibrate(duration, strongMagnitude, weakMagnitude)
 }
+
+func (g *nativeGamepadDesktop) isVibrationAvailable() bool {
+	return g.rumble.available()
+}

@@ -1,0 +1,5 @@
+<!-- Copyright 2026 The Ebitengine Authors; SPDX-License-Identifier: Apache-2.0 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 48 48">
+<defs><clipPath id="ring"><path clip-rule="evenodd" d="M4 4H44V44H4Z M16 16H32V32H16Z"/></clipPath></defs>
+<g id="glyph1" clip-path="url(#ring)"><rect width="48" height="48" fill="red"/></g>
+</svg>

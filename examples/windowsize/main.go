@@ -483,12 +483,12 @@ func (g *game) Update() error {
 		g.restoreCountdown = restoreDelayInTicks
 	}
 
-	if toUpdateWindowSize {
+	if toUpdateWindowSize && !ebiten.IsWindowMaximized() && !ebiten.IsWindowMinimized() {
 		ebiten.SetWindowSize(int(g.screenWidth*screenScale), int(g.screenHeight*screenScale))
 	}
 
 	ebiten.SetTPS(g.tps)
-	if toUpdateWindowPosition {
+	if toUpdateWindowPosition && !ebiten.IsWindowMaximized() && !ebiten.IsWindowMinimized() {
 		ebiten.SetWindowPosition(g.positionX, g.positionY)
 	}
 	if restore {

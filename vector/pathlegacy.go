@@ -15,6 +15,8 @@
 package vector
 
 import (
+	"math"
+
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
@@ -58,8 +60,8 @@ func (p *Path) AppendVerticesAndIndicesForFilling(vertices []ebiten.Vertex, indi
 		}
 		for i, pt := range flatPath.points {
 			vertices = append(vertices, ebiten.Vertex{
-				DstX:   pt.x,
-				DstY:   pt.y,
+				DstX:   float32(pt.x),
+				DstY:   float32(pt.y),
 				SrcX:   0,
 				SrcY:   0,
 				ColorR: 1,
@@ -131,7 +133,7 @@ func (f *flatPath) appendPoint(pt point) {
 	if len(f.points) > 0 {
 		// Do not add a too close point to the last point.
 		// This can cause unexpected rendering results.
-		if lp := f.lastPoint(); abs(lp.x-pt.x) < 1e-2 && abs(lp.y-pt.y) < 1e-2 {
+		if lp := f.lastPoint(); math.Abs(lp.x-pt.x) < 1e-2 && math.Abs(lp.y-pt.y) < 1e-2 {
 			return
 		}
 	}
@@ -199,6 +201,9 @@ func (p *Path) appendFlatPathPointsForLine(pt point) {
 
 func (p *Path) appendFlatPathPointsForQuad(p0, p1, p2 point, level int) {
 	if level > 10 {
+		if isRegularPoint(p0) && isRegularPoint(p1) && isRegularPoint(p2) {
+			p.appendFlatPathPointsForLine(p2)
+		}
 		return
 	}
 

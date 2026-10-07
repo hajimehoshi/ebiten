@@ -18,6 +18,7 @@ package gamepad
 
 import (
 	"structs"
+	"syscall"
 	"unsafe"
 
 	"golang.org/x/sys/unix"
@@ -227,7 +228,8 @@ func ioctl(fd int, request uint, ptr unsafe.Pointer) error {
 	// Retry on EINTR: a signal like the Go runtime's preemption can interrupt the
 	// ioctl, and these ioctls just read or write the device state again.
 	for {
-		r, _, e := unix.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), uintptr(ptr))
+		// syscall.Syscall keeps ptr's referent alive during the call on every architecture.
+		r, _, e := syscall.Syscall(unix.SYS_IOCTL, uintptr(fd), uintptr(request), uintptr(ptr))
 		if int32(r) >= 0 {
 			return nil
 		}

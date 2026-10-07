@@ -552,13 +552,23 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 		return nil, false
 
 	case *ast.ExprStmt:
-		if _, ok := stmt.X.(*ast.CallExpr); !ok {
+		call, ok := stmt.X.(*ast.CallExpr)
+		if !ok {
 			cs.addError(stmt.Pos(), "the statement is evaluated but not used")
 			return nil, false
 		}
 
 		exprs, _, ss, ok := cs.parseExpr(block, fname, stmt.X, true)
 		if !ok {
+			return nil, false
+		}
+		// Constant folding can replace a built-in call with a non-call expression.
+		callee, ok := cs.parseCallee(block, call.Fun)
+		if !ok {
+			return nil, false
+		}
+		if callee.Type == shaderir.BuiltinFuncExpr && callee.BuiltinFunc != shaderir.DiscardF {
+			cs.addError(stmt.Pos(), "the statement is evaluated but not used")
 			return nil, false
 		}
 		stmts = append(stmts, ss...)
@@ -568,10 +578,6 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 			// These are necessary to be used as arguments for callers of an outside function.
 			if expr.Type != shaderir.Call {
 				continue
-			}
-			if expr.Exprs[0].Type == shaderir.BuiltinFuncExpr {
-				cs.addError(stmt.Pos(), "the statement is evaluated but not used")
-				return nil, false
 			}
 			stmts = append(stmts, shaderir.Stmt{
 				Type:  shaderir.ExprStmt,

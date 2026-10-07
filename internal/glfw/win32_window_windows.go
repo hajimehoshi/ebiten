@@ -479,7 +479,7 @@ func (w *Window) acquireMonitor() (err error) {
 			}
 			_SetThreadExecutionState(_ES_CONTINUOUS)
 			if restoreMouseTrails {
-				if restoreErr := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, _glfw.platformWindow.mouseTrailSize, 0, 0); restoreErr != nil {
+				if restoreErr := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, _glfw.platformWindow.mouseTrailSize, nil, 0); restoreErr != nil {
 					err = errors.Join(err, restoreErr)
 				}
 			}
@@ -488,11 +488,11 @@ func (w *Window) acquireMonitor() (err error) {
 		// HACK: When mouse trails are enabled the cursor becomes invisible when
 		//       the OpenGL ICD switches to page flipping
 		if winver.IsWindowsXPOrGreater() {
-			if err := _SystemParametersInfoW(_SPI_GETMOUSETRAILS, 0, uintptr(unsafe.Pointer(&_glfw.platformWindow.mouseTrailSize)), 0); err != nil {
+			if err := _SystemParametersInfoW(_SPI_GETMOUSETRAILS, 0, unsafe.Pointer(&_glfw.platformWindow.mouseTrailSize), 0); err != nil {
 				return err
 			}
 			restoreMouseTrails = true
-			if err := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, 0, 0, 0); err != nil {
+			if err := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, 0, nil, 0); err != nil {
 				return err
 			}
 		}
@@ -529,7 +529,7 @@ func (w *Window) releaseMonitor() error {
 
 		// HACK: Restore mouse trail length saved in acquireMonitor
 		if winver.IsWindowsXPOrGreater() {
-			if err := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, _glfw.platformWindow.mouseTrailSize, 0, 0); err != nil {
+			if err := _SystemParametersInfoW(_SPI_SETMOUSETRAILS, _glfw.platformWindow.mouseTrailSize, nil, 0); err != nil {
 				return err
 			}
 		}
@@ -2612,7 +2612,7 @@ func (w *Window) GetWin32Window() (windows.HWND, error) {
 // applies when the query fails.
 func wheelScrollSetting(action uint32) uint32 {
 	var n uint32
-	if err := _SystemParametersInfoW(action, 0, uintptr(unsafe.Pointer(&n)), 0); err != nil {
+	if err := _SystemParametersInfoW(action, 0, unsafe.Pointer(&n), 0); err != nil {
 		return 3
 	}
 	return n

@@ -66,12 +66,13 @@ func (v *view) setUIView(uiview uintptr) {
 
 func (v *view) update() {
 	uiview := v.uiview.Load()
-	v.once.Do(func() {
+	if uiview != v.attachedUIView {
 		if v.ml.Layer() == nil {
 			panic("metal: CAMetalLayer is not initialized yet")
 		}
 		C.addSublayer(unsafe.Pointer(uiview), v.ml.Layer())
-	})
+		v.attachedUIView = uiview
+	}
 	C.setFrame(v.ml.Layer(), unsafe.Pointer(uiview))
 }
 
@@ -93,8 +94,17 @@ func (v *view) finishDrawableUsage() {
 	// Do nothing.
 }
 
+func (v *view) endFrame() {
+	// Do nothing.
+}
+
 func (v *view) setDrawableSize(width, height int) {
 	v.ml.SetDrawableSize(width, height)
+}
+
+func (v *view) isVisible() bool {
+	// The game loop does not run while the app is in the background.
+	return true
 }
 
 func (v *view) updatePresentationState() {

@@ -21,13 +21,16 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-const infTime ebiten.Duration = math.MaxInt64
+const (
+	infTick       int64 = math.MaxInt64
+	cacheLifetime       = 60
+)
 
 type cacheValue[Value any] struct {
 	value Value
 
-	// atime is the last time when the value was accessed.
-	atime ebiten.Duration
+	// atime is the last tick when the value was accessed, or infTick if it cannot expire.
+	atime int64
 }
 
 type cache[Key comparable, Value any] struct {
@@ -36,10 +39,10 @@ type cache[Key comparable, Value any] struct {
 
 	values map[Key]*cacheValue[Value]
 
-	// atime is the time of the last cache miss. A hit returns before reaching
+	// atime is the tick of the last cache miss. A hit returns before reaching
 	// the clean-up, so this only moves when a new key is created and the
-	// clean-up runs at most once per distinct time.
-	atime ebiten.Duration
+	// clean-up runs at most once per tick.
+	atime int64
 
 	m sync.Mutex
 }
@@ -51,14 +54,18 @@ func newCache[Key comparable, Value any](softLimit int) *cache[Key, Value] {
 }
 
 func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Value {
-	n := ebiten.DurationTime()
+	return c.getOrCreateAt(key, ebiten.Tick(), create)
+}
 
+func (c *cache[Key, Value]) getOrCreateAt(key Key, n int64, create func() (Value, bool)) Value {
 	c.m.Lock()
 	defer c.m.Unlock()
 
 	e, ok := c.values[key]
 	if ok {
-		e.atime = n
+		if e.atime != infTick {
+			e.atime = n
+		}
 		return e.value
 	}
 
@@ -69,7 +76,7 @@ func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Va
 	ent, canExpire := create()
 	e = &cacheValue[Value]{
 		value: ent,
-		atime: infTime,
+		atime: infTick,
 	}
 	if canExpire {
 		e.atime = n
@@ -83,7 +90,7 @@ func (c *cache[Key, Value]) getOrCreate(key Key, create func() (Value, bool)) Va
 		// but this is fine.
 		if len(c.values) > c.softLimit {
 			for key, e := range c.values {
-				if e.atime >= n-ebiten.DurationSecond {
+				if e.atime >= n-cacheLifetime {
 					continue
 				}
 				delete(c.values, key)

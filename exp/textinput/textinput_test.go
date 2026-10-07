@@ -16,7 +16,9 @@ package textinput_test
 
 import (
 	"errors"
+	"runtime"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/exp/textinput"
 )
@@ -887,5 +889,42 @@ func TestUserEndingAfterCommitInSameTick(t *testing.T) {
 	}
 	if !d.SessionClosedByUser() {
 		t.Error("SessionClosedByUser() = false, want true")
+	}
+}
+
+func TestConcurrentSendAndReceive(t *testing.T) {
+	var ev textinput.TextInputEvents
+	ch := ev.Start()
+	go func() {
+		for range 100000 {
+			ev.Send(textinput.TextInputState{Text: "composing"})
+		}
+		ev.Send(textinput.TextInputState{Text: "committed", CommitKind: textinput.CommitRegular})
+		ev.End()
+	}()
+
+	done := make(chan textinput.TextInputState, 1)
+	go func() {
+		var last textinput.TextInputState
+		for {
+			select {
+			case state, ok := <-ch:
+				if !ok {
+					done <- last
+					return
+				}
+				last = state
+			default:
+				runtime.Gosched()
+			}
+		}
+	}()
+	select {
+	case last := <-done:
+		if last.Text != "committed" || last.CommitKind != textinput.CommitRegular {
+			t.Errorf("last state = %+v, want the final commit", last)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("sending and ending the session blocked")
 	}
 }

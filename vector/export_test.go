@@ -16,11 +16,41 @@ package vector
 
 import (
 	"fmt"
+	"image"
 	"strings"
+
+	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Point struct {
 	X, Y float32
+}
+
+func ArePointsInRange(p0, p1 Point, allowanceMin, allowanceMax float32) bool {
+	return arePointsInRange(point{
+		x: float64(p0.X),
+		y: float64(p0.Y),
+	}, point{
+		x: float64(p1.X),
+		y: float64(p1.Y),
+	}, float64(allowanceMin), float64(allowanceMax))
+}
+
+func CrossingPointForTwoLines(p00, p01, p10, p11 Point) Point {
+	p := crossingPointForTwoLines(vec2{
+		x: float64(p00.X),
+		y: float64(p00.Y),
+	}, vec2{
+		x: float64(p01.X) - float64(p00.X),
+		y: float64(p01.Y) - float64(p00.Y),
+	}, vec2{
+		x: float64(p10.X),
+		y: float64(p10.Y),
+	}, vec2{
+		x: float64(p11.X) - float64(p10.X),
+		y: float64(p11.Y) - float64(p10.Y),
+	})
+	return Point{X: float32(p.x), Y: float32(p.y)}
 }
 
 func (p Point) String() string {
@@ -29,15 +59,28 @@ func (p Point) String() string {
 
 func IsPointCloseToSegment(p, p0, p1 Point, allow float32) bool {
 	return isPointCloseToSegment(point{
-		x: p.X,
-		y: p.Y,
+		x: float64(p.X),
+		y: float64(p.Y),
 	}, point{
-		x: p0.X,
-		y: p0.Y,
+		x: float64(p0.X),
+		y: float64(p0.Y),
 	}, point{
-		x: p1.X,
-		y: p1.Y,
-	}, allow)
+		x: float64(p1.X),
+		y: float64(p1.Y),
+	}, float64(allow))
+}
+
+func ArePointsCollinear(p0, p1, p2 Point) bool {
+	return arePointsCollinear(point{
+		x: float64(p0.X),
+		y: float64(p0.Y),
+	}, point{
+		x: float64(p1.X),
+		y: float64(p1.Y),
+	}, point{
+		x: float64(p2.X),
+		y: float64(p2.Y),
+	})
 }
 
 func CurrentPosition(path *Path) (Point, bool) {
@@ -45,7 +88,7 @@ func CurrentPosition(path *Path) (Point, bool) {
 	if !ok {
 		return Point{}, false
 	}
-	return Point{X: p.x, Y: p.y}, true
+	return Point{X: float32(p.x), Y: float32(p.y)}, true
 }
 
 func SubPathCount(path *Path) int {
@@ -84,6 +127,26 @@ func CallbackTokenCount() int {
 	return len(theCallbackTokens)
 }
 
-func CircleVertexCount(radius float32) int {
+func CircleVertexCount(radius float64) int {
 	return circleVertexCount(radius)
+}
+
+func AtlasImageCount(dstBounds image.Rectangle, paths []*Path, bounds []image.Rectangle, antialias bool) int {
+	var a atlas
+	a.setPaths(dstBounds, paths, bounds, antialias)
+	for _, img := range a.atlasImages {
+		img.Deallocate()
+	}
+	return len(a.atlasImages)
+}
+
+func StrokeLineGeoM(x0, y0, x1, y1, strokeWidth float32) ebiten.GeoM {
+	return strokeLineGeoM(x0, y0, x1, y1, strokeWidth)
+}
+
+func UtilDrawingVertices(draw func()) []ebiten.Vertex {
+	draw()
+	theCacheForUtilM.Lock()
+	defer theCacheForUtilM.Unlock()
+	return append([]ebiten.Vertex(nil), theCachedVerticesForUtil...)
 }

@@ -161,27 +161,37 @@ func (c *Context) Err() error {
 // the closed-ID buffer is emptied, so a change is forwarded only once. The appended entries are sorted
 // by player ID, so the forwarded order does not depend on map iteration.
 func (c *Context) takeControlChanges(controls []vmprotocol.AudioControl) []vmprotocol.AudioControl {
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	start := len(controls)
-	for _, wp := range c.players {
-		p := wp.Value()
-		if p == nil {
-			// The player has been collected; its cleanup will remove the entry and report the removal.
-			continue
-		}
+	players, controls := c.snapshotPlayersAndDrainClosedIDs(controls)
+
+	// A player's source read can block while holding its mutex. Do not hold
+	// the context mutex while waiting for that player.
+	for _, p := range players {
 		if ctrl, ok := p.takeControlChange(); ok {
 			controls = append(controls, ctrl)
+		}
+	}
+	slices.SortFunc(controls[start:], func(a, b vmprotocol.AudioControl) int {
+		return cmp.Compare(a.ID, b.ID)
+	})
+	return controls
+}
+
+func (c *Context) snapshotPlayersAndDrainClosedIDs(controls []vmprotocol.AudioControl) ([]*Player, []vmprotocol.AudioControl) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	players := make([]*Player, 0, len(c.players))
+	for _, wp := range c.players {
+		if p := wp.Value(); p != nil {
+			players = append(players, p)
 		}
 	}
 	for _, id := range c.closedIDs {
 		controls = append(controls, vmprotocol.AudioControl{ID: id, Closed: true})
 	}
 	c.closedIDs = c.closedIDs[:0]
-	slices.SortFunc(controls[start:], func(a, b vmprotocol.AudioControl) int {
-		return cmp.Compare(a.ID, b.ID)
-	})
-	return controls
+
+	return players, controls
 }
 
 // read reads player id's samples into buf and reports whether its source has ended. The player is kept
@@ -193,8 +203,7 @@ func (c *Context) read(id int64, buf []byte) (n int, eof bool) {
 		return 0, true
 	}
 
-	// The source read runs without c.mu held, so a blocking read does not stall the map or the control
-	// push.
+	// The source read runs without c.mu held, so a blocking read does not stall access to the player map.
 	return p.read(buf, suspended)
 }
 
@@ -311,12 +320,13 @@ func (p *Player) Close() error {
 // Seek seeks the source, which must be an io.Seeker, and discards the bytes buffered from the old
 // position. A player at the end of its source can be played again after Seek, while a player whose source
 // failed stays finished.
+// Seek returns an error wrapping [errors.ErrUnsupported] when the source is not an [io.Seeker].
 func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	s, ok := p.src.(io.Seeker)
 	if !ok {
-		return 0, fmt.Errorf("vmaudio: the source must be an io.Seeker")
+		return 0, fmt.Errorf("vmaudio: the source must be an io.Seeker: %w", errors.ErrUnsupported)
 	}
 	n, err := s.Seek(offset, whence)
 	if err != nil {

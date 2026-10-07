@@ -319,23 +319,22 @@ func (w *Window) consumeDiscardedText(text string) bool {
 	return text == discarded
 }
 
-func preeditDrawCallback(ic uintptr, clientData uintptr, callData uintptr) uintptr {
+func preeditDrawCallback(ic uintptr, clientData uintptr, draw *_XIMPreeditDrawCallbackStruct) uintptr {
 	w := preeditWindow(clientData)
-	if w == nil || callData == 0 {
+	if w == nil || draw == nil {
 		return 0
 	}
-	draw := (*_XIMPreeditDrawCallbackStruct)(unsafe.Pointer(callData))
 
 	// The input method addresses the composition it has drawn so far, so clamp
 	// the change to what is actually buffered.
 	first := min(max(int(draw.ChgFirst), 0), len(w.platform.preeditText))
 	length := min(max(int(draw.ChgLength), 0), len(w.platform.preeditText)-first)
 
-	if draw.Text == 0 {
+	if draw.Text == nil {
 		// The change is a deletion.
 		w.platform.preeditText = replaceSlice(w.platform.preeditText, first, length, nil)
 		w.platform.preeditFeedback = replaceSlice(w.platform.preeditFeedback, first, length, nil)
-	} else if text := (*_XIMText)(unsafe.Pointer(draw.Text)); text.String == 0 && text.Length > 0 {
+	} else if text := draw.Text; text.String == nil && text.Length > 0 {
 		// The change restyles characters that are already drawn, leaving them
 		// in place. It is a no-op when there is no feedback to apply either.
 		w.platform.preeditFeedback = applyFeedback(w.platform.preeditFeedback, first, decodeXIMFeedback(text))
@@ -359,12 +358,11 @@ func preeditDrawCallback(ic uintptr, clientData uintptr, callData uintptr) uintp
 	return 0
 }
 
-func preeditCaretCallback(ic uintptr, clientData uintptr, callData uintptr) uintptr {
+func preeditCaretCallback(ic uintptr, clientData uintptr, caret *_XIMPreeditCaretCallbackStruct) uintptr {
 	w := preeditWindow(clientData)
-	if w == nil || callData == 0 {
+	if w == nil || caret == nil {
 		return 0
 	}
-	caret := (*_XIMPreeditCaretCallbackStruct)(unsafe.Pointer(callData))
 	position := resolvePreeditCaret(caret.Direction, int(caret.Position),
 		w.platform.preeditCaret, w.platform.preeditText)
 	// The input method reads the resolved position back, whether or not the
@@ -512,19 +510,19 @@ func preeditSelection(text []rune, feedback []_XIMFeedback, caret int) (startInB
 // feedback is as long as the returned text.
 func decodeXIMText(text *_XIMText) ([]rune, []_XIMFeedback) {
 	n := int(text.Length)
-	if n <= 0 || text.String == 0 {
+	if n <= 0 || text.String == nil {
 		return nil, nil
 	}
 
 	var rs []rune
 	if text.EncodingIsWChar != 0 {
-		wcs := unsafe.Slice((*int32)(unsafe.Pointer(text.String)), n)
+		wcs := unsafe.Slice((*int32)(text.String), n)
 		rs = make([]rune, 0, n)
 		for _, wc := range wcs {
 			rs = append(rs, rune(wc))
 		}
 	} else {
-		rs = decodeMultiByte(text.String, n)
+		rs = decodeMultiByte((*byte)(text.String), n)
 	}
 
 	// No feedback means the text keeps whatever the text around it has, which
@@ -543,7 +541,7 @@ func decodeXIMText(text *_XIMText) ([]rune, []_XIMFeedback) {
 // input method, which is the one initIME set. Decoding reads the process-wide
 // LC_CTYPE, so the two agree only as long as nothing changes the locale after
 // initIME.
-func decodeMultiByte(s uintptr, n int) []rune {
+func decodeMultiByte(s *byte, n int) []rune {
 	if mbstowcs != nil {
 		// One more than the characters to convert, so that a string of exactly
 		// n characters is still terminated.
@@ -558,17 +556,17 @@ func decodeMultiByte(s uintptr, n int) []rune {
 	}
 	// The locale does not decode the string, or libc offers no way to. Read it
 	// as UTF-8, which is what it is in any locale in ordinary use.
-	return []rune(goString(s))
+	return []rune(bytePtrToString(s))
 }
 
 // decodeXIMFeedback returns the feedback of an XIMText, which is nil when the
 // input method sends none.
 func decodeXIMFeedback(text *_XIMText) []_XIMFeedback {
 	n := int(text.Length)
-	if n <= 0 || text.Feedback == 0 {
+	if n <= 0 || text.Feedback == nil {
 		return nil
 	}
-	return unsafe.Slice((*_XIMFeedback)(unsafe.Pointer(text.Feedback)), n)
+	return unsafe.Slice(text.Feedback, n)
 }
 
 // replaceSlice replaces length elements of s at first with src.

@@ -125,13 +125,13 @@ func (g *Game) Update() error {
 		}
 
 		if g.collidesWithApple() {
-			g.apple.X = rand.IntN(xGridCountInScreen - 1)
-			g.apple.Y = rand.IntN(yGridCountInScreen - 1)
+			g.apple.X = rand.IntN(xGridCountInScreen)
+			g.apple.Y = rand.IntN(yGridCountInScreen)
 			g.snakeBody = append(g.snakeBody, Position{
 				X: g.snakeBody[len(g.snakeBody)-1].X,
 				Y: g.snakeBody[len(g.snakeBody)-1].Y,
 			})
-			if len(g.snakeBody) > 10 && len(g.snakeBody) < 20 {
+			if len(g.snakeBody) > 10 && len(g.snakeBody) <= 20 {
 				g.level = 2
 				g.moveTime = 3
 			} else if len(g.snakeBody) > 20 {

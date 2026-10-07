@@ -17,6 +17,7 @@ package vector
 import (
 	"fmt"
 	"image"
+	"math"
 	"runtime"
 	"slices"
 	"sync"
@@ -70,6 +71,14 @@ type DrawPathOptions struct {
 	// The default (zero) value is false.
 	AntiAlias bool
 
+	// Clip restricts the drawing to the given region.
+	// The default (zero) value is nil, which imposes no restriction.
+	// Paths, nodes, and slices may be modified after the drawing call returns.
+	// For a nil drawing path or one without sub-paths, [DrawPathOptions.Clip] is ignored.
+	// Otherwise, typed nil clip pointers, invalid [ClipSet.Operation] or [PathClip.FillRule]
+	// values, and cyclic clip definitions cause a panic.
+	Clip Clip
+
 	// ColorScale is the color scale to apply to the path.
 	// The default (zero) value is identity, which is (1, 1, 1, 1) (white).
 	ColorScale ebiten.ColorScale
@@ -95,7 +104,22 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 		fillOptions = &FillOptions{}
 	}
 
+	var hasEmptyClip bool
+	var clipState *clipPreparationState
+	if drawPathOptions.Clip != nil {
+		clipState = theClipPreparationStatesPool.Get().(*clipPreparationState)
+		defer clipState.release()
+		validateClip(drawPathOptions.Clip, clipState.visitStates)
+		hasEmptyClip = isEmptyClip(drawPathOptions.Clip, clipState.emptyClips)
+	}
+
 	bounds := dst.Bounds()
+	if hasEmptyClip {
+		switch fillOptions.FillRule {
+		case FillRuleNonZero, FillRuleEvenOdd:
+			return
+		}
+	}
 
 	// Get the original image if dst is a sub-image to integrate the callbacks.
 	dst = theImageBridge.OriginalImage(dst)
@@ -124,7 +148,11 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	s.antialias = drawPathOptions.AntiAlias
 	s.blend = drawPathOptions.Blend
 	s.fillRule = fillOptions.FillRule
-	s.addPath(path, bounds, drawPathOptions.ColorScale)
+	idx := s.addPath(path, bounds, drawPathOptions.ColorScale)
+	s.drawPathIndices = append(s.drawPathIndices, idx)
+	if drawPathOptions.Clip != nil {
+		s.addClip(idx, path, drawPathOptions.Clip, bounds, clipState.pathIndices, clipState.visitStates)
+	}
 
 	// Use an independent callback function to avoid unexpected captures.
 	theCallbackTokens[key] = theImageBridge.AddUsage(dst, fillPathCallback)
@@ -282,6 +310,10 @@ var (
 var theAtlas atlas
 
 type fillPathsState struct {
+	drawPathIndices         []int
+	drawPathIndexToClipPlan map[int]*clipPlan
+
+	// paths contains both drawing paths and clip paths.
 	paths  []*Path
 	colors []ebiten.ColorScale
 	bounds []image.Rectangle
@@ -299,6 +331,11 @@ type fillPathsState struct {
 }
 
 func (f *fillPathsState) reset() {
+	f.drawPathIndices = f.drawPathIndices[:0]
+	for _, plan := range f.drawPathIndexToClipPlan {
+		plan.release()
+	}
+	clear(f.drawPathIndexToClipPlan)
 	for _, p := range f.paths {
 		p.Reset()
 	}
@@ -307,26 +344,55 @@ func (f *fillPathsState) reset() {
 	f.colors = slices.Delete(f.colors, 0, len(f.colors))
 }
 
-func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.ColorScale) {
+const invalidPathIndex = -1
+
+// addPath adds a snapshot of path with its points snapped to the subpixel grid, and returns its index.
+// A nil path returns invalidPathIndex without adding a path.
+func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.ColorScale) int {
 	if path == nil {
-		return
+		return invalidPathIndex
 	}
 
-	f.paths = slices.Grow(f.paths, 1)[:len(f.paths)+1]
-	if f.paths[len(f.paths)-1] == nil {
-		f.paths[len(f.paths)-1] = &Path{}
+	idx := len(f.paths)
+	f.paths = slices.Grow(f.paths, 1)[:idx+1]
+	if f.paths[idx] == nil {
+		f.paths[idx] = &Path{}
 	}
-	dst := f.paths[len(f.paths)-1]
+	dst := f.paths[idx]
 	dst.addSubPaths(len(path.subPaths))
 	for i, subPath := range path.subPaths {
-		dst.subPaths[i].start = subPath.start
+		dst.subPaths[i].start = snapToSubpixel(subPath.start)
 		dst.subPaths[i].closed = subPath.closed
 		dst.subPaths[i].invalid = subPath.invalid
 		dst.subPaths[i].ops = slices.Grow(dst.subPaths[i].ops, len(subPath.ops))[:len(subPath.ops)]
-		copy(dst.subPaths[i].ops, subPath.ops)
+		for j, o := range subPath.ops {
+			dst.subPaths[i].ops[j] = op{
+				typ: o.typ,
+				p1:  snapToSubpixel(o.p1),
+				p2:  snapToSubpixel(o.p2),
+			}
+		}
 	}
 	f.bounds = append(f.bounds, bounds)
 	f.colors = append(f.colors, clr)
+	return idx
+}
+
+// snapToSubpixel rounds p to the nearest point on the subpixel grid.
+// Vertices on the grid are not moved by the float32 conversion, the stencil offsets, or the GPU's
+// coordinate transforms and snapping, so a path is rasterized identically wherever its stencil is placed (#3860).
+func snapToSubpixel(p point) point {
+	// subpixelResolution is the number of grid steps per pixel.
+	// Every rasterizer must represent the grid exactly. A vertex halfway between two points of a rasterizer's grid
+	// is rounded either way by tiny errors in the coordinate transforms, and the errors depend on the placement.
+	// OpenGL and Vulkan guarantee only 4 bits of subpixel precision, which SwiftShader uses.
+	// Grid coordinates are integers divided by a power of two, so float32's 24 bits of precision represent them exactly
+	// between -2^24/subpixelResolution and 2^24/subpixelResolution pixels.
+	const subpixelResolution = 16
+	return point{
+		x: math.RoundToEven(p.x*subpixelResolution) / subpixelResolution,
+		y: math.RoundToEven(p.y*subpixelResolution) / subpixelResolution,
+	}
 }
 
 // fillPaths renders the paths added by addPath with their colors onto dst.
@@ -345,6 +411,11 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 	}()
 
 	theAtlas.setPaths(dst.Bounds(), f.paths, f.bounds, f.antialias)
+	var hasClip bool
+	for i, plan := range f.drawPathIndexToClipPlan {
+		plan.discardMissingStencils(f.antialias)
+		hasClip = hasClip || plan.kind != clipBatchKindEmpty && theAtlas.stencilBufferImageAt(i, f.antialias, 0) != nil
+	}
 
 	offsetAndColors := offsetAndColorsNonAA
 	if f.antialias {
@@ -366,9 +437,11 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				continue
 			}
 			pp := theAtlas.pathRenderingPositionAt(i)
-			dstOffsetX := float32(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
-			dstOffsetY := float32(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
+			dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
+			dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
 
+			offsetX := float64(oac.offsetX) + dstOffsetX
+			offsetY := float64(oac.offsetY) + dstOffsetY
 			for i := range path.subPaths {
 				subPath := &path.subPaths[i]
 				if !subPath.isValid() {
@@ -382,8 +455,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				originIdx := uint32(len(vs))
 				cur := subPath.start
 				vs = append(vs, ebiten.Vertex{
-					DstX:   cur.x + oac.offsetX + dstOffsetX,
-					DstY:   cur.y + oac.offsetY + dstOffsetY,
+					DstX:   float32(cur.x + offsetX),
+					DstY:   float32(cur.y + offsetY),
 					ColorR: oac.colorR,
 					ColorG: oac.colorG,
 					ColorB: oac.colorB,
@@ -396,16 +469,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 						idx := uint32(len(vs))
 						vs = append(vs,
 							ebiten.Vertex{
-								DstX:   cur.x + oac.offsetX + dstOffsetX,
-								DstY:   cur.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(cur.x + offsetX),
+								DstY:   float32(cur.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
 								ColorA: oac.colorA,
 							},
 							ebiten.Vertex{
-								DstX:   op.p1.x + oac.offsetX + dstOffsetX,
-								DstY:   op.p1.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(op.p1.x + offsetX),
+								DstY:   float32(op.p1.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
@@ -417,16 +490,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 						idx := uint32(len(vs))
 						vs = append(vs,
 							ebiten.Vertex{
-								DstX:   cur.x + oac.offsetX + dstOffsetX,
-								DstY:   cur.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(cur.x + offsetX),
+								DstY:   float32(cur.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
 								ColorA: oac.colorA,
 							},
 							ebiten.Vertex{
-								DstX:   op.p2.x + oac.offsetX + dstOffsetX,
-								DstY:   op.p2.y + oac.offsetY + dstOffsetY,
+								DstX:   float32(op.p2.x + offsetX),
+								DstY:   float32(op.p2.y + offsetY),
 								ColorR: oac.colorR,
 								ColorG: oac.colorG,
 								ColorB: oac.colorB,
@@ -441,16 +514,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 					idx := uint32(len(vs))
 					vs = append(vs,
 						ebiten.Vertex{
-							DstX:   cur.x + oac.offsetX + dstOffsetX,
-							DstY:   cur.y + oac.offsetY + dstOffsetY,
+							DstX:   float32(cur.x + offsetX),
+							DstY:   float32(cur.y + offsetY),
 							ColorR: oac.colorR,
 							ColorG: oac.colorG,
 							ColorB: oac.colorB,
 							ColorA: oac.colorA,
 						},
 						ebiten.Vertex{
-							DstX:   subPath.start.x + oac.offsetX + dstOffsetX,
-							DstY:   subPath.start.y + oac.offsetY + dstOffsetY,
+							DstX:   float32(subPath.start.x + offsetX),
+							DstY:   float32(subPath.start.y + offsetY),
 							ColorR: oac.colorR,
 							ColorG: oac.colorG,
 							ColorB: oac.colorB,
@@ -484,8 +557,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				continue
 			}
 			pp := theAtlas.pathRenderingPositionAt(i)
-			dstOffsetX := float32(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
-			dstOffsetY := float32(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
+			dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X - max(0, dst.Bounds().Min.X-pp.X))
+			dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y - max(0, dst.Bounds().Min.Y-pp.Y))
+			offsetX := float64(oac.offsetX) + dstOffsetX
+			offsetY := float64(oac.offsetY) + dstOffsetY
 			for i := range path.subPaths {
 				subPath := &path.subPaths[i]
 				if !subPath.isValid() {
@@ -501,8 +576,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 						idx := uint32(len(vs))
 						vs = append(vs,
 							ebiten.Vertex{
-								DstX:    cur.x + oac.offsetX + dstOffsetX,
-								DstY:    cur.y + oac.offsetY + dstOffsetY,
+								DstX:    float32(cur.x + offsetX),
+								DstY:    float32(cur.y + offsetY),
 								ColorR:  oac.colorR,
 								ColorG:  oac.colorG,
 								ColorB:  oac.colorB,
@@ -511,8 +586,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 								Custom1: 0, // v for Loop-Blinn algorithm
 							},
 							ebiten.Vertex{
-								DstX:    op.p1.x + oac.offsetX + dstOffsetX,
-								DstY:    op.p1.y + oac.offsetY + dstOffsetY,
+								DstX:    float32(op.p1.x + offsetX),
+								DstY:    float32(op.p1.y + offsetY),
 								ColorR:  oac.colorR,
 								ColorG:  oac.colorG,
 								ColorB:  oac.colorB,
@@ -521,8 +596,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 								Custom1: 0,
 							},
 							ebiten.Vertex{
-								DstX:    op.p2.x + oac.offsetX + dstOffsetX,
-								DstY:    op.p2.y + oac.offsetY + dstOffsetY,
+								DstX:    float32(op.p2.x + offsetX),
+								DstY:    float32(op.p2.y + offsetY),
 								ColorR:  oac.colorR,
 								ColorG:  oac.colorG,
 								ColorB:  oac.colorB,
@@ -545,8 +620,20 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		}
 	}
 
+	var clippedImages []*ebiten.Image
+	var maskUnclipped bool
+	if hasClip {
+		clippedImages = make([]*ebiten.Image, len(f.drawPathIndices))
+		maskUnclipped = f.canMaskUnclippedPaths()
+	}
+
 	// Render the stencil buffer with the specified color.
-	for i, path := range f.paths {
+	var clipChunkEnd int
+	for j, i := range f.drawPathIndices {
+		if len(clippedImages) > 0 && j == clipChunkEnd {
+			clipChunkEnd = f.prepareClipImages(clippedImages, j, maskUnclipped)
+		}
+		path := f.paths[i]
 		if path == nil {
 			continue
 		}
@@ -555,10 +642,30 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		if stencilImage == nil {
 			continue
 		}
+		if plan := f.drawPathIndexToClipPlan[i]; plan != nil && plan.kind == clipBatchKindEmpty {
+			switch f.fillRule {
+			case FillRuleNonZero, FillRuleEvenOdd:
+				continue
+			default:
+				panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
+			}
+		}
+		var clipped *ebiten.Image
+		if len(clippedImages) > 0 {
+			clipped = clippedImages[j]
+			if clipped != nil {
+				stencilImage = clipped
+			}
+		}
 		srcRegion := stencilImage.Bounds()
+		if clipped != nil && f.antialias {
+			srcRegion.Max.X = srcRegion.Min.X + srcRegion.Dx()/clipSamplePlanesAA
+		}
 
 		var offsetX, offsetY float32
-		if f.antialias {
+		if clipped != nil && f.antialias {
+			offsetX = float32(srcRegion.Dx())
+		} else if f.antialias {
 			stencilImage1 := theAtlas.stencilBufferImageAt(i, f.antialias, 1)
 			offsetX = float32(stencilImage1.Bounds().Min.X - stencilImage.Bounds().Min.X)
 			offsetY = float32(stencilImage1.Bounds().Min.Y - stencilImage.Bounds().Min.Y)
@@ -646,6 +753,9 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		default:
 			panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
 		}
+		if clipped != nil {
+			shader = ensureClipResolveShader(f.antialias)
+		}
 		dst2 := dst
 		var recycle bool
 		if dst.Bounds() != f.bounds[i] {
@@ -655,6 +765,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		dst2.DrawTrianglesShader32(vs, is, shader, op)
 		if recycle {
 			dst2.Recycle()
+		}
+		if clipped != nil {
+			theClipImages.put(clipped, f.drawPathIndexToClipPlan[i] == nil || f.drawPathIndexToClipPlan[i].kind != clipBatchKindNone)
+			clippedImages[j] = nil
 		}
 	}
 }

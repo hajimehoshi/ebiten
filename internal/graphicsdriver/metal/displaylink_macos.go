@@ -178,6 +178,7 @@ func (v *view) updateMetalDisplayLink() {
 		}
 		dl := ca.MetalDisplayLink{ID: objc.ID(v.metalDisplayLink)}
 		v.metalDisplayLink = 0
+		v.metalDisplayLinkPaused = false
 
 		// If a drawable from the display link is still in use, the delegate callback that delivered it is
 		// blocked until the drawable usage finishes. Unblock the callback. The drawable remains usable and
@@ -238,6 +239,28 @@ func (v *view) updateMetalDisplayLink() {
 	defer b.Release()
 	v.metalDisplayLinkRunLoop.PerformBlock(b)
 	v.metalDisplayLink = <-ch
+}
+
+// setMetalDisplayLinkPaused pauses or resumes the display link's delegate callbacks.
+func (v *view) setMetalDisplayLinkPaused(paused bool) {
+	if v.metalDisplayLink == 0 || v.metalDisplayLinkPaused == paused {
+		return
+	}
+
+	// A delegate callback blocks the run loop only while the drawable it delivered is in use, and this
+	// function is not called then (see nextDrawable and endFrame). The run loop can execute the block.
+	dl := ca.MetalDisplayLink{ID: objc.ID(v.metalDisplayLink)}
+	done := v.completionChannelPool.Get().(chan struct{})
+	defer v.completionChannelPool.Put(done)
+	b := objc.NewBlock(func(block objc.Block) {
+		dl.SetPaused(paused)
+		done <- struct{}{}
+	})
+	defer b.Release()
+	v.metalDisplayLinkRunLoop.PerformBlock(b)
+	<-done
+
+	v.metalDisplayLinkPaused = paused
 }
 
 func createThreadWithRunLoop() cocoa.NSRunLoop {
@@ -353,10 +376,14 @@ func (v *view) updatePresentationState() {
 }
 
 func (v *view) nextDrawable() ca.MetalDrawable {
+	v.drawableRequested = true
+
 	v.applyDrawableSizeIfNeeded()
 	v.updateMetalDisplayLink()
 
 	if v.metalDisplayLink != 0 {
+		v.setMetalDisplayLinkPaused(false)
+
 		const wait = 100 * time.Millisecond
 		if v.drawableTimer == nil {
 			v.drawableTimer = time.NewTimer(wait)
@@ -412,4 +439,18 @@ func (v *view) finishDrawableUsage() {
 	}
 	v.drawableFromDisplayLink = false
 	v.drawableDoneCh <- struct{}{}
+}
+
+// endFrame must be called at the end of every frame.
+func (v *view) endFrame() {
+	drawableRequested := v.drawableRequested
+	v.drawableRequested = false
+
+	// Pause the display link while no drawable is requested, as its callbacks would only drop drawables.
+	// nextDrawable resumes it. While a drawable from the display link is in use, its callback blocks the
+	// run loop, so no callbacks are invoked and pausing would deadlock.
+	if drawableRequested || v.drawableFromDisplayLink {
+		return
+	}
+	v.setMetalDisplayLinkPaused(true)
 }
