@@ -94,7 +94,8 @@ type defaultContext struct {
 	// pinner pins the data of BufferSubData.
 	pinner runtime.Pinner
 
-	// uniformBuf holds a copy of the value of a Uniform*v call. uniformPinner keeps it pinned.
+	// uniformBuf holds a copy of the value of a Uniform*v call. uniformPinner keeps it pinned, so
+	// defaultContext must never be garbage-collected.
 	uniformBuf    []uint32
 	uniformPinner runtime.Pinner
 
