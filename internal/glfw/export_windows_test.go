@@ -23,3 +23,5 @@ const WheelPageScroll = _WHEEL_PAGESCROLL
 func WheelScrollAmount(notches float64, setting uint32) (float64, ScrollUnit) {
 	return wheelScrollAmount(notches, setting)
 }
+
+var SetFocusForTesting = _SetFocus
