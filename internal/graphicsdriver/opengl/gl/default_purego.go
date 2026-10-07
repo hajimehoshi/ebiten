@@ -123,8 +123,8 @@ func (c *defaultContext) call(fn uintptr, args ...uintptr) (r1, r2, err uintptr)
 	return purego.SyscallN(fn, c.args[:n]...)
 }
 
-// uniformBuffer returns the address of c.uniformBuf with room for n values. c.uniformBuf stays
-// pinned, so that a Uniform*v call does not pin its value on every call.
+// uniformBuffer returns the address of a pinned buffer with room for n values. The address is
+// valid until the next call.
 func (c *defaultContext) uniformBuffer(n int) unsafe.Pointer {
 	if len(c.uniformBuf) < n || c.uniformBuf == nil {
 		c.uniformPinner.Unpin()
