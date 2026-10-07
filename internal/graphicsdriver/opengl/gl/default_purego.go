@@ -87,7 +87,8 @@ type defaultContext struct {
 	gpVertexAttribPointer     uintptr
 	gpViewport                uintptr
 
-	// args holds the arguments of call.
+	// args holds the arguments of call. args, pinner, and uniformBuf are shared by every call, so
+	// defaultContext must not be used concurrently.
 	args [15]uintptr
 
 	// pinner pins the data of BufferSubData.
