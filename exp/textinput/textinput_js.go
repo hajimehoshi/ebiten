@@ -148,7 +148,8 @@ func (t *textInputImpl) init() {
 			e.Call("preventDefault")
 		}
 		isEnter := e.Get("code").String() == "Enter" || e.Get("key").String() == "Enter"
-		if isVirtualKeyboard() && isEnter {
+		composing := t.composing || e.Get("isComposing").Truthy()
+		if isVirtualKeyboard() && isEnter && !composing {
 			// On a virtual keyboard, Return commits the text and is forwarded as
 			// a KeyEnter press the game acts on (e.g. a newline). preventDefault
 			// suppresses the textarea's own literal newline.
@@ -169,7 +170,7 @@ func (t *textInputImpl) init() {
 				return nil
 			}
 		}
-		if !e.Get("isComposing").Bool() {
+		if !composing {
 			if isEnter {
 				// preventDefault suppresses the textarea's own literal newline; the
 				// game acts on the forwarded KeyEnter press instead.
