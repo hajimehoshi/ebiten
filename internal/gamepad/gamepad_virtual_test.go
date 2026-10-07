@@ -315,3 +315,18 @@ func TestVirtualGamepadNegativeID(t *testing.T) {
 		t.Errorf("gamepad IDs = %v; want %v (a negative ID is ignored)", got, want)
 	}
 }
+
+func TestVirtualGamepadVibrationAvailable(t *testing.T) {
+	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{
+		{ID: 0, SDLID: "id0", Name: "Pad 0"},
+	})
+	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
+
+	g0 := gamepad.Get(0)
+	if g0 == nil {
+		t.Fatal("Get(0) = nil; want a gamepad")
+	}
+	if !g0.IsVibrationAvailable() {
+		t.Error("IsVibrationAvailable() = false; want true for a virtual gamepad")
+	}
+}

@@ -88,3 +88,7 @@ func (*nativeGamepadImpl) hatState(hat int) int {
 
 func (g *nativeGamepadImpl) vibrate(duration time.Duration, strongMagnitude float64, weakMagnitude float64) {
 }
+
+func (g *nativeGamepadImpl) isVibrationAvailable() bool {
+	return false
+}
