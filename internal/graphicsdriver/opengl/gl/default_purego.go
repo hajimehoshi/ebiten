@@ -115,11 +115,9 @@ func boolToInt(b bool) int {
 	return 0
 }
 
-// call calls purego.SyscallN with arguments that hold no Go pointers. purego.SyscallN allocates
-// its variadic arguments on the heap, so call passes them in c.args instead. Pass a Go pointer
-// to purego.SyscallN directly, or pin its object with c.pinner around call, so that the object
-// stays alive and in place.
+// call calls fn with args. args must not hold Go pointers unless their objects are pinned.
 func (c *defaultContext) call(fn uintptr, args ...uintptr) (r1, r2, err uintptr) {
+	// An existing slice keeps purego.SyscallN from allocating its variadic arguments.
 	n := len(args)
 	copy(c.args[:n], args)
 	return purego.SyscallN(fn, c.args[:n]...)
