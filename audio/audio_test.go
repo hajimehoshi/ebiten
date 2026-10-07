@@ -178,6 +178,7 @@ func TestDeferredDeviceCreation(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer runtime.KeepAlive(p)
 
 		// Touching a player before the first update must not create the audio device.
 		p.SetVolume(0.5)
@@ -512,6 +513,7 @@ func TestPauseAndStopReadingWhilePaused(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer runtime.KeepAlive(p)
 
 		p.Play()
 
@@ -545,6 +547,7 @@ func TestPauseAndStopReadingBeforeInit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	defer runtime.KeepAlive(p)
 
 	// PauseAndStopReading before the device is created cancels the pending play.
 	p.Play()
@@ -821,6 +824,7 @@ func TestPlayerErrorDoesNotStopOtherPlayers(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		defer runtime.KeepAlive(failing)
 		// 44100 [Hz] * 8 [bytes/sample] is one second of 32bit float stereo audio.
 		healthy, err := context.NewPlayerF32(audio.NewInfiniteLoopF32(bytes.NewReader(make([]byte, 44100*8)), 44100*8))
 		if err != nil {
@@ -910,6 +914,7 @@ func TestPlayOnIdleContext(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			defer runtime.KeepAlive(p)
 			p.Play()
 
 			if !waitUntil(func() bool { return p.Position() > 0 }) {
