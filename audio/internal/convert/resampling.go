@@ -185,7 +185,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		} else if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != nextPos {
 			seeker, ok := r.source.(io.Seeker)
 			if !ok {
-				return 0, 0, fmt.Errorf("convert: source must be io.Seeker")
+				return 0, 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
 			}
 			if _, err := seeker.Seek(blockStart, io.SeekStart); err != nil {
 				return 0, 0, err
@@ -328,6 +328,7 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 	return lv, rv, nil
 }
 
+// Read reads resampled audio and returns an error wrapping [errors.ErrUnsupported] if it requires seeking a non-seekable source.
 func (r *Resampling) Read(b []byte) (int, error) {
 	if r.eof || (r.srcLength() >= 0 && r.pos >= r.Length()) {
 		return 0, io.EOF
@@ -422,6 +423,8 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	return n, nil
 }
 
+// Seek sets the stream position and returns an error wrapping [errors.ErrUnsupported] if the source is not an [io.Seeker]
+// or whence is [io.SeekEnd] and the length is unknown.
 func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
 	if _, ok := r.source.(io.Seeker); !ok {
 		return 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)

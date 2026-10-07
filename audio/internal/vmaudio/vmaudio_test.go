@@ -533,3 +533,14 @@ func TestBlockedReadDoesNotBlockContext(t *testing.T) {
 		}
 	}
 }
+
+func TestSeekNonSeeker(t *testing.T) {
+	c := newContext(t, 8)
+	p := c.NewPlayer(bytes.NewBuffer(nil))
+	defer runtime.KeepAlive(p)
+	for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+		if _, err := p.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
+			t.Errorf("Seek(0, %d): got %v, want errors.ErrUnsupported", whence, err)
+		}
+	}
+}

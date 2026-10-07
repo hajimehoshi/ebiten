@@ -320,12 +320,13 @@ func (p *Player) Close() error {
 // Seek seeks the source, which must be an io.Seeker, and discards the bytes buffered from the old
 // position. A player at the end of its source can be played again after Seek, while a player whose source
 // failed stays finished.
+// Seek returns an error wrapping [errors.ErrUnsupported] when the source is not an [io.Seeker].
 func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	s, ok := p.src.(io.Seeker)
 	if !ok {
-		return 0, fmt.Errorf("vmaudio: the source must be an io.Seeker")
+		return 0, fmt.Errorf("vmaudio: the source must be an io.Seeker: %w", errors.ErrUnsupported)
 	}
 	n, err := s.Seek(offset, whence)
 	if err != nil {
