@@ -128,14 +128,16 @@ type userInterfaceImpl struct {
 }
 
 func (u *UserInterface) SetForeground(foreground bool) error {
-	u.mu.Lock()
-	u.foreground.Store(foreground)
-	if !foreground {
-		u.inputState.releaseAllButtons(u.inputState.nextInputTime())
-		u.touches = u.touches[:0]
-		u.touchIDs.nextTouches()
-	}
-	u.mu.Unlock()
+	func() {
+		u.mu.Lock()
+		defer u.mu.Unlock()
+		u.foreground.Store(foreground)
+		if !foreground {
+			u.inputState.releaseAllButtons(u.inputState.nextInputTime())
+			u.touches = u.touches[:0]
+			u.touchIDs.nextTouches()
+		}
+	}()
 	clock.SetDurationSuspended(!foreground)
 
 	if foreground {
