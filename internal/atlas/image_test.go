@@ -17,6 +17,7 @@ package atlas_test
 import (
 	"image"
 	"image/color"
+	"math/bits"
 	"runtime"
 	"testing"
 	"time"
@@ -963,6 +964,25 @@ func TestImageSizeSameAsBackendSize(t *testing.T) {
 				t.Errorf("at (%d, %d): got: %v, want: %v", x, y, got, want)
 			}
 		}
+	}
+}
+
+// Issue #3882
+func TestPageSizeOn32Bit(t *testing.T) {
+	if bits.UintSize != 32 {
+		t.Skip("the page size is limited only on 32-bit architectures")
+	}
+
+	atlas.SetImageSizeForTesting(minSourceImageSizeForTesting, minDestinationImageSizeForTesting, 2*atlas.MaxPageSizeOn32Bit)
+	defer atlas.ResetImageSizeForTesting()
+
+	const width = atlas.MaxPageSizeOn32Bit + 1
+	img := atlas.NewImage(width, 16, atlas.ImageTypeRegular)
+	defer img.Deallocate()
+	img.WritePixels(make([]byte, 4), image.Rect(0, 0, 1, 1))
+	p := img.PaddingSizeForTesting()
+	if w, h := img.BackendSizeForTesting(); w != width+p || h != 16+p {
+		t.Errorf("backend size: got: (%d, %d), want: (%d, %d)", w, h, width+p, 16+p)
 	}
 }
 

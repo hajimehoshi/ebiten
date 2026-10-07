@@ -37,6 +37,22 @@ var (
 	maxSize            = 0
 )
 
+// maxPageSizeOn32Bit is the maximum width and height of an atlas page on 32-bit architectures.
+//
+// Textures can be in the process's address space, e.g. with a software rasterizer. Extending a page allocates
+// a larger texture while the current one is alive: extending an 8192x4096 page to 8192x8192 needs a contiguous
+// 256 MiB block in addition to the current 128 MiB. A 32-bit address space fragmented by other allocations often
+// has no free block that large, while a 4096x4096 page needs only 64 MiB (#3882).
+const maxPageSizeOn32Bit = 4096
+
+// maxPageSize returns the maximum width and height of an atlas page.
+func maxPageSize() int {
+	if bits.UintSize == 32 {
+		return min(maxSize, maxPageSizeOn32Bit)
+	}
+	return maxSize
+}
+
 func appendDeferred(f func()) {
 	deferredM.Lock()
 	defer deferredM.Unlock()
@@ -707,7 +723,8 @@ func (i *Image) canBePutOnAtlas() bool {
 	if i.imageType != ImageTypeRegular {
 		return false
 	}
-	return i.width <= maxSize && i.height <= maxSize
+	s := maxPageSize()
+	return i.width <= s && i.height <= s
 }
 
 func (i *imageImpl) cleanup() {
@@ -785,21 +802,22 @@ loop:
 	} else {
 		width, height = minDestinationSize, minDestinationSize
 	}
+	maxPage := maxPageSize()
 	for i.width > width {
-		if width == maxSize {
+		if width == maxPage {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 		width *= 2
 	}
 	for i.height > height {
-		if height == maxSize {
+		if height == maxPage {
 			panic(fmt.Sprintf("atlas: the image being put on an atlas is too big: width: %d, height: %d", i.width, i.height))
 		}
 		height *= 2
 	}
 
 	// Only a regular image can be put on an atlas, so every image on this page has the same padding.
-	page := packing.NewPage(width, height, maxSize, i.paddingSize())
+	page := packing.NewPage(width, height, maxPage, i.paddingSize())
 	b := &backend{
 		width:        width,
 		height:       height,
