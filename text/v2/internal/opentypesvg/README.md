@@ -12,8 +12,10 @@ effective properties are determined. Instance inheritance and CSS selector
 ancestry need interpreter-level tests. Embedded image decoding must check
 `image.DecodeConfig` dimensions against a pixel budget before `Decode`.
 go-text decompresses gzip-encoded SVG documents without a size limit before
-`Parse` sees them, so the decoded byte limit does not protect against a
+`parse` sees them, so the decoded byte limit does not protect against a
 compression bomb; integration must bound decompression or avoid that path.
+The document model and its operations are private to this package. External
+package tests access them through aliases and wrappers in `export_test.go`.
 Implementation constraints are documented in `document.go`.
 
 Run the CPU-only tests without a display or graphics harness:
@@ -50,7 +52,7 @@ Use the [oksvg tests](../oksvg/oksvg_test.go) and
 The first retained element in document order wins for each duplicate ID.
 Malformed XML is rejected, and an unresolved structural reference fails that
 glyph's selection. A document without the requested `glyphN` returns
-`ErrGlyphNotFound`. Integration may render the whole document using `Root()`
+`errGlyphNotFound`. Integration may render the whole document using `rootElement()`
 only when no `glyphN` element exists anywhere in the document and the root
 carries no glyph ID. When other `glyphN` elements exist, the missing glyph has
 no SVG artwork, and text rendering falls back to its outline glyph, as the

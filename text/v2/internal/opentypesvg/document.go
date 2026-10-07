@@ -51,20 +51,20 @@ const (
 )
 
 var (
-	ErrXML            = errors.New("opentypesvg: invalid XML")
-	ErrNamespace      = errors.New("opentypesvg: invalid namespace")
-	ErrLimit          = errors.New("opentypesvg: document limit exceeded")
-	ErrGlyphNotFound  = errors.New("opentypesvg: glyph not found")
-	ErrReference      = errors.New("opentypesvg: invalid or unresolved local reference")
-	ErrReferenceCycle = errors.New("opentypesvg: reference cycle")
+	errXML            = errors.New("opentypesvg: invalid XML")
+	errNamespace      = errors.New("opentypesvg: invalid namespace")
+	errLimit          = errors.New("opentypesvg: document limit exceeded")
+	errGlyphNotFound  = errors.New("opentypesvg: glyph not found")
+	errReference      = errors.New("opentypesvg: invalid or unresolved local reference")
+	errReferenceCycle = errors.New("opentypesvg: reference cycle")
 )
 
-// Element is an immutable SVG element in its source document.
-type Element struct {
+// element is an immutable SVG element in its source document.
+type element struct {
 	name       xml.Name
 	attributes []xml.Attr
-	parent     *Element
-	children   []*Element
+	parent     *element
+	children   []*element
 
 	// Only style text is retained, concatenating direct character data
 	// in source order. Mixed text/element ordering is not represented,
@@ -73,13 +73,13 @@ type Element struct {
 	text string
 }
 
-// Name returns the expanded XML name.
-func (e *Element) Name() xml.Name {
+// xmlName returns the expanded XML name.
+func (e *element) xmlName() xml.Name {
 	return e.name
 }
 
-// Attribute returns the value of an expanded XML attribute name.
-func (e *Element) Attribute(space, local string) (string, bool) {
+// attribute returns the value of an expanded XML attribute name.
+func (e *element) attribute(space, local string) (string, bool) {
 	idx := slices.IndexFunc(e.attributes, func(a xml.Attr) bool {
 		return a.Name.Space == space && a.Name.Local == local
 	})
@@ -89,78 +89,78 @@ func (e *Element) Attribute(space, local string) (string, bool) {
 	return e.attributes[idx].Value, true
 }
 
-// AttributeCount returns the number of attributes.
-func (e *Element) AttributeCount() int {
+// attributeCount returns the number of attributes.
+func (e *element) attributeCount() int {
 	return len(e.attributes)
 }
 
-// AttributeAt returns an attribute by source order.
-func (e *Element) AttributeAt(index int) xml.Attr {
+// attributeAt returns an attribute by source order.
+func (e *element) attributeAt(index int) xml.Attr {
 	return e.attributes[index]
 }
 
-// SourceParent returns the parent in the source document.
-func (e *Element) SourceParent() *Element {
+// sourceParent returns the parent in the source document.
+func (e *element) sourceParent() *element {
 	return e.parent
 }
 
-// ChildCount returns the number of retained child elements.
-func (e *Element) ChildCount() int {
+// childCount returns the number of retained child elements.
+func (e *element) childCount() int {
 	return len(e.children)
 }
 
-// Child returns a child by source order.
-func (e *Element) Child(index int) *Element {
+// child returns a child by source order.
+func (e *element) child(index int) *element {
 	return e.children[index]
 }
 
-// Text returns character data for a style element, or an empty string otherwise.
-func (e *Element) Text() string {
+// styleText returns character data for a style element, or an empty string otherwise.
+func (e *element) styleText() string {
 	return e.text
 }
 
-// Document is an immutable, uncompressed SVG document.
-type Document struct {
-	root   *Element
-	ids    map[string]*Element
-	styles []*Element
+// document is an immutable, uncompressed SVG document.
+type document struct {
+	root   *element
+	ids    map[string]*element
+	styles []*element
 }
 
-// Root returns the source document's SVG root.
-func (d *Document) Root() *Element {
+// rootElement returns the source document's SVG root.
+func (d *document) rootElement() *element {
 	return d.root
 }
 
-// StylesheetCount returns the number of retained style elements.
-func (d *Document) StylesheetCount() int {
+// stylesheetCount returns the number of retained style elements.
+func (d *document) stylesheetCount() int {
 	return len(d.styles)
 }
 
-// Stylesheet returns a style element by document order.
-func (d *Document) Stylesheet(index int) *Element {
+// stylesheet returns a style element by document order.
+func (d *document) stylesheet(index int) *element {
 	return d.styles[index]
 }
 
-// Resolve resolves a local URI fragment to an element.
-func (d *Document) Resolve(reference string) (*Element, error) {
+// resolve resolves a local URI fragment to an element.
+func (d *document) resolve(reference string) (*element, error) {
 	reference = strings.Trim(reference, " \t\r\n\f")
 	if !strings.HasPrefix(reference, "#") {
-		return nil, ErrReference
+		return nil, errReference
 	}
 	id, err := url.PathUnescape(reference[1:])
 	if err != nil || id == "" {
-		return nil, ErrReference
+		return nil, errReference
 	}
 	if e := d.ids[id]; e != nil {
 		return e, nil
 	}
-	return nil, fmt.Errorf("%w: %q", ErrReference, id)
+	return nil, fmt.Errorf("%w: %q", errReference, id)
 }
 
-// SelectGlyph returns the requested source entry, or an error for missing glyphs or invalid template references.
-func (d *Document) SelectGlyph(gid uint16) (*Element, error) {
+// selectGlyph returns the requested source entry, or an error for missing glyphs or invalid template references.
+func (d *document) selectGlyph(gid uint16) (*element, error) {
 	// The interpreter must render the entry as a use instance with its own
-	// inheritance context. SourceParent is not an instance parent: original
+	// inheritance context. sourceParent is not an instance parent: original
 	// ancestor transforms, opacity and inherited properties do not apply.
 	// CSS selector ancestry during glyph extraction remains to be settled in
 	// the style interpreter. The source hierarchy is retained independently.
@@ -168,9 +168,9 @@ func (d *Document) SelectGlyph(gid uint16) (*Element, error) {
 	// https://www.w3.org/TR/SVG11/struct.html#UseElement
 	e := d.ids["glyph"+strconv.FormatUint(uint64(gid), 10)]
 	if e == nil {
-		return nil, ErrGlyphNotFound
+		return nil, errGlyphNotFound
 	}
-	if _, err := d.checkReferences(e, make(map[*Element]referenceCost), make(map[*Element]bool), 0); err != nil {
+	if _, err := d.checkReferences(e, make(map[*element]referenceCost), make(map[*element]bool), 0); err != nil {
 		return nil, err
 	}
 	return e, nil
@@ -181,16 +181,16 @@ type referenceCost struct {
 	depth    int
 }
 
-func (d *Document) checkReferences(e *Element, costs map[*Element]referenceCost, active map[*Element]bool, depth int) (referenceCost, error) {
+func (d *document) checkReferences(e *element, costs map[*element]referenceCost, active map[*element]bool, depth int) (referenceCost, error) {
 	if depth >= maxReferenceDepth {
-		return referenceCost{}, ErrLimit
+		return referenceCost{}, errLimit
 	}
 	if active[e] {
-		return referenceCost{}, ErrReferenceCycle
+		return referenceCost{}, errReferenceCycle
 	}
 	if cost, ok := costs[e]; ok {
 		if depth+cost.depth > maxReferenceDepth {
-			return referenceCost{}, ErrLimit
+			return referenceCost{}, errLimit
 		}
 		return cost, nil
 	}
@@ -202,13 +202,13 @@ func (d *Document) checkReferences(e *Element, costs map[*Element]referenceCost,
 	}
 	// Memoized subtree costs are added for every instance without cloning the
 	// subtree. The sum detects excessive expansion even in acyclic use graphs.
-	add := func(child *Element) error {
+	add := func(child *element) error {
 		childCost, err := d.checkReferences(child, costs, active, depth+1)
 		if err != nil {
 			return err
 		}
 		if childCost.elements > maxExpandedElements-cost.elements {
-			return ErrLimit
+			return errLimit
 		}
 		cost.elements += childCost.elements
 		cost.depth = max(cost.depth, childCost.depth+1)
@@ -224,16 +224,16 @@ func (d *Document) checkReferences(e *Element, costs map[*Element]referenceCost,
 		}
 	}
 	// Only template references contribute to conceptual expansion. Paint URLs
-	// are resolved by the later property interpreter using Resolve, which must
+	// are resolved by the later property interpreter using resolve, which must
 	// also bound any paint or CSS reference traversal it introduces.
 	switch e.name.Local {
 	case "use":
-		ref, ok := e.Attribute("", "href")
+		ref, ok := e.attribute("", "href")
 		if !ok {
-			ref, ok = e.Attribute(xlinkNamespace, "href")
+			ref, ok = e.attribute(xlinkNamespace, "href")
 		}
 		if ok {
-			target, err := d.Resolve(ref)
+			target, err := d.resolve(ref)
 			if err != nil {
 				return referenceCost{}, err
 			}
@@ -247,29 +247,29 @@ func (d *Document) checkReferences(e *Element, costs map[*Element]referenceCost,
 }
 
 type parseFrame struct {
-	element *Element
+	element *element
 	text    strings.Builder
 }
 
-// Parse parses a UTF-8 XML document already decoded by the font library.
+// parse parses a UTF-8 XML document already decoded by the font library.
 // The returned document does not retain source.
-func Parse(source []byte) (*Document, error) {
+func parse(source []byte) (*document, error) {
 	// go-text/typesetting decompresses gzip before returning GlyphSVG.Source.
 	// Its decompression allocation is unbounded; the byte limit here applies
 	// only after that boundary.
 	if len(source) > maxBytes {
-		return nil, ErrLimit
+		return nil, errLimit
 	}
 	if !utf8.Valid(source) {
-		return nil, ErrXML
+		return nil, errXML
 	}
 	source = bytes.TrimPrefix(source, []byte{0xef, 0xbb, 0xbf})
 	decoder := xml.NewDecoder(bytes.NewReader(source))
 	// Token manages namespace scopes. Undeclared prefixes remain in Name.Space
 	// and are treated as foreign. They cannot match the SVG or XLink namespace
 	// URIs, which contain colons, so they cannot introduce SVG elements or hrefs.
-	document := &Document{
-		ids: make(map[string]*Element),
+	document := &document{
+		ids: make(map[string]*element),
 	}
 	var stack []*parseFrame
 	var elements, attributes int
@@ -281,23 +281,23 @@ func Parse(source []byte) (*Document, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("%w: %v", ErrXML, err)
+			return nil, fmt.Errorf("%w: %v", errXML, err)
 		}
 		switch token := token.(type) {
 		case xml.StartElement:
 			elements++
 			attributes += len(token.Attr)
 			if len(stack) >= maxDepth || elements > maxElements || attributes > maxAttributes {
-				return nil, ErrLimit
+				return nil, errLimit
 			}
 			if closed {
-				return nil, ErrXML
+				return nil, errXML
 			}
 			var frame parseFrame
 			seen := make(map[xml.Name]bool, len(token.Attr))
 			for _, a := range token.Attr {
 				if seen[a.Name] {
-					return nil, ErrXML
+					return nil, errXML
 				}
 				seen[a.Name] = true
 			}
@@ -310,20 +310,20 @@ func Parse(source []byte) (*Document, error) {
 					prefix = ""
 				}
 				if strings.Contains(prefix, ":") || prefix == "xmlns" || a.Value == xmlnsNamespace || (prefix == "xml") != (a.Value == xmlNamespace) || (prefix != "" && a.Value == "") {
-					return nil, ErrNamespace
+					return nil, errNamespace
 				}
 			}
 			// Accept an empty namespace for compatibility with go-text's SVG root-attribute handling.
 			isSVG := token.Name.Space == "" || token.Name.Space == svgNamespace
 			if len(stack) == 0 && (!isSVG || token.Name.Local != "svg") {
-				return nil, ErrNamespace
+				return nil, errNamespace
 			}
-			var parent *Element
+			var parent *element
 			if len(stack) > 0 {
 				parent = stack[len(stack)-1].element
 			}
 			if (len(stack) == 0 || parent != nil) && isSVG && !ignoredElement(token.Name.Local) {
-				e := &Element{
+				e := &element{
 					name:       token.Name,
 					attributes: append([]xml.Attr(nil), token.Attr...),
 					parent:     parent,
@@ -334,7 +334,7 @@ func Parse(source []byte) (*Document, error) {
 				} else {
 					document.root = e
 				}
-				if id, ok := e.Attribute("", "id"); ok && id != "" && document.ids[id] == nil {
+				if id, ok := e.attribute("", "id"); ok && id != "" && document.ids[id] == nil {
 					document.ids[id] = e
 				}
 				if e.name.Local == "style" {
@@ -354,7 +354,7 @@ func Parse(source []byte) (*Document, error) {
 		case xml.CharData:
 			if len(stack) == 0 {
 				if len(bytes.TrimSpace(token)) != 0 {
-					return nil, ErrXML
+					return nil, errXML
 				}
 			} else if frame := stack[len(stack)-1]; frame.element != nil && frame.element.name.Local == "style" {
 				_, _ = frame.text.Write(token)
@@ -364,25 +364,25 @@ func Parse(source []byte) (*Document, error) {
 			// fetched, and internal subsets (including entity declarations) are
 			// outside the supported profile.
 			if document.root != nil || doctype {
-				return nil, ErrXML
+				return nil, errXML
 			}
 			declaration, ok := bytes.CutPrefix(token, []byte("DOCTYPE"))
 			if !ok || len(declaration) == 0 || !strings.ContainsRune(" \t\r\n", rune(declaration[0])) {
-				return nil, ErrXML
+				return nil, errXML
 			}
 			if len(bytes.TrimSpace(declaration)) == 0 || bytes.IndexByte(declaration, '[') >= 0 {
-				return nil, ErrXML
+				return nil, errXML
 			}
 			doctype = true
 		case xml.ProcInst:
 			if strings.EqualFold(token.Target, "xml") && (token.Target != "xml" || offset != 0) {
-				return nil, ErrXML
+				return nil, errXML
 			}
 			// Processing instructions are never executed or used to load stylesheets.
 		}
 	}
 	if document.root == nil || !closed {
-		return nil, ErrXML
+		return nil, errXML
 	}
 	return document, nil
 }
