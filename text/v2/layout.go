@@ -240,8 +240,14 @@ func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) fun
 		marginY = height + m.HLineGap
 	} else {
 		width := m.VAscent + m.VDescent
+		lineGap := m.VLineGap
+		if width == 0 {
+			// Fonts without vertical metrics still have visible sideways glyphs.
+			width = m.HAscent + m.HDescent
+			lineGap = m.HLineGap
+		}
 		marginY = advanceMarginFactor * width
-		marginX = width + m.VLineGap
+		marginX = width + lineGap
 	}
 	a := geoM.Element(0, 0)
 	d := geoM.Element(1, 1)
