@@ -91,7 +91,7 @@ type defaultContext struct {
 	// defaultContext must not be used concurrently.
 	args [15]uintptr
 
-	// pinner pins the data of BufferSubData.
+	// pinner pins the byte slices passed to call.
 	pinner runtime.Pinner
 
 	// uniformBuf holds a copy of the value of a Uniform*v call. uniformPinner keeps it pinned, so
@@ -363,8 +363,9 @@ func (c *defaultContext) PixelStorei(pname uint32, param int32) {
 }
 
 func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
-	purego.SyscallN(c.gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(&dst[0])))
-	runtime.KeepAlive(dst)
+	c.pinner.Pin(&dst[0])
+	defer c.pinner.Unpin()
+	c.call(c.gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(&dst[0])))
 }
 
 func (c *defaultContext) Scissor(x int32, y int32, width int32, height int32) {
@@ -381,9 +382,10 @@ func (c *defaultContext) TexImage2D(target uint32, level int32, internalformat i
 	var ptr *byte
 	if len(pixels) > 0 {
 		ptr = &pixels[0]
+		c.pinner.Pin(ptr)
+		defer c.pinner.Unpin()
 	}
-	purego.SyscallN(c.gpTexImage2D, uintptr(target), uintptr(level), uintptr(internalformat), uintptr(width), uintptr(height), 0, uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(ptr)))
-	runtime.KeepAlive(pixels)
+	c.call(c.gpTexImage2D, uintptr(target), uintptr(level), uintptr(internalformat), uintptr(width), uintptr(height), 0, uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(ptr)))
 }
 
 func (c *defaultContext) TexParameteri(target uint32, pname uint32, param int32) {
@@ -391,8 +393,9 @@ func (c *defaultContext) TexParameteri(target uint32, pname uint32, param int32)
 }
 
 func (c *defaultContext) TexSubImage2D(target uint32, level int32, xoffset int32, yoffset int32, width int32, height int32, format uint32, xtype uint32, pixels []byte) {
-	purego.SyscallN(c.gpTexSubImage2D, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(&pixels[0])))
-	runtime.KeepAlive(pixels)
+	c.pinner.Pin(&pixels[0])
+	defer c.pinner.Unpin()
+	c.call(c.gpTexSubImage2D, uintptr(target), uintptr(level), uintptr(xoffset), uintptr(yoffset), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(&pixels[0])))
 }
 
 func (c *defaultContext) Uniform1fv(location int32, value []float32) {
