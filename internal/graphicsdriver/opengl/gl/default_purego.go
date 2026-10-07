@@ -196,8 +196,8 @@ func (c *defaultContext) BufferInit(target uint32, size int, usage uint32) {
 
 func (c *defaultContext) BufferSubData(target uint32, offset int, data []byte) {
 	c.pinner.Pin(&data[0])
+	defer c.pinner.Unpin()
 	c.call(c.gpBufferSubData, uintptr(target), uintptr(offset), uintptr(len(data)), uintptr(unsafe.Pointer(&data[0])))
-	c.pinner.Unpin()
 }
 
 func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
