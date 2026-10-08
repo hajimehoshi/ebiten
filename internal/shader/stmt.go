@@ -543,7 +543,7 @@ func (cs *compileState) parseStmt(block *block, fname string, stmt ast.Stmt, inP
 				Type: shaderir.Continue,
 			})
 		default:
-			cs.addError(stmt.Pos(), fmt.Sprintf("invalid token: %s", stmt.Tok))
+			cs.addError(stmt.Pos(), fmt.Sprintf("%s is not supported", stmt.Tok))
 			return nil, false
 		}
 
