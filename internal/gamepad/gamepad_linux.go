@@ -997,6 +997,11 @@ func (g *nativeGamepadImpl) writeFFEvent(value int32) {
 }
 
 func newSDLID(id input_id, name string) string {
+	// SDL includes a name CRC and supports CRC-aware matching and version fallback.
+	// This implementation leaves the CRC bytes zero because gamepaddb matches complete
+	// GUIDs exactly, including the version. Adding CRCs requires coordinated lookup changes
+	// to preserve mappings without CRCs. As of October 2026, the bundled Linux database
+	// has only one CRC-bearing entry: PS5 Access Controller.
 	if id.vendor != 0 {
 		return fmt.Sprintf("%02x%02x0000%02x%02x0000%02x%02x0000%02x%02x0000",
 			byte(id.bustype), byte(id.bustype>>8),
