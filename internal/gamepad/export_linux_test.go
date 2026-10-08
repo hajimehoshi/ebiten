@@ -105,3 +105,7 @@ func (t *touchNode) HandleAbsEventForTest(code int, value int32) {
 func NewLinuxGamepadForTest(t *TouchNode) *Gamepad {
 	return &Gamepad{native: &nativeGamepadImpl{touch: t}}
 }
+
+func SDLIDForTesting(bus, vendor, product, version uint16, name string) string {
+	return newSDLID(input_id{bustype: bus, vendor: vendor, product: product, version: version}, name)
+}
