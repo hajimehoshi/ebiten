@@ -16,6 +16,7 @@ package glfw_test
 
 import (
 	"math"
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
@@ -31,4 +32,23 @@ func TestPackPoint64(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestSetFocusWithoutFocusedWindow(t *testing.T) {
+	// This thread has no windows. Clearing its focus returns a null previous
+	// window without reporting a Win32 error.
+	done := make(chan struct{})
+	go func() {
+		runtime.LockOSThread()
+		defer close(done)
+		// Leave the thread locked so it exits with the goroutine.
+		previous, err := glfw.SetFocusForTesting(0)
+		if err != nil {
+			t.Errorf("SetFocus(0): %v", err)
+		}
+		if previous != 0 {
+			t.Errorf("previous window = %v, want 0", previous)
+		}
+	}()
+	<-done
 }
