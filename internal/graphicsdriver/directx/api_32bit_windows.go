@@ -18,6 +18,13 @@ package directx
 
 import "structs"
 
+type _D3D12_PLACED_SUBRESOURCE_FOOTPRINT struct {
+	_         structs.HostLayout
+	Offset    uint64
+	Footprint _D3D12_SUBRESOURCE_FOOTPRINT
+	_         [4]byte // Padding
+}
+
 type _D3D12_RESOURCE_DESC struct {
 	_                structs.HostLayout
 	Dimension        _D3D12_RESOURCE_DIMENSION
