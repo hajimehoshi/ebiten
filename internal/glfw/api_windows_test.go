@@ -15,11 +15,24 @@
 package glfw_test
 
 import (
+	"math"
 	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
+
+func TestPackPoint64(t *testing.T) {
+	coordinates := []int32{math.MinInt32, -1920, -2, -1, 0, 1, 1080, math.MaxInt32}
+	for _, x := range coordinates {
+		for _, y := range coordinates {
+			got := glfw.PackPoint64(x, y)
+			if gotX, gotY := int32(got), int32(got>>32); gotX != x || gotY != y {
+				t.Errorf("PackPoint64(%d, %d) = (%d, %d)", x, y, gotX, gotY)
+			}
+		}
+	}
+}
 
 func TestSetFocusWithoutFocusedWindow(t *testing.T) {
 	// This thread has no windows. Clearing its focus returns a null previous
