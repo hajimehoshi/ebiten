@@ -18,6 +18,12 @@ package directx
 
 import "structs"
 
+type _D3D12_PLACED_SUBRESOURCE_FOOTPRINT struct {
+	_         structs.HostLayout
+	Offset    uint64
+	Footprint _D3D12_SUBRESOURCE_FOOTPRINT
+}
+
 type _D3D12_RESOURCE_DESC struct {
 	_                structs.HostLayout
 	Dimension        _D3D12_RESOURCE_DIMENSION
@@ -37,10 +43,4 @@ type _D3D12_ROOT_PARAMETER struct {
 	ParameterType    _D3D12_ROOT_PARAMETER_TYPE
 	DescriptorTable  _D3D12_ROOT_DESCRIPTOR_TABLE // Union
 	ShaderVisibility _D3D12_SHADER_VISIBILITY
-}
-
-type _D3D12_PLACED_SUBRESOURCE_FOOTPRINT struct {
-	_         structs.HostLayout
-	Offset    uint64
-	Footprint _D3D12_SUBRESOURCE_FOOTPRINT
 }
