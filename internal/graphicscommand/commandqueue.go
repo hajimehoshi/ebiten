@@ -261,9 +261,6 @@ func (a commandQueueFlushArgs) flush() error {
 	defer a.logger.Flush()
 	applyVsyncEnabledIfNeeded(a.graphicsDriver)
 	if err := a.queue.flush(a.graphicsDriver, a.mode, a.logger); err != nil {
-		// A read-back that has not finished can never finish when the graphics driver is broken,
-		// so complete the pending read-backs with the error instead of leaving their callers
-		// waiting forever.
 		a.manager.abortReadPixels(err)
 		if a.sync {
 			return err
@@ -299,9 +296,6 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 	}
 
 	defer func() {
-		// A command that has not run never publishes its result, so complete the read-backs of the
-		// commands left over by an error with the error. Otherwise the callers of ReadPixelsAsync
-		// would wait forever.
 		if err != nil {
 			q.abortReadPixels(err)
 		}

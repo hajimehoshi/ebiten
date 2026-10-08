@@ -200,8 +200,6 @@ func (u *UserInterface) readPixels(img *Image, pixels []byte, region image.Recta
 //
 // A read-back never fails to be enqueued, so this reports a failure to read the pixels only via the
 // returned channel.
-//
-// The pixels must not be read, modified, or reused until the returned channel receives a value.
 func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.Rectangle) <-chan error {
 	if !u.running.Load() {
 		panic("ui: ReadPixelsAsync cannot be called before the game starts")
@@ -214,10 +212,7 @@ func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.
 
 	// The read-back was not enqueued since this was called in between two frames.
 	// Try this again at the next frame.
-	//
-	// Waiting for a frame is not waiting for the GPU, so this does not contradict the asynchronicity
-	// of the read-back. Like readPixels, this can dead-lock when this is called from the same
-	// sequence as a game's Update and Draw.
+	// Like readPixels, this can deadlock when called from the same Update/Draw sequence.
 	u.context.runInFrame(func() {
 		ok, result = img.readPixelsAsync(pixels, region)
 		if !ok {

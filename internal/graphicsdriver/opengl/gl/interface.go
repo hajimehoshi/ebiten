@@ -76,6 +76,7 @@ type Context interface {
 	// ReadBufferData copies len(dst) bytes from the buffer bound to target, starting at offset,
 	// into dst.
 	ReadBufferData(target uint32, offset int, dst []byte) error
+	// ReadPixels with a nil dst reads into the bound GL_PIXEL_PACK_BUFFER at offset zero.
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)
 	Scissor(x, y, width, height int32)
 	ShaderSource(shader uint32, xstring string)

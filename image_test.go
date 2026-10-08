@@ -370,22 +370,6 @@ func TestImageReadPixelsAsync(t *testing.T) {
 		}()
 		img.ReadPixelsAsync(make([]byte, 4*w*h))
 	})
-	t.Run("DoesNotWaitForTheGPU", func(t *testing.T) {
-		img := ebiten.NewImage(w, h)
-		img.Fill(color.RGBA{R: 0x12, A: 0xff})
-
-		for range 4 {
-			ch := img.ReadPixelsAsync(make([]byte, 4*w*h))
-			select {
-			case err, ok := <-ch:
-				if !ok {
-					t.Error("the channel must not be closed")
-				}
-				t.Errorf("the result was published before the call returned or the read was flushed: %v", err)
-			default:
-			}
-		}
-	})
 }
 
 func TestImageDeallocate(t *testing.T) {

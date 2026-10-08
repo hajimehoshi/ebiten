@@ -27,7 +27,7 @@ import (
 
 // syncObject is an OpenGL sync object, created by FenceSync. The zero value means no sync object.
 //
-// A sync object is a pointer, so this is a uintptr rather than a uint32 like the other object names.
+// A sync object is a pointer.
 type syncObject uintptr
 
 // readback is a pixel read-back that has been recorded into the command stream and whose pixels are
@@ -101,13 +101,11 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 	return r, nil
 }
 
-// Poll reports whether the reads are complete. Poll must not block.
 func (r *readback) Poll() (bool, error) {
 	// A zero timeout makes this a pure query that never blocks the render thread.
 	return r.graphics.context.pollFence(r.fence)
 }
 
-// Copy copies the read pixels to args. Copy must be called only after Poll reported done.
 func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
 	if len(args) != len(r.pbos) {
 		return fmt.Errorf("opengl: len(args) must be %d but %d at Copy", len(r.pbos), len(args))
@@ -120,7 +118,6 @@ func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
 	return nil
 }
 
-// Discard releases the resources for the read-back without copying the pixels.
 func (r *readback) Discard() {
 	c := &r.graphics.context
 	if r.fence != 0 {
@@ -159,15 +156,10 @@ func (c *context) readPixelsToPixelPackBuffer(region image.Rectangle) {
 	y := int32(region.Min.Y)
 	width := int32(region.Dx())
 	height := int32(region.Dy())
-	// A nil destination means reading into the bound GL_PIXEL_PACK_BUFFER.
-	//
-	// Unlike a read into client memory, the rows are packed without padding. As the format is
-	// RGBA/UNSIGNED_BYTE, a row is always 4-byte aligned anyway, so the layout is the same and no
-	// row-stride fixup is necessary.
+	// RGBA8 rows are multiples of the default 4-byte GL_PACK_ALIGNMENT, so no row fix-up is needed.
 	c.ctx.ReadPixels(nil, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE)
 }
 
-// readPixelsFromPixelPackBuffer copies the pixels that region was read into b to buf.
 func (c *context) readPixelsFromPixelPackBuffer(b buffer, region image.Rectangle, buf []byte) error {
 	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
 		return fmt.Errorf("opengl: len(buf) must be %d but %d at readPixelsFromPixelPackBuffer", want, got)
@@ -192,7 +184,6 @@ func (c *context) deleteFence(s syncObject) {
 	c.ctx.DeleteSync(uintptr(s))
 }
 
-// pollFence reports whether the fence is signaled. pollFence must not block.
 func (c *context) pollFence(s syncObject) (bool, error) {
 	switch r := c.ctx.ClientWaitSync(uintptr(s), 0, 0); r {
 	case gl.ALREADY_SIGNALED, gl.CONDITION_SATISFIED:
@@ -200,8 +191,6 @@ func (c *context) pollFence(s syncObject) (bool, error) {
 	case gl.TIMEOUT_EXPIRED:
 		return false, nil
 	case gl.WAIT_FAILED:
-		// This happens when the context is lost. The pixels can never become available, so report
-		// the read-back as finished with an error instead of waiting forever.
 		return true, errors.New("opengl: waiting for a pixel read-back failed: the context might be lost")
 	default:
 		return true, fmt.Errorf("opengl: unexpected ClientWaitSync result: %d", r)

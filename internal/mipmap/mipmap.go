@@ -77,9 +77,6 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
-// ReadPixelsAsync reads the pixels in region asynchronously.
-//
-// The pixels must not be read, modified, or reused until the returned channel receives a value.
 func (m *Mipmap) ReadPixelsAsync(pixels []byte, region image.Rectangle) (ok bool, result <-chan error) {
 	return m.orig.ReadPixelsAsync(pixels, region)
 }

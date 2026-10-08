@@ -170,12 +170,6 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 	return nil
 }
 
-// ReadPixelsAsync reads the image's pixels asynchronously.
-//
-// ReadPixelsAsync returns a channel that receives exactly one value: nil when the read-back is
-// finished, or an error. The channel is not closed, so a caller must receive one value instead of
-// ranging over the channel.
-//
 // ReadPixelsAsync must not be called after the image is disposed.
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) <-chan error {
 	return theCommandQueueManager.readPixelsAsync(i, args)

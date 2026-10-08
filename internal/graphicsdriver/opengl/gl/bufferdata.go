@@ -43,12 +43,8 @@ func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) e
 	return nil
 }
 
-// pointerFromUintptr reinterprets a pointer value returned by a foreign function as an
-// unsafe.Pointer.
-//
-// A direct unsafe.Pointer(p) conversion of a uintptr is rejected by go vet as a possible misuse,
-// as the compiler cannot know that p does not hold a Go pointer. Taking the address of the local
-// copy first makes the reinterpretation explicit, which is also how purego handles this.
+// pointerFromUintptr reinterprets a foreign pointer through a local copy to avoid go vet's
+// uintptr-to-pointer conversion warning.
 func pointerFromUintptr(p uintptr) unsafe.Pointer {
 	return *(*unsafe.Pointer)(unsafe.Pointer(&p))
 }

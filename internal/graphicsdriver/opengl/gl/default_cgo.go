@@ -824,7 +824,6 @@ func (c *defaultContext) PixelStorei(pname uint32, param int32) {
 
 func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
 	if dst == nil {
-		// A nil destination means reading into the currently bound GL_PIXEL_PACK_BUFFER.
 		C.glowReadPixels(c.gpReadPixels, C.GLint(x), C.GLint(y), C.GLsizei(width), C.GLsizei(height), C.GLenum(format), C.GLenum(xtype), nil)
 		return
 	}

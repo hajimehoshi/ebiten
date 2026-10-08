@@ -27,33 +27,22 @@ import (
 // because the graphics driver is not usable anymore.
 var errReadPixelsAborted = errors.New("graphicscommand: the pixel read-back was aborted")
 
-// readPixelsRequest is a pixel read-back that has been enqueued into the command queue and is not
-// finished yet.
+// The readback and finished fields of readPixelsRequest are accessed only on the render thread.
 type readPixelsRequest struct {
-	// args is the destination of the read pixels. The slices are owned by the caller of
-	// ReadPixelsAsync and must not be touched until the result is published.
 	args []graphicsdriver.PixelsArgs
 
-	// result receives exactly one value: nil when the read-back is finished, or an error. The
-	// channel is buffered so that publishing the result never blocks, even when the caller ignores
-	// the channel.
+	// The channel is buffered so publication never blocks the render thread.
 	result chan error
 
 	// readback is the graphics driver's read-back. This is nil while the enqueued command has not
 	// been executed yet, or when the graphics driver doesn't support an asynchronous read-back and
 	// the pixels have been read synchronously instead.
-	//
-	// This is written and read only on the render thread.
 	readback graphicsdriver.PixelsReadback
 
-	// finished represents whether the result has been published. This is used to ensure that the
-	// result is published exactly once.
-	//
-	// This is written and read only on the render thread.
+	// finished prevents publishing a second result.
 	finished bool
 }
 
-// newReadPixelsRequest returns a new read-back request for the given arguments.
 func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
 	return &readPixelsRequest{
 		args:   args,
@@ -61,8 +50,6 @@ func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
 	}
 }
 
-// publish completes the read-back with the given result.
-//
 // publish must be called on the render thread, and must be called at most once.
 func (r *readPixelsRequest) publish(err error) {
 	if r.finished {
@@ -73,8 +60,6 @@ func (r *readPixelsRequest) publish(err error) {
 	r.result <- err
 }
 
-// discard releases the graphics driver's resources for the read-back.
-//
 // discard must be called on the render thread, and must be called at most once.
 func (r *readPixelsRequest) discard() {
 	if r.readback == nil {
@@ -84,8 +69,6 @@ func (r *readPixelsRequest) discard() {
 	r.readback = nil
 }
 
-// readPixelsAsyncCommand represents a command to read pixels without blocking the caller until the
-// GPU finishes.
 type readPixelsAsyncCommand struct {
 	// manager is the manager that owns this command. The read-back is tracked by this manager, as
 	// the manager polls the pending read-backs at a flush.
@@ -103,14 +86,8 @@ func (c *readPixelsAsyncCommand) String() string {
 	return fmt.Sprintf("read-pixels-async: image: %d, args: %s", c.img.id, strings.Join(args, ", "))
 }
 
-// Exec executes the readPixelsAsyncCommand.
-//
 // Exec records the read-back into the graphics driver's command stream at this position, so the
 // read pixels include the drawing commands preceding this command and exclude the following ones.
-//
-// A graphics driver that doesn't implement graphicsdriver.AsyncPixelsReader reads the pixels
-// synchronously here. The command still doesn't wait for the GPU on the calling thread's behalf,
-// so the caller of ReadPixelsAsync is not blocked.
 func (c *readPixelsAsyncCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	if c.img.image == nil {
 		// The image is not created yet, which happens when the newImageCommand failed.
@@ -137,10 +114,6 @@ func (c *readPixelsAsyncCommand) Exec(commandQueue *commandQueue, graphicsDriver
 	return nil
 }
 
-// NeedsSync reports whether the command must be executed synchronously.
-//
-// The command must not need a synchronous flush: that is the whole point of an asynchronous
-// read-back. The GPU work is tracked by the graphics driver's read-back instead.
 func (c *readPixelsAsyncCommand) NeedsSync() bool {
 	return false
 }
@@ -148,7 +121,7 @@ func (c *readPixelsAsyncCommand) NeedsSync() bool {
 // abort completes the read-back with err without reading the pixels.
 //
 // abort reports that this command has not run at all, which happens when an earlier command in the
-// same flush failed. Without this, the caller of ReadPixelsAsync would wait forever.
+// same flush failed.
 //
 // abort must be called on the render thread, and must be called at most once.
 func (c *readPixelsAsyncCommand) abort(err error) {
@@ -163,15 +136,11 @@ func (c *readPixelsAsyncCommand) abort(err error) {
 	c.req.publish(err)
 }
 
-// addReadPixelsRequest adds a read-back request to the pending read-backs.
-//
 // addReadPixelsRequest must be called on the render thread.
 func (c *commandQueueManager) addReadPixelsRequest(req *readPixelsRequest) {
 	c.pendingReadPixels = append(c.pendingReadPixels, req)
 }
 
-// pollReadPixels checks the pending read-backs and publishes the results of the finished ones.
-//
 // pollReadPixels must be called on the render thread at a flush, after the frame's commands have
 // been submitted to the graphics driver.
 func (c *commandQueueManager) pollReadPixels() {
@@ -216,9 +185,6 @@ func (c *commandQueueManager) abortReadPixels(err error) {
 	c.pendingReadPixels = nil
 }
 
-// readPixelsAsync enqueues a read-back for the image and returns the channel to receive the result.
-//
-// The read-back is enqueued in drawing order and this does not wait for the GPU.
 func (c *commandQueueManager) readPixelsAsync(img *Image, args []graphicsdriver.PixelsArgs) <-chan error {
 	img.flushBufferedWritePixels()
 	req := newReadPixelsRequest(args)

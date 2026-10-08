@@ -409,7 +409,6 @@ func (c *defaultContext) PixelStorei(pname uint32, param int32) {
 
 func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
 	if dst == nil {
-		// A nil destination means reading into the currently bound GL_PIXEL_PACK_BUFFER.
 		c.call(c.gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), 0)
 		return
 	}
