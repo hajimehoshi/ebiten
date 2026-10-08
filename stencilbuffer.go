@@ -133,7 +133,7 @@ func ensureStencilBufferImage(bounds image.Rectangle) *Image {
 	if stencilBufferImage == nil {
 		stencilBufferImage = NewImageWithOptions(bounds.Union(prevBounds), nil)
 	} else {
-		stencilBufferImage.Clear()
+		stencilBufferImage.SubImage(bounds).(*Image).Clear()
 	}
 	return stencilBufferImage
 }
@@ -148,7 +148,7 @@ func ensureOffscreenImage1(bounds image.Rectangle) *Image {
 	if offscreenImage1 == nil {
 		offscreenImage1 = NewImageWithOptions(bounds.Union(prevBounds), nil)
 	} else {
-		offscreenImage1.Clear()
+		offscreenImage1.SubImage(bounds).(*Image).Clear()
 	}
 	return offscreenImage1
 }
@@ -163,7 +163,7 @@ func ensureOffscreenImage2(bounds image.Rectangle) *Image {
 	if offscreenImage2 == nil {
 		offscreenImage2 = NewImageWithOptions(bounds.Union(prevBounds), nil)
 	} else {
-		offscreenImage2.Clear()
+		offscreenImage2.SubImage(bounds).(*Image).Clear()
 	}
 	return offscreenImage2
 }
