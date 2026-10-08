@@ -209,22 +209,7 @@ func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) (*Ga
 		name = unix.ByteSliceToString(cname)
 	}
 
-	var sdlID string
-	if id.vendor != 0 && id.product != 0 && id.version != 0 {
-		sdlID = fmt.Sprintf("%02x%02x0000%02x%02x0000%02x%02x0000%02x%02x0000",
-			byte(id.bustype), byte(id.bustype>>8),
-			byte(id.vendor), byte(id.vendor>>8),
-			byte(id.product), byte(id.product>>8),
-			byte(id.version), byte(id.version>>8))
-	} else {
-		bs := []byte(name)
-		if len(bs) < 12 {
-			bs = append(bs, make([]byte, 12-len(bs))...)
-		}
-		sdlID = fmt.Sprintf("%02x%02x0000%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
-			byte(id.bustype), byte(id.bustype>>8),
-			bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
-	}
+	sdlID := newSDLID(id, name)
 
 	supportsRumble := false
 	if writable && isBitSet(info.evBits, unix.EV_FF) {
@@ -1009,4 +994,22 @@ func (g *nativeGamepadImpl) writeFFEvent(value int32) {
 		value: value,
 	}
 	_, _ = unix.Write(g.fdPlus1-1, unsafe.Slice((*byte)(unsafe.Pointer(&e)), int(unsafe.Sizeof(e))))
+}
+
+func newSDLID(id input_id, name string) string {
+	if id.vendor != 0 && id.product != 0 {
+		return fmt.Sprintf("%02x%02x0000%02x%02x0000%02x%02x0000%02x%02x0000",
+			byte(id.bustype), byte(id.bustype>>8),
+			byte(id.vendor), byte(id.vendor>>8),
+			byte(id.product), byte(id.product>>8),
+			byte(id.version), byte(id.version>>8))
+	}
+
+	bs := []byte(name)
+	if len(bs) < 12 {
+		bs = append(bs, make([]byte, 12-len(bs))...)
+	}
+	return fmt.Sprintf("%02x%02x0000%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
+		byte(id.bustype), byte(id.bustype>>8),
+		bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
 }
