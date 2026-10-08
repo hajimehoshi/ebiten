@@ -54,12 +54,32 @@ func TestSDLID(t *testing.T) {
 			want:    "03000000506164000000000000000000",
 		},
 		{
-			name:    "ABCDEFGHIJKLM",
+			name:    "zero product",
 			bus:     3,
 			vendor:  0x2dc8,
 			product: 0,
 			version: 1,
-			want:    "030000004142434445464748494a4b4c",
+			want:    "03000000c82d00000000000001000000",
+		},
+		{
+			name: "",
+			bus:  3,
+			want: "03000000000000000000000000000000",
+		},
+		{
+			name: "ABCDEFGHIJK",
+			bus:  3,
+			want: "030000004142434445464748494a4b00",
+		},
+		{
+			name: "ABCDEFGHIJKL",
+			bus:  3,
+			want: "030000004142434445464748494a4b00",
+		},
+		{
+			name: "ABCDEFGHIJKLM",
+			bus:  3,
+			want: "030000004142434445464748494a4b00",
 		},
 	} {
 		got := gamepad.SDLIDForTesting(tc.bus, tc.vendor, tc.product, tc.version, tc.name)

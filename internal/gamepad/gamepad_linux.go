@@ -997,7 +997,7 @@ func (g *nativeGamepadImpl) writeFFEvent(value int32) {
 }
 
 func newSDLID(id input_id, name string) string {
-	if id.vendor != 0 && id.product != 0 {
+	if id.vendor != 0 {
 		return fmt.Sprintf("%02x%02x0000%02x%02x0000%02x%02x0000%02x%02x0000",
 			byte(id.bustype), byte(id.bustype>>8),
 			byte(id.vendor), byte(id.vendor>>8),
@@ -1005,10 +1005,9 @@ func newSDLID(id input_id, name string) string {
 			byte(id.version), byte(id.version>>8))
 	}
 
-	bs := []byte(name)
-	if len(bs) < 12 {
-		bs = append(bs, make([]byte, 12-len(bs))...)
-	}
+	// The name occupies 12 bytes including its terminating NUL.
+	var bs [12]byte
+	copy(bs[:11], name)
 	return fmt.Sprintf("%02x%02x0000%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x%02x",
 		byte(id.bustype), byte(id.bustype>>8),
 		bs[0], bs[1], bs[2], bs[3], bs[4], bs[5], bs[6], bs[7], bs[8], bs[9], bs[10], bs[11])
