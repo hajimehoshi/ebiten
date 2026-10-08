@@ -76,6 +76,8 @@ type context struct {
 
 	lastSwapBufferTime time.Time
 
+	readInputStateFunc func(*InputState)
+
 	// vsyncIgnored reports whether swapping buffers does not wait for the display even though vsync
 	// is enabled. The loop must then be paced explicitly.
 	vsyncIgnored bool
@@ -258,9 +260,10 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 // readInputStateForTick takes the input snapshot for the tick that is about to run.
 func (c *context) readInputStateForTick(ui *UserInterface) {
 	// Read the input state and use it for one tick to give a consistent result for one tick (#2496, #2501).
-	c.game.UpdateInputState(func(inputState *InputState) {
-		ui.readInputState(inputState)
-	})
+	if c.readInputStateFunc == nil {
+		c.readInputStateFunc = ui.readInputState
+	}
+	c.game.UpdateInputState(c.readInputStateFunc)
 }
 
 func (c *context) flushCommandsAndWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {
