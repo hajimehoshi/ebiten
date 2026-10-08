@@ -358,18 +358,8 @@ func (r *Resampling) Read(b []byte) (int, error) {
 				r.eof = true
 				break
 			}
-			if ldata < -1 {
-				ldata = -1
-			}
-			if ldata > 1 {
-				ldata = 1
-			}
-			if rdata < -1 {
-				rdata = -1
-			}
-			if rdata > 1 {
-				rdata = 1
-			}
+			ldata = min(max(ldata, -1), 1)
+			rdata = min(max(rdata, -1), 1)
 
 			l16 := int16(ldata * (1<<15 - 1))
 			r16 := int16(rdata * (1<<15 - 1))
