@@ -1800,6 +1800,13 @@ func (i *Image) invokeUsageCallbacks() {
 		return
 	}
 
+	i.usageCallbacksMu.Lock()
+	n := len(i.usageCallbacks)
+	i.usageCallbacksMu.Unlock()
+	if n == 0 {
+		return
+	}
+
 	// Do not allow recursive calls.
 	if !i.inUsageCallbacks.CompareAndSwap(false, true) {
 		return
