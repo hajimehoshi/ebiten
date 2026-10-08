@@ -788,9 +788,9 @@ type _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex struct {
 	_                structs.HostLayout
 	pResource        *_ID3D12Resource
 	Type             _D3D12_TEXTURE_COPY_TYPE
-	_                [unsafe.Sizeof(uintptr(0)) - unsafe.Sizeof(uint32(0))]byte // Align the native union.
+	_                [unsafe.Sizeof(uintptr(0)) - unsafe.Sizeof(uint32(0))]byte
 	SubresourceIndex uint32
-	_                [32 - unsafe.Sizeof(uint32(0))]byte // The native union occupies 32 bytes on both 32-bit and 64-bit Windows.
+	_                [unsafe.Sizeof(_D3D12_PLACED_SUBRESOURCE_FOOTPRINT{}) - unsafe.Sizeof(uint32(0))]byte // A padding for union
 }
 
 type _D3D12_VERTEX_BUFFER_VIEW struct {
@@ -975,12 +975,6 @@ type _D3D12_DESCRIPTOR_HEAP_DESC struct {
 	NumDescriptors uint32
 	Flags          _D3D12_DESCRIPTOR_HEAP_FLAGS
 	NodeMask       uint32
-}
-
-type _D3D12_PLACED_SUBRESOURCE_FOOTPRINT struct {
-	_         structs.HostLayout
-	Offset    uint64
-	Footprint _D3D12_SUBRESOURCE_FOOTPRINT
 }
 
 type _D3D12_RENDER_TARGET_BLEND_DESC struct {

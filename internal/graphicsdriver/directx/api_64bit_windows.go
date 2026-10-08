@@ -38,3 +38,9 @@ type _D3D12_ROOT_PARAMETER struct {
 	DescriptorTable  _D3D12_ROOT_DESCRIPTOR_TABLE // Union
 	ShaderVisibility _D3D12_SHADER_VISIBILITY
 }
+
+type _D3D12_PLACED_SUBRESOURCE_FOOTPRINT struct {
+	_         structs.HostLayout
+	Offset    uint64
+	Footprint _D3D12_SUBRESOURCE_FOOTPRINT
+}
