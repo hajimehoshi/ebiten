@@ -310,18 +310,6 @@ func (r *Resampling) at(t int64) (float64, float64, error) {
 		lv += srcL * s
 		rv += srcR * s
 	}
-	if lv < -1 {
-		lv = -1
-	}
-	if lv > 1 {
-		lv = 1
-	}
-	if rv < -1 {
-		rv = -1
-	}
-	if rv > 1 {
-		rv = 1
-	}
 	if eof {
 		return lv, rv, io.EOF
 	}
@@ -370,6 +358,19 @@ func (r *Resampling) Read(b []byte) (int, error) {
 				r.eof = true
 				break
 			}
+			if ldata < -1 {
+				ldata = -1
+			}
+			if ldata > 1 {
+				ldata = 1
+			}
+			if rdata < -1 {
+				rdata = -1
+			}
+			if rdata > 1 {
+				rdata = 1
+			}
+
 			l16 := int16(ldata * (1<<15 - 1))
 			r16 := int16(rdata * (1<<15 - 1))
 			b[4*i] = byte(l16)
