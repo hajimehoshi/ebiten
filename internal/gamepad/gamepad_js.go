@@ -17,6 +17,7 @@ package gamepad
 import (
 	"encoding/hex"
 	"sync"
+	"sync/atomic"
 	"syscall/js"
 	"time"
 
@@ -32,6 +33,12 @@ var warnGetGamepadsOnce sync.Once
 
 type nativeGamepadsImpl struct {
 	indices map[int]struct{}
+
+	// polling reports whether update calls navigator.getGamepads at every call.
+	// Otherwise, update calls it once a second.
+	polling atomic.Bool
+
+	lastPoll time.Time
 }
 
 func newNativeGamepadsImpl() nativeGamepads {
@@ -39,11 +46,23 @@ func newNativeGamepadsImpl() nativeGamepads {
 }
 
 func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
+	g.polling.Store(true)
+	if js.Global().Get("addEventListener").Truthy() {
+		js.Global().Call("addEventListener", "gamepadconnected", js.FuncOf(func(this js.Value, args []js.Value) any {
+			g.polling.Store(true)
+			return nil
+		}))
+	}
 	return nil
 }
 
 func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	// TODO: Use the gamepad events instead of navigator.getGamepads.
+
+	if !g.polling.Load() && time.Since(g.lastPoll) < time.Second {
+		return nil
+	}
+	g.lastPoll = time.Now()
 
 	defer func() {
 		clear(g.indices)
@@ -108,6 +127,9 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 		_, ok := g.indices[gamepad.native.(*nativeGamepadImpl).index]
 		return !ok
 	})
+
+	// Poll navigator.getGamepads once a second until a gamepad appears.
+	g.polling.Store(len(g.indices) > 0)
 
 	return nil
 }
