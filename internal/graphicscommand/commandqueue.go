@@ -262,7 +262,7 @@ func (a commandQueueFlushArgs) flush() error {
 	var flushErr error
 	defer func() {
 		if flushErr != nil {
-			a.manager.abortReadPixels(flushErr)
+			a.manager.abortPendingReadPixels(flushErr)
 		}
 	}()
 	applyVsyncEnabledIfNeeded(a.graphicsDriver)
@@ -305,7 +305,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 			}
 		}
 		if err != nil {
-			q.abortReadPixels(err)
+			q.abortQueuedReadPixels(err)
 		}
 		if !begun {
 			return
@@ -625,7 +625,7 @@ func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [grap
 func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) (err error) {
 	defer func() {
 		if err != nil {
-			c.stopReadPixels(err)
+			c.abortReadPixels(err)
 		}
 	}()
 	// An error at an earlier flush stops any further work.

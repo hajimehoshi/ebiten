@@ -50,8 +50,9 @@ func WaitForRenderThread() {
 	thread.Call(theRenderThread, func() {})
 }
 
-// AbortReadPixels drains queued render-thread work and aborts submitted and unsubmitted read-backs.
+// AbortReadPixels completes pending and queued pixel read-backs with an error.
+// Their results have been delivered when AbortReadPixels returns.
 // The caller must hold the atlas backend mutex to prevent concurrent command recording.
 func AbortReadPixels() {
-	theCommandQueueManager.stopReadPixels(errReadPixelsAborted)
+	theCommandQueueManager.abortReadPixels(errReadPixelsAborted)
 }
