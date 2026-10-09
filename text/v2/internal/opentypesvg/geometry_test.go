@@ -483,7 +483,7 @@ func TestViewport(t *testing.T) {
 }
 
 func TestGeometryFixtures(t *testing.T) {
-	files, err := filepath.Glob("testdata/*/*.svg")
+	files, err := filepath.Glob(filepath.Join("testdata", "*", "*.svg"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -582,7 +582,7 @@ func FuzzCoordinates(f *testing.F) {
 }
 
 func TestFixtureCoordinates(t *testing.T) {
-	d := parse(t, string(read(t, "testdata/focused/stroke-transform.svg")))
+	d := parse(t, string(read(t, filepath.Join("testdata", "focused", "stroke-transform.svg"))))
 	entry, err := d.SelectGlyph(1)
 	if err != nil {
 		t.Fatal(err)
@@ -604,7 +604,7 @@ func TestFixtureCoordinates(t *testing.T) {
 	if p.Segment(1).Kind != opentypesvg.QuadTo || p.Segment(2).Control1 != (opentypesvg.Point{X: 20, Y: 20}) {
 		t.Error("quadratic geometry lost")
 	}
-	d = parse(t, string(read(t, "testdata/focused/shared-context.svg")))
+	d = parse(t, string(read(t, filepath.Join("testdata", "focused", "shared-context.svg"))))
 	for _, gid := range []uint16{1, 2} {
 		entry, err := d.SelectGlyph(gid)
 		if err != nil {
@@ -620,7 +620,7 @@ func TestFixtureCoordinates(t *testing.T) {
 		}
 		mapped(t, m, opentypesvg.Point{}, opentypesvg.Point{X: x})
 	}
-	d = parse(t, string(read(t, "testdata/focused/viewport-overflow.svg")))
+	d = parse(t, string(read(t, filepath.Join("testdata", "focused", "viewport-overflow.svg"))))
 	v, err := d.Viewport(48, opentypesvg.LengthContext{})
 	if err != nil {
 		t.Fatal(err)

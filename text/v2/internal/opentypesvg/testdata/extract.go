@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 )
@@ -209,7 +210,7 @@ func run() error {
 	}
 	// Read both fonts and their selected records before writing files.
 	for name, data := range documents {
-		if err := os.WriteFile(name, data, 0o644); err != nil {
+		if err := os.WriteFile(filepath.FromSlash(name), data, 0o644); err != nil {
 			return err
 		}
 	}

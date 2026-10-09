@@ -15,6 +15,7 @@
 package main_test
 
 import (
+	"path/filepath"
 	"testing"
 
 	ebitenmobile "github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile"
@@ -99,7 +100,7 @@ func TestFrameworkName(t *testing.T) {
 			out: "My_game",
 		},
 		{
-			in:  "path/to/MyGame.xcframework",
+			in:  filepath.Join("path", "to", "MyGame.xcframework"),
 			out: "MyGame",
 		},
 	}
