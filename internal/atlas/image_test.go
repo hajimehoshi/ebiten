@@ -1051,3 +1051,31 @@ func TestGPUResourcesStateRestoreBeforeSaveFailed(t *testing.T) {
 		t.Errorf("StartRestoringGPUResourcesIfNeeded: got true, want false")
 	}
 }
+
+func TestReadPixelsAsyncWithoutBackend(t *testing.T) {
+	img := atlas.NewImage(1, 1, atlas.ImageTypeRegular)
+	defer img.Deallocate()
+	pixels := []byte{255, 255, 255, 255}
+	ch := img.ReadPixelsAsync(pixels, image.Rect(0, 0, 1, 1))
+	if ch == nil {
+		t.Fatal("the read-back was not enqueued")
+	}
+	select {
+	case err, ok := <-ch:
+		if ok || err != nil {
+			t.Errorf("the successful read-back must close without sending: got (%v, %v)", err, ok)
+			return
+		}
+	default:
+		t.Error("the result channel was not closed")
+		return
+	}
+	for err := range ch {
+		t.Errorf("the completed channel must be empty: %v", err)
+	}
+	for i, v := range pixels {
+		if v != 0 {
+			t.Errorf("pixels[%d] = %d, want 0", i, v)
+		}
+	}
+}

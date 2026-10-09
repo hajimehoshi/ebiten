@@ -62,7 +62,10 @@ func (r *readPixelsRequest) publish(err error) {
 	}
 	r.finished = true
 	r.args = nil
-	r.result <- err
+	if err != nil {
+		r.result <- err
+	}
+	close(r.result)
 }
 
 // discard releases the driver resources for the read-back.

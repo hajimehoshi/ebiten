@@ -232,6 +232,7 @@ func (u *UserInterface) abortedReadPixels() <-chan error {
 	err := u.error()
 	ch := make(chan error, 1)
 	ch <- err
+	close(ch)
 	return ch
 }
 

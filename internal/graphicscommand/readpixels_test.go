@@ -189,28 +189,39 @@ func (s *testReadPixelsSetup) readPixelsAsync(pixels []byte) <-chan error {
 	}})
 }
 
-func requireOneValue(t *testing.T, ch <-chan error) error {
+func requireReadPixelsResult(t *testing.T, ch <-chan error) error {
 	t.Helper()
-	var err error
-	var ok bool
 	select {
-	case err, ok = <-ch:
+	case err, ok := <-ch:
+		if ok && err == nil {
+			t.Error("a successful read-back must close without sending a value")
+		}
+		requireClosedReadPixelsResult(t, ch)
+		return err
 	case <-time.After(5 * time.Second):
-		t.Error("read-back did not publish a result")
+		t.Error("read-back did not complete")
 		return errors.New("test: read-back timed out")
 	}
-	if !ok {
-		t.Error("the channel must not be closed")
-	}
+}
+
+func requireClosedReadPixelsResult(t *testing.T, ch <-chan error) {
+	t.Helper()
 	select {
-	case _, ok := <-ch:
-		if !ok {
-			t.Error("the channel must not be closed after the value is received")
+	case err, ok := <-ch:
+		if ok || err != nil {
+			t.Errorf("the result channel must be closed: got (%v, %v)", err, ok)
+			return
 		}
-		t.Error("the channel must not receive a second value")
-	default:
+	case <-time.After(5 * time.Second):
+		t.Error("the result channel was not closed")
+		return
 	}
-	return err
+	if err, ok := <-ch; ok || err != nil {
+		t.Errorf("a repeated receive must yield (nil, false): got (%v, %v)", err, ok)
+	}
+	for err := range ch {
+		t.Errorf("a completed channel must not yield another result: %v", err)
+	}
 }
 
 func TestReadPixelsAsyncDoesNotFlush(t *testing.T) {
@@ -244,7 +255,7 @@ func TestReadPixelsAsyncDoesNotFlush(t *testing.T) {
 		return
 	}
 
-	if err := requireOneValue(t, ch); err != nil {
+	if err := requireReadPixelsResult(t, ch); err != nil {
 		t.Error(err)
 		return
 	}
@@ -282,7 +293,7 @@ func TestReadPixelsAsyncWaitsForTheReadback(t *testing.T) {
 		return
 	}
 
-	if err := requireOneValue(t, ch); err != nil {
+	if err := requireReadPixelsResult(t, ch); err != nil {
 		t.Error(err)
 		return
 	}
@@ -300,7 +311,7 @@ func TestReadPixelsAsyncSynchronousFallback(t *testing.T) {
 		return
 	}
 
-	if err := requireOneValue(t, ch); err != nil {
+	if err := requireReadPixelsResult(t, ch); err != nil {
 		t.Error(err)
 		return
 	}
@@ -332,7 +343,7 @@ func TestReadPixelsAsyncAbortedByFlushError(t *testing.T) {
 		t.Error("the flush of a broken driver did not report an error")
 	}
 
-	if rerr := requireOneValue(t, ch); rerr == nil {
+	if rerr := requireReadPixelsResult(t, ch); rerr == nil {
 		t.Error("an aborted read-back must report an error")
 	}
 	for _, r := range s.driver.readbacks {
@@ -360,7 +371,7 @@ func TestReadPixelsAsyncReadbackError(t *testing.T) {
 		return
 	}
 
-	if err := requireOneValue(t, ch); err == nil {
+	if err := requireReadPixelsResult(t, ch); err == nil {
 		t.Error("a failed read-back must report an error")
 	}
 }
@@ -375,7 +386,7 @@ func TestReadPixelsAsyncSubmitError(t *testing.T) {
 		return
 	}
 
-	if err := requireOneValue(t, ch); err == nil {
+	if err := requireReadPixelsResult(t, ch); err == nil {
 		t.Error("a read-back that cannot be started must report an error")
 	}
 }
@@ -390,7 +401,7 @@ func TestReadPixelsAsyncAbortedByEarlierCommand(t *testing.T) {
 	}
 	s.sync()
 
-	if rerr := requireOneValue(t, ch); rerr == nil {
+	if rerr := requireReadPixelsResult(t, ch); rerr == nil {
 		t.Error("a read-back that never ran must report an error")
 	}
 }
@@ -400,7 +411,7 @@ func TestReadPixelsAsyncAbortedByBeginError(t *testing.T) {
 	ch := s.readPixelsAsync(make([]byte, 4*4*4))
 	s.driver.beginErr = errors.New("test: Begin failed")
 	_ = s.flush(graphicsdriver.FlushModeEndFrame)
-	if err := requireOneValue(t, ch); !errors.Is(err, s.driver.beginErr) {
+	if err := requireReadPixelsResult(t, ch); !errors.Is(err, s.driver.beginErr) {
 		t.Errorf("got %v, want %v", err, s.driver.beginErr)
 	}
 }
@@ -413,7 +424,7 @@ func TestReadPixelsAsyncQueuedAfterFlushError(t *testing.T) {
 	if err := s.flush(graphicsdriver.FlushModeEndFrame); err == nil {
 		t.Error("expected flush error")
 	}
-	if err := requireOneValue(t, ch); !errors.Is(err, s.driver.endErr) {
+	if err := requireReadPixelsResult(t, ch); !errors.Is(err, s.driver.endErr) {
 		t.Errorf("got %v, want %v", err, s.driver.endErr)
 	}
 }

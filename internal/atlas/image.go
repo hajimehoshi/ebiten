@@ -656,7 +656,7 @@ func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan er
 	if i.backend == nil || i.backend.backendImage == nil {
 		clear(pixels)
 		ch := make(chan error, 1)
-		ch <- nil
+		close(ch)
 		return ch
 	}
 
