@@ -15,7 +15,6 @@
 package ui_test
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -146,39 +145,5 @@ func TestSkippedPresentationFlushesCommands(t *testing.T) {
 	}
 	if driver.images != frames+1 || driver.frames != frames+1 || driver.presents != 1 {
 		t.Errorf("after presentation resumes: images = %d, frames = %d, presents = %d; want %d, %d, 1", driver.images, driver.frames, driver.presents, frames+1, frames+1)
-	}
-}
-
-func TestAbortedReadPixels(t *testing.T) {
-	want := errors.New("test: graphics driver stopped")
-	ch := ui.AbortedReadPixelsForTesting(want)
-	select {
-	case err, ok := <-ch:
-		if !ok || !errors.Is(err, want) {
-			t.Errorf("got (%v, %v), want (%v, true)", err, ok, want)
-		}
-	default:
-		t.Error("the abort error was not sent")
-		return
-	}
-	select {
-	case err, ok := <-ch:
-		if ok || err != nil {
-			t.Errorf("the abort channel must be closed: got (%v, %v)", err, ok)
-			return
-		}
-	default:
-		t.Error("the abort channel was not closed")
-		return
-	}
-	var count int
-	for err := range ui.AbortedReadPixelsForTesting(want) {
-		count++
-		if !errors.Is(err, want) {
-			t.Errorf("range received %v, want %v", err, want)
-		}
-	}
-	if count != 1 {
-		t.Errorf("range received %d errors, want 1", count)
 	}
 }

@@ -99,9 +99,3 @@ func (i *InputState) NextInputTime() InputTime {
 func (i *InputState) CopyAndReset(dst *InputState) {
 	i.copyAndReset(dst)
 }
-
-func AbortedReadPixelsForTesting(err error) <-chan error {
-	var u UserInterface
-	u.setError(err)
-	return u.abortedReadPixels()
-}

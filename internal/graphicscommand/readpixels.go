@@ -53,7 +53,7 @@ func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
 	}
 }
 
-// publish sends the result and releases the retained arguments.
+// publish sends the error, if any, closes the result channel, and releases the retained arguments.
 //
 // publish must be called on the render thread, and must be called at most once.
 func (r *readPixelsRequest) publish(err error) {

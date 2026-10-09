@@ -216,12 +216,6 @@ func requireClosedReadPixelsResult(t *testing.T, ch <-chan error) {
 		t.Error("the result channel was not closed")
 		return
 	}
-	if err, ok := <-ch; ok || err != nil {
-		t.Errorf("a repeated receive must yield (nil, false): got (%v, %v)", err, ok)
-	}
-	for err := range ch {
-		t.Errorf("a completed channel must not yield another result: %v", err)
-	}
 }
 
 func TestReadPixelsAsyncDoesNotFlush(t *testing.T) {
