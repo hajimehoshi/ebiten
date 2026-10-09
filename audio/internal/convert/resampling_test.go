@@ -16,6 +16,7 @@ package convert_test
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -1225,5 +1226,50 @@ func TestResamplingNonSeeker(t *testing.T) {
 				t.Errorf("Read requiring a source seek: got %v, want errors.ErrUnsupported", err)
 			}
 		})
+	}
+}
+
+func TestResamplingFloat32Headroom(t *testing.T) {
+	for _, rates := range []struct{ from, to int }{
+		{
+			from: 44100,
+			to:   48000,
+		},
+		{
+			from: 48000,
+			to:   44100,
+		},
+	} {
+		resample := func(amplitude float32) []byte {
+			source := make([]byte, 64*8)
+			for i := range 64 {
+				binary.LittleEndian.PutUint32(source[i*8:], math.Float32bits(amplitude))
+				binary.LittleEndian.PutUint32(source[i*8+4:], math.Float32bits(-amplitude))
+			}
+			result, err := io.ReadAll(convert.NewResampling(bytes.NewReader(source), int64(len(source)), rates.from, rates.to, 4))
+			if err != nil {
+				t.Fatal(err)
+			}
+			return result
+		}
+		quiet, loud := resample(0.25), resample(1.5)
+		if len(loud) < 8 {
+			t.Error("resampling produced no stereo samples")
+			continue
+		}
+		if got := math.Float32frombits(binary.LittleEndian.Uint32(loud)); math.Abs(float64(got-1.5)) > 1e-6 {
+			t.Errorf("first sample: got %v, want 1.5", got)
+		}
+		if len(quiet) != len(loud) {
+			t.Fatal("output lengths differ")
+		}
+		for i := 0; i < len(loud); i += 4 {
+			got := math.Float32frombits(binary.LittleEndian.Uint32(loud[i:]))
+			want := 6 * math.Float32frombits(binary.LittleEndian.Uint32(quiet[i:]))
+			if math.Abs(float64(got-want)) > 1e-6 {
+				t.Errorf("%d to %d, sample %d: got %v, want %v", rates.from, rates.to, i/4, got, want)
+				break
+			}
+		}
 	}
 }

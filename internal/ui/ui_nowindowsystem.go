@@ -176,7 +176,9 @@ func (b *noWindowSystemBackend) initOnMainThread(options *RunOptions) (err error
 
 func (b *noWindowSystemBackend) loopGame() (err error) {
 	defer func() {
-		atlas.Terminate()
+		// closeOnMainThread closes the EGL context, and any graphics calls after that are invalidated.
+		// Execute all the queued graphics calls before that.
+		atlas.AbortReadPixels()
 		closeErr := thread.CallWithArgAndResult(b.mainThread, func(b *noWindowSystemBackend) error {
 			defer b.setTerminated()
 			return b.closeOnMainThread()

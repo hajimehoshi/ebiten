@@ -24,14 +24,11 @@ import (
 )
 
 var (
-	class_NSAutoreleasePool    objc.Class
-	class_NSString             objc.Class
-	class_NSScreen             objc.Class
-	class_NSRunLoop            objc.Class
-	class_NSMachPort           objc.Class
-	class_NSWorkspace          objc.Class
-	class_NSNotificationCenter objc.Class
-	class_NSOperationQueue     objc.Class
+	class_NSAutoreleasePool objc.Class
+	class_NSString          objc.Class
+	class_NSScreen          objc.Class
+	class_NSRunLoop         objc.Class
+	class_NSMachPort        objc.Class
 )
 
 func init() {
@@ -50,48 +47,38 @@ func init() {
 	class_NSScreen = objc.GetClass("NSScreen")
 	class_NSRunLoop = objc.GetClass("NSRunLoop")
 	class_NSMachPort = objc.GetClass("NSMachPort")
-	class_NSWorkspace = objc.GetClass("NSWorkspace")
-	class_NSNotificationCenter = objc.GetClass("NSNotificationCenter")
-	class_NSOperationQueue = objc.GetClass("NSOperationQueue")
 
 	NSRunLoopCommonModes = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopCommonModes"))
 	NSDefaultRunLoopMode = NSRunLoopMode(NSString_alloc().InitWithUTF8String("kCFRunLoopDefaultMode"))
-
-	NSWorkspaceDidWakeNotification = NSString_alloc().InitWithUTF8String("NSWorkspaceDidWakeNotification")
-	NSWorkspaceScreensDidWakeNotification = NSString_alloc().InitWithUTF8String("NSWorkspaceScreensDidWakeNotification")
 }
 
 var (
-	sel_retain                                     = objc.RegisterName("retain")
-	sel_alloc                                      = objc.RegisterName("alloc")
-	sel_new                                        = objc.RegisterName("new")
-	sel_release                                    = objc.RegisterName("release")
-	sel_initWithUTF8String                         = objc.RegisterName("initWithUTF8String:")
-	sel_contentView                                = objc.RegisterName("contentView")
-	sel_object                                     = objc.RegisterName("object")
-	sel_styleMask                                  = objc.RegisterName("styleMask")
-	sel_setStyleMask                               = objc.RegisterName("setStyleMask:")
-	sel_mainScreen                                 = objc.RegisterName("mainScreen")
-	sel_screen                                     = objc.RegisterName("screen")
-	sel_isVisible                                  = objc.RegisterName("isVisible")
-	sel_occlusionState                             = objc.RegisterName("occlusionState")
-	sel_inLiveResize                               = objc.RegisterName("inLiveResize")
-	sel_deviceDescription                          = objc.RegisterName("deviceDescription")
-	sel_objectForKey                               = objc.RegisterName("objectForKey:")
-	sel_unsignedIntValue                           = objc.RegisterName("unsignedIntValue")
-	sel_setLayer                                   = objc.RegisterName("setLayer:")
-	sel_setWantsLayer                              = objc.RegisterName("setWantsLayer:")
-	sel_setLayerContentsRedrawPolicy               = objc.RegisterName("setLayerContentsRedrawPolicy:")
-	sel_mainRunLoop                                = objc.RegisterName("mainRunLoop")
-	sel_currentRunLoop                             = objc.RegisterName("currentRunLoop")
-	sel_run                                        = objc.RegisterName("run")
-	sel_performBlock                               = objc.RegisterName("performBlock:")
-	sel_port                                       = objc.RegisterName("port")
-	sel_addPort_forMode                            = objc.RegisterName("addPort:forMode:")
-	sel_sharedWorkspace                            = objc.RegisterName("sharedWorkspace")
-	sel_notificationCenter                         = objc.RegisterName("notificationCenter")
-	sel_addObserverForName_object_queue_usingBlock = objc.RegisterName("addObserverForName:object:queue:usingBlock:")
-	sel_mainQueue                                  = objc.RegisterName("mainQueue")
+	sel_retain                       = objc.RegisterName("retain")
+	sel_alloc                        = objc.RegisterName("alloc")
+	sel_new                          = objc.RegisterName("new")
+	sel_release                      = objc.RegisterName("release")
+	sel_initWithUTF8String           = objc.RegisterName("initWithUTF8String:")
+	sel_contentView                  = objc.RegisterName("contentView")
+	sel_object                       = objc.RegisterName("object")
+	sel_styleMask                    = objc.RegisterName("styleMask")
+	sel_setStyleMask                 = objc.RegisterName("setStyleMask:")
+	sel_mainScreen                   = objc.RegisterName("mainScreen")
+	sel_screen                       = objc.RegisterName("screen")
+	sel_isVisible                    = objc.RegisterName("isVisible")
+	sel_occlusionState               = objc.RegisterName("occlusionState")
+	sel_inLiveResize                 = objc.RegisterName("inLiveResize")
+	sel_deviceDescription            = objc.RegisterName("deviceDescription")
+	sel_objectForKey                 = objc.RegisterName("objectForKey:")
+	sel_unsignedIntValue             = objc.RegisterName("unsignedIntValue")
+	sel_setLayer                     = objc.RegisterName("setLayer:")
+	sel_setWantsLayer                = objc.RegisterName("setWantsLayer:")
+	sel_setLayerContentsRedrawPolicy = objc.RegisterName("setLayerContentsRedrawPolicy:")
+	sel_mainRunLoop                  = objc.RegisterName("mainRunLoop")
+	sel_currentRunLoop               = objc.RegisterName("currentRunLoop")
+	sel_run                          = objc.RegisterName("run")
+	sel_performBlock                 = objc.RegisterName("performBlock:")
+	sel_port                         = objc.RegisterName("port")
+	sel_addPort_forMode              = objc.RegisterName("addPort:forMode:")
 )
 
 const (
@@ -305,37 +292,4 @@ type NSMachPort struct {
 
 func NSMachPort_port() NSMachPort {
 	return NSMachPort{objc.ID(class_NSMachPort).Send(sel_port)}
-}
-
-type NSWorkspace struct {
-	objc.ID
-}
-
-func NSWorkspace_sharedWorkspace() NSWorkspace {
-	return NSWorkspace{objc.ID(class_NSWorkspace).Send(sel_sharedWorkspace)}
-}
-
-func (w NSWorkspace) NotificationCenter() NSNotificationCenter {
-	return NSNotificationCenter{w.Send(sel_notificationCenter)}
-}
-
-var (
-	NSWorkspaceDidWakeNotification        NSString
-	NSWorkspaceScreensDidWakeNotification NSString
-)
-
-type NSNotificationCenter struct {
-	objc.ID
-}
-
-func (n NSNotificationCenter) AddObserverForName(name NSString, object objc.ID, queue NSOperationQueue, usingBlock objc.Block) objc.ID {
-	return n.Send(sel_addObserverForName_object_queue_usingBlock, name.ID, object, queue.ID, usingBlock)
-}
-
-type NSOperationQueue struct {
-	objc.ID
-}
-
-func NSOperationQueue_mainQueue() NSOperationQueue {
-	return NSOperationQueue{objc.ID(class_NSOperationQueue).Send(sel_mainQueue)}
 }

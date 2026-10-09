@@ -59,7 +59,7 @@ func attribute(t *testing.T, element *opentypesvg.Element, space, local, want st
 }
 
 func TestGlyphSelection(t *testing.T) {
-	document := parse(t, string(read(t, "testdata/focused/shared-context.svg")))
+	document := parse(t, string(read(t, filepath.Join("testdata", "focused", "shared-context.svg"))))
 	for _, gid := range []uint16{1, 2} {
 		entry, err := document.SelectGlyph(gid)
 		if err != nil {
@@ -329,7 +329,7 @@ func TestNamespaces(t *testing.T) {
 }
 
 func TestRestrictedContent(t *testing.T) {
-	document := parse(t, `<?xml-stylesheet href="https://example.invalid/a.css"?>`+string(read(t, "testdata/focused/restricted.svg")))
+	document := parse(t, `<?xml-stylesheet href="https://example.invalid/a.css"?>`+string(read(t, filepath.Join("testdata", "focused", "restricted.svg"))))
 	entry, err := document.SelectGlyph(1)
 	if err != nil {
 		t.Fatal(err)
@@ -516,7 +516,7 @@ func TestLimits(t *testing.T) {
 
 func fontSVG(t *testing.T, record []byte) []byte {
 	t.Helper()
-	source := read(t, "../../testdata/chromacheck-svg.ttf")
+	source := read(t, filepath.Join("..", "..", "testdata", "chromacheck-svg.ttf"))
 	for len(source)%4 != 0 {
 		source = append(source, 0)
 	}
@@ -552,9 +552,9 @@ func fontSVG(t *testing.T, record []byte) []byte {
 }
 
 func TestFontDecodingBoundary(t *testing.T) {
-	plain := read(t, "testdata/focused/shared-context.svg")
+	plain := read(t, filepath.Join("testdata", "focused", "shared-context.svg"))
 	for _, name := range []string{"shared-context.svg", "shared-context.svg.gz"} {
-		source := fontSVG(t, read(t, "testdata/focused/"+name))
+		source := fontSVG(t, read(t, filepath.Join("testdata", "focused", name)))
 		if !bytes.Equal(source, plain) {
 			t.Errorf("%s: decoded bytes differ", name)
 		}
@@ -569,13 +569,13 @@ func TestFontDecodingBoundary(t *testing.T) {
 		}
 		attribute(t, entry, "", "id", "glyph1")
 	}
-	if _, err := opentypesvg.Parse(read(t, "testdata/focused/shared-context.svg.gz")); !errors.Is(err, opentypesvg.ErrXML) {
+	if _, err := opentypesvg.Parse(read(t, filepath.Join("testdata", "focused", "shared-context.svg.gz"))); !errors.Is(err, opentypesvg.ErrXML) {
 		t.Errorf("encoded input: %v", err)
 	}
 }
 
 func TestCorpus(t *testing.T) {
-	files, err := filepath.Glob("testdata/*/*.svg")
+	files, err := filepath.Glob(filepath.Join("testdata", "*", "*.svg"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -605,7 +605,7 @@ func FuzzDocument(f *testing.F) {
 	f.Add([]byte(svgStart+`<g id="glyph1"><use xlink:href="#p"/></g><path id="p"/></svg>`), uint16(1))
 	f.Add([]byte(svgStart+`<g id="glyph1"><use xlink:href="#glyph1"/></g></svg>`), uint16(1))
 	f.Add([]byte(`<svg/>`), uint16(0))
-	files, err := filepath.Glob("testdata/*/*.svg")
+	files, err := filepath.Glob(filepath.Join("testdata", "*", "*.svg"))
 	if err != nil {
 		f.Fatal(err)
 	}

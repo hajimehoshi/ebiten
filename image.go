@@ -1322,7 +1322,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 // It captures drawing operations preceding the call and excludes subsequent operations.
 // The call returns without waiting for the GPU.
 //
-// The returned buffered channel is closed when the read finishes, including when the game exits.
+// The returned channel is closed when the read finishes, including when the game exits.
 // On failure, an error is sent before closing; on success, no value is sent.
 // Ignoring the channel does not block completion. pixels must not be accessed or reused until
 // a receive from the channel completes. The buffer contents are unspecified on error.
@@ -1824,6 +1824,13 @@ var theTmpUsageCallbackSlicePool = sync.Pool{
 func (i *Image) invokeUsageCallbacks() {
 	if i.isSubImage() {
 		i.original.invokeUsageCallbacks()
+		return
+	}
+
+	i.usageCallbacksMu.Lock()
+	n := len(i.usageCallbacks)
+	i.usageCallbacksMu.Unlock()
+	if n == 0 {
 		return
 	}
 

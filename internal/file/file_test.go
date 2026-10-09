@@ -27,7 +27,7 @@ import (
 )
 
 func TestFSReadDir(t *testing.T) {
-	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir"})
+	vfs := newVirtualFS(t, []string{filepath.Join("testdata", "foo.txt"), filepath.Join("testdata", "dir")})
 
 	rootEnts, err := fs.ReadDir(vfs, ".")
 	if err != nil {
@@ -81,7 +81,7 @@ func TestFSReadDir(t *testing.T) {
 }
 
 func TestFSReadFile(t *testing.T) {
-	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir"})
+	vfs := newVirtualFS(t, []string{filepath.Join("testdata", "foo.txt"), filepath.Join("testdata", "dir")})
 
 	content, err := fs.ReadFile(vfs, "foo.txt")
 	if err != nil {
@@ -138,7 +138,7 @@ func dirEntryNames(t *testing.T, vfs fs.FS, name string) []string {
 }
 
 func TestFSSameBaseNames(t *testing.T) {
-	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir/foo.txt"})
+	vfs := newVirtualFS(t, []string{filepath.Join("testdata", "foo.txt"), filepath.Join("testdata", "dir", "foo.txt")})
 
 	// The paths are not in the same directory, so the root directory is their common ancestor directory.
 	if got, want := dirEntryNames(t, vfs, "."), []string{"dir", "foo.txt"}; !slices.Equal(got, want) {
@@ -173,7 +173,7 @@ func TestFSSameBaseNames(t *testing.T) {
 }
 
 func TestFSPathUnderAnotherPath(t *testing.T) {
-	vfs := newVirtualFS(t, []string{"testdata/dir", "testdata/dir/foo.txt"})
+	vfs := newVirtualFS(t, []string{filepath.Join("testdata", "dir"), filepath.Join("testdata", "dir", "foo.txt")})
 
 	if got, want := dirEntryNames(t, vfs, "."), []string{"dir"}; !slices.Equal(got, want) {
 		t.Errorf("names: got: %v, want: %v", got, want)
@@ -186,7 +186,7 @@ func TestFSPathUnderAnotherPath(t *testing.T) {
 }
 
 func TestFSRootDirectoryPath(t *testing.T) {
-	vfs := newVirtualFS(t, []string{string(filepath.Separator), "testdata/foo.txt"})
+	vfs := newVirtualFS(t, []string{string(filepath.Separator), filepath.Join("testdata", "foo.txt")})
 
 	if got, want := dirEntryNames(t, vfs, "."), []string{"foo.txt"}; !slices.Equal(got, want) {
 		t.Errorf("names: got: %v, want: %v", got, want)
@@ -204,7 +204,7 @@ func absPath(t *testing.T, entry any) string {
 }
 
 func TestFSAbsPath(t *testing.T) {
-	vfs := newVirtualFS(t, []string{"testdata/foo.txt", "testdata/dir/foo.txt"})
+	vfs := newVirtualFS(t, []string{filepath.Join("testdata", "foo.txt"), filepath.Join("testdata", "dir", "foo.txt")})
 
 	base, err := filepath.Abs("testdata")
 	if err != nil {

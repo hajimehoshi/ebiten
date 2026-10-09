@@ -15,6 +15,7 @@
 package vmprotocol_test
 
 import (
+	"path/filepath"
 	"runtime"
 	"testing"
 
@@ -75,7 +76,7 @@ func TestEndpointURLUnsupported(t *testing.T) {
 }
 
 func TestEndpointURLRelativeUnixPath(t *testing.T) {
-	e := vmprotocol.Endpoint{Network: "unix", Address: "rel/g.sock"}
+	e := vmprotocol.Endpoint{Network: "unix", Address: filepath.Join("rel", "g.sock")}
 	if _, err := e.URL(); err == nil {
 		t.Error("Endpoint.URL with a relative unix path should fail")
 	}

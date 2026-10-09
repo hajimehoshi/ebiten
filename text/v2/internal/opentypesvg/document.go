@@ -29,6 +29,8 @@ import (
 )
 
 const (
+	xmlWhitespace = " \t\r\n"
+
 	svgNamespace   = "http://www.w3.org/2000/svg"
 	xlinkNamespace = "http://www.w3.org/1999/xlink"
 	xmlNamespace   = "http://www.w3.org/XML/1998/namespace"
@@ -367,7 +369,7 @@ func parse(source []byte) (*document, error) {
 				return nil, errXML
 			}
 			declaration, ok := bytes.CutPrefix(token, []byte("DOCTYPE"))
-			if !ok || len(declaration) == 0 || !strings.ContainsRune(" \t\r\n", rune(declaration[0])) {
+			if !ok || len(declaration) == 0 || !strings.ContainsRune(xmlWhitespace, rune(declaration[0])) {
 				return nil, errXML
 			}
 			if len(bytes.TrimSpace(declaration)) == 0 || bytes.IndexByte(declaration, '[') >= 0 {

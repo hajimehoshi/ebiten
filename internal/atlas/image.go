@@ -655,7 +655,7 @@ func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan er
 
 	if i.backend == nil || i.backend.backendImage == nil {
 		clear(pixels)
-		ch := make(chan error, 1)
+		ch := make(chan error)
 		close(ch)
 		return ch
 	}
@@ -878,11 +878,11 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	return i.backend.backendImage.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
-// Terminate aborts pending read-backs while preventing concurrent command recording.
-func Terminate() {
+// AbortReadPixels aborts pending read-backs while preventing concurrent command recording.
+func AbortReadPixels() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
-	graphicscommand.Terminate()
+	graphicscommand.AbortReadPixels()
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {

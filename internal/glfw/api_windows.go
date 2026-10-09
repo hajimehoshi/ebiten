@@ -1609,7 +1609,7 @@ func _SetCursorPos(x, y int32) error {
 
 func _SetFocus(hWnd windows.HWND) (windows.HWND, error) {
 	r, _, e := procSetFocus.Call(uintptr(hWnd))
-	if windows.HWND(r) == 0 {
+	if windows.HWND(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return 0, fmt.Errorf("glfw: SetFocus failed: %w", e)
 	}
 	return windows.HWND(r), nil

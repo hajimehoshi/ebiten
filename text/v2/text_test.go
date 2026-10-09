@@ -1630,3 +1630,47 @@ func TestDrawWithInvalidLayoutOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestDrawVerticalWithoutVerticalMetrics(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "Roboto-Regular.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, direction := range []text.Direction{text.DirectionTopToBottomAndLeftToRight, text.DirectionTopToBottomAndRightToLeft} {
+		face := &text.GoTextFace{Source: source, Size: 24, Direction: direction}
+		if m := face.Metrics(); m.VAscent+m.VDescent != 0 {
+			t.Fatal("font has vertical metrics")
+		}
+		glyphs := text.AppendGlyphs(nil, "H", face, nil)
+		got := ebiten.NewImage(32, 32)
+		defer got.Deallocate()
+		want := ebiten.NewImage(32, 32)
+		defer want.Deallocate()
+		gotPixels, wantPixels := make([]byte, 4*32*32), make([]byte, 4*32*32)
+		for _, position := range []struct{ x, y float64 }{{x: -1, y: 16}, {x: 33, y: 16}, {x: 16, y: -1}, {x: 16, y: 33}} {
+			got.Clear()
+			want.Clear()
+			op := &text.DrawOptions{}
+			op.GeoM.Translate(position.x, position.y)
+			text.Draw(got, "H", face, op)
+			for _, glyph := range glyphs {
+				if glyph.Image == nil {
+					continue
+				}
+				imageOp := &ebiten.DrawImageOptions{}
+				imageOp.GeoM.Translate(glyph.X, glyph.Y)
+				imageOp.GeoM.Concat(op.GeoM)
+				want.DrawImage(glyph.Image, imageOp)
+			}
+			got.ReadPixels(gotPixels)
+			want.ReadPixels(wantPixels)
+			if !bytes.Equal(gotPixels, wantPixels) {
+				t.Errorf("direction %v, position (%v, %v): Draw differs from unculled glyphs", direction, position.x, position.y)
+			}
+		}
+	}
+}

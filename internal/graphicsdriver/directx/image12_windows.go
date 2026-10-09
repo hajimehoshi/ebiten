@@ -105,7 +105,7 @@ func (i *image12) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 		return err
 	}
 
-	dst := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint{
+	dst := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootprint{
 		pResource:       readingStagingBuffer,
 		Type:            _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
 		PlacedFootprint: layouts,
@@ -116,7 +116,7 @@ func (i *image12) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 		SubresourceIndex: 0,
 	}
 	i.graphics.needFlushCopyCommandList = true
-	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootPrint_SubresourceIndex(
+	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootprint_SubresourceIndex(
 		&dst, 0, 0, 0, &src, &_D3D12_BOX{
 			left:   uint32(unionRegion.Min.X),
 			top:    uint32(unionRegion.Min.Y),
@@ -217,12 +217,12 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 			Type:             _D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
 			SubresourceIndex: 0,
 		}
-		src := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootPrint{
+		src := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootprint{
 			pResource:       uploadingStagingBuffer,
 			Type:            _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
 			PlacedFootprint: layouts[idx],
 		}
-		i.graphics.copyCommandList.CopyTextureRegion_SubresourceIndex_PlacedFootPrint(
+		i.graphics.copyCommandList.CopyTextureRegion_SubresourceIndex_PlacedFootprint(
 			&dst, uint32(a.Region.Min.X), uint32(a.Region.Min.Y), 0, &src, &_D3D12_BOX{
 				left:   0,
 				top:    0,
