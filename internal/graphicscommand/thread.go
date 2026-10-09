@@ -44,8 +44,8 @@ func runOnRenderThreadAsync[A any](f func(A), arg A) {
 	thread.CallAsync(theRenderThread, f, arg)
 }
 
-func Terminate() {
-	// Post a task to the render thread to ensure all the queued functions are executed.
-	// This is necessary especially for GLFW. glfw.Terminate will remove the context and any graphics calls after that will be invalidated.
+// WaitForRenderThread blocks until all the tasks queued on the rendering thread so far have been executed.
+func WaitForRenderThread() {
+	// The rendering thread executes tasks in order, so an empty task finishes after all the previously queued ones.
 	thread.Call(theRenderThread, func() {})
 }

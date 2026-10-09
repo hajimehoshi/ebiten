@@ -1449,7 +1449,9 @@ func (u *glfwBackend) terminateGLFW() error {
 
 func (u *glfwBackend) loopGame() (err error) {
 	defer func() {
-		graphicscommand.Terminate()
+		// glfw.Terminate removes the graphics context, and any graphics calls after that are invalidated.
+		// Execute all the queued graphics calls before that.
+		graphicscommand.WaitForRenderThread()
 		if glfwErr := thread.CallWithArgAndResult(u.mainThread, (*glfwBackend).terminateGLFW, u); glfwErr != nil {
 			err = errors.Join(err, glfwErr)
 		}
