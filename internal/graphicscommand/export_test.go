@@ -63,12 +63,27 @@ func (c *commandQueueManager) FlushForTesting(graphicsDriver graphicsdriver.Grap
 	return c.flush(graphicsDriver, mode)
 }
 
-func (c *commandQueueManager) ReadPixelsAsyncForTesting(img *Image, args []graphicsdriver.PixelsArgs) <-chan error {
-	return c.readPixelsAsync(img, args)
-}
-
-func NewImageForTesting(manager *commandQueueManager, width, height int, screenFramebuffer bool, attribute string) *Image {
-	return newImage(manager, width, height, screenFramebuffer, attribute)
+func ResetCommandQueueManagerForTesting() (*commandQueueManager, func()) {
+	c := &theCommandQueueManager
+	thread.Call(theRenderThread, func() {})
+	current := c.current
+	queues := c.queuesInUse
+	pending := c.pendingReadPixels
+	cache := c.pool.cache
+	err := c.err.Load()
+	c.current = nil
+	c.queuesInUse = nil
+	c.pendingReadPixels = nil
+	c.pool.cache = nil
+	c.err.Store(nil)
+	return c, func() {
+		thread.Call(theRenderThread, func() {})
+		c.current = current
+		c.queuesInUse = queues
+		c.pendingReadPixels = pending
+		c.pool.cache = cache
+		c.err.Store(err)
+	}
 }
 
 func SetRenderThreadForTesting(t thread.Thread) func() {

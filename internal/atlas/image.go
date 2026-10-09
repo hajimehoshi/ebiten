@@ -638,15 +638,15 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return true, nil
 }
 
-// ReadPixelsAsync reports whether the read-back was enqueued. When it reports false, the pixels
-// were not read and the read-back must be tried again in the next frame, like ReadPixels.
-func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) (ok bool, result <-chan error) {
+// ReadPixelsAsync queues a pixel read-back and returns its result channel.
+// A nil channel indicates that the read-back must be tried again in the next frame, like ReadPixels.
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	if !inFrame {
 		// Not ready to read pixels. Try this later.
-		return false, nil
+		return nil
 	}
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
@@ -657,7 +657,7 @@ func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) (ok bool,
 		clear(pixels)
 		ch := make(chan error, 1)
 		ch <- nil
-		return true, ch
+		return ch
 	}
 
 	args := []graphicsdriver.PixelsArgs{
@@ -666,7 +666,7 @@ func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) (ok bool,
 			Region: region.Add(i.regionWithPadding().Min),
 		},
 	}
-	return true, i.backend.backendImage.ReadPixelsAsync(args)
+	return i.backend.backendImage.ReadPixelsAsync(args)
 }
 
 // Deallocate deallocates the internal state.

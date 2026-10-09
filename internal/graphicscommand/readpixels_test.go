@@ -148,26 +148,29 @@ func newTestReadPixelsSetup(t *testing.T, async bool) *testReadPixelsSetup {
 		defer close(done)
 		_ = renderThread.LoopAndStop(ctx)
 	}()
+	manager, restoreManager := graphicscommand.ResetCommandQueueManagerForTesting()
 	restore := graphicscommand.SetRenderThreadForTesting(renderThread)
 	graphicscommand.SetVsyncEnabled(false)
 
-	s := &testReadPixelsSetup{
-		driver: &testReadPixelsDriver{async: async},
-		sync:   func() { thread.Call(renderThread, func() {}) },
-	}
-	s.manager = &graphicscommand.CommandQueueManagerForTesting{}
-	s.img = graphicscommand.NewImageForTesting(s.manager, 4, 4, false, "")
-	if err := s.manager.FlushForTesting(s.driver, graphicsdriver.FlushModeIntermediate); err != nil {
-		t.Fatal(err)
-	}
-	s.sync()
-
 	t.Cleanup(func() {
+		restoreManager()
 		restore()
 		graphicscommand.SetVsyncEnabled(true)
 		cancel()
 		<-done
 	})
+
+	s := &testReadPixelsSetup{
+		driver: &testReadPixelsDriver{async: async},
+		sync:   func() { thread.Call(renderThread, func() {}) },
+	}
+	s.manager = manager
+	s.img = graphicscommand.NewImage(4, 4, false, "")
+	if err := s.manager.FlushForTesting(s.driver, graphicsdriver.FlushModeIntermediate); err != nil {
+		t.Fatal(err)
+	}
+	s.sync()
+
 	return s
 }
 
@@ -180,7 +183,7 @@ func (s *testReadPixelsSetup) flush(mode graphicsdriver.FlushMode) error {
 }
 
 func (s *testReadPixelsSetup) readPixelsAsync(pixels []byte) <-chan error {
-	return s.manager.ReadPixelsAsyncForTesting(s.img, []graphicsdriver.PixelsArgs{{
+	return s.img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
 		Pixels: pixels,
 		Region: image.Rect(0, 0, 4, 4),
 	}})

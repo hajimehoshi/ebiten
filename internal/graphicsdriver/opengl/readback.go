@@ -59,7 +59,7 @@ type readback struct {
 //
 // The reads are recorded in the command stream at the current position, so the read pixels include
 // the preceding drawing commands and exclude the following ones.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
 	c := &i.graphics.context
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
@@ -70,15 +70,18 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 	r := &readback{
 		graphics: i.graphics,
 	}
+	defer func() {
+		if err != nil {
+			r.Discard()
+		}
+	}()
 	for _, arg := range args {
 		size := 4 * arg.Region.Dx() * arg.Region.Dy()
 		if len(arg.Pixels) != size {
-			r.Discard()
 			return nil, fmt.Errorf("opengl: len(Pixels) must be %d but %d at ReadPixelsAsync", size, len(arg.Pixels))
 		}
 		b, err := c.newPixelPackBuffer(size)
 		if err != nil {
-			r.Discard()
 			return nil, err
 		}
 		c.readPixelsToPixelPackBuffer(arg.Region)
@@ -88,7 +91,6 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 
 	f, err := c.newFence()
 	if err != nil {
-		r.Discard()
 		return nil, err
 	}
 	r.fence = f
@@ -101,11 +103,13 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 	return r, nil
 }
 
+// Poll reports whether the pixel reads have completed without waiting for the GPU.
 func (r *readback) Poll() (bool, error) {
 	// A zero timeout makes this a pure query that never blocks the render thread.
 	return r.graphics.context.pollFence(r.fence)
 }
 
+// Copy copies the completed pixel reads into the caller's buffers.
 func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
 	if len(args) != len(r.pbos) {
 		return fmt.Errorf("opengl: len(args) must be %d but %d at Copy", len(r.pbos), len(args))
@@ -118,6 +122,7 @@ func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
 	return nil
 }
 
+// Discard releases the pixel pack buffers and fence.
 func (r *readback) Discard() {
 	c := &r.graphics.context
 	if r.fence != 0 {

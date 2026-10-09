@@ -62,10 +62,6 @@ func genNextImageID() int {
 //
 // The pixel data just after NewImage is undetermined.
 func NewImage(width, height int, screenFramebuffer bool, attribute string) *Image {
-	return newImage(&theCommandQueueManager, width, height, screenFramebuffer, attribute)
-}
-
-func newImage(manager *commandQueueManager, width, height int, screenFramebuffer bool, attribute string) *Image {
 	i := &Image{
 		width:     width,
 		height:    height,
@@ -80,7 +76,7 @@ func newImage(manager *commandQueueManager, width, height int, screenFramebuffer
 		screen:    screenFramebuffer,
 		attribute: attribute,
 	}
-	manager.enqueueCommand(c)
+	theCommandQueueManager.enqueueCommand(c)
 	return i
 }
 
@@ -170,9 +166,16 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 	return nil
 }
 
+// ReadPixelsAsync queues a read of the image's pixels and returns its result channel.
 // ReadPixelsAsync must not be called after the image is disposed.
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) <-chan error {
-	return theCommandQueueManager.readPixelsAsync(i, args)
+	i.flushBufferedWritePixels()
+	req := newReadPixelsRequest(args)
+	theCommandQueueManager.enqueueCommand(&readPixelsAsyncCommand{
+		img: i,
+		req: req,
+	})
+	return req.result
 }
 
 func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {

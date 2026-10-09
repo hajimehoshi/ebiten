@@ -27,6 +27,8 @@ import (
 // because the graphics driver is not usable anymore.
 var errReadPixelsAborted = errors.New("graphicscommand: the pixel read-back was aborted")
 
+// readPixelsRequest holds the arguments, result channel, and driver resources for a pixel read-back.
+//
 // The readback and finished fields of readPixelsRequest are accessed only on the render thread.
 type readPixelsRequest struct {
 	args []graphicsdriver.PixelsArgs
@@ -43,6 +45,7 @@ type readPixelsRequest struct {
 	finished bool
 }
 
+// newReadPixelsRequest creates a pixel read-back request with a buffered result channel.
 func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
 	return &readPixelsRequest{
 		args:   args,
@@ -50,6 +53,8 @@ func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
 	}
 }
 
+// publish sends the result and releases the retained arguments.
+//
 // publish must be called on the render thread, and must be called at most once.
 func (r *readPixelsRequest) publish(err error) {
 	if r.finished {
@@ -60,6 +65,8 @@ func (r *readPixelsRequest) publish(err error) {
 	r.result <- err
 }
 
+// discard releases the driver resources for the read-back.
+//
 // discard must be called on the render thread, and must be called at most once.
 func (r *readPixelsRequest) discard() {
 	if r.readback == nil {
@@ -69,11 +76,8 @@ func (r *readPixelsRequest) discard() {
 	r.readback = nil
 }
 
+// readPixelsAsyncCommand starts a pixel read-back at its position in the command queue.
 type readPixelsAsyncCommand struct {
-	// manager is the manager that owns this command. The read-back is tracked by this manager, as
-	// the manager polls the pending read-backs at a flush.
-	manager *commandQueueManager
-
 	img *Image
 	req *readPixelsRequest
 }
@@ -103,7 +107,7 @@ func (c *readPixelsAsyncCommand) Exec(commandQueue *commandQueue, graphicsDriver
 		}
 		c.req.readback = readback
 		// Track the read-back so that a later flush can publish its result.
-		c.manager.addReadPixelsRequest(c.req)
+		theCommandQueueManager.addReadPixelsRequest(c.req)
 		return nil
 	}
 
@@ -136,11 +140,15 @@ func (c *readPixelsAsyncCommand) abort(err error) {
 	c.req.publish(err)
 }
 
+// addReadPixelsRequest tracks a submitted read-back until it finishes.
+//
 // addReadPixelsRequest must be called on the render thread.
 func (c *commandQueueManager) addReadPixelsRequest(req *readPixelsRequest) {
 	c.pendingReadPixels = append(c.pendingReadPixels, req)
 }
 
+// pollReadPixels publishes results for completed read-backs and releases their resources.
+//
 // pollReadPixels must be called on the render thread at a flush, after the frame's commands have
 // been submitted to the graphics driver.
 func (c *commandQueueManager) pollReadPixels() {
@@ -183,17 +191,6 @@ func (c *commandQueueManager) abortReadPixels(err error) {
 	}
 	clear(c.pendingReadPixels)
 	c.pendingReadPixels = nil
-}
-
-func (c *commandQueueManager) readPixelsAsync(img *Image, args []graphicsdriver.PixelsArgs) <-chan error {
-	img.flushBufferedWritePixels()
-	req := newReadPixelsRequest(args)
-	c.enqueueCommand(&readPixelsAsyncCommand{
-		manager: c,
-		img:     img,
-		req:     req,
-	})
-	return req.result
 }
 
 // abortReadPixels completes requests whose commands have not executed yet.

@@ -205,8 +205,8 @@ func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.
 		panic("ui: ReadPixelsAsync cannot be called before the game starts")
 	}
 
-	ok, result := img.readPixelsAsync(pixels, region)
-	if ok {
+	result := img.readPixelsAsync(pixels, region)
+	if result != nil {
 		return result
 	}
 
@@ -214,8 +214,8 @@ func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.
 	// Try this again at the next frame.
 	// Like readPixels, this can deadlock when called from the same Update/Draw sequence.
 	u.context.runInFrame(func() {
-		ok, result = img.readPixelsAsync(pixels, region)
-		if !ok {
+		result = img.readPixelsAsync(pixels, region)
+		if result == nil {
 			// This never reaches since this function must be called in a frame.
 			panic("ui: ReadPixelsAsync unexpectedly failed")
 		}
