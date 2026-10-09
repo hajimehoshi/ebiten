@@ -205,7 +205,14 @@ func requireReadPixelsAsyncResult(t *testing.T, ch <-chan error) error {
 			if ok && err == nil {
 				t.Error("a successful read-back must close without sending a value")
 			}
-			requireClosedReadPixelsResult(t, ch)
+			select {
+			case err, ok := <-ch:
+				if ok || err != nil {
+					t.Errorf("the result channel must be closed: got (%v, %v)", err, ok)
+				}
+			case <-time.After(5 * time.Second):
+				t.Error("the result channel was not closed")
+			}
 			return err
 		default:
 		}
