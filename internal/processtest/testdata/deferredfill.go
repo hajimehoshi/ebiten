@@ -17,39 +17,29 @@
 package main
 
 import (
-	"image/color"
-
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-// This program tests that Image.Deallocate can be called after RunGame returns
-// even when the image still has deferred vector fills that have never been flushed.
-//
-// vector.FillPath and its family do not render immediately: the paths are kept
-// pending until the destination image is used, and Deallocate counts as a use
-// and flushes them. The flush allocates a stencil atlas image via NewImage,
-// which panics after RunGame finishes.
 type Game struct {
-	off *ebiten.Image
-	n   int
+	images [2]*ebiten.Image
 }
 
 func (g *Game) Update() error {
-	if g.off == nil {
-		g.off = ebiten.NewImage(16, 16)
+	var path vector.Path
+	path.MoveTo(1, 1)
+	path.LineTo(9, 1)
+	path.LineTo(9, 7)
+	path.Close()
+	for i := range g.images {
+		g.images[i] = ebiten.NewImage(16, 16)
+		op := &vector.DrawPathOptions{AntiAlias: true}
+		if i == 1 {
+			op.Clip = &vector.PathClip{Path: &path}
+		}
+		vector.FillPath(g.images[i], &path, nil, op)
 	}
-	// Anti-aliased vector drawing to an image that is never used as a rendering
-	// source, so the fills stay pending until the image is used. This is done in
-	// Update so that the test does not depend on Draw being called before
-	// Termination.
-	vector.FillRect(g.off, 1, 1, 8, 6, color.White, true)
-	vector.StrokeLine(g.off, 0, 0, 15, 15, 1, color.White, true)
-	g.n++
-	if g.n >= 2 {
-		return ebiten.Termination
-	}
-	return nil
+	return ebiten.Termination
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -64,10 +54,6 @@ func main() {
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
-
-	// Deallocating an image after RunGame finishes must not panic, even if the
-	// image still has deferred vector fills that have never been flushed.
-	if g.off != nil {
-		g.off.Deallocate()
-	}
+	g.images[0].Deallocate()
+	g.images[1].Dispose()
 }
