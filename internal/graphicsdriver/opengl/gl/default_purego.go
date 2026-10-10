@@ -59,7 +59,6 @@ type defaultContext struct {
 	gpGenFramebuffers         uintptr
 	gpGenTextures             uintptr
 	gpGenVertexArrays         uintptr
-	gpMapBufferRange          func(target uint32, offset, length int, access uint32) unsafe.Pointer
 	gpGetError                uintptr
 	gpGetIntegerv             uintptr
 	gpGetProgramInfoLog       uintptr
@@ -69,29 +68,32 @@ type defaultContext struct {
 	gpGetUniformLocation      uintptr
 	gpIsProgram               uintptr
 	gpLinkProgram             uintptr
-	gpPixelStorei             uintptr
-	gpReadPixels              uintptr
-	gpScissor                 uintptr
-	gpShaderSource            uintptr
-	gpTexImage2D              uintptr
-	gpTexParameteri           uintptr
-	gpTexSubImage2D           uintptr
-	gpUnmapBuffer             uintptr
-	gpUniform1fv              uintptr
-	gpUniform1i               uintptr
-	gpUniform1iv              uintptr
-	gpUniform2fv              uintptr
-	gpUniform2iv              uintptr
-	gpUniform3fv              uintptr
-	gpUniform3iv              uintptr
-	gpUniform4fv              uintptr
-	gpUniform4iv              uintptr
-	gpUniformMatrix2fv        uintptr
-	gpUniformMatrix3fv        uintptr
-	gpUniformMatrix4fv        uintptr
-	gpUseProgram              uintptr
-	gpVertexAttribPointer     uintptr
-	gpViewport                uintptr
+	// gpMapBufferRange is registered by purego.RegisterFunc so that it returns the mapped memory as an
+	// unsafe.Pointer. Converting the uintptr result of call to unsafe.Pointer is reported by go vet.
+	gpMapBufferRange      func(target uint32, offset, length int, access uint32) unsafe.Pointer
+	gpPixelStorei         uintptr
+	gpReadPixels          uintptr
+	gpScissor             uintptr
+	gpShaderSource        uintptr
+	gpTexImage2D          uintptr
+	gpTexParameteri       uintptr
+	gpTexSubImage2D       uintptr
+	gpUniform1fv          uintptr
+	gpUniform1i           uintptr
+	gpUniform1iv          uintptr
+	gpUniform2fv          uintptr
+	gpUniform2iv          uintptr
+	gpUniform3fv          uintptr
+	gpUniform3iv          uintptr
+	gpUniform4fv          uintptr
+	gpUniform4iv          uintptr
+	gpUniformMatrix2fv    uintptr
+	gpUniformMatrix3fv    uintptr
+	gpUniformMatrix4fv    uintptr
+	gpUnmapBuffer         uintptr
+	gpUseProgram          uintptr
+	gpVertexAttribPointer uintptr
+	gpViewport            uintptr
 
 	// args holds the arguments of call. args, pinner, nameBuf, intBuf, and strBuf are shared by
 	// every call, so defaultContext must not be used concurrently.
@@ -617,7 +619,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = g.get("glGenFramebuffers")
 	c.gpGenTextures = g.get("glGenTextures")
 	c.gpGenVertexArrays = g.get("glGenVertexArrays")
-	mapBufferRange := g.get("glMapBufferRange")
 	c.gpGetError = g.get("glGetError")
 	c.gpGetIntegerv = g.get("glGetIntegerv")
 	c.gpGetProgramInfoLog = g.get("glGetProgramInfoLog")
@@ -627,6 +628,9 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGetUniformLocation = g.get("glGetUniformLocation")
 	c.gpIsProgram = g.get("glIsProgram")
 	c.gpLinkProgram = g.get("glLinkProgram")
+	if p := g.get("glMapBufferRange"); p != 0 {
+		purego.RegisterFunc(&c.gpMapBufferRange, p)
+	}
 	c.gpPixelStorei = g.get("glPixelStorei")
 	c.gpReadPixels = g.get("glReadPixels")
 	c.gpScissor = g.get("glScissor")
@@ -634,7 +638,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpTexImage2D = g.get("glTexImage2D")
 	c.gpTexParameteri = g.get("glTexParameteri")
 	c.gpTexSubImage2D = g.get("glTexSubImage2D")
-	c.gpUnmapBuffer = g.get("glUnmapBuffer")
 	c.gpUniform1fv = g.get("glUniform1fv")
 	c.gpUniform1i = g.get("glUniform1i")
 	c.gpUniform1iv = g.get("glUniform1iv")
@@ -647,13 +650,10 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpUniformMatrix2fv = g.get("glUniformMatrix2fv")
 	c.gpUniformMatrix3fv = g.get("glUniformMatrix3fv")
 	c.gpUniformMatrix4fv = g.get("glUniformMatrix4fv")
+	c.gpUnmapBuffer = g.get("glUnmapBuffer")
 	c.gpUseProgram = g.get("glUseProgram")
 	c.gpVertexAttribPointer = g.get("glVertexAttribPointer")
 	c.gpViewport = g.get("glViewport")
 
-	if err := g.error(); err != nil {
-		return err
-	}
-	purego.RegisterFunc(&c.gpMapBufferRange, mapBufferRange)
-	return nil
+	return g.error()
 }

@@ -532,7 +532,6 @@ type defaultContext struct {
 	gpGenFramebuffers         C.uintptr_t
 	gpGenTextures             C.uintptr_t
 	gpGenVertexArrays         C.uintptr_t
-	gpMapBufferRange          C.uintptr_t
 	gpGetError                C.uintptr_t
 	gpGetIntegerv             C.uintptr_t
 	gpGetProgramInfoLog       C.uintptr_t
@@ -542,6 +541,7 @@ type defaultContext struct {
 	gpGetUniformLocation      C.uintptr_t
 	gpIsProgram               C.uintptr_t
 	gpLinkProgram             C.uintptr_t
+	gpMapBufferRange          C.uintptr_t
 	gpPixelStorei             C.uintptr_t
 	gpReadPixels              C.uintptr_t
 	gpScissor                 C.uintptr_t
@@ -549,7 +549,6 @@ type defaultContext struct {
 	gpTexImage2D              C.uintptr_t
 	gpTexParameteri           C.uintptr_t
 	gpTexSubImage2D           C.uintptr_t
-	gpUnmapBuffer             C.uintptr_t
 	gpUniform1fv              C.uintptr_t
 	gpUniform1i               C.uintptr_t
 	gpUniform1iv              C.uintptr_t
@@ -562,6 +561,7 @@ type defaultContext struct {
 	gpUniformMatrix2fv        C.uintptr_t
 	gpUniformMatrix3fv        C.uintptr_t
 	gpUniformMatrix4fv        C.uintptr_t
+	gpUnmapBuffer             C.uintptr_t
 	gpUseProgram              C.uintptr_t
 	gpVertexAttribPointer     C.uintptr_t
 	gpViewport                C.uintptr_t
@@ -971,7 +971,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = C.uintptr_t(g.get("glGenFramebuffers"))
 	c.gpGenTextures = C.uintptr_t(g.get("glGenTextures"))
 	c.gpGenVertexArrays = C.uintptr_t(g.get("glGenVertexArrays"))
-	c.gpMapBufferRange = C.uintptr_t(g.get("glMapBufferRange"))
 	c.gpGetError = C.uintptr_t(g.get("glGetError"))
 	c.gpGetIntegerv = C.uintptr_t(g.get("glGetIntegerv"))
 	c.gpGetProgramInfoLog = C.uintptr_t(g.get("glGetProgramInfoLog"))
@@ -981,6 +980,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGetUniformLocation = C.uintptr_t(g.get("glGetUniformLocation"))
 	c.gpIsProgram = C.uintptr_t(g.get("glIsProgram"))
 	c.gpLinkProgram = C.uintptr_t(g.get("glLinkProgram"))
+	c.gpMapBufferRange = C.uintptr_t(g.get("glMapBufferRange"))
 	c.gpPixelStorei = C.uintptr_t(g.get("glPixelStorei"))
 	c.gpReadPixels = C.uintptr_t(g.get("glReadPixels"))
 	c.gpScissor = C.uintptr_t(g.get("glScissor"))
@@ -988,7 +988,6 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpTexImage2D = C.uintptr_t(g.get("glTexImage2D"))
 	c.gpTexParameteri = C.uintptr_t(g.get("glTexParameteri"))
 	c.gpTexSubImage2D = C.uintptr_t(g.get("glTexSubImage2D"))
-	c.gpUnmapBuffer = C.uintptr_t(g.get("glUnmapBuffer"))
 	c.gpUniform1fv = C.uintptr_t(g.get("glUniform1fv"))
 	c.gpUniform1i = C.uintptr_t(g.get("glUniform1i"))
 	c.gpUniform1iv = C.uintptr_t(g.get("glUniform1iv"))
@@ -1001,6 +1000,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpUniformMatrix2fv = C.uintptr_t(g.get("glUniformMatrix2fv"))
 	c.gpUniformMatrix3fv = C.uintptr_t(g.get("glUniformMatrix3fv"))
 	c.gpUniformMatrix4fv = C.uintptr_t(g.get("glUniformMatrix4fv"))
+	c.gpUnmapBuffer = C.uintptr_t(g.get("glUnmapBuffer"))
 	c.gpUseProgram = C.uintptr_t(g.get("glUseProgram"))
 	c.gpVertexAttribPointer = C.uintptr_t(g.get("glVertexAttribPointer"))
 	c.gpViewport = C.uintptr_t(g.get("glViewport"))
