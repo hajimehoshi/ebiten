@@ -87,6 +87,48 @@ func TestUpdatePausesPollingWithoutGamepads(t *testing.T) {
 	}
 }
 
+// TestUpdateFindsGamepadAfterConnectedEvent tests that update finds a gamepad at the first update after a gamepadconnected event, even during the pause.
+func TestUpdateFindsGamepadAfterConnectedEvent(t *testing.T) {
+	var calls int
+	var connected bool
+	setNavigator(t, func() any {
+		calls++
+		if !connected {
+			return []any{nil}
+		}
+		gp := object.New()
+		gp.Set("index", 0)
+		gp.Set("id", "test")
+		gp.Set("mapping", "standard")
+		gp.Set("axes", []any{})
+		gp.Set("buttons", []any{})
+		return []any{gp}
+	})
+
+	var gps gamepad.Gamepads
+	n := &gamepad.JSGamepads{}
+	if err := n.Init(&gps); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(n.RemoveEventListener)
+	if err := n.Update(&gps); err != nil {
+		t.Fatal(err)
+	}
+
+	n.SetLastPoll(time.Now().Add(time.Hour))
+	connected = true
+	js.Global().Call("dispatchEvent", js.Global().Get("Event").New("gamepadconnected"))
+	if err := n.Update(&gps); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Fatalf("calls after the event: got %d, want 2", calls)
+	}
+	if got := len(gps.AppendGamepadIDs(nil)); got != 1 {
+		t.Errorf("gamepads after the event: got %d, want 1", got)
+	}
+}
+
 // TestUpdateFindsGamepadWithoutEvent tests that update finds a gamepad that appears without a gamepadconnected event, then polls navigator.getGamepads at every update.
 func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
 	var calls int
