@@ -60,8 +60,14 @@ func (g *game) Update() error {
 		return nil
 	}
 }
-func (*game) Draw(*ebiten.Image)         {}
-func (*game) Layout(int, int) (int, int) { return 16, 16 }
+
+func (*game) Draw(*ebiten.Image) {
+}
+
+func (*game) Layout(int, int) (int, int) {
+	return 16, 16
+}
+
 func main() {
 	ebiten.SetWindowVisible(false)
 	g := &game{}
