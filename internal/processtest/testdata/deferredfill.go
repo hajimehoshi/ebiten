@@ -55,5 +55,5 @@ func main() {
 		panic(err)
 	}
 	g.images[0].Deallocate()
-	g.images[1].Dispose()
+	g.images[1].Deallocate()
 }
