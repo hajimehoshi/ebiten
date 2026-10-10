@@ -161,7 +161,7 @@ func xmain() error {
 	// It's because ebitenmobile's default API level is different from gomobile's one.
 	if buildTarget == "android" && buildAndroidAPI == minAndroidAPI {
 		var found bool
-		flag.Visit(func(f *flag.Flag) {
+		flagset.Visit(func(f *flag.Flag) {
 			if f.Name == "androidapi" {
 				found = true
 			}
