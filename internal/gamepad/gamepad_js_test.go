@@ -58,6 +58,7 @@ func TestUpdateWithoutGamepadsAllocs(t *testing.T) {
 	if err := n.Init(&gps); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(n.RemoveEventListener)
 	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
@@ -82,6 +83,7 @@ func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
 	if err := n.Init(&gps); err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(n.RemoveEventListener)
 	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}

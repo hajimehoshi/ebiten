@@ -39,6 +39,8 @@ type nativeGamepadsImpl struct {
 	polling atomic.Bool
 
 	lastPoll time.Time
+
+	onGamepadConnected js.Func
 }
 
 func newNativeGamepadsImpl() nativeGamepads {
@@ -48,10 +50,11 @@ func newNativeGamepadsImpl() nativeGamepads {
 func (g *nativeGamepadsImpl) init(gamepads *gamepads) error {
 	g.polling.Store(true)
 	if js.Global().Get("addEventListener").Truthy() {
-		js.Global().Call("addEventListener", "gamepadconnected", js.FuncOf(func(this js.Value, args []js.Value) any {
+		g.onGamepadConnected = js.FuncOf(func(this js.Value, args []js.Value) any {
 			g.polling.Store(true)
 			return nil
-		}))
+		})
+		js.Global().Call("addEventListener", "gamepadconnected", g.onGamepadConnected)
 	}
 	return nil
 }
