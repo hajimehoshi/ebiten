@@ -229,19 +229,15 @@ func (i *Image) adjustPosition(x, y int) (int, int) {
 	return x, y
 }
 
-// adjustPositionF32 converts the position in the *ebiten.Image coordinate to the *ui.Image coordinate.
-func (i *Image) adjustPositionF32(x, y float32) (float32, float32) {
+// originF32 returns the position in the *ebiten.Image coordinate that maps to (0, 0) in the *ui.Image coordinate.
+func (i *Image) originF32() (float32, float32) {
 	if i.isSubImage() {
 		or := i.original.Bounds()
-		x -= float32(or.Min.X)
-		y -= float32(or.Min.Y)
-		return x, y
+		return float32(or.Min.X), float32(or.Min.Y)
 	}
 
 	r := i.Bounds()
-	x -= float32(r.Min.X)
-	y -= float32(r.Min.Y)
-	return x, y
+	return float32(r.Min.X), float32(r.Min.Y)
 }
 
 func (i *Image) adjustedBounds() image.Rectangle {
@@ -687,18 +683,17 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	colorm, cr, cg, cb, ca := colorMToScale(options.ColorM.affineColorM())
 
 	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
-	dst := i
+	dox, doy := i.originF32()
+	sox, soy := img.originF32()
 	if options.ColorScaleMode == ColorScaleModeStraightAlpha {
 		// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
 		for i := range vertices {
 			// Create a temporary slice to reduce boundary checks.
 			vs := vs[i*graphics.VertexFloatCount : i*graphics.VertexFloatCount+8]
-			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
-			vs[0] = dx
-			vs[1] = dy
-			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
-			vs[2] = sx
-			vs[3] = sy
+			vs[0] = vertices[i].DstX - dox
+			vs[1] = vertices[i].DstY - doy
+			vs[2] = vertices[i].SrcX - sox
+			vs[3] = vertices[i].SrcY - soy
 			vs[4] = vertices[i].ColorR * vertices[i].ColorA * cr
 			vs[5] = vertices[i].ColorG * vertices[i].ColorA * cg
 			vs[6] = vertices[i].ColorB * vertices[i].ColorA * cb
@@ -709,12 +704,10 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		for i := range vertices {
 			// Create a temporary slice to reduce boundary checks.
 			vs := vs[i*graphics.VertexFloatCount : i*graphics.VertexFloatCount+8]
-			dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
-			vs[0] = dx
-			vs[1] = dy
-			sx, sy := img.adjustPositionF32(vertices[i].SrcX, vertices[i].SrcY)
-			vs[2] = sx
-			vs[3] = sy
+			vs[0] = vertices[i].DstX - dox
+			vs[1] = vertices[i].DstY - doy
+			vs[2] = vertices[i].SrcX - sox
+			vs[3] = vertices[i].SrcY - soy
 			vs[4] = vertices[i].ColorR * cr
 			vs[5] = vertices[i].ColorG * cg
 			vs[6] = vertices[i].ColorB * cb
@@ -941,21 +934,19 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 	}
 
 	vs := i.ensureTmpVertices(len(vertices) * graphics.VertexFloatCount)
-	dst := i
-	src := options.Images[0]
+	dox, doy := i.originF32()
+	var sox, soy float32
+	if src := options.Images[0]; src != nil {
+		sox, soy = src.originF32()
+	}
 	// Avoid using `for i, v := range vertices` as adding `v` creates a copy from `vertices` unnecessarily on each loop (#3103).
 	for i := range vertices {
 		// Create a temporary slice to reduce boundary checks.
 		vs := vs[i*graphics.VertexFloatCount : i*graphics.VertexFloatCount+12]
-		dx, dy := dst.adjustPositionF32(vertices[i].DstX, vertices[i].DstY)
-		vs[0] = dx
-		vs[1] = dy
-		sx, sy := vertices[i].SrcX, vertices[i].SrcY
-		if src != nil {
-			sx, sy = src.adjustPositionF32(sx, sy)
-		}
-		vs[2] = sx
-		vs[3] = sy
+		vs[0] = vertices[i].DstX - dox
+		vs[1] = vertices[i].DstY - doy
+		vs[2] = vertices[i].SrcX - sox
+		vs[3] = vertices[i].SrcY - soy
 		vs[4] = vertices[i].ColorR
 		vs[5] = vertices[i].ColorG
 		vs[6] = vertices[i].ColorB
