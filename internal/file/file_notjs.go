@@ -109,7 +109,11 @@ func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
 	defer func() {
 		_ = f.Close()
 	}()
-	return f.ReadDir(-1)
+	vf := virtualFile{
+		File:    f,
+		absPath: n.join(rest),
+	}
+	return vf.ReadDir(-1)
 }
 
 func (v *VirtualFS) ReadFile(name string) ([]byte, error) {
@@ -335,6 +339,17 @@ type virtualFile struct {
 
 func (v *virtualFile) AbsPath() string {
 	return v.absPath
+}
+
+func (v *virtualFile) ReadDir(count int) ([]fs.DirEntry, error) {
+	ents, err := v.File.ReadDir(count)
+	for i, ent := range ents {
+		ents[i] = &virtualDirEntry{
+			DirEntry: ent,
+			absPath:  filepath.Join(v.absPath, ent.Name()),
+		}
+	}
+	return ents, err
 }
 
 // virtualDirEntry is an entry of a VirtualFS that reports its own path in the real file system.
