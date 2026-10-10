@@ -1747,6 +1747,7 @@ var currentCallbackToken atomic.Int64
 
 func init() {
 	imagebridge.Set(imagebridge.Bridge[*Image]{
+		IsRunGameEnded: isRunGameEnded,
 		OriginalImage: func(img *Image) *Image {
 			if img.isSubImage() {
 				return img.original

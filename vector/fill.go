@@ -399,6 +399,12 @@ func snapToSubpixel(p point) point {
 //
 // fillPaths callers must be protected by theFillPathM.
 func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
+	// Usage callbacks can run during image deallocation after RunGame returns.
+	// Skip rendering then, as stencil and clip images can no longer be allocated.
+	if theImageBridge.IsRunGameEnded() {
+		return
+	}
+
 	if len(f.paths) != len(f.colors) {
 		panic("vector: the number of paths and colors must be the same")
 	}
