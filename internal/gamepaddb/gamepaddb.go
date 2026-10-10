@@ -232,6 +232,9 @@ func parseMappingElement(str string) (mapping, error) {
 		if err != nil {
 			return mapping{}, err
 		}
+		if index < 0 {
+			return mapping{}, fmt.Errorf("gamepaddb: unexpected axis index: %d", index)
+		}
 
 		return mapping{
 			Type:       mappingTypeAxis,
@@ -244,6 +247,9 @@ func parseMappingElement(str string) (mapping, error) {
 		index, err := strconv.Atoi(str[1:])
 		if err != nil {
 			return mapping{}, err
+		}
+		if index < 0 {
+			return mapping{}, fmt.Errorf("gamepaddb: unexpected button index: %d", index)
 		}
 		return mapping{
 			Type:  mappingTypeButton,
@@ -259,9 +265,15 @@ func parseMappingElement(str string) (mapping, error) {
 		if err != nil {
 			return mapping{}, err
 		}
+		if index < 0 {
+			return mapping{}, fmt.Errorf("gamepaddb: unexpected hat index: %d", index)
+		}
 		hat, err := strconv.Atoi(tokens[1])
 		if err != nil {
 			return mapping{}, err
+		}
+		if hat < 0 {
+			return mapping{}, fmt.Errorf("gamepaddb: unexpected hat state: %d", hat)
 		}
 		return mapping{
 			Type:     mappingTypeHat,

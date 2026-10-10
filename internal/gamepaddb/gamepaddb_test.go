@@ -93,6 +93,26 @@ func TestUpdate(t *testing.T) {
 			Input: "00000000000000000000000000000000,foo,leftx:a:",
 			Err:   true,
 		},
+		{
+			Input: "00000000000000000000000000000000,foo,leftx:a-1",
+			Err:   true,
+		},
+		{
+			Input: "00000000000000000000000000000000,foo,a:b-1",
+			Err:   true,
+		},
+		{
+			Input: "00000000000000000000000000000000,foo,a:h-1.1",
+			Err:   true,
+		},
+		{
+			Input: "00000000000000000000000000000000,foo,a:h0.-4",
+			Err:   true,
+		},
+		{
+			Input: "00000000000000000000000000000000,foo,a:-a0,b:+a0~,x:b0,y:h0.4",
+			Err:   false,
+		},
 	}
 
 	for _, c := range cases {
