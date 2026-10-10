@@ -42,7 +42,7 @@ type readPixelsRequest struct {
 	// the pixels have been read synchronously instead.
 	readback graphicsdriver.PixelsReadback
 
-	// finished prevents completing the request twice.
+	// finished reports whether the request has been completed.
 	finished bool
 }
 
