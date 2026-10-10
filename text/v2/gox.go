@@ -135,9 +135,6 @@ func (g *GoXFace) advanceAt(text string, indexInBytes int) float64 {
 			break
 		}
 		_, l := utf8.DecodeRuneInString(text[i:])
-		if l < 0 {
-			l = 1
-		}
 		if i+l > indexInBytes {
 			break
 		}
@@ -225,10 +222,6 @@ func (g *GoXFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, index
 		// Do not use utf8.RuneLen here, as r may be U+FFFD (replacement character)
 		// when the line contains invalid UTF-8 sequences (#3284).
 		_, size := utf8.DecodeRuneInString(line[i:])
-		if size < 0 {
-			// A string for-loop iterator advances by 1 byte when it encounters an invalid UTF-8 sequence.
-			size = 1
-		}
 
 		var prevOriginX fixed.Int26_6
 		if advanceIndex > 0 {

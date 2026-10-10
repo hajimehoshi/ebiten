@@ -210,10 +210,6 @@ func (m *MultiFace) doSplitText(text string) []textChunk {
 		// Do not use utf8.RuneLen here, as r may be U+FFFD (replacement character)
 		// when the line contains invalid UTF-8 sequences (#3284).
 		_, l := utf8.DecodeRuneInString(text[i:])
-		if l < 0 {
-			// A string for-loop iterator advances by 1 byte when it encounters an invalid UTF-8 sequence.
-			l = 1
-		}
 
 		var s int
 		if chunk != (textChunk{}) {
