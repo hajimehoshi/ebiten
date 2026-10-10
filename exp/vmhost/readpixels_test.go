@@ -19,6 +19,7 @@
 package vmhost_test
 
 import (
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -82,4 +83,15 @@ func TestReadPixelsIsServedWhileWaitingForTheTick(t *testing.T) {
 	case <-time.After(budget):
 		t.Fatalf("WaitTicks did not return within %v: the guest's read-back was never served", budget)
 	}
+}
+
+func TestReadPixelsAsyncGuestExit(t *testing.T) {
+	guest := startGuest(t, filepath.Join("..", "..", "internal", "processtest", "testdata", "readpixelsasync.go"), activateByEnv, "unix")
+	screen := ebiten.NewImage(16, 16)
+	defer screen.Deallocate()
+	if err := guest.SetOutsideScreen(screen); err != nil {
+		t.Fatal(err)
+	}
+	guest.AdvanceTicks(2)
+	guest.WaitTicks()
 }

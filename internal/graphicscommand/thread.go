@@ -43,3 +43,10 @@ func runOnRenderThreadAsync[A any](f func(A), arg A) {
 	// This blocking is expected as double-buffering is used.
 	thread.CallAsync(theRenderThread, f, arg)
 }
+
+// AbortReadPixels completes pending and queued pixel read-backs with an error.
+// Their results have been delivered when AbortReadPixels returns.
+// The caller must hold the atlas backend mutex.
+func AbortReadPixels() {
+	theCommandQueueManager.abortReadPixels(errReadPixelsAborted)
+}

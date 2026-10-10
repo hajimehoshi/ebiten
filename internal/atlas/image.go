@@ -638,6 +638,37 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return true, nil
 }
 
+// ReadPixelsAsync queues a pixel read-back and returns its result channel.
+// A nil channel indicates that the read-back must be tried again in the next frame, like ReadPixels.
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	if !inFrame {
+		// Not ready to read pixels. Try this later.
+		return nil
+	}
+
+	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
+	// To prevent memory leaks, flush the deferred functions here.
+	flushDeferred()
+
+	if i.backend == nil || i.backend.backendImage == nil {
+		clear(pixels)
+		ch := make(chan error)
+		close(ch)
+		return ch
+	}
+
+	args := []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pixels,
+			Region: region.Add(i.regionWithPadding().Min),
+		},
+	}
+	return i.backend.backendImage.ReadPixelsAsync(args)
+}
+
 // Deallocate deallocates the internal state.
 // Even after this call, the image is still available as a new cleared image.
 func (i *Image) Deallocate() {
@@ -845,6 +876,13 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	}
 
 	return i.backend.backendImage.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
+}
+
+// AbortReadPixels completes pending and queued pixel read-backs with an error.
+func AbortReadPixels() {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+	graphicscommand.AbortReadPixels()
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {

@@ -17,6 +17,7 @@
 package gl
 
 import (
+	"math/bits"
 	"runtime"
 	"unsafe"
 
@@ -36,6 +37,7 @@ type defaultContext struct {
 	gpBufferData              uintptr
 	gpBufferSubData           uintptr
 	gpCheckFramebufferStatus  uintptr
+	gpClientWaitSync          uintptr
 	gpCompileShader           uintptr
 	gpCreateProgram           uintptr
 	gpCreateShader            uintptr
@@ -43,11 +45,13 @@ type defaultContext struct {
 	gpDeleteFramebuffers      uintptr
 	gpDeleteProgram           uintptr
 	gpDeleteShader            uintptr
+	gpDeleteSync              uintptr
 	gpDeleteTextures          uintptr
 	gpDeleteVertexArrays      uintptr
 	gpDrawElements            uintptr
 	gpEnable                  uintptr
 	gpEnableVertexAttribArray uintptr
+	gpFenceSync               uintptr
 	gpFinish                  uintptr
 	gpFlush                   uintptr
 	gpFramebufferTexture2D    uintptr
@@ -64,28 +68,32 @@ type defaultContext struct {
 	gpGetUniformLocation      uintptr
 	gpIsProgram               uintptr
 	gpLinkProgram             uintptr
-	gpPixelStorei             uintptr
-	gpReadPixels              uintptr
-	gpScissor                 uintptr
-	gpShaderSource            uintptr
-	gpTexImage2D              uintptr
-	gpTexParameteri           uintptr
-	gpTexSubImage2D           uintptr
-	gpUniform1fv              uintptr
-	gpUniform1i               uintptr
-	gpUniform1iv              uintptr
-	gpUniform2fv              uintptr
-	gpUniform2iv              uintptr
-	gpUniform3fv              uintptr
-	gpUniform3iv              uintptr
-	gpUniform4fv              uintptr
-	gpUniform4iv              uintptr
-	gpUniformMatrix2fv        uintptr
-	gpUniformMatrix3fv        uintptr
-	gpUniformMatrix4fv        uintptr
-	gpUseProgram              uintptr
-	gpVertexAttribPointer     uintptr
-	gpViewport                uintptr
+	// gpMapBufferRange is registered by purego.RegisterFunc so that it returns the mapped memory as an
+	// unsafe.Pointer. Converting the uintptr result of call to unsafe.Pointer is reported by go vet.
+	gpMapBufferRange      func(target uint32, offset, length int, access uint32) unsafe.Pointer
+	gpPixelStorei         uintptr
+	gpReadPixels          uintptr
+	gpScissor             uintptr
+	gpShaderSource        uintptr
+	gpTexImage2D          uintptr
+	gpTexParameteri       uintptr
+	gpTexSubImage2D       uintptr
+	gpUniform1fv          uintptr
+	gpUniform1i           uintptr
+	gpUniform1iv          uintptr
+	gpUniform2fv          uintptr
+	gpUniform2iv          uintptr
+	gpUniform3fv          uintptr
+	gpUniform3iv          uintptr
+	gpUniform4fv          uintptr
+	gpUniform4iv          uintptr
+	gpUniformMatrix2fv    uintptr
+	gpUniformMatrix3fv    uintptr
+	gpUniformMatrix4fv    uintptr
+	gpUnmapBuffer         uintptr
+	gpUseProgram          uintptr
+	gpVertexAttribPointer uintptr
+	gpViewport            uintptr
 
 	// args holds the arguments of call. args, pinner, nameBuf, intBuf, and strBuf are shared by
 	// every call, so defaultContext must not be used concurrently.
@@ -212,6 +220,16 @@ func (c *defaultContext) CheckFramebufferStatus(target uint32) uint32 {
 	return uint32(ret)
 }
 
+func (c *defaultContext) ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32 {
+	// GLuint64 occupies two argument words on 32-bit platforms.
+	if bits.UintSize == 32 {
+		ret, _, _ := c.call(c.gpClientWaitSync, sync, uintptr(flags), uintptr(uint32(timeout)), uintptr(timeout>>32))
+		return uint32(ret)
+	}
+	ret, _, _ := c.call(c.gpClientWaitSync, sync, uintptr(flags), uintptr(timeout))
+	return uint32(ret)
+}
+
 func (c *defaultContext) CompileShader(shader uint32) {
 	c.call(c.gpCompileShader, uintptr(shader))
 }
@@ -262,6 +280,10 @@ func (c *defaultContext) DeleteShader(shader uint32) {
 	c.call(c.gpDeleteShader, uintptr(shader))
 }
 
+func (c *defaultContext) DeleteSync(sync uintptr) {
+	c.call(c.gpDeleteSync, sync)
+}
+
 func (c *defaultContext) DeleteTexture(texture uint32) {
 	c.deleteName(c.gpDeleteTextures, texture)
 }
@@ -282,6 +304,11 @@ func (c *defaultContext) EnableVertexAttribArray(index uint32) {
 	c.call(c.gpEnableVertexAttribArray, uintptr(index))
 }
 
+func (c *defaultContext) FenceSync(condition uint32, flags uint32) uintptr {
+	ret, _, _ := c.call(c.gpFenceSync, uintptr(condition), uintptr(flags))
+	return ret
+}
+
 func (c *defaultContext) Finish() {
 	c.call(c.gpFinish)
 }
@@ -292,6 +319,10 @@ func (c *defaultContext) Flush() {
 
 func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32) {
 	c.call(c.gpFramebufferTexture2D, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
+}
+
+func (c *defaultContext) GetBufferSubData(target uint32, offset int, data []byte) {
+	panic("gl: GetBufferSubData is not implemented")
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -365,11 +396,23 @@ func (c *defaultContext) LinkProgram(program uint32) {
 	c.call(c.gpLinkProgram, uintptr(program))
 }
 
+func (c *defaultContext) MapBufferRange(target uint32, offset int, length int, access uint32) []byte {
+	p := c.gpMapBufferRange(target, offset, length, access)
+	if p == nil {
+		return nil
+	}
+	return unsafe.Slice((*byte)(p), length)
+}
+
 func (c *defaultContext) PixelStorei(pname uint32, param int32) {
 	c.call(c.gpPixelStorei, uintptr(pname), uintptr(param))
 }
 
 func (c *defaultContext) ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32) {
+	if dst == nil {
+		c.call(c.gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), 0)
+		return
+	}
 	c.pinner.Pin(&dst[0])
 	defer c.pinner.Unpin()
 	c.call(c.gpReadPixels, uintptr(x), uintptr(y), uintptr(width), uintptr(height), uintptr(format), uintptr(xtype), uintptr(unsafe.Pointer(&dst[0])))
@@ -522,6 +565,11 @@ func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
 	c.call(c.gpUniformMatrix4fv, uintptr(location), uintptr(len(value)/16), 0, uintptr(unsafe.Pointer(ptr)))
 }
 
+func (c *defaultContext) UnmapBuffer(target uint32) bool {
+	r, _, _ := c.call(c.gpUnmapBuffer, uintptr(target))
+	return r != 0
+}
+
 func (c *defaultContext) UseProgram(program uint32) {
 	c.call(c.gpUseProgram, uintptr(program))
 }
@@ -549,6 +597,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpBufferData = g.get("glBufferData")
 	c.gpBufferSubData = g.get("glBufferSubData")
 	c.gpCheckFramebufferStatus = g.get("glCheckFramebufferStatus")
+	c.gpClientWaitSync = g.get("glClientWaitSync")
 	c.gpCompileShader = g.get("glCompileShader")
 	c.gpCreateProgram = g.get("glCreateProgram")
 	c.gpCreateShader = g.get("glCreateShader")
@@ -556,11 +605,13 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteFramebuffers = g.get("glDeleteFramebuffers")
 	c.gpDeleteProgram = g.get("glDeleteProgram")
 	c.gpDeleteShader = g.get("glDeleteShader")
+	c.gpDeleteSync = g.get("glDeleteSync")
 	c.gpDeleteTextures = g.get("glDeleteTextures")
 	c.gpDeleteVertexArrays = g.get("glDeleteVertexArrays")
 	c.gpDrawElements = g.get("glDrawElements")
 	c.gpEnable = g.get("glEnable")
 	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")
+	c.gpFenceSync = g.get("glFenceSync")
 	c.gpFinish = g.get("glFinish")
 	c.gpFlush = g.get("glFlush")
 	c.gpFramebufferTexture2D = g.get("glFramebufferTexture2D")
@@ -577,6 +628,9 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGetUniformLocation = g.get("glGetUniformLocation")
 	c.gpIsProgram = g.get("glIsProgram")
 	c.gpLinkProgram = g.get("glLinkProgram")
+	if p := g.get("glMapBufferRange"); p != 0 {
+		purego.RegisterFunc(&c.gpMapBufferRange, p)
+	}
 	c.gpPixelStorei = g.get("glPixelStorei")
 	c.gpReadPixels = g.get("glReadPixels")
 	c.gpScissor = g.get("glScissor")
@@ -596,6 +650,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpUniformMatrix2fv = g.get("glUniformMatrix2fv")
 	c.gpUniformMatrix3fv = g.get("glUniformMatrix3fv")
 	c.gpUniformMatrix4fv = g.get("glUniformMatrix4fv")
+	c.gpUnmapBuffer = g.get("glUnmapBuffer")
 	c.gpUseProgram = g.get("glUseProgram")
 	c.gpVertexAttribPointer = g.get("glVertexAttribPointer")
 	c.gpViewport = g.get("glViewport")

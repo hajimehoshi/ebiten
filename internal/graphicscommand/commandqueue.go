@@ -259,8 +259,15 @@ type commandQueueFlushArgs struct {
 
 func (a commandQueueFlushArgs) flush() error {
 	defer a.logger.Flush()
+	var flushErr error
+	defer func() {
+		if flushErr != nil {
+			a.manager.abortPendingReadPixels(flushErr)
+		}
+	}()
 	applyVsyncEnabledIfNeeded(a.graphicsDriver)
 	if err := a.queue.flush(a.graphicsDriver, a.mode, a.logger); err != nil {
+		flushErr = err
 		if a.sync {
 			return err
 		}
@@ -268,6 +275,7 @@ func (a commandQueueFlushArgs) flush() error {
 		a.manager.setError(err)
 		return nil
 	}
+	a.manager.pollReadPixels()
 	a.manager.finishCommandQueueFlush(a.queue, a.mode)
 	return nil
 }
@@ -288,14 +296,19 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 	vs := q.vertices
 	logger.FrameLogf("Graphics commands:\n")
 
-	if err := graphicsDriver.Begin(); err != nil {
-		return err
-	}
-
+	var begun bool
 	defer func() {
-		// Call End even if an error occurs, or the graphics driver's state might be stale (#2388).
-		if graphicsErr := graphicsDriver.End(mode); graphicsErr != nil {
-			err = errors.Join(err, graphicsErr)
+		if begun {
+			// Call End even if an error occurs, or the graphics driver's state might be stale (#2388).
+			if graphicsErr := graphicsDriver.End(mode); graphicsErr != nil {
+				err = errors.Join(err, graphicsErr)
+			}
+		}
+		if err != nil {
+			q.abortQueuedReadPixels(err)
+		}
+		if !begun {
+			return
 		}
 
 		// Release the commands explicitly (#1803).
@@ -321,6 +334,11 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 			q.releaseResources()
 		}
 	}()
+
+	if err := graphicsDriver.Begin(); err != nil {
+		return err
+	}
+	begun = true
 
 	cs := q.commands
 	for len(cs) > 0 {
@@ -540,6 +558,10 @@ type commandQueueManager struct {
 	// Only the render thread accesses queuesInUse.
 	queuesInUse []*commandQueue
 
+	// pendingReadPixels holds the pixel read-backs that have not been finished yet.
+	// Only the render thread accesses pendingReadPixels.
+	pendingReadPixels []*readPixelsRequest
+
 	err atomic.Pointer[error]
 }
 
@@ -600,7 +622,12 @@ func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [grap
 	c.current.EnqueueDrawTrianglesCommand(dst, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms)
 }
 
-func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) error {
+func (c *commandQueueManager) flush(graphicsDriver graphicsdriver.Graphics, mode graphicsdriver.FlushMode) (err error) {
+	defer func() {
+		if err != nil {
+			c.abortReadPixels(err)
+		}
+	}()
 	// An error at an earlier flush stops any further work.
 	if err := c.error(); err != nil {
 		return err

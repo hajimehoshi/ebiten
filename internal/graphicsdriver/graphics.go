@@ -75,6 +75,41 @@ type Image interface {
 	WritePixels(args []PixelsArgs) error
 }
 
+// PixelsReadback represents a pixel read-back that has been started by AsyncPixelsReader and whose
+// pixels are not available yet.
+type PixelsReadback interface {
+	// Poll reports whether the read-back has completed. Poll must not wait for the GPU.
+	//
+	// When Poll reports true without an error, the read pixels have been copied into the
+	// arguments passed to ReadPixelsAsync. When Poll returns an error, the read-back has failed
+	// and their contents are unspecified. Poll must not be called again after it reports done or
+	// returns an error.
+	Poll() (done bool, err error)
+
+	// Dispose releases the resources for the read-back.
+	// Dispose must be called exactly once, whether the read-back completed or was aborted.
+	Dispose()
+}
+
+// AsyncPixelsReader is an optional interface for a graphics driver image that can start a pixel
+// read-back without waiting for the GPU to finish.
+//
+// A graphics driver that doesn't implement this interface reads pixels synchronously, which is
+// correct but blocks the render thread until the GPU finishes.
+type AsyncPixelsReader interface {
+	// ReadPixelsAsync starts reading pixels and returns without waiting for the GPU.
+	//
+	// The read pixels include the drawing commands preceding this call and exclude the following
+	// ones, as the reads are recorded at the current position of the command stream.
+	//
+	// ReadPixelsAsync must be called on the render thread.
+	//
+	// ReadPixelsAsync must retain the resources the read-back needs until the returned
+	// PixelsReadback is disposed. In particular, the image may be disposed right after
+	// ReadPixelsAsync returns.
+	ReadPixelsAsync(args []PixelsArgs) (PixelsReadback, error)
+}
+
 type ImageID int
 
 type PixelsArgs struct {

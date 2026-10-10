@@ -77,6 +77,11 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
+// ReadPixelsAsync queues a read-back of the original image and returns its result channel.
+func (m *Mipmap) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+	return m.orig.ReadPixelsAsync(pixels, region)
+}
+
 func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *atlas.Shader, uniforms []uint32, canSkipMipmap bool) {
 	if len(indices) == 0 {
 		return

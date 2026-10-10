@@ -166,6 +166,18 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 	return nil
 }
 
+// ReadPixelsAsync queues a read of the image's pixels and returns its result channel.
+// ReadPixelsAsync must not be called after the image is disposed.
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) <-chan error {
+	i.flushBufferedWritePixels()
+	req := newReadPixelsRequest(args)
+	theCommandQueueManager.enqueueCommand(&readPixelsAsyncCommand{
+		img: i,
+		req: req,
+	})
+	return req.result
+}
+
 func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangle) {
 	// Release the previous pixels if the region is included in the new region.
 	// Successive WritePixels calls might accumulate the pixels and never release,

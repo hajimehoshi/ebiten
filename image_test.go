@@ -347,6 +347,31 @@ func TestImageReadPixelsDispose(t *testing.T) {
 	img.ReadPixels(make([]byte, 4*16*16))
 }
 
+func TestImageReadPixelsAsync(t *testing.T) {
+	const w, h = 16, 16
+
+	t.Run("InvalidLength", func(t *testing.T) {
+		img := ebiten.NewImage(w, h)
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("ReadPixelsAsync with an invalid length must panic")
+			}
+		}()
+		img.ReadPixelsAsync(make([]byte, 4*w*h-1))
+	})
+
+	t.Run("Disposed", func(t *testing.T) {
+		img := ebiten.NewImage(w, h)
+		img.Dispose()
+		defer func() {
+			if r := recover(); r == nil {
+				t.Error("ReadPixelsAsync on a disposed image must panic")
+			}
+		}()
+		img.ReadPixelsAsync(make([]byte, 4*w*h))
+	})
+}
+
 func TestImageDeallocate(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)

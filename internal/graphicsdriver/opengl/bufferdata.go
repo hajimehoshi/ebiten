@@ -1,0 +1,45 @@
+// Copyright 2026 The Ebitengine Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//go:build !js && !playstation5
+
+package opengl
+
+import (
+	"errors"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
+)
+
+// readBufferData copies len(dst) bytes from the buffer bound to target, starting at offset, into
+// dst.
+//
+// A buffer must be bound to target.
+func (c *context) readBufferData(target uint32, offset int, dst []byte) error {
+	if len(dst) == 0 {
+		return nil
+	}
+
+	src := c.ctx.MapBufferRange(target, offset, len(dst), gl.MAP_READ_BIT)
+	if src == nil {
+		return errors.New("opengl: mapping a buffer failed")
+	}
+	copy(dst, src)
+	// src is no longer valid after the buffer is unmapped, so it must not be used after this.
+	if !c.ctx.UnmapBuffer(target) {
+		// The buffer contents were lost while the buffer was mapped.
+		return errors.New("opengl: unmapping a buffer reported that its content was lost")
+	}
+	return nil
+}

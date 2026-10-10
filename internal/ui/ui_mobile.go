@@ -25,6 +25,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
@@ -211,6 +212,8 @@ func (u *UserInterface) update() error {
 	s := theMonitor.DeviceScaleFactor()
 	sw, sh := u.screenSize(w, h, s)
 	if err := u.context.updateFrame(u.graphicsDriver, w, h, sw, sh, s, u, true); err != nil {
+		// Abort read-backs while the render thread is still serving this frame.
+		atlas.AbortReadPixels()
 		return err
 	}
 	return nil

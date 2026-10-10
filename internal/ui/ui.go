@@ -196,6 +196,46 @@ func (u *UserInterface) readPixels(img *Image, pixels []byte, region image.Recta
 	return nil
 }
 
+// readPixelsAsync starts reading pixels and returns the channel to receive the result.
+//
+// A read-back never fails to be enqueued, so this reports a failure to read the pixels only via the
+// returned channel.
+func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.Rectangle) <-chan error {
+	if !u.running.Load() {
+		panic("ui: ReadPixelsAsync cannot be called before the game starts")
+	}
+
+	result := img.readPixelsAsync(pixels, region)
+	if result != nil {
+		return result
+	}
+
+	// The read-back was not enqueued since this was called in between two frames.
+	// Try this again at the next frame.
+	// Like readPixels, this can deadlock when called from the same Update/Draw sequence.
+	u.context.runInFrame(func() {
+		result = img.readPixelsAsync(pixels, region)
+		if result == nil {
+			// This never reaches since this function must be called in a frame.
+			panic("ui: ReadPixelsAsync unexpectedly failed")
+		}
+	})
+	return result
+}
+
+// abortedReadPixels returns a channel that immediately receives the error that stopped the graphics
+// driver.
+//
+// A read-back must always receive a result, so a read-back that cannot even be enqueued reports the
+// error that prevented it.
+func (u *UserInterface) abortedReadPixels() <-chan error {
+	err := u.error()
+	ch := make(chan error, 1)
+	ch <- err
+	close(ch)
+	return ch
+}
+
 func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) (string, error) {
 	return mipmap.DumpScreenshot(u.graphicsDriver, name, blackbg)
 }

@@ -62,6 +62,15 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return i.cache.readPixels(i.img, graphicsDriver, pixels, region)
 }
 
+// ReadPixelsAsync queues a pixel read-back and returns its result channel.
+//
+// Read-back must neither read from nor populate the CPU pixel cache. Pending CPU writes are
+// flushed to the GPU before the read; GPU pixels go directly into the caller's buffer.
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+	i.writeBackPixelsIfNeeded()
+	return i.img.ReadPixelsAsync(pixels, region)
+}
+
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, name string, blackbg bool) (string, error) {
 	i.writeBackPixelsIfNeeded()
 	return i.img.DumpScreenshot(graphicsDriver, name, blackbg)

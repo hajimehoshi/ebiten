@@ -1318,6 +1318,33 @@ func (i *Image) ReadPixels(pixels []byte) {
 	i.image.ReadPixels(pixels, i.adjustedBounds())
 }
 
+// ReadPixelsAsync reads the image's pixels into pixels in RGBA order with premultiplied alpha.
+// It captures drawing operations preceding the call and excludes subsequent operations.
+// The call returns without waiting for the GPU.
+//
+// The returned channel is closed when the read finishes, including when the game exits.
+// On failure, an error is sent before closing; on success, no value is sent.
+// Ignoring the channel does not block completion. pixels must not be accessed or reused until
+// a receive from the channel completes. The buffer contents are unspecified on error.
+// The image may be drawn to or deallocated while the read is pending.
+//
+// Results progress as the game loop runs. Do not block Update or Draw waiting for a result.
+// Drivers without asynchronous read-back support read synchronously on the rendering thread.
+//
+// ReadPixelsAsync works on sub-images. It panics if len(pixels) is not 4 times the bounds' width
+// times height, if the image is disposed, or if called before the game loop starts.
+// As with ReadPixels, pixel values can differ slightly between machines.
+func (i *Image) ReadPixelsAsync(pixels []byte) <-chan error {
+	b := i.Bounds()
+	if got, want := len(pixels), 4*b.Dx()*b.Dy(); got != want {
+		panic(fmt.Sprintf("ebiten: len(pixels) must be %d but %d at ReadPixelsAsync", want, got))
+	}
+
+	i.invokeUsageCallbacks()
+
+	return i.image.ReadPixelsAsync(pixels, i.adjustedBounds())
+}
+
 // At returns the color of the image at (x, y).
 //
 // At implements the standard image.Image's At.

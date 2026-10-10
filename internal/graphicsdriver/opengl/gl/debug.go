@@ -126,6 +126,15 @@ func (d *DebugContext) CheckFramebufferStatus(arg0 uint32) uint32 {
 	return out0
 }
 
+func (d *DebugContext) ClientWaitSync(arg0 uintptr, arg1 uint32, arg2 uint64) uint32 {
+	out0 := d.Context.ClientWaitSync(arg0, arg1, arg2)
+	fmt.Fprintln(os.Stderr, "ClientWaitSync")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at ClientWaitSync", e))
+	}
+	return out0
+}
+
 func (d *DebugContext) CompileShader(arg0 uint32) {
 	d.Context.CompileShader(arg0)
 	fmt.Fprintln(os.Stderr, "CompileShader")
@@ -220,6 +229,14 @@ func (d *DebugContext) DeleteShader(arg0 uint32) {
 	}
 }
 
+func (d *DebugContext) DeleteSync(arg0 uintptr) {
+	d.Context.DeleteSync(arg0)
+	fmt.Fprintln(os.Stderr, "DeleteSync")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at DeleteSync", e))
+	}
+}
+
 func (d *DebugContext) DeleteTexture(arg0 uint32) {
 	d.Context.DeleteTexture(arg0)
 	fmt.Fprintln(os.Stderr, "DeleteTexture")
@@ -260,6 +277,15 @@ func (d *DebugContext) EnableVertexAttribArray(arg0 uint32) {
 	}
 }
 
+func (d *DebugContext) FenceSync(arg0 uint32, arg1 uint32) uintptr {
+	out0 := d.Context.FenceSync(arg0, arg1)
+	fmt.Fprintln(os.Stderr, "FenceSync")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at FenceSync", e))
+	}
+	return out0
+}
+
 func (d *DebugContext) Finish() {
 	d.Context.Finish()
 	fmt.Fprintln(os.Stderr, "Finish")
@@ -281,6 +307,14 @@ func (d *DebugContext) FramebufferTexture2D(arg0 uint32, arg1 uint32, arg2 uint3
 	fmt.Fprintln(os.Stderr, "FramebufferTexture2D")
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at FramebufferTexture2D", e))
+	}
+}
+
+func (d *DebugContext) GetBufferSubData(arg0 uint32, arg1 int, arg2 []uint8) {
+	d.Context.GetBufferSubData(arg0, arg1, arg2)
+	fmt.Fprintln(os.Stderr, "GetBufferSubData")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at GetBufferSubData", e))
 	}
 }
 
@@ -377,6 +411,15 @@ func (d *DebugContext) LinkProgram(arg0 uint32) {
 
 func (d *DebugContext) LoadFunctions() error {
 	out0 := d.Context.LoadFunctions()
+	return out0
+}
+
+func (d *DebugContext) MapBufferRange(arg0 uint32, arg1 int, arg2 int, arg3 uint32) []uint8 {
+	out0 := d.Context.MapBufferRange(arg0, arg1, arg2, arg3)
+	fmt.Fprintln(os.Stderr, "MapBufferRange")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at MapBufferRange", e))
+	}
 	return out0
 }
 
@@ -530,6 +573,15 @@ func (d *DebugContext) UniformMatrix4fv(arg0 int32, arg1 []float32) {
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at UniformMatrix4fv", e))
 	}
+}
+
+func (d *DebugContext) UnmapBuffer(arg0 uint32) bool {
+	out0 := d.Context.UnmapBuffer(arg0)
+	fmt.Fprintln(os.Stderr, "UnmapBuffer")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at UnmapBuffer", e))
+	}
+	return out0
 }
 
 func (d *DebugContext) UseProgram(arg0 uint32) {

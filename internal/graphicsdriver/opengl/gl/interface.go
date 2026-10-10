@@ -39,6 +39,7 @@ type Context interface {
 	BufferInit(target uint32, size int, usage uint32)
 	BufferSubData(target uint32, offset int, data []byte)
 	CheckFramebufferStatus(target uint32) uint32
+	ClientWaitSync(sync uintptr, flags uint32, timeout uint64) uint32
 	CompileShader(shader uint32)
 	CreateBuffer() uint32
 	CreateFramebuffer() uint32
@@ -50,14 +51,17 @@ type Context interface {
 	DeleteFramebuffer(framebuffer uint32)
 	DeleteProgram(program uint32)
 	DeleteShader(shader uint32)
+	DeleteSync(sync uintptr)
 	DeleteTexture(texture uint32)
 	DeleteVertexArray(array uint32)
 	DrawElements(mode uint32, count int32, xtype uint32, offset int)
 	Enable(cap uint32)
 	EnableVertexAttribArray(index uint32)
+	FenceSync(condition uint32, flags uint32) uintptr
 	Finish()
 	Flush()
 	FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32)
+	GetBufferSubData(target uint32, offset int, data []byte)
 	GetError() uint32
 	GetExtension(name string) any
 	GetInteger(pname uint32) int
@@ -68,6 +72,7 @@ type Context interface {
 	GetUniformLocation(program uint32, name string) int32
 	IsProgram(program uint32) bool
 	LinkProgram(program uint32)
+	MapBufferRange(target uint32, offset int, length int, access uint32) []byte
 	PixelStorei(pname uint32, param int32)
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)
 	Scissor(x, y, width, height int32)
@@ -87,6 +92,7 @@ type Context interface {
 	UniformMatrix2fv(location int32, value []float32)
 	UniformMatrix3fv(location int32, value []float32)
 	UniformMatrix4fv(location int32, value []float32)
+	UnmapBuffer(target uint32) bool
 	UseProgram(program uint32)
 	VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, offset int)
 	Viewport(x int32, y int32, width int32, height int32)
