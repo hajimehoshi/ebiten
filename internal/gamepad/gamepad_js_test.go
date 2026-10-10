@@ -161,7 +161,7 @@ func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
 	}
 
 	connected = true
-	n.SetLastPoll(time.Now())
+	n.SetLastPoll(time.Now().Add(time.Hour))
 	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +185,7 @@ func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
 		t.Fatalf("button 0 before the press: got true, want false")
 	}
 
-	n.SetLastPoll(time.Now())
+	n.SetLastPoll(time.Now().Add(time.Hour))
 	pressed = true
 	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
