@@ -143,6 +143,14 @@ func (c *Context) MakeContextCurrent() error {
 	return nil
 }
 
+// ClearCurrentContext detaches the current context from the calling thread.
+func (c *Context) ClearCurrentContext() error {
+	if !eglMakeCurrent(c.display, 0, 0, 0) {
+		return fmt.Errorf("egl: eglMakeCurrent failed: %w", c.LastError())
+	}
+	return nil
+}
+
 // SwapInterval sets the requested interval between buffer swaps.
 func (c *Context) SwapInterval(interval int) error {
 	if c.swapInterval == interval {
@@ -166,7 +174,7 @@ func (c *Context) SwapBuffers() error {
 // Unbind releases the current context before a backend frees scanout buffers.
 func (c *Context) Unbind() {
 	if c.display != 0 && (c.context != 0 || c.surface != 0) {
-		eglMakeCurrent(c.display, 0, 0, 0)
+		_ = c.ClearCurrentContext()
 	}
 }
 

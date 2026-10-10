@@ -43,9 +43,3 @@ func runOnRenderThreadAsync[A any](f func(A), arg A) {
 	// This blocking is expected as double-buffering is used.
 	thread.CallAsync(theRenderThread, f, arg)
 }
-
-// WaitForRenderThread blocks until all the tasks queued on the rendering thread so far have been executed.
-func WaitForRenderThread() {
-	// The rendering thread executes tasks in order, so an empty task finishes after all the previously queued ones.
-	thread.Call(theRenderThread, func() {})
-}

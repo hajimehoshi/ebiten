@@ -51,6 +51,10 @@ func (g *Graphics) makeContextCurrent() error {
 	return g.presenter.MakeContextCurrent()
 }
 
+func (g *Graphics) Terminate() error {
+	return g.presenter.ClearCurrentContext()
+}
+
 func (g *Graphics) swapBuffers() error {
 	// Call SwapInterval even though vsync is not changed.
 	// When toggling to fullscreen, vsync state might be reset unexpectedly (#1787).

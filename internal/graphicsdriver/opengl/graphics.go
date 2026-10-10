@@ -36,6 +36,7 @@ type activatedTexture struct {
 // desktop, or the context of a system that has no window system.
 type Presenter interface {
 	MakeContextCurrent() error
+	ClearCurrentContext() error
 	SwapInterval(interval int) error
 	SwapBuffers() error
 }

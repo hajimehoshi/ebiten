@@ -355,6 +355,17 @@ func InitializeGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error
 	return runOnRenderThread(graphicsdriver.Graphics.Initialize, graphicsDriver)
 }
 
+// TerminateGraphicsDriverState releases the graphics driver's rendering state.
+func TerminateGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {
+	// Wait for queued graphics calls even when the driver has no termination operation.
+	return runOnRenderThread(func(g graphicsdriver.Graphics) error {
+		if t, ok := g.(interface{ Terminate() error }); ok {
+			return t.Terminate()
+		}
+		return nil
+	}, graphicsDriver)
+}
+
 // ResetGraphicsDriverState resets the current graphics driver state.
 // If the graphics driver doesn't have an API to reset, ResetGraphicsDriverState does nothing.
 func ResetGraphicsDriverState(graphicsDriver graphicsdriver.Graphics) error {

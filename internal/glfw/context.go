@@ -481,6 +481,11 @@ func (w *Window) MakeContextCurrent() error {
 	return nil
 }
 
+// ClearCurrentContext detaches the current context from the calling thread.
+func (w *Window) ClearCurrentContext() error {
+	return (*Window)(nil).MakeContextCurrent()
+}
+
 func GetCurrentContext() (*Window, error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized

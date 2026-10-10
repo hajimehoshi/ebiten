@@ -116,6 +116,9 @@ func (c *Context) Size() (int, int) { return c.eglContext.Size() }
 // MakeContextCurrent makes this context current on the calling thread.
 func (c *Context) MakeContextCurrent() error { return c.eglContext.MakeContextCurrent() }
 
+// ClearCurrentContext detaches the current context from the calling thread.
+func (c *Context) ClearCurrentContext() error { return c.eglContext.ClearCurrentContext() }
+
 // Probe verifies that the selected buffer can be scanned out before the UI
 // commits to this backend. The previous CRTC state is restored immediately.
 func (c *Context) Probe() error {

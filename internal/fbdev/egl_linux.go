@@ -135,6 +135,9 @@ func (c *Context) Size() (int, int) { return c.eglContext.Size() }
 // MakeContextCurrent makes this context current on the calling thread.
 func (c *Context) MakeContextCurrent() error { return c.eglContext.MakeContextCurrent() }
 
+// ClearCurrentContext detaches the current context from the calling thread.
+func (c *Context) ClearCurrentContext() error { return c.eglContext.ClearCurrentContext() }
+
 // SwapInterval sets the requested interval between buffer swaps.
 func (c *Context) SwapInterval(interval int) error { return c.eglContext.SwapInterval(interval) }
 
