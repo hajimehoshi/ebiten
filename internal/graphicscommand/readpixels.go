@@ -17,6 +17,7 @@ package graphicscommand
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -33,7 +34,7 @@ var errReadPixelsAborted = errors.New("graphicscommand: the pixel read-back was 
 type readPixelsRequest struct {
 	args []graphicsdriver.PixelsArgs
 
-	// The channel is buffered so publication never blocks the render thread.
+	// The channel is buffered so completing the request never blocks the render thread.
 	result chan error
 
 	// readback is the graphics driver's read-back. This is nil while the enqueued command has not
@@ -102,13 +103,13 @@ func (c *readPixelsAsyncCommand) Exec(commandQueue *commandQueue, graphicsDriver
 			return nil
 		}
 		c.req.readback = readback
-		// Track the read-back so that a later flush can publish its result.
+		// Track the read-back so that a later flush can finish it.
 		theCommandQueueManager.addReadPixelsRequest(c.req)
 		return nil
 	}
 
 	// A graphics driver that doesn't implement graphicsdriver.AsyncPixelsReader reads the pixels
-	// synchronously. The result is published right away and the read-back is not tracked.
+	// synchronously. The request is completed right away and the read-back is not tracked.
 	err := c.img.image.ReadPixels(c.req.args)
 	c.req.finish(err)
 	return nil
@@ -126,7 +127,7 @@ func (c *readPixelsAsyncCommand) NeedsSync() bool {
 // abort must be called on the render thread, and must be called at most once.
 func (c *readPixelsAsyncCommand) abort(err error) {
 	if c.req.finished {
-		// Exec has already published a result.
+		// Exec has already finished the request.
 		return
 	}
 	if c.req.readback != nil {
@@ -143,48 +144,33 @@ func (c *commandQueueManager) addReadPixelsRequest(req *readPixelsRequest) {
 	c.pendingReadPixels = append(c.pendingReadPixels, req)
 }
 
-// pollReadPixels publishes results for completed read-backs and releases their resources.
+// pollReadPixels finishes completed read-backs and releases their resources.
 //
 // pollReadPixels must be called on the render thread at a flush, after the frame's commands have
 // been submitted to the graphics driver.
 func (c *commandQueueManager) pollReadPixels() {
-	if len(c.pendingReadPixels) == 0 {
-		return
-	}
-
-	// Polling in the submission order lets a finished read-back publish its result first, which
+	// Polling in the submission order lets a finished read-back complete its request first, which
 	// keeps the completion order as close to the submission order as possible.
-	pending := c.pendingReadPixels[:0]
-	for _, req := range c.pendingReadPixels {
+	c.pendingReadPixels = slices.DeleteFunc(c.pendingReadPixels, func(req *readPixelsRequest) bool {
 		done, err := req.readback.Poll()
-		if !done {
-			pending = append(pending, req)
-			continue
+		if done {
+			req.finish(err)
 		}
-		req.finish(err)
-	}
-	clear(c.pendingReadPixels[len(pending):])
-	c.pendingReadPixels = pending
+		return done
+	})
 }
 
-// abortPendingReadPixels completes all the pending read-backs with err without reading the pixels.
-//
-// abortPendingReadPixels must be called on the render thread. A pending request must always receive a
-// result, even when the graphics driver is not usable anymore, so that the callers of
-// ReadPixelsAsync never wait forever.
+// abortPendingReadPixels completes the submitted read-backs that have not finished with err.
+// It must be called on the render thread.
 func (c *commandQueueManager) abortPendingReadPixels(err error) {
-	if len(c.pendingReadPixels) == 0 {
-		return
-	}
 	for _, req := range c.pendingReadPixels {
 		req.finish(err)
 	}
-	clear(c.pendingReadPixels)
-	c.pendingReadPixels = nil
+	c.pendingReadPixels = slices.Delete(c.pendingReadPixels, 0, len(c.pendingReadPixels))
 }
 
-// abortQueuedReadPixels completes requests whose commands have not executed yet.
-// It must be called on the render thread, after any previously submitted queues.
+// abortQueuedReadPixels completes the read-backs in q whose commands have not run with err.
+// It must be called on the render thread.
 func (q *commandQueue) abortQueuedReadPixels(err error) {
 	if q == nil {
 		return
@@ -196,9 +182,11 @@ func (q *commandQueue) abortQueuedReadPixels(err error) {
 	}
 }
 
-// abortReadPixels completes pending and queued pixel read-backs with err on the render thread.
-// The caller must hold the atlas backend mutex to prevent concurrent command recording.
+// abortReadPixels completes the read-backs pending or queued so far with err.
+// The caller must hold the atlas backend mutex.
 func (c *commandQueueManager) abortReadPixels(err error) {
+	// Commands are recorded under the atlas backend mutex, so the current queue cannot change
+	// while the render thread walks it.
 	q := c.current
 	thread.Call(theRenderThread, func() {
 		q.abortQueuedReadPixels(err)
