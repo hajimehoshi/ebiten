@@ -16,10 +16,7 @@
 
 package gl
 
-import (
-	"errors"
-	"unsafe"
-)
+import "errors"
 
 // ReadBufferData copies len(dst) bytes from the buffer bound to target, starting at offset, into
 // dst.
@@ -41,10 +38,4 @@ func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) e
 		return errors.New("gl: unmapping a buffer reported that its content was lost")
 	}
 	return nil
-}
-
-// pointerFromUintptr reinterprets a foreign pointer through a local copy to avoid go vet's
-// uintptr-to-pointer conversion warning.
-func pointerFromUintptr(p uintptr) unsafe.Pointer {
-	return *(*unsafe.Pointer)(unsafe.Pointer(&p))
 }

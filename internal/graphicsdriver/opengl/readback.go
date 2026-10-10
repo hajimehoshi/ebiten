@@ -50,8 +50,8 @@ type readback struct {
 	// after all of them.
 	fence syncObject
 
-	// regions are the read regions, in the same order as the arguments of ReadPixelsAsync.
-	regions []image.Rectangle
+	// args hold the read regions and destination buffers in submission order.
+	args []graphicsdriver.PixelsArgs
 }
 
 // ReadPixelsAsync records pixel reads into pixel pack buffers and returns without waiting for the
@@ -69,10 +69,11 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 
 	r := &readback{
 		graphics: i.graphics,
+		args:     args,
 	}
 	defer func() {
 		if err != nil {
-			r.Discard()
+			r.Dispose()
 		}
 	}()
 	for _, arg := range args {
@@ -86,7 +87,6 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 		}
 		c.readPixelsToPixelPackBuffer(arg.Region)
 		r.pbos = append(r.pbos, b)
-		r.regions = append(r.regions, arg.Region)
 	}
 
 	f, err := c.newFence()
@@ -103,27 +103,23 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 	return r, nil
 }
 
-// Poll reports whether the pixel reads have completed without waiting for the GPU.
+// Poll copies the read pixels into the destination buffers when the GPU reads have completed.
 func (r *readback) Poll() (bool, error) {
 	// A zero timeout makes this a pure query that never blocks the render thread.
-	return r.graphics.context.pollFence(r.fence)
-}
-
-// Copy copies the completed pixel reads into the caller's buffers.
-func (r *readback) Copy(args []graphicsdriver.PixelsArgs) error {
-	if len(args) != len(r.pbos) {
-		return fmt.Errorf("opengl: len(args) must be %d but %d at Copy", len(r.pbos), len(args))
+	done, err := r.graphics.context.pollFence(r.fence)
+	if !done || err != nil {
+		return done, err
 	}
-	for j, arg := range args {
-		if err := r.graphics.context.readPixelsFromPixelPackBuffer(r.pbos[j], r.regions[j], arg.Pixels); err != nil {
-			return err
+	for j, arg := range r.args {
+		if err := r.graphics.context.readPixelsFromPixelPackBuffer(r.pbos[j], arg.Region, arg.Pixels); err != nil {
+			return true, err
 		}
 	}
-	return nil
+	return true, nil
 }
 
-// Discard releases the pixel pack buffers and fence.
-func (r *readback) Discard() {
+// Dispose releases the pixel pack buffers and fence.
+func (r *readback) Dispose() {
 	c := &r.graphics.context
 	if r.fence != 0 {
 		c.deleteFence(r.fence)
@@ -134,6 +130,7 @@ func (r *readback) Discard() {
 		r.pbos[j] = 0
 	}
 	r.pbos = nil
+	r.args = nil
 }
 
 func (c *context) newPixelPackBuffer(size int) (buffer, error) {

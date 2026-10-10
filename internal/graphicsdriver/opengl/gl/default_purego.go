@@ -59,7 +59,7 @@ type defaultContext struct {
 	gpGenFramebuffers         uintptr
 	gpGenTextures             uintptr
 	gpGenVertexArrays         uintptr
-	gpMapBufferRange          uintptr
+	gpMapBufferRange          func(target uint32, offset, length int, access uint32) unsafe.Pointer
 	gpGetError                uintptr
 	gpGetIntegerv             uintptr
 	gpGetProgramInfoLog       uintptr
@@ -320,11 +320,11 @@ func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, 
 }
 
 func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
-	p, _, _ := c.call(c.gpMapBufferRange, uintptr(target), uintptr(offset), uintptr(length), uintptr(access))
-	if p == 0 {
+	p := c.gpMapBufferRange(target, offset, length, access)
+	if p == nil {
 		return nil
 	}
-	return unsafe.Slice((*byte)(pointerFromUintptr(p)), length)
+	return unsafe.Slice((*byte)(p), length)
 }
 
 func (c *defaultContext) unmapBuffer(target uint32) bool {
@@ -613,7 +613,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpGenFramebuffers = g.get("glGenFramebuffers")
 	c.gpGenTextures = g.get("glGenTextures")
 	c.gpGenVertexArrays = g.get("glGenVertexArrays")
-	c.gpMapBufferRange = g.get("glMapBufferRange")
+	mapBufferRange := g.get("glMapBufferRange")
 	c.gpGetError = g.get("glGetError")
 	c.gpGetIntegerv = g.get("glGetIntegerv")
 	c.gpGetProgramInfoLog = g.get("glGetProgramInfoLog")
@@ -647,5 +647,9 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpVertexAttribPointer = g.get("glVertexAttribPointer")
 	c.gpViewport = g.get("glViewport")
 
-	return g.error()
+	if err := g.error(); err != nil {
+		return err
+	}
+	purego.RegisterFunc(&c.gpMapBufferRange, mapBufferRange)
+	return nil
 }

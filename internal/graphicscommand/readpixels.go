@@ -41,7 +41,7 @@ type readPixelsRequest struct {
 	// the pixels have been read synchronously instead.
 	readback graphicsdriver.PixelsReadback
 
-	// finished prevents publishing a second result.
+	// finished prevents completing the request twice.
 	finished bool
 }
 
@@ -53,30 +53,23 @@ func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
 	}
 }
 
-// publish sends the error, if any, closes the result channel, and releases the retained arguments.
+// finish releases the driver read-back and retained arguments, sends the error if any, and closes the result channel.
 //
-// publish must be called on the render thread, and must be called at most once.
-func (r *readPixelsRequest) publish(err error) {
+// finish must be called on the render thread, and must be called at most once.
+func (r *readPixelsRequest) finish(err error) {
 	if r.finished {
-		panic("graphicscommand: the read-back must not be published twice")
+		panic("graphicscommand: the read-back must not be finished twice")
 	}
 	r.finished = true
+	if r.readback != nil {
+		r.readback.Dispose()
+		r.readback = nil
+	}
 	r.args = nil
 	if err != nil {
 		r.result <- err
 	}
 	close(r.result)
-}
-
-// discard releases the driver resources for the read-back.
-//
-// discard must be called on the render thread, and must be called at most once.
-func (r *readPixelsRequest) discard() {
-	if r.readback == nil {
-		return
-	}
-	r.readback.Discard()
-	r.readback = nil
 }
 
 // readPixelsAsyncCommand starts a pixel read-back at its position in the command queue.
@@ -98,14 +91,14 @@ func (c *readPixelsAsyncCommand) String() string {
 func (c *readPixelsAsyncCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
 	if c.img.image == nil {
 		// The image is not created yet, which happens when the newImageCommand failed.
-		c.req.publish(errors.New("graphicscommand: the image is not available at ReadPixelsAsync"))
+		c.req.finish(errors.New("graphicscommand: the image is not available at ReadPixelsAsync"))
 		return nil
 	}
 
 	if r, ok := c.img.image.(graphicsdriver.AsyncPixelsReader); ok {
 		readback, err := r.ReadPixelsAsync(c.req.args)
 		if err != nil {
-			c.req.publish(err)
+			c.req.finish(err)
 			return nil
 		}
 		c.req.readback = readback
@@ -117,7 +110,7 @@ func (c *readPixelsAsyncCommand) Exec(commandQueue *commandQueue, graphicsDriver
 	// A graphics driver that doesn't implement graphicsdriver.AsyncPixelsReader reads the pixels
 	// synchronously. The result is published right away and the read-back is not tracked.
 	err := c.img.image.ReadPixels(c.req.args)
-	c.req.publish(err)
+	c.req.finish(err)
 	return nil
 }
 
@@ -140,7 +133,7 @@ func (c *readPixelsAsyncCommand) abort(err error) {
 		// Exec has started the read-back, and the manager owns it.
 		return
 	}
-	c.req.publish(err)
+	c.req.finish(err)
 }
 
 // addReadPixelsRequest tracks a submitted read-back until it finishes.
@@ -168,12 +161,7 @@ func (c *commandQueueManager) pollReadPixels() {
 			pending = append(pending, req)
 			continue
 		}
-		if err == nil {
-			err = req.readback.Copy(req.args)
-		}
-		req.readback.Discard()
-		req.readback = nil
-		req.publish(err)
+		req.finish(err)
 	}
 	clear(c.pendingReadPixels[len(pending):])
 	c.pendingReadPixels = pending
@@ -189,8 +177,7 @@ func (c *commandQueueManager) abortPendingReadPixels(err error) {
 		return
 	}
 	for _, req := range c.pendingReadPixels {
-		req.discard()
-		req.publish(err)
+		req.finish(err)
 	}
 	clear(c.pendingReadPixels)
 	c.pendingReadPixels = nil
