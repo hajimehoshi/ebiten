@@ -12,13 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package gamepad
+package gamepad_test
 
 import (
 	"syscall/js"
 	"testing"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
 )
+
+var object = js.Global().Get("Object")
 
 // setNavigator replaces navigator with an object whose getGamepads calls f until the test ends.
 func setNavigator(t *testing.T, f func() any) {
@@ -49,16 +53,16 @@ func TestUpdateWithoutGamepadsAllocs(t *testing.T) {
 		return []any{nil, nil, nil, nil}
 	})
 
-	var gps gamepads
-	n := &nativeGamepadsImpl{}
-	if err := n.init(&gps); err != nil {
+	var gps gamepad.Gamepads
+	n := &gamepad.JSGamepads{}
+	if err := n.Init(&gps); err != nil {
 		t.Fatal(err)
 	}
-	if err := n.update(&gps); err != nil {
+	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
 	if got := testing.AllocsPerRun(100, func() {
-		if err := n.update(&gps); err != nil {
+		if err := n.Update(&gps); err != nil {
 			t.Fatal(err)
 		}
 	}); got != 0 {
@@ -68,42 +72,42 @@ func TestUpdateWithoutGamepadsAllocs(t *testing.T) {
 
 // TestUpdateFindsGamepadWithoutEvent tests that update finds a gamepad that appears without a gamepadconnected event.
 func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
-	gamepad := js.Null()
+	jsGamepad := js.Null()
 	setNavigator(t, func() any {
-		return []any{gamepad}
+		return []any{jsGamepad}
 	})
 
-	var gps gamepads
-	n := &nativeGamepadsImpl{}
-	if err := n.init(&gps); err != nil {
+	var gps gamepad.Gamepads
+	n := &gamepad.JSGamepads{}
+	if err := n.Init(&gps); err != nil {
 		t.Fatal(err)
 	}
-	if err := n.update(&gps); err != nil {
+	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
 
-	gamepad = object.New()
-	gamepad.Set("index", 0)
-	gamepad.Set("id", "test")
-	gamepad.Set("mapping", "standard")
-	gamepad.Set("axes", []any{})
-	gamepad.Set("buttons", []any{})
+	jsGamepad = object.New()
+	jsGamepad.Set("index", 0)
+	jsGamepad.Set("id", "test")
+	jsGamepad.Set("mapping", "standard")
+	jsGamepad.Set("axes", []any{})
+	jsGamepad.Set("buttons", []any{})
 
-	if err := n.update(&gps); err != nil {
+	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(gps.appendGamepadIDs(nil)); got != 0 {
+	if got := len(gps.AppendGamepadIDs(nil)); got != 0 {
 		t.Fatalf("gamepads within one second: got %d, want 0", got)
 	}
 
-	n.lastPoll = n.lastPoll.Add(-time.Second)
-	if err := n.update(&gps); err != nil {
+	n.RewindLastPoll(time.Second)
+	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(gps.appendGamepadIDs(nil)); got != 1 {
+	if got := len(gps.AppendGamepadIDs(nil)); got != 1 {
 		t.Errorf("gamepads after one second: got %d, want 1", got)
 	}
-	if !n.polling.Load() {
+	if !n.Polling() {
 		t.Errorf("polling after a gamepad appears: got false, want true")
 	}
 }
