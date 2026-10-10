@@ -2811,14 +2811,43 @@ func TestImageDrawImageCannotAllocateImageForMipmap(t *testing.T) {
 	dst.At(0, 0)
 }
 
-func TestImageNewImageWithZeroSize(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("DrawImage must panic but not")
-		}
-	}()
-
-	_ = ebiten.NewImage(0, 1)
+func TestImageNewImageWithInvalidSize(t *testing.T) {
+	cases := []struct {
+		width  int
+		height int
+	}{
+		{
+			width:  0,
+			height: 1,
+		},
+		{
+			width:  1,
+			height: 0,
+		},
+		{
+			width:  -1,
+			height: 1,
+		},
+		{
+			width:  1,
+			height: -1,
+		},
+		{
+			width:  -1,
+			height: -1,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%dx%d", c.width, c.height), func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("NewImage must panic")
+				}
+			}()
+			i := ebiten.NewImage(c.width, c.height)
+			i.Deallocate()
+		})
+	}
 }
 
 func TestImageNewImageFromImageWithZeroSize(t *testing.T) {
