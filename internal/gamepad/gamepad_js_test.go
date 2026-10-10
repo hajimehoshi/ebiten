@@ -47,9 +47,11 @@ func setNavigator(t *testing.T, f func() any) {
 	object.Call("defineProperty", js.Global(), "navigator", desc)
 }
 
-// TestUpdateWithoutGamepadsAllocs tests that update does not allocate within one second after it finds no gamepad.
-func TestUpdateWithoutGamepadsAllocs(t *testing.T) {
+// TestUpdatePausesPollingWithoutGamepads tests that update does not call navigator.getGamepads for one second after it finds no gamepad.
+func TestUpdatePausesPollingWithoutGamepads(t *testing.T) {
+	var calls int
 	setNavigator(t, func() any {
+		calls++
 		return []any{nil, nil, nil, nil}
 	})
 
@@ -62,12 +64,26 @@ func TestUpdateWithoutGamepadsAllocs(t *testing.T) {
 	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
-	if got := testing.AllocsPerRun(100, func() {
+	if calls != 1 {
+		t.Fatalf("calls after the first update: got %d, want 1", calls)
+	}
+
+	n.SetLastPoll(time.Now().Add(time.Hour))
+	for range 10 {
 		if err := n.Update(&gps); err != nil {
 			t.Fatal(err)
 		}
-	}); got != 0 {
-		t.Errorf("allocations for each update with no gamepad: got %v, want 0", got)
+	}
+	if calls != 1 {
+		t.Fatalf("calls during the pause: got %d, want 1", calls)
+	}
+
+	n.SetLastPoll(time.Now().Add(-time.Second))
+	if err := n.Update(&gps); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 2 {
+		t.Errorf("calls after the pause: got %d, want 2", calls)
 	}
 }
 

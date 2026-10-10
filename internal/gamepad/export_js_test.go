@@ -54,6 +54,11 @@ func (n *nativeGamepadsImpl) RewindLastPoll(d time.Duration) {
 	n.lastPoll = n.lastPoll.Add(-d)
 }
 
+// SetLastPoll sets the time of the last poll to t.
+func (n *nativeGamepadsImpl) SetLastPoll(t time.Time) {
+	n.lastPoll = t
+}
+
 // AppendGamepadIDs appends the IDs of the gamepads registered in g.
 func (g *gamepads) AppendGamepadIDs(ids []ID) []ID {
 	return g.appendGamepadIDs(ids)
