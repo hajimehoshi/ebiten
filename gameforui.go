@@ -145,10 +145,6 @@ func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
 	default:
 		op.Filter = FilterPixelated
 	}
-	if img, ok := screen.(*Image); ok {
-		img.DrawImage(offscreen, &op)
-		return
-	}
-	op2 := op
-	screen.DrawImage(offscreen, &op2)
+	// Call DrawImage on the concrete type. A call via the FinalScreen interface makes op escape to the heap in each frame.
+	screen.(*Image).DrawImage(offscreen, &op)
 }
