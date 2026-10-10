@@ -1555,7 +1555,7 @@ func MaxImageSize() int {
 //
 // NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
-	return newImage(image.Rect(0, 0, width, height), atlas.ImageTypeRegular)
+	return newImage(image.Rectangle{Max: image.Pt(width, height)}, atlas.ImageTypeRegular)
 }
 
 // NewImageOptions represents options for NewImageWithOptions.
