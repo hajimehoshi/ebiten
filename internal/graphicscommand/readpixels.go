@@ -160,7 +160,7 @@ func (c *commandQueueManager) pollReadPixels() {
 	})
 }
 
-// abortPendingReadPixels completes the submitted read-backs that have not finished with err.
+// abortPendingReadPixels completes with err the submitted read-backs that have not finished.
 // It must be called on the render thread.
 func (c *commandQueueManager) abortPendingReadPixels(err error) {
 	for _, req := range c.pendingReadPixels {
@@ -169,7 +169,7 @@ func (c *commandQueueManager) abortPendingReadPixels(err error) {
 	c.pendingReadPixels = slices.Delete(c.pendingReadPixels, 0, len(c.pendingReadPixels))
 }
 
-// abortQueuedReadPixels completes the read-backs in q whose commands have not run with err.
+// abortQueuedReadPixels completes with err the read-backs in q whose commands have not run.
 // It must be called on the render thread.
 func (q *commandQueue) abortQueuedReadPixels(err error) {
 	if q == nil {

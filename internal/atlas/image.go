@@ -878,7 +878,7 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	return i.backend.backendImage.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
-// AbortReadPixels aborts pending read-backs while preventing concurrent command recording.
+// AbortReadPixels completes pending and queued pixel read-backs with an error.
 func AbortReadPixels() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
