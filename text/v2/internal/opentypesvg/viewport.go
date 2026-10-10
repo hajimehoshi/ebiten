@@ -157,6 +157,11 @@ type glyphViewport struct {
 
 // viewport resolves the OpenType root viewport using the em square and supplied font metrics.
 func (d *document) viewport(unitsPerEm float64, context lengthContext) (glyphViewport, error) {
+	// Root dimensions define the viewBox destination, matching Skia's SVG root
+	// mapping. Output pixel scaling remains the caller's job. Root x/y and
+	// overflow do not shift or clip the glyph's y-down font coordinates.
+	// https://learn.microsoft.com/en-us/typography/opentype/spec/svg#coordinate-systems-and-glyph-metrics
+	// https://github.com/google/skia/blob/main/modules/svg/src/SkSVGSVG.cpp
 	if !isFinite(unitsPerEm) || unitsPerEm <= 0 {
 		return glyphViewport{}, errGeometry
 	}

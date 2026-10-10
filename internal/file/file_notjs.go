@@ -364,9 +364,13 @@ func (v *virtualDir) Stat() (fs.FileInfo, error) {
 }
 
 func (v *virtualDir) Read([]byte) (int, error) {
+	name := v.node.name
+	if name == "" {
+		name = "."
+	}
 	return 0, &fs.PathError{
 		Op:   "read",
-		Path: v.node.name,
+		Path: name,
 		Err:  errors.New("is a directory"),
 	}
 }

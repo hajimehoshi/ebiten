@@ -171,6 +171,9 @@ func parseTransform(text string) (matrix, error) {
 		if s.pos == len(text) {
 			break
 		}
+		// Adjacent functions are accepted for compatibility. Numeric argument
+		// boundaries follow CSS Transforms' SVG transform-list syntax.
+		// https://www.w3.org/TR/css-transforms-1/#svg-syntax
 		s.separator(false)
 		// Transform definitions allow one or more comma-wsp productions.
 		for s.pos < len(text) && text[s.pos] == ',' {

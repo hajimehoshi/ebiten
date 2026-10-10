@@ -137,6 +137,7 @@ var (
 	window                = js.Global().Get("window")
 	document              = js.Global().Get("document")
 	screen                = js.Global().Get("screen")
+	body                  js.Value
 	canvas                js.Value
 	requestAnimationFrame = js.Global().Get("requestAnimationFrame")
 	setTimeout            = js.Global().Get("setTimeout")
@@ -291,7 +292,6 @@ func (u *UserInterface) SetCursorShape(shape CursorShape) {
 
 func (u *UserInterface) outsideSize() (float64, float64) {
 	if document.Truthy() {
-		body := document.Get("body")
 		bw := body.Get("clientWidth").Float()
 		bh := body.Get("clientHeight").Float()
 		return bw, bh
@@ -405,6 +405,8 @@ func (u *UserInterface) loopGame() error {
 	g, ctx := errgroup.WithContext(stdcontext.Background())
 
 	var cf js.Func
+	// call calls cf with no receiver and no arguments.
+	var call js.Value
 	f := func() error {
 		if ctx.Err() != nil {
 			return nil
@@ -422,11 +424,11 @@ func (u *UserInterface) loopGame() error {
 		}
 		switch u.FPSMode() {
 		case FPSModeVsyncOn:
-			requestAnimationFrame.Invoke(cf)
+			requestAnimationFrame.Invoke(call)
 		case FPSModeVsyncOffMaximum:
-			setTimeout.Invoke(cf, 0)
+			setTimeout.Invoke(call, 0)
 		case FPSModeVsyncOffMinimum:
-			requestAnimationFrame.Invoke(cf)
+			requestAnimationFrame.Invoke(call)
 		}
 		return nil
 	}
@@ -437,6 +439,7 @@ func (u *UserInterface) loopGame() error {
 		g.Go(f)
 		return nil
 	})
+	call = js.Global().Get("Reflect").Get("apply").Call("bind", nil, cf, js.Undefined(), js.Global().Get("Array").New())
 
 	// Run the first frame asynchronously so that the audio watcher below starts right away.
 	g.Go(f)
@@ -550,6 +553,7 @@ func (u *UserInterface) init() error {
 	if err := waitForBody(); err != nil {
 		return err
 	}
+	body = document.Get("body")
 
 	u.setWindowEventHandlers(window)
 

@@ -164,8 +164,8 @@ func (d *document) selectGlyph(gid uint16) (*element, error) {
 	// The interpreter must render the entry as a use instance with its own
 	// inheritance context. sourceParent is not an instance parent: original
 	// ancestor transforms, opacity and inherited properties do not apply.
-	// CSS selector ancestry during glyph extraction remains to be settled in
-	// the style interpreter. The source hierarchy is retained independently.
+	// The style resolver matches selectors against source ancestry and applies
+	// cascaded declarations with the explicit instance inheritance context.
 	// https://learn.microsoft.com/en-us/typography/opentype/spec/svg#glyph-identifiers
 	// https://www.w3.org/TR/SVG11/struct.html#UseElement
 	e := d.ids["glyph"+strconv.FormatUint(uint64(gid), 10)]
@@ -226,8 +226,7 @@ func (d *document) checkReferences(e *element, costs map[*element]referenceCost,
 		}
 	}
 	// Only template references contribute to conceptual expansion. Paint URLs
-	// are resolved by the later property interpreter using resolve, which must
-	// also bound any paint or CSS reference traversal it introduces.
+	// are resolved by the bounded style and paint resolver after the cascade.
 	switch e.name.Local {
 	case "use":
 		ref, ok := e.attribute("", "href")

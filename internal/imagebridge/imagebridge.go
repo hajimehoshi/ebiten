@@ -20,6 +20,9 @@ package imagebridge
 
 // Bridge is the set of functions accessing the internals of Image.
 type Bridge[Image any] struct {
+	// IsRunGameEnded reports whether RunGame has finished and images can no longer be created.
+	IsRunGameEnded func() bool
+
 	// OriginalImage returns the original image of a sub-image, or the image itself otherwise.
 	OriginalImage func(img Image) Image
 

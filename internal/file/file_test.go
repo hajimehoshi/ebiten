@@ -17,6 +17,7 @@
 package file_test
 
 import (
+	"errors"
 	"io/fs"
 	"path/filepath"
 	"slices"
@@ -247,5 +248,30 @@ func TestFSAbsPath(t *testing.T) {
 	}()
 	if got, want := absPath(t, f), filepath.Join(base, "dir", "foo.txt"); got != want {
 		t.Errorf("AbsPath(): got: %s, want: %s", got, want)
+	}
+}
+
+func TestFSDirectoryReadError(t *testing.T) {
+	vfs := newVirtualFS(t, []string{filepath.Join("testdata", "foo.txt"), filepath.Join("testdata", "dir", "foo.txt")})
+	for _, name := range []string{".", "dir"} {
+		f, err := vfs.Open(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_, err = f.Read(make([]byte, 1))
+		if closeErr := f.Close(); closeErr != nil {
+			t.Fatal(closeErr)
+		}
+		var pathErr *fs.PathError
+		if !errors.As(err, &pathErr) {
+			t.Errorf("%s: got error %v, want *fs.PathError", name, err)
+			continue
+		}
+		if got, want := pathErr.Path, name; got != want {
+			t.Errorf("Path: got %q, want %q", got, want)
+		}
+		if got, want := pathErr.Op, "read"; got != want {
+			t.Errorf("Op: got %q, want %q", got, want)
+		}
 	}
 }

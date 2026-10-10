@@ -135,21 +135,16 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 // You can use DefaultDrawFinalScreen when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
 // in your implementation of [FinalScreenDrawer], for example.
 func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
+	var op DrawImageOptions
+	op.GeoM = geoM
 	scale := geoM.Element(0, 0)
 	switch {
 	case !screenFilterEnabled.Load(), math.Floor(scale) == scale:
-		op := &DrawImageOptions{}
-		op.GeoM = geoM
-		screen.DrawImage(offscreen, op)
 	case scale < 1:
-		op := &DrawImageOptions{}
-		op.GeoM = geoM
 		op.Filter = FilterLinear
-		screen.DrawImage(offscreen, op)
 	default:
-		op := &DrawImageOptions{}
-		op.GeoM = geoM
 		op.Filter = FilterPixelated
-		screen.DrawImage(offscreen, op)
 	}
+	// Call DrawImage on the concrete type. A call via the FinalScreen interface makes op escape to the heap in each frame.
+	screen.(*Image).DrawImage(offscreen, &op)
 }

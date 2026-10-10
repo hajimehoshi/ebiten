@@ -44,12 +44,6 @@ func runOnRenderThreadAsync[A any](f func(A), arg A) {
 	thread.CallAsync(theRenderThread, f, arg)
 }
 
-// WaitForRenderThread blocks until all the tasks queued on the rendering thread so far have been executed.
-func WaitForRenderThread() {
-	// The rendering thread executes tasks in order, so an empty task finishes after all the previously queued ones.
-	thread.Call(theRenderThread, func() {})
-}
-
 // AbortReadPixels completes pending and queued pixel read-backs with an error.
 // Their results have been delivered when AbortReadPixels returns.
 // The caller must hold the atlas backend mutex.
