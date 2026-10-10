@@ -18,7 +18,9 @@ package glfw
 
 import (
 	"fmt"
+	"runtime"
 	"structs"
+	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -78,8 +80,6 @@ var (
 	xDisplayKeycodes           func(display uintptr, minKeycodes, maxKeycodes *int32) int32
 	xEventsQueued              func(display uintptr, mode int32) int32
 	xFilterEvent               func(event *_XEvent, w _XID) bool
-	xFlush                     func(display uintptr) int32
-	xFree                      func(data uintptr) int32
 	xFreeColormap              func(display uintptr, colormap _XID) int32
 	xFreeCursor                func(display uintptr, cursor _XID) int32
 	xFreeEventData             func(display uintptr, cookie *_XGenericEventCookie)
@@ -87,14 +87,11 @@ var (
 	xGetEventData              func(display uintptr, cookie *_XGenericEventCookie) bool
 	xGetICValues               func(ic uintptr, key string, value *_Culong, term uintptr) uintptr
 	xGetIMValues               func(im uintptr, key string, value *uintptr, term uintptr) uintptr
-	xGetInputFocus             func(display uintptr, focusReturn *_XID, revertToReturn *int32) int32
 	xGetKeyboardMapping        func(display uintptr, firstKeycode _KeyCode, keycodeCount int32, keysymsPerKeycodeReturn *int32) uintptr
 	xGetScreenSaver            func(display uintptr, timeout, interval, preferBlanking, allowExposures *int32) int32
 	xGetSelectionOwner         func(display uintptr, selection _Atom) _XID
 	xGetVisualInfo             func(display uintptr, vinfoMask _Clong, vinfoTemplate *_XVisualInfo, nitemsReturn *int32) uintptr
 	xGetWMNormalHints          func(display uintptr, w _XID, hints *_XSizeHints, supplied *_Clong) int32
-	xGetWindowAttributes       func(display uintptr, w _XID, attributes *_XWindowAttributes) int32
-	xGetWindowProperty         func(display uintptr, w _XID, property _Atom, longOffset, longLength _Clong, delete bool, reqType _Atom, actualTypeReturn *_Atom, actualFormatReturn *int32, nitemsReturn *_Culong, bytesAfterReturn *_Culong, propReturn *uintptr) int32
 	xGrabPointer               func(display uintptr, grabWindow _XID, ownerEvents bool, eventMask uint32, pointerMode, keyboardMode int32, confineTo _XID, cursor _XID, time _Time) int32
 	xIconifyWindow             func(display uintptr, w _XID, screen int32) int32
 	xInitThreads               func() int32
@@ -108,10 +105,7 @@ var (
 	xOpenDisplay               func(displayName uintptr) uintptr
 	xOpenIM                    func(display uintptr, db uintptr, resName uintptr, resClass uintptr) uintptr
 	xPeekEvent                 func(display uintptr, eventReturn *_XEvent) int32
-	xPending                   func(display uintptr) int32
-	xQLength                   func(display uintptr) int32
 	xQueryExtension            func(display uintptr, name string, majorOpcodeReturn, firstEventReturn, firstErrorReturn *int32) bool
-	xQueryPointer              func(display uintptr, w _XID, rootReturn, childReturn *_XID, rootXReturn, rootYReturn, winXReturn, winYReturn *int32, maskReturn *uint32) bool
 	xRaiseWindow               func(display uintptr, w _XID) int32
 	xResizeWindow              func(display uintptr, w _XID, width, height uint32) int32
 	xResourceManagerString     func(display uintptr) uintptr
@@ -129,7 +123,6 @@ var (
 	xSetWMProtocols            func(display uintptr, w _XID, protocols *_Atom, count int32) int32
 	xSupportsLocale            func() bool
 	xSync                      func(display uintptr, discard bool) int32
-	xTranslateCoordinates      func(display uintptr, srcW, destW _XID, srcX, srcY int32, destXReturn, destYReturn *int32, childReturn *_XID) bool
 	xUndefineCursor            func(display uintptr, w _XID) int32
 	xUngrabPointer             func(display uintptr, time _Time) int32
 	xUnmapWindow               func(display uintptr, w _XID) int32
@@ -250,8 +243,6 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xDisplayKeycodes, lib, "XDisplayKeycodes")
 	purego.RegisterLibFunc(&xEventsQueued, lib, "XEventsQueued")
 	purego.RegisterLibFunc(&xFilterEvent, lib, "XFilterEvent")
-	purego.RegisterLibFunc(&xFlush, lib, "XFlush")
-	purego.RegisterLibFunc(&xFree, lib, "XFree")
 	purego.RegisterLibFunc(&xFreeColormap, lib, "XFreeColormap")
 	purego.RegisterLibFunc(&xFreeCursor, lib, "XFreeCursor")
 	purego.RegisterLibFunc(&xFreeEventData, lib, "XFreeEventData")
@@ -259,14 +250,11 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xGetEventData, lib, "XGetEventData")
 	purego.RegisterLibFunc(&xGetICValues, lib, "XGetICValues")
 	purego.RegisterLibFunc(&xGetIMValues, lib, "XGetIMValues")
-	purego.RegisterLibFunc(&xGetInputFocus, lib, "XGetInputFocus")
 	purego.RegisterLibFunc(&xGetKeyboardMapping, lib, "XGetKeyboardMapping")
 	purego.RegisterLibFunc(&xGetScreenSaver, lib, "XGetScreenSaver")
 	purego.RegisterLibFunc(&xGetSelectionOwner, lib, "XGetSelectionOwner")
 	purego.RegisterLibFunc(&xGetVisualInfo, lib, "XGetVisualInfo")
 	purego.RegisterLibFunc(&xGetWMNormalHints, lib, "XGetWMNormalHints")
-	purego.RegisterLibFunc(&xGetWindowAttributes, lib, "XGetWindowAttributes")
-	purego.RegisterLibFunc(&xGetWindowProperty, lib, "XGetWindowProperty")
 	purego.RegisterLibFunc(&xGrabPointer, lib, "XGrabPointer")
 	purego.RegisterLibFunc(&xIconifyWindow, lib, "XIconifyWindow")
 	purego.RegisterLibFunc(&xInitThreads, lib, "XInitThreads")
@@ -280,10 +268,7 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xOpenDisplay, lib, "XOpenDisplay")
 	purego.RegisterLibFunc(&xOpenIM, lib, "XOpenIM")
 	purego.RegisterLibFunc(&xPeekEvent, lib, "XPeekEvent")
-	purego.RegisterLibFunc(&xPending, lib, "XPending")
-	purego.RegisterLibFunc(&xQLength, lib, "XQLength")
 	purego.RegisterLibFunc(&xQueryExtension, lib, "XQueryExtension")
-	purego.RegisterLibFunc(&xQueryPointer, lib, "XQueryPointer")
 	purego.RegisterLibFunc(&xRaiseWindow, lib, "XRaiseWindow")
 	purego.RegisterLibFunc(&xResizeWindow, lib, "XResizeWindow")
 	purego.RegisterLibFunc(&xResourceManagerString, lib, "XResourceManagerString")
@@ -302,7 +287,6 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xSetWMProtocols, lib, "XSetWMProtocols")
 	purego.RegisterLibFunc(&xSupportsLocale, lib, "XSupportsLocale")
 	purego.RegisterLibFunc(&xSync, lib, "XSync")
-	purego.RegisterLibFunc(&xTranslateCoordinates, lib, "XTranslateCoordinates")
 	purego.RegisterLibFunc(&xUndefineCursor, lib, "XUndefineCursor")
 	purego.RegisterLibFunc(&xUngrabPointer, lib, "XUngrabPointer")
 	purego.RegisterLibFunc(&xUnmapWindow, lib, "XUnmapWindow")
@@ -325,6 +309,27 @@ func initLibX11() error {
 	purego.RegisterLibFunc(&xrmInitialize, lib, "XrmInitialize")
 	purego.RegisterLibFunc(&xutf8LookupString, lib, "Xutf8LookupString")
 	purego.RegisterLibFunc(&xutf8SetWMProperties, lib, "Xutf8SetWMProperties")
+
+	for _, p := range []struct {
+		proc *uintptr
+		name string
+	}{
+		{&x11Procs.flush, "XFlush"},
+		{&x11Procs.free, "XFree"},
+		{&x11Procs.getInputFocus, "XGetInputFocus"},
+		{&x11Procs.getWindowAttributes, "XGetWindowAttributes"},
+		{&x11Procs.getWindowProperty, "XGetWindowProperty"},
+		{&x11Procs.pending, "XPending"},
+		{&x11Procs.qLength, "XQLength"},
+		{&x11Procs.queryPointer, "XQueryPointer"},
+		{&x11Procs.translateCoordinates, "XTranslateCoordinates"},
+	} {
+		proc, err := purego.Dlsym(lib, p.name)
+		if err != nil {
+			return err
+		}
+		*p.proc = proc
+	}
 
 	setlocaleSym, err := purego.Dlsym(purego.RTLD_DEFAULT, "setlocale")
 	if err != nil {
@@ -367,4 +372,137 @@ func goString(p uintptr) string {
 		n++
 	}
 	return string(unsafe.Slice((*byte)(unsafe.Pointer(p)), n))
+}
+
+// cCall holds the arguments and the out-parameters of a C function call.
+type cCall struct {
+	args   [12]uintptr
+	pinner runtime.Pinner
+
+	ulongs           [4]_Culong
+	int32s           [4]int32
+	uint32           uint32
+	pointer          uintptr
+	windowAttributes _XWindowAttributes
+}
+
+var cCallPool = sync.Pool{
+	New: func() any {
+		return &cCall{}
+	},
+}
+
+// getCCall returns a pinned cCall. Release it with putCCall.
+func getCCall() *cCall {
+	c := cCallPool.Get().(*cCall)
+	c.pinner.Pin(c)
+	return c
+}
+
+func putCCall(c *cCall) {
+	c.pinner.Unpin()
+	cCallPool.Put(c)
+}
+
+// call calls fn with args. args must not hold Go pointers unless their objects are pinned.
+func (c *cCall) call(fn uintptr, args ...uintptr) uintptr {
+	n := copy(c.args[:], args)
+	r, _, _ := purego.SyscallN(fn, c.args[:n]...)
+	return r
+}
+
+func boolToUintptr(b bool) uintptr {
+	if b {
+		return 1
+	}
+	return 0
+}
+
+// x11Procs holds the addresses of the Xlib functions below.
+var x11Procs struct {
+	flush                uintptr
+	free                 uintptr
+	getInputFocus        uintptr
+	getWindowAttributes  uintptr
+	getWindowProperty    uintptr
+	pending              uintptr
+	qLength              uintptr
+	queryPointer         uintptr
+	translateCoordinates uintptr
+}
+
+func xFlush(display uintptr) int32 {
+	c := getCCall()
+	defer putCCall(c)
+	return int32(c.call(x11Procs.flush, display))
+}
+
+func xFree(data uintptr) int32 {
+	c := getCCall()
+	defer putCCall(c)
+	return int32(c.call(x11Procs.free, data))
+}
+
+func xGetInputFocus(display uintptr, focusReturn *_XID, revertToReturn *int32) int32 {
+	c := getCCall()
+	defer putCCall(c)
+	c.ulongs[0], c.int32s[0] = *focusReturn, *revertToReturn
+	r := c.call(x11Procs.getInputFocus, display, uintptr(unsafe.Pointer(&c.ulongs[0])), uintptr(unsafe.Pointer(&c.int32s[0])))
+	*focusReturn, *revertToReturn = c.ulongs[0], c.int32s[0]
+	return int32(r)
+}
+
+func xGetWindowAttributes(display uintptr, w _XID, attributes *_XWindowAttributes) int32 {
+	c := getCCall()
+	defer putCCall(c)
+	c.windowAttributes = *attributes
+	r := c.call(x11Procs.getWindowAttributes, display, uintptr(w), uintptr(unsafe.Pointer(&c.windowAttributes)))
+	*attributes = c.windowAttributes
+	return int32(r)
+}
+
+func xGetWindowProperty(display uintptr, w _XID, property _Atom, longOffset, longLength _Clong, delete bool, reqType _Atom, actualTypeReturn *_Atom, actualFormatReturn *int32, nitemsReturn *_Culong, bytesAfterReturn *_Culong, propReturn *uintptr) int32 {
+	c := getCCall()
+	defer putCCall(c)
+	c.ulongs[0], c.int32s[0], c.ulongs[1], c.ulongs[2], c.pointer = *actualTypeReturn, *actualFormatReturn, *nitemsReturn, *bytesAfterReturn, *propReturn
+	r := c.call(x11Procs.getWindowProperty, display, uintptr(w), uintptr(property), uintptr(longOffset), uintptr(longLength), boolToUintptr(delete), uintptr(reqType),
+		uintptr(unsafe.Pointer(&c.ulongs[0])), uintptr(unsafe.Pointer(&c.int32s[0])), uintptr(unsafe.Pointer(&c.ulongs[1])), uintptr(unsafe.Pointer(&c.ulongs[2])), uintptr(unsafe.Pointer(&c.pointer)))
+	*actualTypeReturn, *actualFormatReturn, *nitemsReturn, *bytesAfterReturn, *propReturn = c.ulongs[0], c.int32s[0], c.ulongs[1], c.ulongs[2], c.pointer
+	return int32(r)
+}
+
+func xPending(display uintptr) int32 {
+	c := getCCall()
+	defer putCCall(c)
+	return int32(c.call(x11Procs.pending, display))
+}
+
+func xQLength(display uintptr) int32 {
+	c := getCCall()
+	defer putCCall(c)
+	return int32(c.call(x11Procs.qLength, display))
+}
+
+func xQueryPointer(display uintptr, w _XID, rootReturn, childReturn *_XID, rootXReturn, rootYReturn, winXReturn, winYReturn *int32, maskReturn *uint32) bool {
+	c := getCCall()
+	defer putCCall(c)
+	c.ulongs[0], c.ulongs[1] = *rootReturn, *childReturn
+	c.int32s[0], c.int32s[1], c.int32s[2], c.int32s[3] = *rootXReturn, *rootYReturn, *winXReturn, *winYReturn
+	c.uint32 = *maskReturn
+	r := c.call(x11Procs.queryPointer, display, uintptr(w), uintptr(unsafe.Pointer(&c.ulongs[0])), uintptr(unsafe.Pointer(&c.ulongs[1])),
+		uintptr(unsafe.Pointer(&c.int32s[0])), uintptr(unsafe.Pointer(&c.int32s[1])), uintptr(unsafe.Pointer(&c.int32s[2])), uintptr(unsafe.Pointer(&c.int32s[3])), uintptr(unsafe.Pointer(&c.uint32)))
+	*rootReturn, *childReturn = c.ulongs[0], c.ulongs[1]
+	*rootXReturn, *rootYReturn, *winXReturn, *winYReturn = c.int32s[0], c.int32s[1], c.int32s[2], c.int32s[3]
+	*maskReturn = c.uint32
+	return byte(r) != 0
+}
+
+func xTranslateCoordinates(display uintptr, srcW, destW _XID, srcX, srcY int32, destXReturn, destYReturn *int32, childReturn *_XID) bool {
+	c := getCCall()
+	defer putCCall(c)
+	c.int32s[0], c.int32s[1], c.ulongs[0] = *destXReturn, *destYReturn, *childReturn
+	r := c.call(x11Procs.translateCoordinates, display, uintptr(srcW), uintptr(destW), uintptr(srcX), uintptr(srcY),
+		uintptr(unsafe.Pointer(&c.int32s[0])), uintptr(unsafe.Pointer(&c.int32s[1])), uintptr(unsafe.Pointer(&c.ulongs[0])))
+	*destXReturn, *destYReturn, *childReturn = c.int32s[0], c.int32s[1], c.ulongs[0]
+	return byte(r) != 0
 }

@@ -187,15 +187,27 @@ func swapBuffersEGL(window *Window) error {
 	if window != _glfw.currentContext {
 		return fmt.Errorf("glfw: egl: the context must be current on the calling thread when swapping buffers: %w", PlatformError)
 	}
-	egl.SwapBuffers(egl.display, window.context.platform.egl.surface)
+	eglSwapBuffers(egl.display, window.context.platform.egl.surface)
 	window.signalFrameSyncCounter()
 	return nil
 }
 
 func swapIntervalEGL(window *Window, interval int) error {
 	egl := &_glfw.platformContext.egl
-	egl.SwapInterval(egl.display, int32(interval))
+	eglSwapInterval(egl.display, int32(interval))
 	return nil
+}
+
+func eglSwapBuffers(display uintptr, surface uintptr) bool {
+	c := getCCall()
+	defer putCCall(c)
+	return byte(c.call(_glfw.platformContext.egl.swapBuffers, display, surface)) != 0
+}
+
+func eglSwapInterval(display uintptr, interval int32) bool {
+	c := getCCall()
+	defer putCCall(c)
+	return byte(c.call(_glfw.platformContext.egl.swapInterval, display, uintptr(interval))) != 0
 }
 
 func extensionSupportedEGL(extension string) bool {
@@ -276,6 +288,14 @@ func initEGL() error {
 		purego.RegisterFunc(fptr, sym)
 		return true
 	}
+	lookupRequired := func(proc *uintptr, name string) bool {
+		sym, err := purego.Dlsym(egl.handle, name)
+		if err != nil || sym == 0 {
+			return false
+		}
+		*proc = sym
+		return true
+	}
 
 	if !registerRequired(&egl.GetConfigAttrib, "eglGetConfigAttrib") ||
 		!registerRequired(&egl.GetConfigs, "eglGetConfigs") ||
@@ -289,8 +309,8 @@ func initEGL() error {
 		!registerRequired(&egl.DestroyContext, "eglDestroyContext") ||
 		!registerRequired(&egl.CreateWindowSurface, "eglCreateWindowSurface") ||
 		!registerRequired(&egl.MakeCurrent, "eglMakeCurrent") ||
-		!registerRequired(&egl.SwapBuffers, "eglSwapBuffers") ||
-		!registerRequired(&egl.SwapInterval, "eglSwapInterval") ||
+		!lookupRequired(&egl.swapBuffers, "eglSwapBuffers") ||
+		!lookupRequired(&egl.swapInterval, "eglSwapInterval") ||
 		!registerRequired(&egl.QueryString, "eglQueryString") ||
 		!registerRequired(&egl.GetProcAddress, "eglGetProcAddress") {
 		terminateEGL()
