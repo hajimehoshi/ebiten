@@ -151,12 +151,18 @@ func (c *commandQueueManager) addReadPixelsRequest(req *readPixelsRequest) {
 func (c *commandQueueManager) pollReadPixels() {
 	// Polling in the submission order lets a finished read-back complete its request first, which
 	// keeps the completion order as close to the submission order as possible.
-	c.pendingReadPixels = slices.DeleteFunc(c.pendingReadPixels, func(req *readPixelsRequest) bool {
+	for _, req := range c.pendingReadPixels {
 		done, err := req.readback.Poll()
-		if done {
+		if err != nil {
 			req.finish(err)
+			continue
 		}
-		return done
+		if done {
+			req.finish(nil)
+		}
+	}
+	c.pendingReadPixels = slices.DeleteFunc(c.pendingReadPixels, func(req *readPixelsRequest) bool {
+		return req.finished
 	})
 }
 

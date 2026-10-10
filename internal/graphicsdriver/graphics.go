@@ -81,8 +81,9 @@ type PixelsReadback interface {
 	// Poll reports whether the read-back has completed. Poll must not wait for the GPU.
 	//
 	// When Poll reports true without an error, the read pixels have been copied into the
-	// arguments passed to ReadPixelsAsync. When Poll reports an error, their contents are unspecified.
-	// Poll must not be called again after it reports done.
+	// arguments passed to ReadPixelsAsync. When Poll returns an error, the read-back has failed
+	// and their contents are unspecified. Poll must not be called again after it reports done or
+	// returns an error.
 	Poll() (done bool, err error)
 
 	// Dispose releases the resources for the read-back.

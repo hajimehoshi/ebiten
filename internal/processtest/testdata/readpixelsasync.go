@@ -39,7 +39,7 @@ func (g *game) Update() error {
 		g.pixels = make([]byte, 16)
 		g.result = sub.ReadPixelsAsync(g.pixels)
 		sub.Fill(color.White)
-		g.image.Dispose()
+		g.image.Deallocate()
 		return nil
 	}
 	select {

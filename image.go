@@ -1326,7 +1326,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 // On failure, an error is sent before closing; on success, no value is sent.
 // Ignoring the channel does not block completion. pixels must not be accessed or reused until
 // a receive from the channel completes. The buffer contents are unspecified on error.
-// The image may be drawn to or disposed while the read is pending.
+// The image may be drawn to or deallocated while the read is pending.
 //
 // Results progress as the game loop runs. Do not block Update or Draw waiting for a result.
 // Drivers without asynchronous read-back support read synchronously on the rendering thread.
