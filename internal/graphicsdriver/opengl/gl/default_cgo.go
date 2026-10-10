@@ -743,16 +743,8 @@ func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, 
 	C.glowFramebufferTexture2D(c.gpFramebufferTexture2D, C.GLenum(target), C.GLenum(attachment), C.GLenum(textarget), C.GLuint(texture), C.GLint(level))
 }
 
-func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
-	p := C.glowMapBufferRange(c.gpMapBufferRange, C.GLenum(target), C.GLintptr(offset), C.GLsizeiptr(length), C.GLbitfield(access))
-	if p == nil {
-		return nil
-	}
-	return unsafe.Slice((*byte)(p), length)
-}
-
-func (c *defaultContext) unmapBuffer(target uint32) bool {
-	return C.glowUnmapBuffer(c.gpUnmapBuffer, C.GLenum(target)) != 0
+func (c *defaultContext) GetBufferSubData(target uint32, offset int, data []byte) {
+	panic("gl: GetBufferSubData is not implemented")
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -816,6 +808,14 @@ func (c *defaultContext) IsProgram(program uint32) bool {
 
 func (c *defaultContext) LinkProgram(program uint32) {
 	C.glowLinkProgram(c.gpLinkProgram, C.GLuint(program))
+}
+
+func (c *defaultContext) MapBufferRange(target uint32, offset int, length int, access uint32) []byte {
+	p := C.glowMapBufferRange(c.gpMapBufferRange, C.GLenum(target), C.GLintptr(offset), C.GLsizeiptr(length), C.GLbitfield(access))
+	if p == nil {
+		return nil
+	}
+	return unsafe.Slice((*byte)(p), length)
 }
 
 func (c *defaultContext) PixelStorei(pname uint32, param int32) {
@@ -916,6 +916,10 @@ func (c *defaultContext) UniformMatrix3fv(location int32, value []float32) {
 func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
 	C.glowUniformMatrix4fv(c.gpUniformMatrix4fv, C.GLint(location), C.GLsizei(len(value)/16), 0, (*C.GLfloat)(unsafe.Pointer(&value[0])))
 	runtime.KeepAlive(value)
+}
+
+func (c *defaultContext) UnmapBuffer(target uint32) bool {
+	return C.glowUnmapBuffer(c.gpUnmapBuffer, C.GLenum(target)) != 0
 }
 
 func (c *defaultContext) UseProgram(program uint32) {

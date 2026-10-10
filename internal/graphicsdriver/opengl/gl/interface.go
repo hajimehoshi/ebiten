@@ -61,6 +61,7 @@ type Context interface {
 	Finish()
 	Flush()
 	FramebufferTexture2D(target uint32, attachment uint32, textarget uint32, texture uint32, level int32)
+	GetBufferSubData(target uint32, offset int, data []byte)
 	GetError() uint32
 	GetExtension(name string) any
 	GetInteger(pname uint32) int
@@ -71,10 +72,8 @@ type Context interface {
 	GetUniformLocation(program uint32, name string) int32
 	IsProgram(program uint32) bool
 	LinkProgram(program uint32)
+	MapBufferRange(target uint32, offset int, length int, access uint32) []byte
 	PixelStorei(pname uint32, param int32)
-	// ReadBufferData copies len(dst) bytes from the buffer bound to target, starting at offset,
-	// into dst.
-	ReadBufferData(target uint32, offset int, dst []byte) error
 	ReadPixels(dst []byte, x int32, y int32, width int32, height int32, format uint32, xtype uint32)
 	Scissor(x, y, width, height int32)
 	ShaderSource(shader uint32, xstring string)
@@ -93,6 +92,7 @@ type Context interface {
 	UniformMatrix2fv(location int32, value []float32)
 	UniformMatrix3fv(location int32, value []float32)
 	UniformMatrix4fv(location int32, value []float32)
+	UnmapBuffer(target uint32) bool
 	UseProgram(program uint32)
 	VertexAttribPointer(index uint32, size int32, xtype uint32, normalized bool, stride int32, offset int)
 	Viewport(x int32, y int32, width int32, height int32)

@@ -170,7 +170,7 @@ func (c *context) readPixelsFromPixelPackBuffer(b buffer, region image.Rectangle
 		return nil
 	}
 	c.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(b))
-	err := c.ctx.ReadBufferData(gl.PIXEL_PACK_BUFFER, 0, buf)
+	err := c.readBufferData(gl.PIXEL_PACK_BUFFER, 0, buf)
 	c.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, 0)
 	return err
 }

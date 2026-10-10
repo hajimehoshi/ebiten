@@ -395,18 +395,13 @@ func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, 
 	c.fnFramebufferTexture2D.Invoke(target, attachment, textarget, c.textures.get(texture), level)
 }
 
-// ReadBufferData copies the content of the buffer bound to target into dst.
-//
-// WebGL 2 forbids buffer mapping, so getBufferSubData is the only way to read a buffer.
-func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) error {
-	if len(dst) == 0 {
-		return nil
+func (c *defaultContext) GetBufferSubData(target uint32, offset int, data []byte) {
+	if len(data) == 0 {
+		return
 	}
-	l := len(dst)
-	arr := uint8Array.New(l)
-	c.fnGetBufferSubData.Invoke(target, offset, arr, 0, l)
-	js.CopyBytesToGo(dst, arr)
-	return nil
+	arr := tmpUint8ArrayFromUint8Slice(len(data), nil)
+	c.fnGetBufferSubData.Invoke(target, offset, arr, 0, len(data))
+	js.CopyBytesToGo(data, arr)
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -501,6 +496,10 @@ func (c *defaultContext) IsProgram(program uint32) bool {
 
 func (c *defaultContext) LinkProgram(program uint32) {
 	c.fnLinkProgram.Invoke(c.programs.get(program))
+}
+
+func (c *defaultContext) MapBufferRange(target uint32, offset int, length int, access uint32) []byte {
+	panic("gl: MapBufferRange is not implemented")
 }
 
 func (c *defaultContext) PixelStorei(pname uint32, param int32) {
@@ -613,6 +612,10 @@ func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
 	l := c.getUniformLocation(location)
 	arr := tmpFloat32ArrayFromFloat32Slice(len(value), value)
 	c.fnUniformMatrix4fv.Invoke(l, false, arr, 0, len(value))
+}
+
+func (c *defaultContext) UnmapBuffer(target uint32) bool {
+	panic("gl: UnmapBuffer is not implemented")
 }
 
 func (c *defaultContext) UseProgram(program uint32) {

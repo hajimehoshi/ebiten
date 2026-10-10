@@ -310,6 +310,14 @@ func (d *DebugContext) FramebufferTexture2D(arg0 uint32, arg1 uint32, arg2 uint3
 	}
 }
 
+func (d *DebugContext) GetBufferSubData(arg0 uint32, arg1 int, arg2 []uint8) {
+	d.Context.GetBufferSubData(arg0, arg1, arg2)
+	fmt.Fprintln(os.Stderr, "GetBufferSubData")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at GetBufferSubData", e))
+	}
+}
+
 func (d *DebugContext) GetError() uint32 {
 	out0 := d.Context.GetError()
 	fmt.Fprintln(os.Stderr, "GetError")
@@ -406,21 +414,21 @@ func (d *DebugContext) LoadFunctions() error {
 	return out0
 }
 
+func (d *DebugContext) MapBufferRange(arg0 uint32, arg1 int, arg2 int, arg3 uint32) []uint8 {
+	out0 := d.Context.MapBufferRange(arg0, arg1, arg2, arg3)
+	fmt.Fprintln(os.Stderr, "MapBufferRange")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at MapBufferRange", e))
+	}
+	return out0
+}
+
 func (d *DebugContext) PixelStorei(arg0 uint32, arg1 int32) {
 	d.Context.PixelStorei(arg0, arg1)
 	fmt.Fprintln(os.Stderr, "PixelStorei")
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at PixelStorei", e))
 	}
-}
-
-func (d *DebugContext) ReadBufferData(arg0 uint32, arg1 int, arg2 []uint8) error {
-	out0 := d.Context.ReadBufferData(arg0, arg1, arg2)
-	fmt.Fprintln(os.Stderr, "ReadBufferData")
-	if e := d.Context.GetError(); e != NO_ERROR {
-		panic(fmt.Sprintf("gl: GetError() returned %d at ReadBufferData", e))
-	}
-	return out0
 }
 
 func (d *DebugContext) ReadPixels(arg0 []uint8, arg1 int32, arg2 int32, arg3 int32, arg4 int32, arg5 uint32, arg6 uint32) {
@@ -565,6 +573,15 @@ func (d *DebugContext) UniformMatrix4fv(arg0 int32, arg1 []float32) {
 	if e := d.Context.GetError(); e != NO_ERROR {
 		panic(fmt.Sprintf("gl: GetError() returned %d at UniformMatrix4fv", e))
 	}
+}
+
+func (d *DebugContext) UnmapBuffer(arg0 uint32) bool {
+	out0 := d.Context.UnmapBuffer(arg0)
+	fmt.Fprintln(os.Stderr, "UnmapBuffer")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at UnmapBuffer", e))
+	}
+	return out0
 }
 
 func (d *DebugContext) UseProgram(arg0 uint32) {

@@ -319,17 +319,8 @@ func (c *defaultContext) FramebufferTexture2D(target uint32, attachment uint32, 
 	c.call(c.gpFramebufferTexture2D, uintptr(target), uintptr(attachment), uintptr(textarget), uintptr(texture), uintptr(level))
 }
 
-func (c *defaultContext) mapBufferRange(target uint32, offset int, length int, access uint32) []byte {
-	p := c.gpMapBufferRange(target, offset, length, access)
-	if p == nil {
-		return nil
-	}
-	return unsafe.Slice((*byte)(p), length)
-}
-
-func (c *defaultContext) unmapBuffer(target uint32) bool {
-	r, _, _ := c.call(c.gpUnmapBuffer, uintptr(target))
-	return r != 0
+func (c *defaultContext) GetBufferSubData(target uint32, offset int, data []byte) {
+	panic("gl: GetBufferSubData is not implemented")
 }
 
 func (c *defaultContext) GetError() uint32 {
@@ -401,6 +392,14 @@ func (c *defaultContext) IsProgram(program uint32) bool {
 
 func (c *defaultContext) LinkProgram(program uint32) {
 	c.call(c.gpLinkProgram, uintptr(program))
+}
+
+func (c *defaultContext) MapBufferRange(target uint32, offset int, length int, access uint32) []byte {
+	p := c.gpMapBufferRange(target, offset, length, access)
+	if p == nil {
+		return nil
+	}
+	return unsafe.Slice((*byte)(p), length)
 }
 
 func (c *defaultContext) PixelStorei(pname uint32, param int32) {
@@ -562,6 +561,11 @@ func (c *defaultContext) UniformMatrix4fv(location int32, value []float32) {
 		defer c.pinner.Unpin()
 	}
 	c.call(c.gpUniformMatrix4fv, uintptr(location), uintptr(len(value)/16), 0, uintptr(unsafe.Pointer(ptr)))
+}
+
+func (c *defaultContext) UnmapBuffer(target uint32) bool {
+	r, _, _ := c.call(c.gpUnmapBuffer, uintptr(target))
+	return r != 0
 }
 
 func (c *defaultContext) UseProgram(program uint32) {

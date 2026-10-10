@@ -14,28 +14,32 @@
 
 //go:build !js && !playstation5
 
-package gl
+package opengl
 
-import "errors"
+import (
+	"errors"
 
-// ReadBufferData copies len(dst) bytes from the buffer bound to target, starting at offset, into
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
+)
+
+// readBufferData copies len(dst) bytes from the buffer bound to target, starting at offset, into
 // dst.
 //
 // A buffer must be bound to target.
-func (c *defaultContext) ReadBufferData(target uint32, offset int, dst []byte) error {
+func (c *context) readBufferData(target uint32, offset int, dst []byte) error {
 	if len(dst) == 0 {
 		return nil
 	}
 
-	src := c.mapBufferRange(target, offset, len(dst), MAP_READ_BIT)
+	src := c.ctx.MapBufferRange(target, offset, len(dst), gl.MAP_READ_BIT)
 	if src == nil {
-		return errors.New("gl: mapping a buffer failed")
+		return errors.New("opengl: mapping a buffer failed")
 	}
 	copy(dst, src)
 	// src is no longer valid after the buffer is unmapped, so it must not be used after this.
-	if !c.unmapBuffer(target) {
+	if !c.ctx.UnmapBuffer(target) {
 		// The buffer contents were lost while the buffer was mapped.
-		return errors.New("gl: unmapping a buffer reported that its content was lost")
+		return errors.New("opengl: unmapping a buffer reported that its content was lost")
 	}
 	return nil
 }
