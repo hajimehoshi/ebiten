@@ -443,6 +443,20 @@ func commitState(text string) textinput.TextInputState {
 	return textinput.TextInputState{Text: text, CommitKind: textinput.CommitRegular}
 }
 
+func TestQueuedCommitAfterErrorReachesNextSession(t *testing.T) {
+	var ev textinput.TextInputEvents
+	ev.SetTick(func() int64 { return 1 })
+	ev.Send(textinput.TextInputState{Error: errors.New("IME error")})
+	ev.Send(commitState("a"))
+
+	if got, ok := ev.StartSessionCommit(); ok {
+		t.Errorf("failed session got commit %q", got)
+	}
+	if got, ok := ev.StartSessionCommit(); !ok || got != "a" {
+		t.Errorf("next session commit = %q, %v, want %q, true", got, ok, "a")
+	}
+}
+
 // TestQueuedCommitsReachSuccessiveSessions verifies that several commits
 // arriving before the next tick are all delivered, in order. A session ends at
 // its first commit, so flushing every queued commit into one session's channel
