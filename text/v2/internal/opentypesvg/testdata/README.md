@@ -67,3 +67,16 @@ express composition invariants rather than fixed rasterization goldens.
 | embedded-png | Red left half, blue right half of [4,36)×[4,20); (8,12) red and (30,12) blue, both opaque. No network access. |
 | restricted | Only the red [0,8)×[0,8) tile appears. Prohibited element subtrees do not render or execute. |
 | viewport-overflow | The entire red rectangle [-4,12)×[-8,8) survives despite root overflow=hidden. At an output origin shifted to (16,16), (13,10) is red. Root viewport is not an implicit glyph clip. |
+
+
+## CPU style/paint interpretation
+
+The style and gradient tests now interpret the real records without graphics
+initialization and verify focused cascade, palette and gradient expectations.
+These checks do not establish the pixel expectations above. `style_test.go`
+also tests use-instance inheritance separately from source selector ancestry,
+including the SVG 1.1 style-cloning behavior. Gradient tests supply independent
+viewport and object bounds and check definitions, transforms, inherited stops,
+stop alpha and references without flattening geometry or sampling pixels.
+The resolver's supported subset, compatibility allowances, limits and error
+policy are documented in [the package README](../README.md#supported-behavior).

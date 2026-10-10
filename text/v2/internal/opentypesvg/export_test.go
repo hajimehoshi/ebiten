@@ -144,3 +144,46 @@ func (e *element) LocalTransform(context lengthContext) (matrix, error) {
 func (d *document) Viewport(unitsPerEm float64, context lengthContext) (glyphViewport, error) {
 	return d.viewport(unitsPerEm, context)
 }
+
+type (
+	RGBA          = rgba
+	ColorContext  = colorContext
+	Style         = style
+	StyleResolver = styleResolver
+	PaintContext  = paintContext
+	Paint         = paint
+)
+
+var (
+	NewStylesheet    = newStylesheet
+	NewStyleResolver = newStyleResolver
+	ErrStyle         = errStyle
+	ErrUnsupported   = errUnsupported
+)
+
+const (
+	PaintNone     = paintNone
+	PaintSolid    = paintSolid
+	PaintGradient = paintGradient
+	MaxCSSRules   = maxCSSRules
+	MaxStyleValue = maxStyleValue
+)
+
+func (r *styleResolver) Compute(e *element, parent *style) (style, error) {
+	return r.compute(e, parent)
+}
+func (r *styleResolver) Paint(s style, stroke bool, context paintContext) (paint, error) {
+	return r.resolvePaint(s, stroke, context)
+}
+func (r *styleResolver) Clip(s style) (*element, error) {
+	return r.clip(s)
+}
+func (r *styleResolver) Stroke(s style, context lengthContext) (strokeStyle, error) {
+	return r.stroke(s, context)
+}
+func (g resolvedGradient) StopCount() int {
+	return g.stopCount()
+}
+func (g resolvedGradient) Stop(index int) gradientStop {
+	return g.stop(index)
+}
