@@ -87,11 +87,25 @@ func TestUpdatePausesPollingWithoutGamepads(t *testing.T) {
 	}
 }
 
-// TestUpdateFindsGamepadWithoutEvent tests that update finds a gamepad that appears without a gamepadconnected event.
+// TestUpdateFindsGamepadWithoutEvent tests that update finds a gamepad that appears without a gamepadconnected event, then polls navigator.getGamepads at every update.
 func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
-	jsGamepad := js.Null()
+	var calls int
+	var connected, pressed bool
 	setNavigator(t, func() any {
-		return []any{jsGamepad}
+		calls++
+		if !connected {
+			return []any{nil}
+		}
+		button := object.New()
+		button.Set("pressed", pressed)
+		button.Set("value", 0)
+		gp := object.New()
+		gp.Set("index", 0)
+		gp.Set("id", "test")
+		gp.Set("mapping", "standard")
+		gp.Set("axes", []any{})
+		gp.Set("buttons", []any{button})
+		return []any{gp}
 	})
 
 	var gps gamepad.Gamepads
@@ -104,28 +118,49 @@ func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	jsGamepad = object.New()
-	jsGamepad.Set("index", 0)
-	jsGamepad.Set("id", "test")
-	jsGamepad.Set("mapping", "standard")
-	jsGamepad.Set("axes", []any{})
-	jsGamepad.Set("buttons", []any{})
-
+	connected = true
+	n.SetLastPoll(time.Now())
 	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
 	if got := len(gps.AppendGamepadIDs(nil)); got != 0 {
-		t.Fatalf("gamepads within one second: got %d, want 0", got)
+		t.Fatalf("gamepads during the pause: got %d, want 0", got)
 	}
 
-	n.RewindLastPoll(time.Second)
+	n.SetLastPoll(time.Now().Add(-time.Second))
 	if err := n.Update(&gps); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(gps.AppendGamepadIDs(nil)); got != 1 {
-		t.Errorf("gamepads after one second: got %d, want 1", got)
+	ids := gps.AppendGamepadIDs(nil)
+	if len(ids) != 1 {
+		t.Fatalf("gamepads after the pause: got %d, want 1", len(ids))
 	}
-	if !n.Polling() {
-		t.Errorf("polling after a gamepad appears: got false, want true")
+	if calls != 2 {
+		t.Fatalf("calls after the pause: got %d, want 2", calls)
+	}
+	gp := gps.Get(ids[0])
+	if gp.Button(0) {
+		t.Fatalf("button 0 before the press: got true, want false")
+	}
+
+	n.SetLastPoll(time.Now())
+	pressed = true
+	if err := n.Update(&gps); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 3 {
+		t.Errorf("calls after the press: got %d, want 3", calls)
+	}
+	if !gp.Button(0) {
+		t.Errorf("button 0 after the press: got false, want true")
+	}
+
+	for range 10 {
+		if err := n.Update(&gps); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if calls != 13 {
+		t.Errorf("calls after ten more updates: got %d, want 13", calls)
 	}
 }

@@ -44,16 +44,6 @@ func (n *nativeGamepadsImpl) Update(gamepads *gamepads) error {
 	return n.update(gamepads)
 }
 
-// Polling reports whether each update polls navigator.getGamepads.
-func (n *nativeGamepadsImpl) Polling() bool {
-	return n.polling.Load()
-}
-
-// RewindLastPoll moves the time of the last poll back by d.
-func (n *nativeGamepadsImpl) RewindLastPoll(d time.Duration) {
-	n.lastPoll = n.lastPoll.Add(-d)
-}
-
 // SetLastPoll sets the time of the last poll to t.
 func (n *nativeGamepadsImpl) SetLastPoll(t time.Time) {
 	n.lastPoll = t
@@ -62,4 +52,9 @@ func (n *nativeGamepadsImpl) SetLastPoll(t time.Time) {
 // AppendGamepadIDs appends the IDs of the gamepads registered in g.
 func (g *gamepads) AppendGamepadIDs(ids []ID) []ID {
 	return g.appendGamepadIDs(ids)
+}
+
+// Get returns the gamepad registered in g with the given ID, or nil.
+func (g *gamepads) Get(id ID) *Gamepad {
+	return g.get(id)
 }
