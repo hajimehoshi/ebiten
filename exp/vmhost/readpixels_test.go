@@ -19,6 +19,7 @@
 package vmhost_test
 
 import (
+	"errors"
 	"path/filepath"
 	"testing"
 	"time"
@@ -92,6 +93,11 @@ func TestReadPixelsAsyncGuestExit(t *testing.T) {
 	if err := guest.SetOutsideScreen(screen); err != nil {
 		t.Fatal(err)
 	}
-	guest.AdvanceTicks(2)
-	guest.WaitTicks()
+	for guest.Err() == nil {
+		guest.AdvanceTicks(1)
+		guest.WaitTicks()
+	}
+	if err := guest.Err(); !errors.Is(err, ebiten.Termination) {
+		t.Errorf("guest exit: got %v, want %v", err, ebiten.Termination)
+	}
 }
