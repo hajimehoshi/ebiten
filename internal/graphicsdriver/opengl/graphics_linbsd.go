@@ -52,6 +52,7 @@ func (g *Graphics) makeContextCurrent() error {
 }
 
 func (g *Graphics) Terminate() error {
+	g.clearPixelPackBuffers()
 	return g.presenter.ClearCurrentContext()
 }
 
