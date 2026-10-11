@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/windowsystem"
 )
 
 type game struct {
@@ -74,6 +75,9 @@ func (*game) Layout(int, int) (int, int) {
 }
 
 func main() {
+	if !windowsystem.Available() {
+		return
+	}
 	ebiten.SetWindowSize(64, 64)
 	ebiten.SetTPS(ebiten.SyncWithFPS)
 	ebiten.SetRunnableOnUnfocused(false)
