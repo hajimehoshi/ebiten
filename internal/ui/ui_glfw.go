@@ -1085,7 +1085,7 @@ func (u *glfwBackend) initOnMainThread(options *RunOptions) (err error) {
 	}
 
 	// Maximizing a window requires a proper size and position. Call Maximize here (#1117).
-	if u.desktopWindow.isInitWindowMaximized() {
+	if !u.context.headless && u.desktopWindow.isInitWindowMaximized() {
 		if err := u.window.Maximize(); err != nil {
 			return err
 		}
@@ -1365,7 +1365,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 	// Settings can change while their application polls native events. Check again
 	// before waiting, since those events may have consumed the setter's wakeup.
 	settingsChanged = u.desktopWindow.settingsChanged.Swap(false) || settingsChanged
-	if FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum || settingsChanged {
+	if u.context.headless || FPSModeType(u.fpsMode.Load()) != FPSModeVsyncOffMinimum || settingsChanged {
 		// TODO: Updating the input can be skipped when clock.Update returns 0 (#1367).
 		u.pollingEvents = true
 		err := glfw.PollEvents()
@@ -1391,7 +1391,7 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 
 	// If isRunnableOnUnfocused is false and the window is not focused, wait here.
 	// For the first update, skip this check as the window might not be seen yet in some environments like ChromeOS (#3091).
-	for !u.isRunnableOnUnfocused() && u.bufferOnceSwapped {
+	for !u.context.headless && !u.isRunnableOnUnfocused() && u.bufferOnceSwapped {
 		if err := u.applyWindowSettings(); err != nil {
 			return 0, 0, 0, 0, err
 		}
@@ -1578,7 +1578,7 @@ func (u *glfwBackend) updateGame() error {
 
 	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
 	// Mitigate this by sleeping (#982, #2521).
-	if r.unfocused {
+	if r.unfocused && !u.context.headless {
 		const wait = time.Second / 60
 		now := time.Now()
 		if next := u.unfocusedNextWake.Add(wait); next.After(now) {
@@ -1817,6 +1817,10 @@ func (u *glfwBackend) captureWindowPosToRestore() error {
 
 // setFullscreen must be called from the main thread.
 func (u *glfwBackend) setFullscreen(fullscreen bool) error {
+	if u.context.headless {
+		return nil
+	}
+
 	defer u.layoutSizeCache.invalidate()
 	f, err := u.isFullscreen()
 	if err != nil {
@@ -2213,6 +2217,10 @@ const windowStateTimeout = time.Second
 
 // maximizeWindow must be called from the main thread.
 func (u *glfwBackend) maximizeWindow() error {
+	if u.context.headless {
+		return nil
+	}
+
 	f, err := u.isFullscreen()
 	if err != nil {
 		return err
@@ -2258,6 +2266,10 @@ func (u *glfwBackend) maximizeWindow() error {
 
 // iconifyWindow must be called from the main thread.
 func (u *glfwBackend) iconifyWindow() error {
+	if u.context.headless {
+		return nil
+	}
+
 	// Iconifying a native fullscreen window on macOS is forbidden.
 	n, err := u.isNativeFullscreen()
 	if err != nil {
@@ -2303,6 +2315,10 @@ func (u *glfwBackend) iconifyWindow() error {
 
 // restoreWindow must be called from the main thread.
 func (u *glfwBackend) restoreWindow() error {
+	if u.context.headless {
+		return nil
+	}
+
 	supported, err := u.window.RestoreSupported()
 	if err != nil {
 		return err
@@ -2346,6 +2362,10 @@ func (u *glfwBackend) restoreWindow() error {
 
 // setWindowVisible must be called from the main thread.
 func (u *glfwBackend) setWindowVisible(visible bool) error {
+	if u.context.headless {
+		return nil
+	}
+
 	if microsoftgdk.IsXbox() {
 		return nil
 	}
@@ -2595,7 +2615,7 @@ func (u *glfwBackend) runMultiThread(game Game, options *RunOptions) error {
 	u.mainThread = thread.NewOSThread()
 	graphicscommand.SetOSThreadAsRenderThread()
 
-	u.context = newContext(game, options.ScreenTransparent)
+	u.context = newContext(game, options.ScreenTransparent, options.Headless)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()
@@ -2643,7 +2663,7 @@ func (u *glfwBackend) runSingleThread(game Game, options *RunOptions) error {
 	// The backend is published at the window creation in initOnMainThread.
 	defer u.setRunningBackend(nil)
 
-	u.context = newContext(game, options.ScreenTransparent)
+	u.context = newContext(game, options.ScreenTransparent, options.Headless)
 
 	if err := u.initOnMainThread(options); err != nil {
 		return err

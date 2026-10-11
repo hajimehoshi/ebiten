@@ -48,8 +48,10 @@ func (w *glfwWindow) IsDecorated() bool {
 }
 
 func (w *glfwWindow) IsVisible() bool {
-	if p := w.ui.desktopWindow.windowVisible.pending(); p != nil {
-		return *p
+	if !w.ui.context.headless {
+		if p := w.ui.desktopWindow.windowVisible.pending(); p != nil {
+			return *p
+		}
 	}
 	return thread.CallWithArgAndResult(w.ui.mainThread, func(w *glfwWindow) bool {
 		if w.ui.isTerminated() {

@@ -298,6 +298,18 @@ type RunGameOptions struct {
 	// The default (zero) value is ColorSpaceDefault, which means that color space depends on the environment.
 	ColorSpace ColorSpace
 
+	// Headless runs without showing a window or presenting frames. Rendering still requires
+	// a graphics context and a window system (for example, Xvfb on Linux).
+	//
+	// Frames run without display or idle pacing, regardless of the FPS mode. Update still
+	// follows the configured TPS; use SetTPS(SyncWithFPS) to update once per frame.
+	// Window visibility, fullscreen, maximize, and minimize requests are ignored.
+	//
+	// Headless is supported on desktops with a window system. It returns an error on
+	// framebuffer devices and has no effect on other platforms or VM guests.
+	// The default is false.
+	Headless bool
+
 	// ApplePressAndHoldEnabled indicates whether the press-and-hold feature is enabled or not.
 	// If true, pressing and holding a key might show a menu to select a character glyph variant.
 	// This is useful for GUI applications, but some APIs like [AppendInputChars]'s behavior is changed:
@@ -774,6 +786,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 		X11ClassName:             options.X11ClassName,
 		X11InstanceName:          options.X11InstanceName,
 		VMGuestEndpoint:          options.VMGuestEndpoint,
+		Headless:                 options.Headless,
 	}
 }
 

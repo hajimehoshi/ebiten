@@ -251,7 +251,7 @@ func (u *glfwBackend) setWindowResizingModeForOS(mode WindowResizingMode) error 
 func (u *glfwBackend) initializeWindowAfterCreation(w *glfw.Window) error {
 	// A window that must stay invisible is never shown (#3495).
 	// Its position stays unreliable, which doesn't matter as the window is not on the screen.
-	if !u.desktopWindow.isWindowVisible() {
+	if u.context.headless || !u.desktopWindow.isWindowVisible() {
 		return nil
 	}
 

@@ -153,7 +153,7 @@ func (r *remoteBackend) run(game Game, options *RunOptions) (err error) {
 
 	// A guest has no real render thread; graphics commands are flushed synchronously.
 	r.mainThread = thread.NewNoopThread()
-	r.context = newContext(game, options.ScreenTransparent)
+	r.context = newContext(game, options.ScreenTransparent, false)
 
 	r.graphics = remote.NewGraphics()
 	r.graphicsDriver = r.graphics

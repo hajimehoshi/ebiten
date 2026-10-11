@@ -89,14 +89,17 @@ type context struct {
 	// presentationSkipped keeps a redraw pending until an ordinary frame can be presented.
 	presentationSkipped bool
 
+	headless bool
+
 	funcsInFrameCh        chan func()
 	completionChannelPool sync.Pool
 }
 
-func newContext(game Game, screenTransparent bool) *context {
+func newContext(game Game, screenTransparent, headless bool) *context {
 	return &context{
 		game:              game,
 		screenTransparent: screenTransparent,
+		headless:          headless,
 		funcsInFrameCh:    make(chan func()),
 		completionChannelPool: sync.Pool{
 			New: func() any { return make(chan struct{}, 1) },
@@ -105,10 +108,14 @@ func newContext(game Game, screenTransparent bool) *context {
 }
 
 // updateFrame runs one frame. present reports whether the frame should be shown on the screen; when it
-// is false (e.g. the window is hidden) the buffer swap is skipped, so the loop paces from
+// is false (e.g. the window is hidden) the buffer swap is skipped. Non-headless frames pace from
 // flushCommandsAndWait's no-swap path instead of a present that may block, and Update keeps running at the
 // target tick rate.
 func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, screenWidth, screenHeight int, deviceScaleFactor float64, ui *UserInterface, present bool) error {
+	if c.headless {
+		present = false
+	}
+
 	if !present {
 		c.presentationSkipped = true
 	} else if c.presentationSkipped {
@@ -264,6 +271,7 @@ func (c *context) readInputStateForTick(ui *UserInterface) {
 }
 
 func (c *context) flushCommandsAndWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {
+	needsSwapBuffers = needsSwapBuffers && !c.headless
 	if err := atlas.FlushCommands(graphicsDriver, needsSwapBuffers); err != nil {
 		return err
 	}
@@ -286,7 +294,9 @@ func (c *context) flushCommandsAndWait(needsSwapBuffers bool, graphicsDriver gra
 	var waitTime time.Duration
 	if !needsSwapBuffers || occluded {
 		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usage (#2890).
-		waitTime = time.Second / 60
+		if !c.headless {
+			waitTime = time.Second / 60
+		}
 	} else if vsyncEnabled {
 		// In some environments, e.g. Linux on Parallels, SwapBuffers doesn't wait for the vsync (#2952).
 		// In the case when the display has high refresh rates like 240 [Hz], the wait time should be small.

@@ -101,7 +101,7 @@ func (b *noWindowSystemBackend) run(game Game, options *RunOptions) error {
 	b.mainThread = thread.NewOSThread()
 	graphicscommand.SetOSThreadAsRenderThread()
 
-	b.context = newContext(game, options.ScreenTransparent)
+	b.context = newContext(game, options.ScreenTransparent, false)
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()

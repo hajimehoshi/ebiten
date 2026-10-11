@@ -110,9 +110,22 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
+	if microsoftgdk.IsXbox() {
+		o := *options
+		o.Headless = false
+		options = &o
+	}
 	b := maybeNewVMGuestBackend(u, options)
 	vmguest.MarkGuest(b != nil)
 	if b != nil {
+		return b.run(game, options)
+	}
+
+	if options.Headless {
+		b, err := newGLFWBackend(u)
+		if err != nil {
+			return fmt.Errorf("ui: headless mode requires a window system: %w", err)
+		}
 		return b.run(game, options)
 	}
 
