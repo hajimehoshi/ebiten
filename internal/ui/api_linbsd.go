@@ -17,6 +17,7 @@
 package ui
 
 import (
+	"runtime"
 	"structs"
 	"sync"
 	"unsafe"
@@ -56,12 +57,9 @@ type xrrCrtcInfo struct {
 }
 
 var (
-	xDefaultScreen  func(display uintptr) int32
-	xRootWindow     func(display uintptr, screen int32) xID
 	xInternAtom     func(display uintptr, name string, onlyIfExists bool) xAtom
 	xChangeProperty func(display uintptr, w xID, property, typ xAtom, format, mode int32, data unsafe.Pointer, nelements int32) int32
 	xDeleteProperty func(display uintptr, w xID, property xAtom) int32
-	xQueryPointer   func(display uintptr, w xID, rootReturn, childReturn *xID, rootXReturn, rootYReturn, winXReturn, winYReturn *int32, maskReturn *uint32) bool
 	xFlush          func(display uintptr) int32
 
 	xrrGetScreenResourcesCurrent func(display uintptr, window xID) uintptr
@@ -89,13 +87,24 @@ func loadX11() {
 	if err != nil {
 		return
 	}
-	purego.RegisterLibFunc(&xDefaultScreen, lib, "XDefaultScreen")
-	purego.RegisterLibFunc(&xRootWindow, lib, "XRootWindow")
 	purego.RegisterLibFunc(&xInternAtom, lib, "XInternAtom")
 	purego.RegisterLibFunc(&xChangeProperty, lib, "XChangeProperty")
 	purego.RegisterLibFunc(&xDeleteProperty, lib, "XDeleteProperty")
-	purego.RegisterLibFunc(&xQueryPointer, lib, "XQueryPointer")
 	purego.RegisterLibFunc(&xFlush, lib, "XFlush")
+	for _, p := range []struct {
+		proc *uintptr
+		name string
+	}{
+		{&x11Procs.defaultScreen, "XDefaultScreen"},
+		{&x11Procs.rootWindow, "XRootWindow"},
+		{&x11Procs.queryPointer, "XQueryPointer"},
+	} {
+		proc, err := purego.Dlsym(lib, p.name)
+		if err != nil {
+			return
+		}
+		*p.proc = proc
+	}
 	x11Loaded = true
 
 	// RandR is optional. Without it, monitor sizes fall back to the video mode.
@@ -139,6 +148,74 @@ func xChangePropertyGeneric[T byte | uint](display uintptr, w xID, property, typ
 		head = unsafe.Pointer(&data[0])
 	}
 	return xChangeProperty(display, w, property, typ, format, mode, head, int32(len(data)))
+}
+
+// x11Call holds the arguments and the out-parameters of an Xlib function call.
+type x11Call struct {
+	args   [9]uintptr
+	pinner runtime.Pinner
+
+	ids    [2]xID
+	int32s [4]int32
+	uint32 uint32
+}
+
+var x11CallPool = sync.Pool{
+	New: func() any {
+		return &x11Call{}
+	},
+}
+
+// getX11Call returns a pinned x11Call. Release it with putX11Call.
+func getX11Call() *x11Call {
+	c := x11CallPool.Get().(*x11Call)
+	c.pinner.Pin(c)
+	return c
+}
+
+func putX11Call(c *x11Call) {
+	c.pinner.Unpin()
+	x11CallPool.Put(c)
+}
+
+// call calls fn with args. args must not hold Go pointers unless their objects are pinned.
+func (c *x11Call) call(fn uintptr, args ...uintptr) uintptr {
+	n := copy(c.args[:], args)
+	r, _, _ := purego.SyscallN(fn, c.args[:n]...)
+	return r
+}
+
+// x11Procs holds the addresses of the Xlib functions below.
+var x11Procs struct {
+	defaultScreen uintptr
+	rootWindow    uintptr
+	queryPointer  uintptr
+}
+
+func xDefaultScreen(display uintptr) int32 {
+	c := getX11Call()
+	defer putX11Call(c)
+	return int32(c.call(x11Procs.defaultScreen, display))
+}
+
+func xRootWindow(display uintptr, screen int32) xID {
+	c := getX11Call()
+	defer putX11Call(c)
+	return xID(c.call(x11Procs.rootWindow, display, uintptr(screen)))
+}
+
+func xQueryPointer(display uintptr, w xID, rootReturn, childReturn *xID, rootXReturn, rootYReturn, winXReturn, winYReturn *int32, maskReturn *uint32) bool {
+	c := getX11Call()
+	defer putX11Call(c)
+	c.ids[0], c.ids[1] = *rootReturn, *childReturn
+	c.int32s[0], c.int32s[1], c.int32s[2], c.int32s[3] = *rootXReturn, *rootYReturn, *winXReturn, *winYReturn
+	c.uint32 = *maskReturn
+	r := c.call(x11Procs.queryPointer, display, uintptr(w), uintptr(unsafe.Pointer(&c.ids[0])), uintptr(unsafe.Pointer(&c.ids[1])),
+		uintptr(unsafe.Pointer(&c.int32s[0])), uintptr(unsafe.Pointer(&c.int32s[1])), uintptr(unsafe.Pointer(&c.int32s[2])), uintptr(unsafe.Pointer(&c.int32s[3])), uintptr(unsafe.Pointer(&c.uint32)))
+	*rootReturn, *childReturn = c.ids[0], c.ids[1]
+	*rootXReturn, *rootYReturn, *winXReturn, *winYReturn = c.int32s[0], c.int32s[1], c.int32s[2], c.int32s[3]
+	*maskReturn = c.uint32
+	return byte(r) != 0
 }
 
 func x11RootWindow(display uintptr) xID {
