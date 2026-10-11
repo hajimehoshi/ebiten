@@ -269,10 +269,24 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 		img.WritePixels(graphics.NewManagedBytes(4*w*h, func(bs []byte) {
 			clear(bs)
 		}), region)
+		cleared := bytes.Repeat([]byte{0xff}, 4*w*h)
+		clearedCh := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+			{
+				Pixels: cleared,
+				Region: region,
+			},
+		})
 		img.Dispose()
 		if err := requireReadPixelsAsyncResult(t, ch); err != nil {
 			t.Error(err)
 			return
+		}
+		if err := requireReadPixelsAsyncResult(t, clearedCh); err != nil {
+			t.Error(err)
+			return
+		}
+		if !bytes.Equal(cleared, make([]byte, len(cleared))) {
+			t.Error("the cleared image must be all zeros")
 		}
 		for _, arg := range args {
 			for y := arg.Region.Min.Y; y < arg.Region.Max.Y; y++ {
