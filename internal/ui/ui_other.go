@@ -79,7 +79,7 @@ func (u *UserInterface) runMultiThread(game Game, options *RunOptions) error {
 
 	// Run the main thread. The loop is the thread's whole life, so a call arriving after
 	// it ends is a no-op rather than a block forever.
-	_ = u.mainThread.LoopAndStop(ctx)
+	u.mainThread.LoopAndStop(ctx.Done())
 	return wg.Wait()
 }
 

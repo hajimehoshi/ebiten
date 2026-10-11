@@ -30,7 +30,7 @@ func TestNestedLoop(t *testing.T) {
 
 	ctx := t.Context()
 	go func() {
-		_ = th.Loop(ctx)
+		th.Loop(ctx.Done())
 	}()
 
 	var values []int
@@ -69,9 +69,9 @@ func TestLoopAndStopUnblocksCall(t *testing.T) {
 		thread.Call(th, func() {})
 	}()
 
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-	_ = th.LoopAndStop(ctx)
+	done := make(chan struct{})
+	close(done)
+	th.LoopAndStop(done)
 
 	select {
 	case <-returned:
@@ -80,7 +80,7 @@ func TestLoopAndStopUnblocksCall(t *testing.T) {
 	}
 }
 
-func TestLoopUntilTwice(t *testing.T) {
+func TestLoopTwice(t *testing.T) {
 	th := thread.NewOSThread()
 	done := make(chan struct{})
 
@@ -97,7 +97,7 @@ func TestLoopUntilTwice(t *testing.T) {
 		returned := make(chan struct{})
 		go func() {
 			defer close(returned)
-			th.LoopUntil(done)
+			th.Loop(done)
 		}()
 
 		var called bool
@@ -108,7 +108,7 @@ func TestLoopUntilTwice(t *testing.T) {
 		}()
 		wait(callReturned, "Call did not return")
 		if !called {
-			t.Fatalf("run %d: LoopUntil did not execute the queued call", i)
+			t.Fatalf("run %d: Loop did not execute the queued call", i)
 		}
 
 		sent := make(chan struct{})
@@ -116,8 +116,8 @@ func TestLoopUntilTwice(t *testing.T) {
 			defer close(sent)
 			done <- struct{}{}
 		}()
-		wait(sent, "LoopUntil did not receive from done")
-		wait(returned, "LoopUntil did not return after a send on done")
+		wait(sent, "Loop did not receive from done")
+		wait(returned, "Loop did not return after a send on done")
 	}
 }
 
@@ -132,7 +132,7 @@ func TestCalls(t *testing.T) {
 			done := make(chan struct{})
 			go func() {
 				defer close(done)
-				_ = th.Loop(ctx)
+				th.Loop(ctx.Done())
 			}()
 			defer func() { cancel(); <-done }()
 
@@ -169,9 +169,7 @@ func TestCalls(t *testing.T) {
 			}
 			cancel()
 			<-done
-			if err := th.LoopAndStop(ctx); err != nil && err != context.Canceled {
-				t.Fatal(err)
-			}
+			th.LoopAndStop(ctx.Done())
 			if got := thread.CallWithArgAndResult(th, add, argument{value: &value, amount: 6}); got != 0 {
 				t.Errorf("stopped Call result = %d, want 0", got)
 			}
@@ -194,7 +192,7 @@ func TestTypedNestedCall(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		_ = th.LoopAndStop(ctx)
+		th.LoopAndStop(ctx.Done())
 	}()
 	defer func() { cancel(); <-done }()
 
@@ -219,7 +217,7 @@ func TestConcurrentTypedCalls(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		_ = th.LoopAndStop(ctx)
+		th.LoopAndStop(ctx.Done())
 	}()
 	defer func() { cancel(); <-done }()
 
@@ -267,7 +265,7 @@ func BenchmarkCall(b *testing.B) {
 				done := make(chan struct{})
 				go func() {
 					defer close(done)
-					_ = th.LoopAndStop(ctx)
+					th.LoopAndStop(ctx.Done())
 				}()
 				defer func() { cancel(); <-done }()
 			}

@@ -27,9 +27,8 @@ import (
 )
 
 type Thread interface {
-	Loop(ctx context.Context) error
-	LoopAndStop(ctx context.Context) error
-	LoopUntil(done <-chan struct{})
+	Loop(done <-chan struct{})
+	LoopAndStop(done <-chan struct{})
 
 	call(f callable, sync bool) bool
 }
@@ -188,25 +187,13 @@ func NewOSThread() *OSThread {
 	}
 }
 
-// Loop starts the thread loop until ctx is canceled.
-//
-// Loop returns ctx's error if exists.
+// Loop starts the thread loop until done receives a value or is closed.
 //
 // Loop can be called again after it returns. Use LoopAndStop for a loop that is the
 // thread's whole life.
 //
 // Loop must be called on the OS thread.
-func (t *OSThread) Loop(ctx context.Context) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	return t.loop(ctx)
-}
-
-// LoopUntil starts the thread loop until it receives a value from done.
-//
-// LoopUntil must be called on the OS thread.
-func (t *OSThread) LoopUntil(done <-chan struct{}) {
+func (t *OSThread) Loop(done <-chan struct{}) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -217,12 +204,10 @@ func (t *OSThread) LoopUntil(done <-chan struct{}) {
 //
 // After LoopAndStop returns, Call and CallAsync do nothing.
 //
-// LoopAndStop returns ctx's error if exists.
-//
 // LoopAndStop must be called on the OS thread.
-func (t *OSThread) LoopAndStop(ctx context.Context) error {
+func (t *OSThread) LoopAndStop(done <-chan struct{}) {
 	defer t.stop()
-	return t.Loop(ctx)
+	t.Loop(done)
 }
 
 // NestedLoop runs functions requested by Call and CallAsync until ctx is canceled.
@@ -297,20 +282,14 @@ func NewNoopThread() *NoopThread {
 }
 
 // Loop does nothing.
-func (t *NoopThread) Loop(ctx context.Context) error {
-	return nil
-}
-
-// LoopUntil does nothing.
-func (t *NoopThread) LoopUntil(done <-chan struct{}) {
+func (t *NoopThread) Loop(done <-chan struct{}) {
 }
 
 // LoopAndStop stops the thread without looping.
 //
 // After LoopAndStop returns, Call and CallAsync do nothing.
-func (t *NoopThread) LoopAndStop(ctx context.Context) error {
+func (t *NoopThread) LoopAndStop(done <-chan struct{}) {
 	t.stop()
-	return nil
 }
 
 // stop stops serving Call and CallAsync.

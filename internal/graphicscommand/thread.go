@@ -27,7 +27,7 @@ func SetOSThreadAsRenderThread() {
 
 // LoopRenderThread runs the rendering thread loop until done receives a value or is closed.
 func LoopRenderThread(done <-chan struct{}) {
-	theRenderThread.LoopUntil(done)
+	theRenderThread.Loop(done)
 }
 
 // runOnRenderThread calls f with arg on the rendering thread and returns its result.

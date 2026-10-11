@@ -47,7 +47,7 @@ func BenchmarkFlushThread(b *testing.B) {
 				done := make(chan struct{})
 				go func() {
 					defer close(done)
-					_ = renderThread.LoopAndStop(ctx)
+					renderThread.LoopAndStop(ctx.Done())
 				}()
 				defer func() { cancel(); <-done }()
 			}
