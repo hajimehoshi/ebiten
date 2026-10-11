@@ -790,10 +790,6 @@ func (cq CommandQueue) AddResidencySet(r ResidencySet) {
 	cq.commandQueue.Send(sel_addResidencySet, r.residencySet)
 }
 
-func (cq CommandQueue) Release() {
-	cq.commandQueue.Send(sel_release)
-}
-
 // CommandBuffer returns a command buffer from the command queue that maintains strong references to resources.
 //
 // CommandBuffer returns an error if the queue cannot provide a command buffer.

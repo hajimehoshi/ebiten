@@ -31,8 +31,8 @@ type readback struct {
 	args          []graphicsdriver.PixelsArgs
 }
 
-// ReadPixelsAsync records texture copies and submits them without waiting for the GPU.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+// ReadPixelsAsync records texture copies without waiting for the GPU.
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
 	// Validate everything before recording commands or allocating resources.
 	for _, arg := range args {
 		if got, want := len(arg.Pixels), 4*arg.Region.Dx()*arg.Region.Dy(); got != want {
@@ -40,6 +40,11 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 		}
 	}
 	r := &readback{args: args}
+	defer func() {
+		if err != nil {
+			r.Dispose()
+		}
+	}()
 	if len(args) == 0 {
 		return r, nil
 	}
@@ -52,9 +57,9 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 	r.commandBuffer.Retain()
 	bce, err := g.cb.BlitCommandEncoder()
 	if err != nil {
-		r.Dispose()
 		return nil, fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
 	}
+	defer bce.EndEncoding()
 	for _, arg := range args {
 		if arg.Region.Empty() {
 			r.textures = append(r.textures, mtl.Texture{})
@@ -70,8 +75,6 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 			StorageMode: mtl.StorageModeManaged,
 		})
 		if err != nil {
-			bce.EndEncoding()
-			r.Dispose()
 			return nil, fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
 		}
 		r.textures = append(r.textures, texture)
@@ -81,9 +84,6 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdrive
 			texture, 0, 0, mtl.Origin{})
 		bce.SynchronizeTexture(texture, 0, 0)
 	}
-	bce.EndEncoding()
-	// Submit now so Poll can make progress without a later frame submission.
-	g.flushCommandBufferIfNeeded(false)
 	return r, nil
 }
 
