@@ -44,7 +44,11 @@ func (i *image12) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsd
 	if err != nil {
 		return nil, err
 	}
-	r := &readback12{graphics: i.graphics, region: region, args: append([]graphicsdriver.PixelsArgs(nil), args...)}
+	r := &readback12{
+		graphics: i.graphics,
+		region:   region,
+		args:     args,
+	}
 	if region.Empty() {
 		return r, nil
 	}
@@ -122,12 +126,12 @@ func (r *readback12) Poll() (bool, error) {
 		}
 		return true, errors.New("directx: the device was removed during a pixel read-back")
 	}
-	m, err := r.staging.mapPointer(0, &_D3D12_RANGE{Begin: 0, End: uintptr(r.totalBytes)})
+	m, err := r.staging.Map(0, &_D3D12_RANGE{Begin: 0, End: uintptr(r.totalBytes)})
 	if err != nil {
 		return true, err
 	}
 	defer r.staging.Unmap(0, &_D3D12_RANGE{})
-	copyReadbackPixels(r.args, r.region, unsafe.Slice((*byte)(m), r.totalBytes), r.stride)
+	copyReadbackPixels(r.args, r.region, unsafe.Slice((*byte)(unsafe.Pointer(m)), r.totalBytes), r.stride)
 	return true, nil
 }
 

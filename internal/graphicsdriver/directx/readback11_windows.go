@@ -39,7 +39,11 @@ func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdri
 	if err != nil {
 		return nil, err
 	}
-	r := &readback11{graphics: i.graphics, region: region, args: append([]graphicsdriver.PixelsArgs(nil), args...)}
+	r := &readback11{
+		graphics: i.graphics,
+		region:   region,
+		args:     args,
+	}
 	if region.Empty() {
 		return r, nil
 	}

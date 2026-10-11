@@ -845,7 +845,7 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 		g.resetVerticesAndIndices(g.frameIndex, true)
 	}
 
-	// Intermediate flushes can leave draws in flight, including draws submitted by read-back.
+	// An intermediate flush does not wait for the GPU, so draws using these buffers might still be in flight.
 	if mode != graphicsdriver.FlushModeIntermediate {
 		g.pipelineStates.resetConstantBuffers(g.frameIndex)
 	}
@@ -1014,6 +1014,7 @@ func (g *graphics12) executeCommandList(commandList *_ID3D12GraphicsCommandList)
 	return true, nil
 }
 
+// submitCommandList submits the pending commands without waiting for the GPU, and reopens the command list.
 func (g *graphics12) submitCommandList(commandList *_ID3D12GraphicsCommandList) error {
 	submitted, err := g.executeCommandList(commandList)
 	if err != nil {
@@ -1352,9 +1353,11 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 			if err := g.flushCommandList(g.drawCommandList); err != nil {
 				return err
 			}
-		} else if err := g.waitForCommandQueue(); err != nil {
-			// Read-back may already have submitted the draws using these buffers.
-			return err
+		} else {
+			// A read-back might have submitted the draws using these buffers without waiting for them.
+			if err := g.waitForCommandQueue(); err != nil {
+				return err
+			}
 		}
 		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
 	}
