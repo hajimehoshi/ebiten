@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build darwin && !ios
+//go:build darwin
 
 package metal
 
@@ -27,17 +27,19 @@ var _ graphicsdriver.AsyncPixelsReader = (*Image)(nil)
 
 type readback struct {
 	commandBuffer mtl.CommandBuffer
-	textures      []mtl.Texture
+	buffer        mtl.Buffer
 	args          []graphicsdriver.PixelsArgs
 }
 
 // ReadPixelsAsync records texture copies without waiting for the GPU.
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
 	// Validate everything before recording commands or allocating resources.
+	var size uintptr
 	for _, arg := range args {
 		if got, want := len(arg.Pixels), 4*arg.Region.Dx()*arg.Region.Dy(); got != want {
 			return nil, fmt.Errorf("metal: len(Pixels) must be %d but %d at ReadPixelsAsync", want, got)
 		}
+		size += uintptr(len(arg.Pixels))
 	}
 	r := &readback{args: args}
 	defer func() {
@@ -45,10 +47,16 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 			r.Dispose()
 		}
 	}()
-	if len(args) == 0 {
+	if size == 0 {
 		return r, nil
 	}
 	g := i.graphics
+	// A separate shared buffer preserves the capture across later writes or disposal.
+	r.buffer, err = g.view.getMTLDevice().NewBufferWithLength(size, mtl.ResourceStorageModeShared)
+	if err != nil {
+		return nil, fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
+	}
+
 	g.flushRenderCommandEncoderIfNeeded()
 	if err := g.ensureCommandBuffer(); err != nil {
 		return nil, err
@@ -60,29 +68,16 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 		return nil, fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
 	}
 	defer bce.EndEncoding()
+	var offset uintptr
 	for _, arg := range args {
 		if arg.Region.Empty() {
-			r.textures = append(r.textures, mtl.Texture{})
 			continue
 		}
-		// A separate managed texture preserves the captured pixels across later
-		// writes or disposal. Synchronize it before exposing its CPU copy.
-		texture, err := g.view.getMTLDevice().NewTextureWithDescriptor(mtl.TextureDescriptor{
-			TextureType: mtl.TextureType2D,
-			PixelFormat: mtl.PixelFormatRGBA8UNorm,
-			Width:       arg.Region.Dx(),
-			Height:      arg.Region.Dy(),
-			StorageMode: mtl.StorageModeManaged,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("metal: device.NewTextureWithDescriptor failed: %w", err)
-		}
-		r.textures = append(r.textures, texture)
-		bce.CopyFromTexture(i.texture, 0, 0,
+		bce.CopyFromTextureToBuffer(i.texture, 0, 0,
 			mtl.Origin{X: arg.Region.Min.X, Y: arg.Region.Min.Y},
 			mtl.Size{Width: arg.Region.Dx(), Height: arg.Region.Dy(), Depth: 1},
-			texture, 0, 0, mtl.Origin{})
-		bce.SynchronizeTexture(texture, 0, 0)
+			r.buffer, offset, uintptr(4*arg.Region.Dx()), 0)
+		offset += uintptr(len(arg.Pixels))
 	}
 	return r, nil
 }
@@ -94,35 +89,28 @@ func (r *readback) Poll() (bool, error) {
 	}
 	switch r.commandBuffer.Status() {
 	case mtl.CommandBufferStatusCompleted:
-		// Copy below only after Metal has synchronized the managed textures.
+		// Shared storage is CPU-visible after GPU execution completes.
 	case mtl.CommandBufferStatusError:
 		return true, fmt.Errorf("metal: asynchronous pixel read-back command buffer failed")
 	default:
 		return false, nil
 	}
-	for n, arg := range r.args {
-		if arg.Region.Empty() {
-			continue
-		}
-		if err := r.textures[n].GetBytes(arg.Pixels, 4*arg.Region.Dx(), mtl.Region{
-			Size: mtl.Size{Width: arg.Region.Dx(), Height: arg.Region.Dy(), Depth: 1},
-		}, 0); err != nil {
-			return true, err
-		}
+	var offset uintptr
+	for _, arg := range r.args {
+		mtl.CopyFromBufferAt(r.buffer, arg.Pixels, offset)
+		offset += uintptr(len(arg.Pixels))
 	}
 	return true, nil
 }
 
-// Dispose releases the staging textures and command buffer.
+// Dispose releases the staging buffer and command buffer.
 func (r *readback) Dispose() {
 	// Metal command buffers retain encoded resources until execution finishes,
 	// including when a pending read-back is discarded during shutdown.
-	for _, texture := range r.textures {
-		if texture != (mtl.Texture{}) {
-			texture.Release()
-		}
+	if r.buffer != (mtl.Buffer{}) {
+		r.buffer.Release()
+		r.buffer = mtl.Buffer{}
 	}
-	r.textures = nil
 	r.args = nil
 	if r.commandBuffer != (mtl.CommandBuffer{}) {
 		r.commandBuffer.Release()
