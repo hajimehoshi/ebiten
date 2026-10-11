@@ -1194,3 +1194,7 @@ func (i *_ID3D11VertexShader) Release() uint32 {
 	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint32(r)
 }
+
+func (i *_ID3D11DeviceContext) Flush() {
+	_, _, _ = syscall.Syscall(i.vtbl.Flush, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+}

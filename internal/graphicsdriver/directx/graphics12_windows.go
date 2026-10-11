@@ -95,10 +95,12 @@ type graphics12 struct {
 	// frameStarted is true from Begin until the frame completes.
 	frameStarted bool
 
-	images         map[graphicsdriver.ImageID]*image12
-	screenImage    *image12
-	nextImageID    graphicsdriver.ImageID
-	disposedImages [frameCount][]*image12
+	images                   map[graphicsdriver.ImageID]*image12
+	screenImage              *image12
+	nextImageID              graphicsdriver.ImageID
+	disposedImages           [frameCount][]*image12
+	disposedReadbacks        [frameCount][]*readback12
+	disposedUploadingBuffers [frameCount][]*_ID3D12Resource
 
 	shaders         map[graphicsdriver.ShaderID]*shader12
 	nextShaderID    graphicsdriver.ShaderID
@@ -843,7 +845,10 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 		g.resetVerticesAndIndices(g.frameIndex, true)
 	}
 
-	g.pipelineStates.resetConstantBuffers(g.frameIndex)
+	// Intermediate flushes can leave draws in flight, including draws submitted by read-back.
+	if mode != graphicsdriver.FlushModeIntermediate {
+		g.pipelineStates.resetConstantBuffers(g.frameIndex)
+	}
 
 	if mode == graphicsdriver.FlushModePresent {
 		if microsoftgdk.IsXbox() {
@@ -938,6 +943,17 @@ func (g *graphics12) moveToNextFrame() error {
 }
 
 func (g *graphics12) releaseResources(frameIndex int) {
+	for j, r := range g.disposedReadbacks[frameIndex] {
+		r.disposeImpl()
+		g.disposedReadbacks[frameIndex][j] = nil
+	}
+	g.disposedReadbacks[frameIndex] = g.disposedReadbacks[frameIndex][:0]
+	for j, b := range g.disposedUploadingBuffers[frameIndex] {
+		b.Release()
+		g.disposedUploadingBuffers[frameIndex][j] = nil
+	}
+	g.disposedUploadingBuffers[frameIndex] = g.disposedUploadingBuffers[frameIndex][:0]
+
 	for i, img := range g.disposedImages[frameIndex] {
 		img.disposeImpl()
 		g.disposedImages[frameIndex][i] = nil
@@ -974,28 +990,63 @@ func (g *graphics12) resetVerticesAndIndices(frameIndex int, release bool) {
 	g.indices[frameIndex] = g.indices[frameIndex][:0]
 }
 
-// flushCommandList executes commands in the command list and waits for its completion.
-//
-// TODO: This is not efficient. Is it possible to make two command lists work in parallel?
-func (g *graphics12) flushCommandList(commandList *_ID3D12GraphicsCommandList) error {
+// executeCommandList submits pending commands without waiting or resetting their allocator.
+func (g *graphics12) executeCommandList(commandList *_ID3D12GraphicsCommandList) (bool, error) {
 	switch commandList {
 	case g.drawCommandList:
 		if !g.needFlushDrawCommandList {
-			return nil
+			return false, nil
 		}
 		g.needFlushDrawCommandList = false
 	case g.copyCommandList:
 		if !g.needFlushCopyCommandList {
-			return nil
+			return false, nil
 		}
 		g.needFlushCopyCommandList = false
 	}
 
 	if err := commandList.Close(); err != nil {
-		return g.withDeviceRemovedReason(err)
+		return false, g.withDeviceRemovedReason(err)
 	}
 
 	g.commandQueue.ExecuteCommandLists([]*_ID3D12GraphicsCommandList{commandList})
+
+	return true, nil
+}
+
+func (g *graphics12) submitCommandList(commandList *_ID3D12GraphicsCommandList) error {
+	submitted, err := g.executeCommandList(commandList)
+	if err != nil {
+		return err
+	}
+	if !submitted {
+		return nil
+	}
+	switch commandList {
+	case g.drawCommandList:
+		return commandList.Reset(g.drawCommandAllocators[g.frameIndex], nil)
+	case g.copyCommandList:
+		// Upload buffers still referenced by this submission cannot be released or reused yet.
+		for _, img := range g.images {
+			g.disposedUploadingBuffers[g.frameIndex] = append(g.disposedUploadingBuffers[g.frameIndex], img.uploadingStagingBuffers...)
+			img.uploadingStagingBuffers = nil
+		}
+		return commandList.Reset(g.copyCommandAllocators[g.frameIndex], nil)
+	}
+	return nil
+}
+
+// flushCommandList executes commands in the command list and waits for its completion.
+//
+// TODO: This is not efficient. Is it possible to make two command lists work in parallel?
+func (g *graphics12) flushCommandList(commandList *_ID3D12GraphicsCommandList) error {
+	submitted, err := g.executeCommandList(commandList)
+	if err != nil {
+		return err
+	}
+	if !submitted {
+		return nil
+	}
 
 	if err := g.waitForCommandQueue(); err != nil {
 		return err
@@ -1297,7 +1348,12 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 	// Release constant buffers when too many ones will be created.
 	numPipelines := 1
 	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {
-		if err := g.flushCommandList(g.drawCommandList); err != nil {
+		if g.needFlushDrawCommandList {
+			if err := g.flushCommandList(g.drawCommandList); err != nil {
+				return err
+			}
+		} else if err := g.waitForCommandQueue(); err != nil {
+			// Read-back may already have submitted the draws using these buffers.
 			return err
 		}
 		g.pipelineStates.releaseConstantBuffers(g.frameIndex)

@@ -1984,13 +1984,20 @@ func (i *_ID3D12Resource) GetGPUVirtualAddress() _D3D12_GPU_VIRTUAL_ADDRESS {
 }
 
 func (i *_ID3D12Resource) Map(subresource uint32, pReadRange *_D3D12_RANGE) (uintptr, error) {
-	var data uintptr
+	data, err := i.mapPointer(subresource, pReadRange)
+	return uintptr(data), err
+}
+
+// mapPointer keeps the native mapping as a pointer from the API's output parameter.
+// The resource must remain mapped and unreleased while the returned pointer is used.
+func (i *_ID3D12Resource) mapPointer(subresource uint32, pReadRange *_D3D12_RANGE) (unsafe.Pointer, error) {
+	var data unsafe.Pointer
 	r, _, _ := syscall.Syscall6(i.vtbl.Map, 4, uintptr(unsafe.Pointer(i)),
 		uintptr(subresource), uintptr(unsafe.Pointer(pReadRange)), uintptr(unsafe.Pointer(&data)),
 		0, 0)
 	runtime.KeepAlive(pReadRange)
 	if uint32(r) != uint32(windows.S_OK) {
-		return 0, fmt.Errorf("directx: ID3D12Resource::Map failed: %w", handleError(windows.Handle(uint32(r))))
+		return nil, fmt.Errorf("directx: ID3D12Resource::Map failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return data, nil
 }
