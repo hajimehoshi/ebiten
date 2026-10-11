@@ -29,6 +29,7 @@ import (
 type Thread interface {
 	Loop(ctx context.Context) error
 	LoopAndStop(ctx context.Context) error
+	LoopUntil(done <-chan struct{})
 
 	call(f callable, sync bool) bool
 }
@@ -202,6 +203,16 @@ func (t *OSThread) Loop(ctx context.Context) error {
 	return t.loop(ctx)
 }
 
+// LoopUntil starts the thread loop until it receives a value from done.
+//
+// LoopUntil must be called on the OS thread.
+func (t *OSThread) LoopUntil(done <-chan struct{}) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	t.loopUntil(done)
+}
+
 // LoopAndStop runs Loop and then stops the thread.
 //
 // After LoopAndStop returns, Call and CallAsync do nothing.
@@ -227,6 +238,11 @@ func (t *OSThread) NestedLoop(ctx context.Context) error {
 }
 
 func (t *OSThread) loop(ctx context.Context) error {
+	t.loopUntil(ctx.Done())
+	return ctx.Err()
+}
+
+func (t *OSThread) loopUntil(done <-chan struct{}) {
 	for {
 		select {
 		case item := <-t.funcs:
@@ -236,8 +252,8 @@ func (t *OSThread) loop(ctx context.Context) error {
 				}
 				item.f.call()
 			}()
-		case <-ctx.Done():
-			return ctx.Err()
+		case <-done:
+			return
 		}
 	}
 }
@@ -283,6 +299,10 @@ func NewNoopThread() *NoopThread {
 // Loop does nothing.
 func (t *NoopThread) Loop(ctx context.Context) error {
 	return nil
+}
+
+// LoopUntil does nothing.
+func (t *NoopThread) LoopUntil(done <-chan struct{}) {
 }
 
 // LoopAndStop stops the thread without looping.

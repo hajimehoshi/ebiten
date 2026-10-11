@@ -31,6 +31,11 @@ func LoopRenderThread(ctx context.Context) {
 	_ = theRenderThread.Loop(ctx)
 }
 
+// LoopRenderThreadUntil runs the rendering thread loop until it receives a value from done.
+func LoopRenderThreadUntil(done <-chan struct{}) {
+	theRenderThread.LoopUntil(done)
+}
+
 // runOnRenderThread calls f with arg on the rendering thread and returns its result.
 func runOnRenderThread[A, R any](f func(A) R, arg A) R {
 	return thread.CallWithArgAndResult(theRenderThread, f, arg)
