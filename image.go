@@ -1555,8 +1555,7 @@ func MaxImageSize() int {
 //
 // NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
-	validateImageSize(width, height)
-	return newImage(image.Rect(0, 0, width, height), atlas.ImageTypeRegular)
+	return newImage(imageRectWithValidation(0, 0, width, height), atlas.ImageTypeRegular)
 }
 
 // NewImageOptions represents options for NewImageWithOptions.
@@ -1587,6 +1586,7 @@ type NewImageOptions struct {
 //
 // NewImageWithOptions panics if RunGame already finishes.
 func NewImageWithOptions(bounds image.Rectangle, options *NewImageOptions) *Image {
+	validateImageSize(bounds.Dx(), bounds.Dy())
 	imageType := atlas.ImageTypeRegular
 	if options != nil && options.Unmanaged {
 		imageType = atlas.ImageTypeUnmanaged
@@ -1603,13 +1603,17 @@ func validateImageSize(width, height int) {
 	}
 }
 
+func imageRectWithValidation(x0, y0, x1, y1 int) image.Rectangle {
+	validateImageSize(x1-x0, y1-y0)
+	return image.Rect(x0, y0, x1, y1)
+}
+
 func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 	if isRunGameEnded() {
 		panic("ebiten: NewImage cannot be called after RunGame finishes")
 	}
 
 	width, height := bounds.Dx(), bounds.Dy()
-	validateImageSize(width, height)
 
 	i := &Image{}
 	i.image = ui.Get().NewImage(width, height, imageType)
@@ -1667,11 +1671,9 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 	}
 
 	bounds := source.Bounds()
-	width, height := bounds.Dx(), bounds.Dy()
-	validateImageSize(width, height)
 	r := bounds
 	if !options.PreserveBounds {
-		r = image.Rect(0, 0, width, height)
+		r = imageRectWithValidation(0, 0, bounds.Dx(), bounds.Dy())
 	}
 	i := NewImageWithOptions(r, &NewImageOptions{
 		Unmanaged: options.Unmanaged,

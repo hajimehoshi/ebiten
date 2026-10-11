@@ -2850,6 +2850,26 @@ func TestImageNewImageWithInvalidSize(t *testing.T) {
 	}
 }
 
+func TestImageNewImageWithOptionsWithInvalidSize(t *testing.T) {
+	for _, size := range [][2]int{{0, 1}, {1, 0}, {-1, 1}, {1, -1}, {-1, -1}} {
+		for _, unmanaged := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%dx%d/unmanaged=%t", size[0], size[1], unmanaged), func(t *testing.T) {
+				defer func() {
+					r := recover()
+					if r == nil {
+						t.Error("NewImageWithOptions must panic")
+					} else if _, ok := r.(runtime.Error); ok {
+						t.Errorf("got runtime panic instead of image size validation: %v", r)
+					}
+				}()
+				bounds := image.Rectangle{Min: image.Pt(2, 3), Max: image.Pt(2+size[0], 3+size[1])}
+				img := ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{Unmanaged: unmanaged})
+				img.Deallocate()
+			})
+		}
+	}
+}
+
 func TestImageNewImageFromImageWithInvalidSize(t *testing.T) {
 	cases := []struct {
 		width  int

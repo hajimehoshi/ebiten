@@ -51,6 +51,7 @@ func newGameForUI(game Game, transparent bool) *gameForUI {
 var screenSize atomic.Pointer[image.Point]
 
 func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
+	bounds := imageRectWithValidation(0, 0, width, height)
 	if g.offscreen != nil {
 		g.offscreen.Deallocate()
 		g.offscreen = nil
@@ -60,18 +61,19 @@ func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 	// The shader program for the screen is special and doesn't work well with an image on an atlas.
 	// An image on an atlas is surrounded by a transparent edge,
 	// and the shader program unexpectedly picks the pixel on the edges.
-	g.offscreen = newImage(image.Rect(0, 0, width, height), atlas.ImageTypeUnmanaged)
+	g.offscreen = newImage(bounds, atlas.ImageTypeUnmanaged)
 	screenSize.Store(&image.Point{X: width, Y: height})
 	return g.offscreen.image
 }
 
 func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
+	bounds := imageRectWithValidation(0, 0, width, height)
 	if g.screen != nil {
 		g.screen.Deallocate()
 		g.screen = nil
 	}
 
-	g.screen = newImage(image.Rect(0, 0, width, height), atlas.ImageTypeScreen)
+	g.screen = newImage(bounds, atlas.ImageTypeScreen)
 	return g.screen.image
 }
 
