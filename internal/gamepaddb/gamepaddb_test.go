@@ -98,6 +98,18 @@ func TestUpdate(t *testing.T) {
 			Err:   true,
 		},
 		{
+			Input: "00000000000000000000000000000000,foo,leftx:+a-1",
+			Err:   true,
+		},
+		{
+			Input: "00000000000000000000000000000000,foo,leftx:-a-1~",
+			Err:   true,
+		},
+		{
+			Input: "00000000000000000000000000000000,foo,leftx:a18446744073709551616",
+			Err:   true,
+		},
+		{
 			Input: "00000000000000000000000000000000,foo,a:b-1",
 			Err:   true,
 		},
