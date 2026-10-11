@@ -1576,10 +1576,16 @@ func (u *glfwBackend) updateGame() error {
 		}, u)
 	})
 
-	// When a window is not focused or in another space, SwapBuffers might return immediately and CPU might be busy.
-	// Mitigate this by sleeping (#982, #2521). A frame that is not presented is paced by updateFrame instead.
-	if r.unfocused && r.present {
-		const wait = time.Second / 60
+	// When a window is not focused or in another space, SwapBuffers might return immediately even with vsync enabled,
+	// and CPU might be busy. Mitigate this by sleeping for one refresh interval (#982, #2521). With vsync disabled,
+	// swapping buffers is not expected to wait, so do not sleep (#3920). A frame that is not presented is paced by
+	// updateFrame instead.
+	if r.unfocused && r.present && u.FPSMode() == FPSModeVsyncOn {
+		// Assume 60 [Hz] when the refresh rate is unknown.
+		wait := time.Second / 60
+		if refreshRate := u.RefreshRate(); refreshRate > 0 {
+			wait = time.Second / time.Duration(refreshRate)
+		}
 		now := time.Now()
 		if next := u.unfocusedNextWake.Add(wait); next.After(now) {
 			u.unfocusedNextWake = next
