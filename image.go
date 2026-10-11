@@ -1666,7 +1666,7 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 		r = source.Bounds()
 	} else {
 		size := source.Bounds().Size()
-		r = image.Rect(0, 0, size.X, size.Y)
+		r = image.Rectangle{Max: size}
 	}
 	i := NewImageWithOptions(r, &NewImageOptions{
 		Unmanaged: options.Unmanaged,
