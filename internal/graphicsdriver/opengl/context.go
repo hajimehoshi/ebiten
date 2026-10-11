@@ -103,6 +103,7 @@ type context struct {
 	screenFramebuffer               framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer                 framebufferNative
 	lastTexture                     textureNative
+	emptyTexture                    textureNative
 	lastViewportWidth               int
 	lastViewportHeight              int
 	lastBlend                       graphicsdriver.Blend
@@ -182,6 +183,7 @@ func (c *context) reset() error {
 
 	c.locationCache = newLocationCache()
 	c.lastTexture = 0
+	c.emptyTexture = 0
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0

@@ -333,6 +333,33 @@ loop:
 		idx++
 	}
 
+	// A sampler for a slot without an image must not sample a texture left by an earlier draw,
+	// as the texture might be the destination (#3923). Let such samplers sample an empty texture.
+	var emptyTextureBound bool
+	for i, t := range textures {
+		if t.valid {
+			continue
+		}
+		if !g.context.uniformInt(program, g.textureVariableName(i), idx) || emptyTextureBound {
+			continue
+		}
+		if g.state.lastActiveTexture != idx {
+			g.context.ctx.ActiveTexture(uint32(gl.TEXTURE0 + idx))
+			g.state.lastActiveTexture = idx
+			g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
+		}
+		if g.context.emptyTexture == 0 {
+			e, err := g.context.newTexture(1, 1)
+			if err != nil {
+				return err
+			}
+			g.context.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, make([]byte, 4))
+			g.context.emptyTexture = e
+		}
+		g.context.bindTexture(g.context.emptyTexture)
+		emptyTextureBound = true
+	}
+
 	for i := range g.activatedTextures {
 		g.activatedTextures[i] = activatedTexture{}
 	}
