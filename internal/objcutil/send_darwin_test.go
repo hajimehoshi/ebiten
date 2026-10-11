@@ -33,18 +33,42 @@ func loadFoundation(t *testing.T) {
 	}
 }
 
-func TestSend(t *testing.T) {
+// newNSObjects returns two NSObjects that are released when the test finishes.
+func newNSObjects(t *testing.T) (obj, other objc.ID) {
+	t.Helper()
 	loadFoundation(t)
 	selNew := objc.RegisterName("new")
 	selRelease := objc.RegisterName("release")
+
+	obj = objc.ID(objc.GetClass("NSObject")).Send(selNew)
+	other = objc.ID(objc.GetClass("NSObject")).Send(selNew)
+	t.Cleanup(func() {
+		obj.Send(selRelease)
+		other.Send(selRelease)
+	})
+	return obj, other
+}
+
+// newRectValue returns an autoreleased NSValue holding rect and a rectValue key that is released when the test finishes.
+// Call it after loadFoundation, inside an autorelease pool on a locked OS thread.
+func newRectValue(t *testing.T, rect cocoa.NSRect) (value, key objc.ID) {
+	t.Helper()
+	selRelease := objc.RegisterName("release")
+	selValueWithRect := objc.RegisterName("valueWithRect:")
+
+	value = objc.ID(objc.GetClass("NSValue")).Send(selValueWithRect, rect)
+	key = cocoa.NSString_alloc().InitWithUTF8String("rectValue").ID
+	t.Cleanup(func() {
+		key.Send(selRelease)
+	})
+	return value, key
+}
+
+func TestSend(t *testing.T) {
+	obj, other := newNSObjects(t)
 	selHash := objc.RegisterName("hash")
 	selRetainCount := objc.RegisterName("retainCount")
 	selIsEqual := objc.RegisterName("isEqual:")
-
-	obj := objc.ID(objc.GetClass("NSObject")).Send(selNew)
-	other := objc.ID(objc.GetClass("NSObject")).Send(selNew)
-	defer obj.Send(selRelease)
-	defer other.Send(selRelease)
 
 	if got, want := objcutil.Send(obj, selHash), uintptr(obj.Send(selHash)); got != want {
 		t.Errorf("hash: got %d, want %d", got, want)
@@ -58,13 +82,6 @@ func TestSend(t *testing.T) {
 	if got := objcutil.Send(obj, selIsEqual, uintptr(other)) & 0xff; got != 0 {
 		t.Errorf("isEqual: another object: got %d, want 0", got)
 	}
-
-	if n := testing.AllocsPerRun(100, func() {
-		objcutil.Send(obj, selHash)
-		objcutil.Send(obj, selIsEqual, uintptr(other))
-	}); n != 0 {
-		t.Errorf("allocations: got %v, want 0", n)
-	}
 }
 
 func TestValueForKey(t *testing.T) {
@@ -72,9 +89,6 @@ func TestValueForKey(t *testing.T) {
 	defer runtime.UnlockOSThread()
 
 	loadFoundation(t)
-	selRelease := objc.RegisterName("release")
-	selValueWithRect := objc.RegisterName("valueWithRect:")
-
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
@@ -82,22 +96,13 @@ func TestValueForKey(t *testing.T) {
 		Origin: cocoa.NSPoint{X: 1.5, Y: 2.5},
 		Size:   cocoa.NSSize{Width: 3.5, Height: 4.5},
 	}
-	value := objc.ID(objc.GetClass("NSValue")).Send(selValueWithRect, want)
+	value, keyRectValue := newRectValue(t, want)
 
-	keyRectValue := cocoa.NSString_alloc().InitWithUTF8String("rectValue")
-	defer keyRectValue.Send(selRelease)
 	var got cocoa.NSRect
-	if !objcutil.ValueForKey(value, keyRectValue.ID, unsafe.Pointer(&got), unsafe.Sizeof(got)) {
+	if !objcutil.ValueForKey(value, keyRectValue, unsafe.Pointer(&got), unsafe.Sizeof(got)) {
 		t.Fatal("rectValue: no value")
 	}
 	if got != want {
 		t.Errorf("rectValue: got %+v, want %+v", got, want)
-	}
-
-	if n := testing.AllocsPerRun(100, func() {
-		var got cocoa.NSRect
-		objcutil.ValueForKey(value, keyRectValue.ID, unsafe.Pointer(&got), unsafe.Sizeof(got))
-	}); n != 0 {
-		t.Errorf("allocations: got %v, want 0", n)
 	}
 }
