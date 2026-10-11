@@ -247,6 +247,7 @@ func CompileShader(fragmentSrc []byte) (*shaderir.Program, error) {
 	}
 
 	ir.FragmentSource = bytes.Clone(fragmentSrc)
+	ir.ProjectionUniform = ProjectionMatrixUniformVariableIndex
 
 	return ir, nil
 }

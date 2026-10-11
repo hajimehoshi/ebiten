@@ -138,6 +138,75 @@ func TestShader(t *testing.T) {
 	}
 }
 
+// Issue #3924
+func TestShaderDstPosOnScreen(t *testing.T) {
+	if ui.Get().GraphicsLibrary() != ui.GraphicsLibraryOpenGL {
+		t.Skip("reading pixels from the screen is available only on OpenGL")
+	}
+
+	const w, h = 16, 16
+	src := graphicscommand.NewImage(w, h, false, "")
+	src.WritePixels(graphics.NewManagedBytes(4*w*h, func(bs []byte) {
+		for i := range w * h {
+			if i < w*h/2 {
+				copy(bs[4*i:], []byte{0xff, 0, 0, 0xff})
+			} else {
+				copy(bs[4*i:], []byte{0, 0, 0xff, 0xff})
+			}
+		}
+	}), image.Rect(0, 0, w, h))
+
+	ir, err := graphics.CompileShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	if dstPos.y < 8 {
+		return vec4(1, 0, 0, 1)
+	}
+	return vec4(0, 0, 1, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := graphicscommand.NewShader(ir, "")
+
+	// The left half is the source image, and the right half is the shader's result.
+	// Both must be the same however the screen's pixels are read.
+	screen := graphicscommand.NewImage(2*w, h, true, "")
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, 2*w, h)
+	sr := image.Rect(0, 0, w, h)
+	vs := make([]float32, 8*graphics.VertexFloatCount)
+	graphics.QuadVerticesFromDstAndSrc(vs, 0, 0, w, h, 0, 0, w, h, 1, 1, 1, 1)
+	screen.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, nearestFilterShader, nil)
+	vs = make([]float32, 8*graphics.VertexFloatCount)
+	graphics.QuadVerticesFromDstAndSrc(vs, w, 0, 2*w, h, 0, 0, w, h, 1, 1, 1, 1)
+	screen.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, nil)
+
+	pix := make([]byte, 4*2*w*h)
+	if err := screen.ReadPixels(ui.Get().GraphicsDriverForTesting(), []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pix,
+			Region: dr,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for j := range h {
+		for i := range w {
+			idx0 := 4 * (i + 2*w*j)
+			idx1 := 4 * (i + w + 2*w*j)
+			got := color.RGBA{R: pix[idx1], G: pix[idx1+1], B: pix[idx1+2], A: pix[idx1+3]}
+			want := color.RGBA{R: pix[idx0], G: pix[idx0+1], B: pix[idx0+2], A: pix[idx0+3]}
+			if got != want {
+				t.Errorf("screen.At(%d, %d): got %v, want: %v", i+w, j, got, want)
+			}
+		}
+	}
+}
+
 // Issue #3036
 func TestSuccessiveWritePixels(t *testing.T) {
 	const w, h = 32, 32

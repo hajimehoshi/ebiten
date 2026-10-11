@@ -429,6 +429,11 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		nv := len(p.Varyings)
 		switch {
 		case idx == 0:
+			if p.ProjectionUniform > 0 {
+				// The projection matrix flips Y for the screen, where gl_FragCoord.y counts from the bottom.
+				// Then, -2.0/U[1][1] is the screen height.
+				return fmt.Sprintf("vec4(gl_FragCoord.x, U%[1]d[1][1] < 0.0 ? -2.0/U%[1]d[1][1] - gl_FragCoord.y : gl_FragCoord.y, gl_FragCoord.zw)", p.ProjectionUniform)
+			}
 			return "gl_FragCoord"
 		case idx < nv+1:
 			return fmt.Sprintf("V%d", idx-1)
