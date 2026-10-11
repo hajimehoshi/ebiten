@@ -15,8 +15,6 @@
 package graphicscommand
 
 import (
-	"context"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
 
@@ -27,12 +25,8 @@ func SetOSThreadAsRenderThread() {
 	theRenderThread = thread.NewOSThread()
 }
 
-func LoopRenderThread(ctx context.Context) {
-	_ = theRenderThread.Loop(ctx)
-}
-
-// LoopRenderThreadUntil runs the rendering thread loop until it receives a value from done.
-func LoopRenderThreadUntil(done <-chan struct{}) {
+// LoopRenderThread runs the rendering thread loop until done receives a value or is closed.
+func LoopRenderThread(done <-chan struct{}) {
 	theRenderThread.LoopUntil(done)
 }
 

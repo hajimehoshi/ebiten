@@ -78,7 +78,7 @@ func (u *UserInterface) Update() error {
 		return err
 	}
 
-	graphicscommand.LoopRenderThreadUntil(renderEndCh)
+	graphicscommand.LoopRenderThread(renderEndCh)
 	return nil
 }
 
