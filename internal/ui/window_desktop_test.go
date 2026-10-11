@@ -29,12 +29,13 @@ func (b *restoreTestBackend) Window() backendWindow {
 
 type restoreTestWindow struct {
 	backendWindow
+	maximized bool
 	minimized bool
 	restored  bool
 }
 
 func (w *restoreTestWindow) IsMaximized() bool {
-	return false
+	return w.maximized
 }
 
 func (w *restoreTestWindow) IsMinimized() bool {
@@ -45,18 +46,32 @@ func (w *restoreTestWindow) Restore() {
 	w.restored = true
 }
 
-func TestRestoreMinimizedWindowWithMaximumSizeLimit(t *testing.T) {
-	u := &UserInterface{}
-	window := &restoreTestWindow{minimized: true}
-	u.setRunningBackend(&restoreTestBackend{window: window})
-	defer u.setRunningBackend(nil)
+func TestRestoreWindowWithMaximumSizeLimit(t *testing.T) {
+	tests := []struct {
+		name      string
+		maximized bool
+		minimized bool
+		want      bool
+	}{
+		{name: "minimized", minimized: true, want: true},
+		{name: "maximized and minimized", maximized: true, minimized: true, want: true},
+		{name: "maximized", maximized: true, want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			u := &UserInterface{}
+			window := &restoreTestWindow{maximized: tt.maximized, minimized: tt.minimized}
+			u.setRunningBackend(&restoreTestBackend{window: window})
+			defer u.setRunningBackend(nil)
 
-	w := &desktopWindow{ui: u}
-	w.windowResizingMode.Store(WindowResizingModeEnabled)
-	w.setWindowSizeLimitsInDIP(-1, -1, 1280, 960)
-	w.Restore()
+			w := &desktopWindow{ui: u}
+			w.windowResizingMode.Store(WindowResizingModeEnabled)
+			w.setWindowSizeLimitsInDIP(-1, -1, 1280, 960)
+			w.Restore()
 
-	if !window.restored {
-		t.Fatal("Restore did not reach the backend for a minimized window with a maximum size limit")
+			if window.restored != tt.want {
+				t.Fatalf("Restore reached the backend = %t, want %t", window.restored, tt.want)
+			}
+		})
 	}
 }
