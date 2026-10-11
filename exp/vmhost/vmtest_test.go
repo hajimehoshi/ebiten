@@ -107,8 +107,7 @@ func runGuest(ln net.Listener, binary, endpoint string) error {
 	// the details already on stderr above.
 	waitErr := cmd.Wait()
 	if waitErr != nil {
-		var exit *exec.ExitError
-		if errors.As(waitErr, &exit) {
+		if exit, ok := errors.AsType[*exec.ExitError](waitErr); ok {
 			waitErr = fmt.Errorf("the guest tests failed (exit code %d); see its output above", exit.ExitCode())
 		} else {
 			waitErr = fmt.Errorf("waiting for the guest failed: %w", waitErr)

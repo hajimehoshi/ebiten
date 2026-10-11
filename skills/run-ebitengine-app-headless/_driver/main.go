@@ -327,7 +327,7 @@ func waitForGuestExit(cmd *exec.Cmd) error {
 		return nil
 	case <-time.After(guestExitTimeout):
 		_ = cmd.Process.Kill()
-		<-done
-		return fmt.Errorf("the guest did not exit within %v of its session being closed (is its Update wedged?)", guestExitTimeout)
+		err := <-done
+		return fmt.Errorf("the guest did not exit within %v of its session being closed (is its Update wedged?): %v", guestExitTimeout, err)
 	}
 }

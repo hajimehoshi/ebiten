@@ -80,8 +80,8 @@ func TestCloseShutsGuestDownCleanly(t *testing.T) {
 		}
 	case <-time.After(30 * time.Second):
 		_ = cmd.Process.Kill()
-		<-waitErr
-		t.Fatalf("the guest did not exit after Close\nguest stderr:\n%s", &stderr)
+		err := <-waitErr
+		t.Fatalf("the guest did not exit after Close: %v\nguest stderr:\n%s", err, &stderr)
 	}
 	if code := cmd.ProcessState.ExitCode(); code != 0 {
 		t.Errorf("the guest's exit code = %d; want 0", code)
