@@ -1015,7 +1015,7 @@ func (bce BlitCommandEncoder) CopyFromBuffer(sourceBuffer Buffer, sourceOffset u
 
 // CopyFromTextureToBuffer encodes a command that copies image data from a texture slice into a buffer.
 //
-// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/copy(from:sourceslice:sourcelevel:sourceorigin:sourcesize:to:destinationoffset:destinationbytesperrow:destinationbytesperimage:).
+// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/copy(from:sourceslice:sourcelevel:sourceorigin:sourcesize:to:destinationoffset:destinationbytesperrow:destinationbytesperimage:)?language=objc.
 func (bce BlitCommandEncoder) CopyFromTextureToBuffer(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationBuffer Buffer, destinationOffset uintptr, destinationBytesPerRow uintptr, destinationBytesPerImage uintptr) {
 	bce.commandEncoder.Send(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toBuffer_destinationOffset_destinationBytesPerRow_destinationBytesPerImage,
 		sourceTexture.texture, sourceSlice, sourceLevel, sourceOrigin, sourceSize, destinationBuffer.buffer, destinationOffset, destinationBytesPerRow, destinationBytesPerImage)
@@ -1148,7 +1148,7 @@ func CopyToBufferAt[T byte | uint32 | float32](b Buffer, data []T, offset uintpt
 	}
 }
 
-// CopyFromBufferAt copies data from the buffer's contents starting at offset, in bytes.
+// CopyFromBufferAt copies the buffer's contents starting at offset, in bytes, into data.
 //
 // CopyFromBufferAt panics if data does not fit in the buffer.
 func CopyFromBufferAt(b Buffer, data []byte, offset uintptr) {
