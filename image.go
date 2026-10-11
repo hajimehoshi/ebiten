@@ -1573,7 +1573,7 @@ func MaxImageSize() int {
 //
 // NewImage panics if RunGame already finishes.
 func NewImage(width, height int) *Image {
-	return newImage(image.Rect(0, 0, width, height), atlas.ImageTypeRegular)
+	return newImage(imageRectWithValidation(0, 0, width, height), atlas.ImageTypeRegular)
 }
 
 // NewImageOptions represents options for NewImageWithOptions.
@@ -1604,11 +1604,26 @@ type NewImageOptions struct {
 //
 // NewImageWithOptions panics if RunGame already finishes.
 func NewImageWithOptions(bounds image.Rectangle, options *NewImageOptions) *Image {
+	validateImageSize(bounds.Dx(), bounds.Dy())
 	imageType := atlas.ImageTypeRegular
 	if options != nil && options.Unmanaged {
 		imageType = atlas.ImageTypeUnmanaged
 	}
 	return newImage(bounds, imageType)
+}
+
+func validateImageSize(width, height int) {
+	if width <= 0 {
+		panic(fmt.Sprintf("ebiten: width at NewImage must be positive but %d", width))
+	}
+	if height <= 0 {
+		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
+	}
+}
+
+func imageRectWithValidation(x0, y0, x1, y1 int) image.Rectangle {
+	validateImageSize(x1-x0, y1-y0)
+	return image.Rect(x0, y0, x1, y1)
 }
 
 func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
@@ -1617,12 +1632,6 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 	}
 
 	width, height := bounds.Dx(), bounds.Dy()
-	if width <= 0 {
-		panic(fmt.Sprintf("ebiten: width at NewImage must be positive but %d", width))
-	}
-	if height <= 0 {
-		panic(fmt.Sprintf("ebiten: height at NewImage must be positive but %d", height))
-	}
 
 	i := &Image{}
 	i.image = ui.Get().NewImage(width, height, imageType)
@@ -1679,12 +1688,10 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 		options = &NewImageFromImageOptions{}
 	}
 
-	var r image.Rectangle
-	if options.PreserveBounds {
-		r = source.Bounds()
-	} else {
-		size := source.Bounds().Size()
-		r = image.Rect(0, 0, size.X, size.Y)
+	bounds := source.Bounds()
+	r := bounds
+	if !options.PreserveBounds {
+		r = imageRectWithValidation(0, 0, bounds.Dx(), bounds.Dy())
 	}
 	i := NewImageWithOptions(r, &NewImageOptions{
 		Unmanaged: options.Unmanaged,
@@ -1695,8 +1702,7 @@ func NewImageFromImageWithOptions(source image.Image, options *NewImageFromImage
 	if source, ok := source.(*Image); ok {
 		op := &DrawImageOptions{}
 		if options.PreserveBounds {
-			b := source.Bounds()
-			op.GeoM.Translate(float64(b.Min.X), float64(b.Min.Y))
+			op.GeoM.Translate(float64(bounds.Min.X), float64(bounds.Min.Y))
 		}
 		i.DrawImage(source, op)
 		return i

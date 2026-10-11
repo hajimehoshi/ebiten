@@ -2836,25 +2836,113 @@ func TestImageDrawImageCannotAllocateImageForMipmap(t *testing.T) {
 	dst.At(0, 0)
 }
 
-func TestImageNewImageWithZeroSize(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("DrawImage must panic but not")
-		}
-	}()
-
-	_ = ebiten.NewImage(0, 1)
+func TestImageNewImageWithInvalidSize(t *testing.T) {
+	cases := []struct {
+		width  int
+		height int
+	}{
+		{
+			width:  0,
+			height: 1,
+		},
+		{
+			width:  1,
+			height: 0,
+		},
+		{
+			width:  -1,
+			height: 1,
+		},
+		{
+			width:  1,
+			height: -1,
+		},
+		{
+			width:  -1,
+			height: -1,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%dx%d", c.width, c.height), func(t *testing.T) {
+			defer func() {
+				if r := recover(); r == nil {
+					t.Error("NewImage must panic")
+				}
+			}()
+			i := ebiten.NewImage(c.width, c.height)
+			i.Deallocate()
+		})
+	}
 }
 
-func TestImageNewImageFromImageWithZeroSize(t *testing.T) {
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("DrawImage must panic but not")
+func TestImageNewImageWithOptionsWithInvalidSize(t *testing.T) {
+	for _, size := range [][2]int{{0, 1}, {1, 0}, {-1, 1}, {1, -1}, {-1, -1}} {
+		for _, unmanaged := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%dx%d/unmanaged=%t", size[0], size[1], unmanaged), func(t *testing.T) {
+				defer func() {
+					r := recover()
+					if r == nil {
+						t.Error("NewImageWithOptions must panic")
+					} else if _, ok := r.(runtime.Error); ok {
+						t.Errorf("got runtime panic instead of image size validation: %v", r)
+					}
+				}()
+				bounds := image.Rectangle{Min: image.Pt(2, 3), Max: image.Pt(2+size[0], 3+size[1])}
+				img := ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{Unmanaged: unmanaged})
+				img.Deallocate()
+			})
 		}
-	}()
+	}
+}
 
-	img := image.NewRGBA(image.Rect(0, 0, 0, 1))
-	_ = ebiten.NewImageFromImage(img)
+func TestImageNewImageFromImageWithInvalidSize(t *testing.T) {
+	cases := []struct {
+		width  int
+		height int
+	}{
+		{
+			width:  0,
+			height: 1,
+		},
+		{
+			width:  1,
+			height: 0,
+		},
+		{
+			width:  -1,
+			height: 1,
+		},
+		{
+			width:  1,
+			height: -1,
+		},
+		{
+			width:  -1,
+			height: -1,
+		},
+	}
+	for _, c := range cases {
+		for _, preserveBounds := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%dx%d/preserve=%t", c.width, c.height, preserveBounds), func(t *testing.T) {
+				defer func() {
+					r := recover()
+					if r == nil {
+						t.Error("NewImageFromImageWithOptions must panic")
+					} else if _, ok := r.(runtime.Error); ok {
+						t.Errorf("got runtime panic instead of image size validation: %v", r)
+					}
+				}()
+				src := &image.RGBA{
+					Rect: image.Rectangle{Max: image.Pt(c.width, c.height)},
+					Pix:  make([]byte, 4),
+				}
+				img := ebiten.NewImageFromImageWithOptions(src, &ebiten.NewImageFromImageOptions{
+					PreserveBounds: preserveBounds,
+				})
+				img.Deallocate()
+			})
+		}
+	}
 }
 
 func TestImageClip(t *testing.T) {
