@@ -942,7 +942,7 @@ func _ChoosePixelFormat(hdc _HDC, ppfd *_PIXELFORMATDESCRIPTOR) (int32, error) {
 }
 
 func _ClientToScreen(hWnd windows.HWND, lpPoint *_POINT) error {
-	r, _, e := procClientToScreen.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpPoint)))
+	r, _, e := syscall.SyscallN(procClientToScreen.Addr(), uintptr(hWnd), uintptr(unsafe.Pointer(lpPoint)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return fmt.Errorf("glfw: ClientToScreen failed: %w", e)
 	}
@@ -1275,7 +1275,7 @@ func _GetClassLongW(hWnd windows.HWND, nIndex int32) (uint32, error) {
 
 func _GetClientRect(hWnd windows.HWND) (_RECT, error) {
 	var rect _RECT
-	r, _, e := procGetClientRect.Call(uintptr(hWnd), uintptr(unsafe.Pointer(&rect)))
+	r, _, e := syscall.SyscallN(procGetClientRect.Addr(), uintptr(hWnd), uintptr(unsafe.Pointer(&rect)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return _RECT{}, fmt.Errorf("glfw: GetClientRect failed: %w", e)
 	}
@@ -1284,7 +1284,7 @@ func _GetClientRect(hWnd windows.HWND) (_RECT, error) {
 
 func _GetCursorPos() (_POINT, error) {
 	var point _POINT
-	r, _, e := procGetCursorPos.Call(uintptr(unsafe.Pointer(&point)))
+	r, _, e := syscall.SyscallN(procGetCursorPos.Addr(), uintptr(unsafe.Pointer(&point)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return _POINT{}, fmt.Errorf("glfw: GetCursorPos failed: %w", e)
 	}
@@ -1310,7 +1310,7 @@ func _GetDpiForWindow(hwnd windows.HWND) uint32 {
 }
 
 func _GetKeyState(nVirtKey int32) int16 {
-	r, _, _ := procGetKeyState.Call(uintptr(nVirtKey))
+	r, _, _ := syscall.SyscallN(procGetKeyState.Addr(), uintptr(nVirtKey))
 	return int16(r)
 }
 
@@ -1357,7 +1357,7 @@ func _GetModuleHandleExW(dwFlags uint32, lpModuleName any) (_HMODULE, error) {
 func _GetMonitorInfoW(hMonitor _HMONITOR) (_MONITORINFO, bool) {
 	var mi _MONITORINFO
 	mi.cbSize = uint32(unsafe.Sizeof(mi))
-	r, _, _ := procGetMonitorInfoW.Call(uintptr(hMonitor), uintptr(unsafe.Pointer(&mi)))
+	r, _, _ := syscall.SyscallN(procGetMonitorInfoW.Addr(), uintptr(hMonitor), uintptr(unsafe.Pointer(&mi)))
 	if int32(r) == 0 {
 		return _MONITORINFO{}, false
 	}
@@ -1367,7 +1367,7 @@ func _GetMonitorInfoW(hMonitor _HMONITOR) (_MONITORINFO, bool) {
 func _GetMonitorInfoW_Ex(hMonitor _HMONITOR) (_MONITORINFOEXW, bool) {
 	var mi _MONITORINFOEXW
 	mi.cbSize = uint32(unsafe.Sizeof(mi))
-	r, _, _ := procGetMonitorInfoW.Call(uintptr(hMonitor), uintptr(unsafe.Pointer(&mi)))
+	r, _, _ := syscall.SyscallN(procGetMonitorInfoW.Addr(), uintptr(hMonitor), uintptr(unsafe.Pointer(&mi)))
 	if int32(r) == 0 {
 		return _MONITORINFOEXW{}, false
 	}
@@ -1375,7 +1375,7 @@ func _GetMonitorInfoW_Ex(hMonitor _HMONITOR) (_MONITORINFOEXW, bool) {
 }
 
 func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpiY uint32, err error) {
-	r, _, _ := procGetDpiForMonitor.Call(uintptr(hmonitor), uintptr(dpiType), uintptr(unsafe.Pointer(&dpiX)), uintptr(unsafe.Pointer(&dpiY)))
+	r, _, _ := syscall.SyscallN(procGetDpiForMonitor.Addr(), uintptr(hmonitor), uintptr(dpiType), uintptr(unsafe.Pointer(&dpiX)), uintptr(unsafe.Pointer(&dpiY)))
 	if uint32(r) != uint32(windows.S_OK) {
 		return 0, 0, fmt.Errorf("glfw: GetDpiForMonitor failed: %w", handleError(windows.Handle(uint32(r))))
 	}
@@ -1577,7 +1577,7 @@ func _ReleaseDC(hWnd windows.HWND, hDC _HDC) int32 {
 }
 
 func _ScreenToClient(hWnd windows.HWND, lpPoint *_POINT) error {
-	r, _, e := procScreenToClient.Call(uintptr(hWnd), uintptr(unsafe.Pointer(lpPoint)))
+	r, _, e := syscall.SyscallN(procScreenToClient.Addr(), uintptr(hWnd), uintptr(unsafe.Pointer(lpPoint)))
 	if int32(r) == 0 && !errors.Is(e, windows.ERROR_SUCCESS) {
 		return fmt.Errorf("glfw: ScreenToClient failed: %w", e)
 	}
@@ -1742,7 +1742,7 @@ func _ToUnicode(wVirtualKey uint32, wScanCode uint32, keyState []byte, buff []ui
 }
 
 func _TranslateMessage(lpMsg *_MSG) bool {
-	r, _, _ := procTranslateMessage.Call(uintptr(unsafe.Pointer(lpMsg)))
+	r, _, _ := syscall.SyscallN(procTranslateMessage.Addr(), uintptr(unsafe.Pointer(lpMsg)))
 	return int32(r) != 0
 }
 

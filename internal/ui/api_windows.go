@@ -154,7 +154,7 @@ func _GetCursorPos() (int32, int32, error) {
 }
 
 func _GetKeyState(nVirtKey int) int16 {
-	r, _, _ := procGetKeyState.Call(uintptr(nVirtKey))
+	r, _, _ := syscall.SyscallN(procGetKeyState.Addr(), uintptr(nVirtKey))
 	return int16(r)
 }
 
