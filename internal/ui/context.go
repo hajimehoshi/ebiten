@@ -292,8 +292,15 @@ func (c *context) flushCommandsAndWait(needsSwapBuffers, present bool, graphicsD
 
 	var waitTime time.Duration
 	if !needsSwapBuffers {
-		// When swapping buffers is skipped, nothing new is shown before the next refresh. Sleep for one
-		// refresh interval regardless of vsync to suppress CPU usage (#2890, #3919).
+		// Swapping buffers is skipped when there is nothing new to show: the screen is not cleared every
+		// frame (SetScreenClearedEveryFrame(false)) and Draw has drawn nothing for a few frames, or the
+		// window or the screen has a zero size. Nothing new is shown before the next refresh, so sleep for
+		// one refresh interval to suppress CPU usage (#2890, #3919).
+		//
+		// Sleep even with vsync disabled. Vsync is sometimes disabled because it does not work well in the
+		// user's environment, e.g. the OS drives the display at a lower refresh rate than the display
+		// supports, and the game feels throttled with vsync enabled (#2889). Such a game should not consume
+		// CPU while idle.
 		waitTime = refreshInterval
 	} else if !shown {
 		// Nothing waits for the display while the screen is not shown. Pace the frame as a shown screen
