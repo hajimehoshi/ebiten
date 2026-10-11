@@ -15,6 +15,7 @@
 package graphicscommand_test
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -240,6 +241,65 @@ func fillImage(t *testing.T, img *graphicscommand.Image, clr color.RGBA) {
 func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 	const w, h = 16, 16
 	region := image.Rect(0, 0, w, h)
+
+	t.Run("MultipleRegions", func(t *testing.T) {
+		const w, h = 17, 11
+		region := image.Rect(0, 0, w, h)
+		img := graphicscommand.NewImage(w, h, false, "")
+		pixels := graphics.NewManagedBytes(4*w*h, func(bs []byte) {
+			for y := range h {
+				for x := range w {
+					i := 4 * (y*w + x)
+					copy(bs[i:], []byte{byte(x), byte(y), 123, 255})
+				}
+			}
+		})
+		img.WritePixels(pixels, region)
+		args := []graphicsdriver.PixelsArgs{
+			{
+				Pixels: make([]byte, 3*5*4),
+				Region: image.Rect(2, 3, 5, 8),
+			},
+			{
+				Pixels: make([]byte, w*h*4),
+				Region: region,
+			},
+		}
+		ch := img.ReadPixelsAsync(args)
+		img.WritePixels(graphics.NewManagedBytes(4*w*h, func(bs []byte) {
+			clear(bs)
+		}), region)
+		cleared := bytes.Repeat([]byte{0xff}, 4*w*h)
+		clearedCh := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+			{
+				Pixels: cleared,
+				Region: region,
+			},
+		})
+		img.Dispose()
+		if err := requireReadPixelsAsyncResult(t, ch); err != nil {
+			t.Error(err)
+			return
+		}
+		if err := requireReadPixelsAsyncResult(t, clearedCh); err != nil {
+			t.Error(err)
+			return
+		}
+		if !bytes.Equal(cleared, make([]byte, len(cleared))) {
+			t.Error("the cleared image must be all zeros")
+		}
+		for _, arg := range args {
+			for y := arg.Region.Min.Y; y < arg.Region.Max.Y; y++ {
+				for x := arg.Region.Min.X; x < arg.Region.Max.X; x++ {
+					i := 4 * ((y-arg.Region.Min.Y)*arg.Region.Dx() + x - arg.Region.Min.X)
+					want := []byte{byte(x), byte(y), 123, 255}
+					if got := arg.Pixels[i : i+4]; !bytes.Equal(got, want) {
+						t.Errorf("region %v at (%d, %d): got %v, want %v", arg.Region, x, y, got, want)
+					}
+				}
+			}
+		}
+	})
 
 	t.Run("ManyInFlight", func(t *testing.T) {
 		const count = 16
