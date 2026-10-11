@@ -140,9 +140,9 @@ func TestAsynchronousFlushError(t *testing.T) {
 
 func TestFlushStoppedNoopThread(t *testing.T) {
 	renderThread := thread.NewNoopThread()
-	if err := renderThread.LoopAndStop(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	done := make(chan struct{})
+	close(done)
+	renderThread.LoopAndStop(done)
 	defer graphicscommand.SetRenderThreadForTesting(renderThread)()
 	defer graphicscommand.SetVsyncEnabled(true)
 	for _, vsync := range []bool{false, true} {
@@ -183,7 +183,7 @@ func TestCompleteFramesAfterIntermediateFlushes(t *testing.T) {
 				done := make(chan struct{})
 				go func() {
 					defer close(done)
-					_ = renderThread.LoopAndStop(ctx)
+					renderThread.LoopAndStop(ctx.Done())
 				}()
 				defer func() { cancel(); <-done }()
 			} else {

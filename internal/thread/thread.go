@@ -27,8 +27,8 @@ import (
 )
 
 type Thread interface {
-	Loop(ctx context.Context) error
-	LoopAndStop(ctx context.Context) error
+	Loop(done <-chan struct{})
+	LoopAndStop(done <-chan struct{})
 
 	call(f callable, sync bool) bool
 }
@@ -187,46 +187,40 @@ func NewOSThread() *OSThread {
 	}
 }
 
-// Loop starts the thread loop until ctx is canceled.
-//
-// Loop returns ctx's error if exists.
+// Loop starts the thread loop until done receives a value or is closed.
 //
 // Loop can be called again after it returns. Use LoopAndStop for a loop that is the
 // thread's whole life.
 //
 // Loop must be called on the OS thread.
-func (t *OSThread) Loop(ctx context.Context) error {
+func (t *OSThread) Loop(done <-chan struct{}) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	return t.loop(ctx)
+	t.loopUntil(done)
 }
 
 // LoopAndStop runs Loop and then stops the thread.
 //
 // After LoopAndStop returns, Call and CallAsync do nothing.
 //
-// LoopAndStop returns ctx's error if exists.
-//
 // LoopAndStop must be called on the OS thread.
-func (t *OSThread) LoopAndStop(ctx context.Context) error {
+func (t *OSThread) LoopAndStop(done <-chan struct{}) {
 	defer t.stop()
-	return t.Loop(ctx)
+	t.Loop(done)
 }
 
-// NestedLoop runs functions requested by Call and CallAsync until ctx is canceled.
+// NestedLoop runs functions requested by Call and CallAsync until done receives a value or is closed.
 //
 // NestedLoop is useful when a function invoked by Loop blocks the thread and requests
 // from other goroutines must be processed in the meantime.
 //
-// NestedLoop returns ctx's error if exists.
-//
 // NestedLoop must be called on the OS thread running Loop, from within a function invoked by Loop.
-func (t *OSThread) NestedLoop(ctx context.Context) error {
-	return t.loop(ctx)
+func (t *OSThread) NestedLoop(done <-chan struct{}) {
+	t.loopUntil(done)
 }
 
-func (t *OSThread) loop(ctx context.Context) error {
+func (t *OSThread) loopUntil(done <-chan struct{}) {
 	for {
 		select {
 		case item := <-t.funcs:
@@ -236,8 +230,8 @@ func (t *OSThread) loop(ctx context.Context) error {
 				}
 				item.f.call()
 			}()
-		case <-ctx.Done():
-			return ctx.Err()
+		case <-done:
+			return
 		}
 	}
 }
@@ -281,16 +275,14 @@ func NewNoopThread() *NoopThread {
 }
 
 // Loop does nothing.
-func (t *NoopThread) Loop(ctx context.Context) error {
-	return nil
+func (t *NoopThread) Loop(done <-chan struct{}) {
 }
 
 // LoopAndStop stops the thread without looping.
 //
 // After LoopAndStop returns, Call and CallAsync do nothing.
-func (t *NoopThread) LoopAndStop(ctx context.Context) error {
+func (t *NoopThread) LoopAndStop(done <-chan struct{}) {
 	t.stop()
-	return nil
 }
 
 // stop stops serving Call and CallAsync.
