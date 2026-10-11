@@ -788,6 +788,7 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 //
 // As of Ebitengine 2.10, on desktops, the directory entries and the files the returned value
 // provides also implement [AbsPather].
+// The starting entry passed to the callback of [io/fs.WalkDir] does not implement [AbsPather].
 //
 // DroppedFiles is concurrent-safe.
 func DroppedFiles() fs.FS {
