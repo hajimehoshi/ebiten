@@ -80,6 +80,47 @@ func TestLoopAndStopUnblocksCall(t *testing.T) {
 	}
 }
 
+func TestLoopUntilTwice(t *testing.T) {
+	th := thread.NewOSThread()
+	done := make(chan struct{})
+
+	wait := func(ch <-chan struct{}, msg string) {
+		t.Helper()
+		select {
+		case <-ch:
+		case <-time.After(5 * time.Second):
+			t.Fatal(msg)
+		}
+	}
+
+	for i := range 2 {
+		returned := make(chan struct{})
+		go func() {
+			defer close(returned)
+			th.LoopUntil(done)
+		}()
+
+		var called bool
+		callReturned := make(chan struct{})
+		go func() {
+			defer close(callReturned)
+			thread.Call(th, func() { called = true })
+		}()
+		wait(callReturned, "Call did not return")
+		if !called {
+			t.Fatalf("run %d: LoopUntil did not execute the queued call", i)
+		}
+
+		sent := make(chan struct{})
+		go func() {
+			defer close(sent)
+			done <- struct{}{}
+		}()
+		wait(sent, "LoopUntil did not receive from done")
+		wait(returned, "LoopUntil did not return after a send on done")
+	}
+}
+
 func TestCalls(t *testing.T) {
 	for _, name := range []string{"NoopThread", "OSThread"} {
 		t.Run(name, func(t *testing.T) {
