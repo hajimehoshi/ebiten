@@ -15,6 +15,7 @@
 package objcutil_test
 
 import (
+	"runtime"
 	"testing"
 	"unsafe"
 
@@ -67,6 +68,9 @@ func TestSend(t *testing.T) {
 }
 
 func TestValueForKey(t *testing.T) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	loadFoundation(t)
 	selRelease := objc.RegisterName("release")
 	selValueWithRect := objc.RegisterName("valueWithRect:")
