@@ -46,7 +46,7 @@ func TestNestedLoop(t *testing.T) {
 				values = append(values, 2)
 			})
 		}()
-		_ = th.NestedLoop(nestedCtx)
+		th.NestedLoop(nestedCtx.Done())
 
 		values = append(values, 3)
 	})
@@ -203,7 +203,7 @@ func TestTypedNestedCall(t *testing.T) {
 			defer nestedCancel()
 			nestedResult <- thread.CallWithArgAndResult(th, func(value int) int { return value * 2 }, value)
 		}()
-		_ = th.NestedLoop(nestedCtx)
+		th.NestedLoop(nestedCtx.Done())
 		return <-nestedResult + 1
 	}, 20)
 	if got != 41 {

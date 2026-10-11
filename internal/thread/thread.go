@@ -210,21 +210,14 @@ func (t *OSThread) LoopAndStop(done <-chan struct{}) {
 	t.Loop(done)
 }
 
-// NestedLoop runs functions requested by Call and CallAsync until ctx is canceled.
+// NestedLoop runs functions requested by Call and CallAsync until done receives a value or is closed.
 //
 // NestedLoop is useful when a function invoked by Loop blocks the thread and requests
 // from other goroutines must be processed in the meantime.
 //
-// NestedLoop returns ctx's error if exists.
-//
 // NestedLoop must be called on the OS thread running Loop, from within a function invoked by Loop.
-func (t *OSThread) NestedLoop(ctx context.Context) error {
-	return t.loop(ctx)
-}
-
-func (t *OSThread) loop(ctx context.Context) error {
-	t.loopUntil(ctx.Done())
-	return ctx.Err()
+func (t *OSThread) NestedLoop(done <-chan struct{}) {
+	t.loopUntil(done)
 }
 
 func (t *OSThread) loopUntil(done <-chan struct{}) {

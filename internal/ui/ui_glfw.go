@@ -843,7 +843,7 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 
 	// In the single-thread mode, the game loop runs on the main thread and cannot be resumed here.
 	mainThread, ok := u.mainThread.(interface {
-		NestedLoop(ctx stdcontext.Context) error
+		NestedLoop(done <-chan struct{})
 	})
 	if !ok {
 		return
@@ -865,7 +865,7 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 		defer cancel()
 		err = u.context.forceUpdateFrame(u.graphicsDriver, outsideWidth, outsideHeight, screenWidth, screenHeight, deviceScaleFactor, u.UserInterface)
 	}()
-	_ = mainThread.NestedLoop(ctx)
+	mainThread.NestedLoop(ctx.Done())
 	if err != nil {
 		u.setError(err)
 	}
