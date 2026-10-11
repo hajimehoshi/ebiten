@@ -89,7 +89,7 @@ func VsyncIgnoredForTest(frameTimes []time.Duration, refreshInterval time.Durati
 
 func FlushCommandsAndWaitForTesting(driver graphicsdriver.Graphics, present bool) error {
 	var c context
-	return c.flushCommandsAndWait(present, driver, false, 60)
+	return c.flushCommandsAndWait(true, present, driver, false, 60)
 }
 
 func (i *InputState) NextInputTime() InputTime {

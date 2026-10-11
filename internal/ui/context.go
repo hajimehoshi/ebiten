@@ -105,9 +105,9 @@ func newContext(game Game, screenTransparent bool) *context {
 }
 
 // updateFrame runs one frame. present reports whether the frame should be shown on the screen; when it
-// is false (e.g. the window is hidden) the buffer swap is skipped, so the loop paces from
-// flushCommandsAndWait's no-swap path instead of a present that may block, and Update keeps running at the
-// target tick rate.
+// is false (e.g. the window is hidden) the buffer swap is skipped, so the loop is paced by
+// flushCommandsAndWait instead of a present that may block, and Update keeps running at the target tick
+// rate.
 func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWidth, outsideHeight float64, screenWidth, screenHeight int, deviceScaleFactor float64, ui *UserInterface, present bool) error {
 	if !present {
 		c.presentationSkipped = true
@@ -121,7 +121,7 @@ func (c *context) updateFrame(graphicsDriver graphicsdriver.Graphics, outsideWid
 	if err != nil {
 		return err
 	}
-	if err := c.flushCommandsAndWait(needsSwapBuffers && present, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn, ui.RefreshRate()); err != nil {
+	if err := c.flushCommandsAndWait(needsSwapBuffers, present, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn, ui.RefreshRate()); err != nil {
 		return err
 	}
 	if needsSwapBuffers && present {
@@ -147,7 +147,7 @@ func (c *context) forceUpdateFrame(graphicsDriver graphicsdriver.Graphics, outsi
 		if err != nil {
 			return err
 		}
-		if err := c.flushCommandsAndWait(needsSwapBuffers, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn, ui.RefreshRate()); err != nil {
+		if err := c.flushCommandsAndWait(needsSwapBuffers, true, graphicsDriver, ui.FPSMode() == FPSModeVsyncOn, ui.RefreshRate()); err != nil {
 			return err
 		}
 	}
@@ -263,30 +263,44 @@ func (c *context) readInputStateForTick(ui *UserInterface) {
 	})
 }
 
-func (c *context) flushCommandsAndWait(needsSwapBuffers bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {
-	if err := atlas.FlushCommands(graphicsDriver, needsSwapBuffers); err != nil {
+// flushCommandsAndWait flushes the graphics commands and waits until the next frame should start.
+// Buffers are swapped only when both needsSwapBuffers and present are true.
+func (c *context) flushCommandsAndWait(needsSwapBuffers, present bool, graphicsDriver graphicsdriver.Graphics, vsyncEnabled bool, refreshRate int) error {
+	if err := atlas.FlushCommands(graphicsDriver, needsSwapBuffers && present); err != nil {
 		return err
 	}
 
-	// Swapping buffers for an invisible screen returns without waiting for the display. Pace such a
-	// frame like a skipped swap, or the loop would run as fast as the CPU allows (#2181).
-	var occluded bool
-	if o, ok := graphicsDriver.(interface{ IsOccluded() bool }); ok {
-		occluded = o.IsOccluded()
+	// Swapping buffers for an invisible screen returns without waiting for the display (#2181).
+	shown := present
+	if o, ok := graphicsDriver.(interface{ IsOccluded() bool }); ok && o.IsOccluded() {
+		shown = false
 	}
 
 	now := time.Now()
 
 	// A frame that is not swapped with vsync enabled tells nothing about whether swapping buffers
 	// waits for the display, and breaks the run of the frames that returned early.
-	if !needsSwapBuffers || occluded || !vsyncEnabled {
+	if !needsSwapBuffers || !shown || !vsyncEnabled {
 		c.vsyncIgnoredCount = 0
 	}
 
+	// Assume 60 [Hz] when the refresh rate is unknown.
+	refreshInterval := time.Second / 60
+	if refreshRate > 0 {
+		refreshInterval = time.Second / time.Duration(refreshRate)
+	}
+
 	var waitTime time.Duration
-	if !needsSwapBuffers || occluded {
-		// When swapping buffers is skipped and Draw is called too early, sleep for a while to suppress CPU usage (#2890).
-		waitTime = time.Second / 60
+	if !needsSwapBuffers {
+		// When swapping buffers is skipped, nothing new is shown before the next refresh. Sleep for one
+		// refresh interval regardless of vsync to suppress CPU usage (#2890, #3919).
+		waitTime = refreshInterval
+	} else if !shown {
+		// Nothing waits for the display while the screen is not shown. Pace the frame as a shown screen
+		// would be paced: at the refresh rate with vsync enabled, and not at all with vsync disabled (#3919).
+		if vsyncEnabled {
+			waitTime = refreshInterval
+		}
 	} else if vsyncEnabled {
 		// In some environments, e.g. Linux on Parallels, SwapBuffers doesn't wait for the vsync (#2952).
 		// In the case when the display has high refresh rates like 240 [Hz], the wait time should be small.
@@ -294,8 +308,8 @@ func (c *context) flushCommandsAndWait(needsSwapBuffers bool, graphicsDriver gra
 
 		// A graphics driver can be configured to force the vsync off, and then swapping buffers never
 		// waits for the display (#3009). Pace the loop at the refresh rate, as nothing else does.
+		// The detection needs the actual refresh rate rather than the assumed one.
 		if refreshRate > 0 {
-			refreshInterval := time.Second / time.Duration(refreshRate)
 			if c.updateVsyncIgnored(now.Sub(c.lastSwapBufferTime), refreshInterval) {
 				waitTime = refreshInterval
 			}
