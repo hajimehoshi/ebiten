@@ -26,6 +26,12 @@ var (
 // NSDefaultRunLoopMode for event polling.
 var nsDefaultRunLoopMode = cocoa.NSString_alloc().InitWithUTF8String("kCFRunLoopDefaultMode")
 
+// Keys for key-value coding.
+var (
+	key_frame                             = cocoa.NSString_alloc().InitWithUTF8String("frame")
+	key_mouseLocationOutsideOfEventStream = cocoa.NSString_alloc().InitWithUTF8String("mouseLocationOutsideOfEventStream")
+)
+
 // Color space name for custom cursor creation.
 var nsCalibratedRGBColorSpace = cocoa.NSString_alloc().InitWithUTF8String("NSCalibratedRGBColorSpace")
 
@@ -159,7 +165,7 @@ func windowForEvent(nsWindow objc.ID) *Window {
 
 // nsApp returns the shared NSApplication instance.
 func nsApp() objc.ID {
-	return objc.ID(class_NSApplication).Send(sel_sharedApplication)
+	return objc.ID(objcutil.Send(objc.ID(class_NSApplication), sel_sharedApplication))
 }
 
 // registerGLFWClasses registers the GLFWWindow, GLFWWindowDelegate, and GLFWContentView
@@ -1722,17 +1728,18 @@ func platformPollEvents() error {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	distantPast := objc.ID(objc.GetClass("NSDate")).Send(objc.RegisterName("distantPast"))
+	app := nsApp()
+	distantPast := objcutil.Send(objc.ID(class_NSDate), sel_distantPast)
 	for {
-		event := objc.Send[objc.ID](nsApp(), sel_nextEventMatchingMask_untilDate_inMode_dequeue,
+		event := objcutil.Send(app, sel_nextEventMatchingMask_untilDate_inMode_dequeue,
 			uintptr(NSEventMaskAny),
 			distantPast,
-			nsDefaultRunLoopMode.ID,
-			true)
+			uintptr(nsDefaultRunLoopMode.ID),
+			1)
 		if event == 0 {
 			break
 		}
-		nsApp().Send(sel_sendEvent, event)
+		objcutil.Send(app, sel_sendEvent, event)
 	}
 	return nil
 }
@@ -1799,9 +1806,11 @@ func (w *Window) platformGetCursorPos() (xpos, ypos float64, err error) {
 	pool := cocoa.NSAutoreleasePool_new()
 	defer pool.Release()
 
-	contentRect := objc.Send[cocoa.NSRect](w.platform.view, sel_frame)
+	var contentRect cocoa.NSRect
+	objcutil.ValueForKey(w.platform.view, key_frame.ID, unsafe.Pointer(&contentRect), unsafe.Sizeof(contentRect))
 	// NOTE: The returned location uses base 0,1 not 0,0
-	pos := objc.Send[cocoa.NSPoint](w.platform.object, sel_mouseLocationOutsideOfEventStream)
+	var pos cocoa.NSPoint
+	objcutil.ValueForKey(w.platform.object, key_mouseLocationOutsideOfEventStream.ID, unsafe.Pointer(&pos), unsafe.Sizeof(pos))
 
 	xpos = pos.X
 	ypos = contentRect.Size.Height - pos.Y

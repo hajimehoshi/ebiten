@@ -281,6 +281,7 @@ var (
 	class_NSImage                   objc.Class
 	class_NSBitmapImageRep          objc.Class
 	class_NSTrackingArea            objc.Class
+	class_NSDate                    objc.Class
 	class_NSColor                   objc.Class
 	class_NSArray                   objc.Class
 	class_NSURL                     objc.Class
@@ -312,6 +313,7 @@ var (
 	sel_stop                                           = objc.RegisterName("stop:")
 	sel_nextEventMatchingMask_untilDate_inMode_dequeue = objc.RegisterName("nextEventMatchingMask:untilDate:inMode:dequeue:")
 	sel_sendEvent                                      = objc.RegisterName("sendEvent:")
+	sel_distantPast                                    = objc.RegisterName("distantPast")
 	sel_activateIgnoringOtherApps                      = objc.RegisterName("activateIgnoringOtherApps:")
 	sel_keyWindow                                      = objc.RegisterName("keyWindow")
 	sel_postEvent_atStart                              = objc.RegisterName("postEvent:atStart:")
@@ -658,6 +660,7 @@ func init() {
 	class_NSImage = objc.GetClass("NSImage")
 	class_NSBitmapImageRep = objc.GetClass("NSBitmapImageRep")
 	class_NSTrackingArea = objc.GetClass("NSTrackingArea")
+	class_NSDate = objc.GetClass("NSDate")
 	class_NSColor = objc.GetClass("NSColor")
 	class_NSArray = objc.GetClass("NSArray")
 	class_NSURL = objc.GetClass("NSURL")

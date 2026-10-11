@@ -358,7 +358,7 @@ var (
 // tick ensures stuck modifiers eventually clear. Must be called on the main
 // thread.
 func (u *glfwBackend) syncModKeysFromOS() {
-	flags := objc.Send[uint](objc.ID(class_NSEvent), sel_modifierFlags)
+	flags := objcutil.Send(objc.ID(class_NSEvent), sel_modifierFlags)
 	const (
 		nsEventModifierFlagShift   = 1 << 17
 		nsEventModifierFlagControl = 1 << 18
@@ -384,7 +384,7 @@ func (u *glfwBackend) syncModKeysFromOS() {
 // syncLockKeysFromOS updates the lock key state to the current OS state.
 // Must be called on the main thread.
 func (u *glfwBackend) syncLockKeysFromOS() {
-	flags := objc.Send[uint](objc.ID(class_NSEvent), sel_modifierFlags)
+	flags := objcutil.Send(objc.ID(class_NSEvent), sel_modifierFlags)
 	const nsEventModifierFlagCapsLock = 1 << 16
 
 	caps := NewLockKeyStateFromBool(flags&nsEventModifierFlagCapsLock != 0)
