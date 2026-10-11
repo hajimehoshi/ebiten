@@ -370,7 +370,6 @@ type platformLibraryContextState struct {
 		QueryVersion          func(display uintptr, major, minor *int32) bool
 		DestroyContext        func(display uintptr, ctx uintptr)
 		MakeCurrent           func(display uintptr, drawable _XID, ctx uintptr) bool
-		SwapBuffers           func(display uintptr, drawable _XID)
 		QueryExtensionsString func(display uintptr, screen int32) uintptr
 		CreateNewContext      func(display uintptr, config uintptr, renderType int32, share uintptr, direct bool) uintptr
 		CreateWindow          func(display uintptr, config uintptr, win _XID, attribs *int32) _XID
@@ -380,10 +379,12 @@ type platformLibraryContextState struct {
 		GetProcAddress    func(procname string) uintptr
 		GetProcAddressARB func(procname string) uintptr
 
-		SwapIntervalSGI         func(interval int32) int32
-		SwapIntervalEXT         func(display uintptr, drawable _XID, interval int32)
-		SwapIntervalMESA        func(interval int32) int32
 		CreateContextAttribsARB func(display uintptr, config uintptr, share uintptr, direct bool, attribs *int32) uintptr
+
+		swapBuffers      uintptr
+		swapIntervalSGI  uintptr
+		swapIntervalEXT  uintptr
+		swapIntervalMESA uintptr
 	}
 	egl struct {
 		major, minor int32
@@ -410,9 +411,10 @@ type platformLibraryContextState struct {
 		DestroyContext      func(display uintptr, ctx uintptr) bool
 		CreateWindowSurface func(display uintptr, config uintptr, win _XID, attribList *int32) uintptr
 		MakeCurrent         func(display uintptr, draw uintptr, read uintptr, ctx uintptr) bool
-		SwapBuffers         func(display uintptr, surface uintptr) bool
-		SwapInterval        func(display uintptr, interval int32) bool
 		QueryString         func(display uintptr, name int32) uintptr
 		GetProcAddress      func(procname string) uintptr
+
+		swapBuffers  uintptr
+		swapInterval uintptr
 	}
 }

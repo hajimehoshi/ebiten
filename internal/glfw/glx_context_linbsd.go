@@ -143,21 +143,25 @@ func makeContextCurrentGLX(window *Window) error {
 }
 
 func swapBuffersGLX(window *Window) error {
-	_glfw.platformContext.glx.SwapBuffers(_glfw.platformWindow.display, window.context.platform.glx.window)
+	c := getCCall()
+	defer putCCall(c)
+	c.call(_glfw.platformContext.glx.swapBuffers, _glfw.platformWindow.display, uintptr(window.context.platform.glx.window))
 	window.signalFrameSyncCounter()
 	return nil
 }
 
 func swapIntervalGLX(window *Window, interval int) error {
 	glx := &_glfw.platformContext.glx
+	c := getCCall()
+	defer putCCall(c)
 	switch {
 	case glx.EXT_swap_control:
-		glx.SwapIntervalEXT(_glfw.platformWindow.display, window.context.platform.glx.window, int32(interval))
+		c.call(glx.swapIntervalEXT, _glfw.platformWindow.display, uintptr(window.context.platform.glx.window), uintptr(int32(interval)))
 	case glx.MESA_swap_control:
-		glx.SwapIntervalMESA(int32(interval))
+		c.call(glx.swapIntervalMESA, uintptr(int32(interval)))
 	case glx.SGI_swap_control:
 		if interval > 0 {
-			glx.SwapIntervalSGI(int32(interval))
+			c.call(glx.swapIntervalSGI, uintptr(int32(interval)))
 		}
 	}
 	return nil
@@ -237,12 +241,16 @@ func initGLX() (err error) {
 		!registerRequired(&glx.QueryVersion, "glXQueryVersion") ||
 		!registerRequired(&glx.DestroyContext, "glXDestroyContext") ||
 		!registerRequired(&glx.MakeCurrent, "glXMakeCurrent") ||
-		!registerRequired(&glx.SwapBuffers, "glXSwapBuffers") ||
 		!registerRequired(&glx.QueryExtensionsString, "glXQueryExtensionsString") ||
 		!registerRequired(&glx.CreateNewContext, "glXCreateNewContext") ||
 		!registerRequired(&glx.CreateWindow, "glXCreateWindow") ||
 		!registerRequired(&glx.DestroyWindow, "glXDestroyWindow") ||
 		!registerRequired(&glx.GetVisualFromFBConfig, "glXGetVisualFromFBConfig") {
+		return fmt.Errorf("glfw: glx: failed to load required entry points: %w", PlatformError)
+	}
+	if sym, err := purego.Dlsym(handle, "glXSwapBuffers"); err == nil && sym != 0 {
+		glx.swapBuffers = sym
+	} else {
 		return fmt.Errorf("glfw: glx: failed to load required entry points: %w", PlatformError)
 	}
 
@@ -268,21 +276,21 @@ func initGLX() (err error) {
 
 	if extensionSupportedGLX("GLX_EXT_swap_control") {
 		if proc := getProcAddressGLX("glXSwapIntervalEXT"); proc != 0 {
-			purego.RegisterFunc(&glx.SwapIntervalEXT, proc)
+			glx.swapIntervalEXT = proc
 			glx.EXT_swap_control = true
 		}
 	}
 
 	if extensionSupportedGLX("GLX_SGI_swap_control") {
 		if proc := getProcAddressGLX("glXSwapIntervalSGI"); proc != 0 {
-			purego.RegisterFunc(&glx.SwapIntervalSGI, proc)
+			glx.swapIntervalSGI = proc
 			glx.SGI_swap_control = true
 		}
 	}
 
 	if extensionSupportedGLX("GLX_MESA_swap_control") {
 		if proc := getProcAddressGLX("glXSwapIntervalMESA"); proc != 0 {
-			purego.RegisterFunc(&glx.SwapIntervalMESA, proc)
+			glx.swapIntervalMESA = proc
 			glx.MESA_swap_control = true
 		}
 	}
