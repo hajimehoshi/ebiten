@@ -28,6 +28,11 @@
 // [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the goroutine calling them, so a host
 // never deals with the session's own goroutine.
 //
+// Hosting guests requires multithread mode. [ebiten.RunGameOptions.SingleThread] and the
+// ebitenginesinglethread and ebitensinglethread build tags are not supported for hosts.
+// [NewGuestSession] or [ebiten.RunGameWithOptions] returns an error for this combination.
+// Close existing sessions before starting a single-threaded game.
+//
 // This package is experimental and the API might be changed in the future.
 package vmhost
 
@@ -301,10 +306,20 @@ type NewGuestSessionOptions struct {
 	OnTextInput func(*GuestTextInput)
 }
 
-// NewGuestSession opens a session with a guest process over an established connection. It performs the
-// protocol handshake and returns an error if the guest's protocol version does not match the host's.
+// NewGuestSession opens a session with a guest process over an established connection.
+// It returns an error if the protocol handshake fails, including a protocol version mismatch,
+// or if single-thread mode is already selected by [ebiten.RunGameWithOptions] or a build tag.
 // options can be nil, which means the default options.
 func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSession, error) {
+	if err := ui.RegisterVMHost(); err != nil {
+		return nil, err
+	}
+	var sessionCreated bool
+	defer func() {
+		if !sessionCreated {
+			ui.UnregisterVMHost()
+		}
+	}()
 	var idleConn *idleTimeoutConn
 	var rw io.ReadWriter = conn
 	if options != nil && options.IdleTimeout > 0 {
@@ -342,6 +357,7 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
+	sessionCreated = true
 	return g, nil
 }
 
@@ -1688,6 +1704,7 @@ func (g *GuestSession) Close() error {
 		g.renderer.dispose()
 		g.readbacks = nil
 		g.closeErr = g.conn.Close()
+		ui.UnregisterVMHost()
 	})
 	return g.closeErr
 }
