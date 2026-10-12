@@ -45,6 +45,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
@@ -111,6 +112,8 @@ type GuestSession struct {
 	// pendingReadPixels is the guest read-back the session goroutine is parked on, waiting for a host
 	// call within the host's frame to perform it; nil when none is in flight.
 	pendingReadPixels *readPixelsRequest
+	// hostWaiters counts blocked tick and frame waits.
+	hostWaiters int
 	// submittedTicks and consumedTicks count ticks requested and processed; their difference is the
 	// backlog. They only increase. submittedTicks is touched only by the host goroutine, but it lives
 	// here because WaitTicks compares it against consumedTicks, which the session writes.
@@ -216,15 +219,18 @@ type readPixelsRequest struct {
 	pixels  [][]byte
 	regions []image.Rectangle
 
-	// done reports that the host has filled pixels. It is guarded by GuestSession.mu.
+	// done reports that the host has served the request. It is guarded by GuestSession.mu.
 	done bool
 
 	async *asyncPixelReadback
+
+	// poll reports whether the host should submit commands and poll pending read-backs.
+	poll bool
 }
 
 type asyncPixelReadback struct {
 	pixels  [][]byte
-	results []<-chan error
+	results []*graphicscommand.PixelReadback
 }
 
 // guestEventKind discriminates a guest event queued for handler delivery.
@@ -702,7 +708,7 @@ func (g *GuestSession) startReadPixelsAsync(query *vmprotocol.GuestMessage) (uin
 	pixels := make([]byte, int(total))
 	readback := &asyncPixelReadback{
 		pixels:  make([][]byte, len(query.ReadRegions)),
-		results: make([]<-chan error, len(query.ReadRegions)),
+		results: make([]*graphicscommand.PixelReadback, len(query.ReadRegions)),
 	}
 	var off int
 	for j, region := range query.ReadRegions {
@@ -735,19 +741,25 @@ func (g *GuestSession) answerPollReadPixels(id uint64) error {
 		answer.Err = fmt.Sprintf("vmhost: unknown read-back %d", id)
 		return g.enc.EncodeHostMessage(&answer)
 	}
-	answer.ReadbackDone = true
-	for j, result := range readback.results {
-		if result == nil {
-			continue
+	// A guest can wait for read-back completion inside Update or Draw while the host waits
+	// for that tick or frame. The waiting host must drive read-back progress to break the
+	// dependency. Otherwise, answer immediately so polling does not require another host frame.
+	if g.hostIsWaiting() {
+		if err := g.requestReadPixelsInHostFrame(&readPixelsRequest{
+			poll: true,
+		}); err != nil {
+			answer.Err = err.Error()
+			return g.enc.EncodeHostMessage(&answer)
 		}
-		select {
-		case err := <-result:
-			readback.results[j] = nil
-			if err != nil {
-				answer.Err = err.Error()
-				return g.enc.EncodeHostMessage(&answer)
-			}
-		default:
+	}
+	answer.ReadbackDone = true
+	for _, result := range readback.results {
+		done, err := result.Poll()
+		if err != nil {
+			answer.Err = err.Error()
+			return g.enc.EncodeHostMessage(&answer)
+		}
+		if !done {
 			answer.ReadbackDone = false
 		}
 	}
@@ -755,6 +767,13 @@ func (g *GuestSession) answerPollReadPixels(id uint64) error {
 		answer.Pixels = readback.pixels
 	}
 	return g.enc.EncodeHostMessage(&answer)
+}
+
+// hostIsWaiting reports whether a host tick or frame wait is blocked.
+func (g *GuestSession) hostIsWaiting() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.hostWaiters != 0
 }
 
 // errReadPixelsAbandoned ends a guest read-back no host will ever perform because the session is over.
@@ -797,6 +816,11 @@ func (g *GuestSession) servePendingReadPixels() {
 	req := g.takePendingReadPixels()
 	if req == nil {
 		return
+	}
+	// A guest can wait inside a tick or frame while the host waits for that same operation.
+	// Advance its read-backs here so completion does not require another host frame.
+	if req.poll {
+		ui.Get().PollPixelReadbacks()
 	}
 	for i, r := range req.regions {
 		if req.async != nil {
@@ -1034,7 +1058,9 @@ func (g *GuestSession) waitFrameStep(want int64) (done, ok bool) {
 		if g.pendingReadPixels != nil {
 			return false, false
 		}
+		g.hostWaiters++
 		g.cond.Wait()
+		g.hostWaiters--
 	}
 }
 
@@ -1148,7 +1174,9 @@ func (g *GuestSession) waitTicksStep(target int64) (done, ok bool) {
 		if g.pendingReadPixels != nil {
 			return false, false
 		}
+		g.hostWaiters++
 		g.cond.Wait()
+		g.hostWaiters--
 	}
 	return true, true
 }

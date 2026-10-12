@@ -640,9 +640,9 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return true, nil
 }
 
-// ReadPixelsAsync queues a pixel read-back and returns its result channel.
-// A nil channel indicates that the read-back must be tried again in the next frame, like ReadPixels.
-func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+// ReadPixelsAsync queues a pixel read-back and returns its result.
+// A nil result indicates that the read-back must be tried again in the next frame, like ReadPixels.
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -657,9 +657,7 @@ func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan er
 
 	if i.backend == nil || i.backend.backendImage == nil {
 		clear(pixels)
-		ch := make(chan error)
-		close(ch)
-		return ch
+		return graphicscommand.NewCompletedPixelReadback(nil)
 	}
 
 	args := []graphicsdriver.PixelsArgs{
@@ -878,6 +876,14 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	}
 
 	return i.backend.backendImage.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
+}
+
+// PollPixelReadbacks submits pending commands and checks read-back completion.
+func PollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	return graphicscommand.PollPixelReadbacks(graphicsDriver)
 }
 
 // AbortReadPixels completes pending and queued pixel read-backs with an error.

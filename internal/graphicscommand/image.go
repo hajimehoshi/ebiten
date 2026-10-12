@@ -166,9 +166,9 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphi
 	return nil
 }
 
-// ReadPixelsAsync queues a read of the image's pixels and returns its result channel.
+// ReadPixelsAsync queues a read of the image's pixels and returns its result.
 // ReadPixelsAsync must not be called after the image is disposed.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) <-chan error {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) *PixelReadback {
 	i.flushBufferedWritePixels()
 	req := newReadPixelsRequest(args)
 	theCommandQueueManager.enqueueCommand(&readPixelsAsyncCommand{

@@ -28,14 +28,61 @@ import (
 // because the graphics driver is not usable anymore.
 var errReadPixelsAborted = errors.New("graphicscommand: the pixel read-back was aborted")
 
-// readPixelsRequest holds the arguments, result channel, and driver resources for a pixel read-back.
+// PixelReadback is the completion result of a pixel read-back.
+type PixelReadback struct {
+	done chan struct{}
+
+	// err is immutable after done closes. Receiving from done publishes it and the destination pixels.
+	err error
+}
+
+// NewCompletedPixelReadback returns a completed read-back with the given error.
+func NewCompletedPixelReadback(err error) *PixelReadback {
+	r := &PixelReadback{
+		done: make(chan struct{}),
+		err:  err,
+	}
+	close(r.done)
+	return r
+}
+
+// Poll reports whether the read-back has completed and its error, if any.
+func (r *PixelReadback) Poll() (bool, error) {
+	select {
+	case <-r.done:
+		return true, r.err
+	default:
+		return false, nil
+	}
+}
+
+// PollPixelReadbacks submits queued commands and checks completion on the render thread.
+// The caller must hold the atlas backend mutex.
+func PollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
+	// Intermediate flushes retain their queues until the end of the frame.
+	// Only submit when there are commands so waiting does not accumulate empty queues.
+	if q := theCommandQueueManager.current; q != nil && len(q.commands) != 0 {
+		if err := theCommandQueueManager.flush(graphicsDriver, graphicsdriver.FlushModeIntermediate); err != nil {
+			return err
+		}
+	}
+	thread.Call(theRenderThread, func() {
+		theCommandQueueManager.pollReadPixels()
+	})
+	if err := theCommandQueueManager.error(); err != nil {
+		theCommandQueueManager.abortReadPixels(err)
+		return err
+	}
+	return nil
+}
+
+// readPixelsRequest holds the arguments, result, and driver resources for a pixel read-back.
 //
 // The readback and finished fields of readPixelsRequest are accessed only on the render thread.
 type readPixelsRequest struct {
 	args []graphicsdriver.PixelsArgs
 
-	// The channel is buffered so completing the request never blocks the render thread.
-	result chan error
+	result *PixelReadback
 
 	// readback is the graphics driver's read-back, or nil before it starts and after it finishes.
 	readback graphicsdriver.PixelReadback
@@ -44,15 +91,17 @@ type readPixelsRequest struct {
 	finished bool
 }
 
-// newReadPixelsRequest creates a pixel read-back request with a buffered result channel.
+// newReadPixelsRequest creates a pixel read-back request with a completion result.
 func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
 	return &readPixelsRequest{
-		args:   args,
-		result: make(chan error, 1),
+		args: args,
+		result: &PixelReadback{
+			done: make(chan struct{}),
+		},
 	}
 }
 
-// finish releases the driver read-back and retained arguments, sends the error if any, and closes the result channel.
+// finish releases the driver read-back and retained arguments and publishes the result.
 //
 // finish must be called on the render thread, and must be called at most once.
 func (r *readPixelsRequest) finish(err error) {
@@ -65,10 +114,8 @@ func (r *readPixelsRequest) finish(err error) {
 		r.readback = nil
 	}
 	r.args = nil
-	if err != nil {
-		r.result <- err
-	}
-	close(r.result)
+	r.result.err = err
+	close(r.result.done)
 }
 
 // readPixelsAsyncCommand starts a pixel read-back at its position in the command queue.
@@ -136,8 +183,7 @@ func (c *commandQueueManager) addReadPixelsRequest(req *readPixelsRequest) {
 
 // pollReadPixels finishes completed read-backs and releases their resources.
 //
-// pollReadPixels must be called on the render thread at a flush, after the frame's commands have
-// been submitted to the graphics driver.
+// pollReadPixels must be called on the render thread.
 func (c *commandQueueManager) pollReadPixels() {
 	// Polling in the submission order lets a finished read-back complete its request first, which
 	// keeps the completion order as close to the submission order as possible.

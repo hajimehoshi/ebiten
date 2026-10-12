@@ -20,6 +20,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
@@ -62,11 +63,11 @@ func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte
 	return i.cache.readPixels(i.img, graphicsDriver, pixels, region)
 }
 
-// ReadPixelsAsync queues a pixel read-back and returns its result channel.
+// ReadPixelsAsync queues a pixel read-back and returns its result.
 //
 // Read-back must neither read from nor populate the CPU pixel cache. Pending CPU writes are
 // flushed to the GPU before the read; GPU pixels go directly into the caller's buffer.
-func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	i.writeBackPixelsIfNeeded()
 	return i.img.ReadPixelsAsync(pixels, region)
 }
