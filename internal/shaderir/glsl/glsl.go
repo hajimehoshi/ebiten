@@ -96,10 +96,11 @@ out vec4 fragColor;`
 }
 
 type compileContext struct {
-	version            GLSLVersion
-	structNames        map[string]string
-	structTypes        []shaderir.Type
-	assignedAttributes []bool
+	version                GLSLVersion
+	projectionUniformIndex int
+	structNames            map[string]string
+	structTypes            []shaderir.Type
+	assignedAttributes     []bool
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -116,13 +117,15 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 	return n
 }
 
-func Compile(p *shaderir.Program, version GLSLVersion) (vertexShader, fragmentShader string) {
+// Compile compiles p into GLSL. projectionUniformIndex is the projection matrix's uniform index, or -1 for none.
+func Compile(p *shaderir.Program, version GLSLVersion, projectionUniformIndex int) (vertexShader, fragmentShader string) {
 	p = adjustProgram(p)
 
 	c := &compileContext{
-		version:            version,
-		structNames:        map[string]string{},
-		assignedAttributes: p.AssignedAttributes(),
+		version:                version,
+		projectionUniformIndex: projectionUniformIndex,
+		structNames:            map[string]string{},
+		assignedAttributes:     p.AssignedAttributes(),
 	}
 
 	// Vertex func
@@ -429,10 +432,10 @@ func (c *compileContext) localVariableName(p *shaderir.Program, topBlock *shader
 		nv := len(p.Varyings)
 		switch {
 		case idx == 0:
-			if p.ProjectionUniform > 0 {
+			if c.projectionUniformIndex >= 0 {
 				// The projection matrix flips Y for the screen, where gl_FragCoord.y counts from the bottom.
 				// Then, -2.0/U[1][1] is the screen height.
-				return fmt.Sprintf("vec4(gl_FragCoord.x, U%[1]d[1][1] < 0.0 ? -2.0/U%[1]d[1][1] - gl_FragCoord.y : gl_FragCoord.y, gl_FragCoord.zw)", p.ProjectionUniform)
+				return fmt.Sprintf("vec4(gl_FragCoord.x, U%[1]d[1][1] < 0.0 ? -2.0/U%[1]d[1][1] - gl_FragCoord.y : gl_FragCoord.y, gl_FragCoord.zw)", c.projectionUniformIndex)
 			}
 			return "gl_FragCoord"
 		case idx < nv+1:

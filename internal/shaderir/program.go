@@ -71,10 +71,6 @@ type Program struct {
 	// Kage source.
 	FragmentSource []byte
 
-	// ProjectionUniform is the index of the projection matrix in the uniform variables, or 0 if the program has none.
-	// When the Y scale of the matrix is negative, the fragment entry point gets its position with Y from the top.
-	ProjectionUniform int
-
 	uniformFactors []uint32
 }
 
