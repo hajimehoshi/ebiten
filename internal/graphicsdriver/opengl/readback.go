@@ -20,10 +20,21 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
+
+const (
+	maxPixelPackBufferBytes = 64 << 20
+	maxPixelPackBuffers     = 16
+)
+
+type pixelPackBuffer struct {
+	buffer buffer
+	size   int
+}
 
 // syncObject is an OpenGL sync object, created by FenceSync. The zero value means no sync object.
 //
@@ -52,6 +63,9 @@ type readback struct {
 
 	// args hold the read regions and destination buffers in submission order.
 	args []graphicsdriver.PixelsArgs
+
+	// reusable is set only after the fence and every copy have succeeded.
+	reusable bool
 }
 
 // ReadPixelsAsync records pixel reads into pixel pack buffers and returns without waiting for the
@@ -81,7 +95,7 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 		if len(arg.Pixels) != size {
 			return nil, fmt.Errorf("opengl: len(Pixels) must be %d but %d at ReadPixelsAsync", size, len(arg.Pixels))
 		}
-		b, err := c.newPixelPackBuffer(size)
+		b, err := i.graphics.acquirePixelPackBuffer(size)
 		if err != nil {
 			return nil, err
 		}
@@ -115,6 +129,7 @@ func (r *readback) Poll() (bool, error) {
 			return true, err
 		}
 	}
+	r.reusable = true
 	return true, nil
 }
 
@@ -126,11 +141,59 @@ func (r *readback) Dispose() {
 		r.fence = 0
 	}
 	for j, b := range r.pbos {
-		c.deleteBuffer(b)
+		if r.reusable {
+			r.graphics.releasePixelPackBuffer(b, len(r.args[j].Pixels))
+		} else {
+			c.deleteBuffer(b)
+		}
 		r.pbos[j] = 0
 	}
 	r.pbos = nil
 	r.args = nil
+}
+
+// acquirePixelPackBuffer returns a buffer bound to PIXEL_PACK_BUFFER.
+func (g *Graphics) acquirePixelPackBuffer(size int) (buffer, error) {
+	for j, b := range g.pixelPackBuffers {
+		if b.size != size {
+			continue
+		}
+		g.pixelPackBuffers = slices.Delete(g.pixelPackBuffers, j, j+1)
+		g.pixelPackBufferBytes -= size
+		g.context.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(b.buffer))
+		return b.buffer, nil
+	}
+	return g.context.newPixelPackBuffer(size)
+}
+
+// releasePixelPackBuffer caches b, an unmapped buffer of size bytes whose read completed
+// successfully, for reuse, or deletes it.
+func (g *Graphics) releasePixelPackBuffer(b buffer, size int) {
+	if size == 0 || size > maxPixelPackBufferBytes {
+		g.context.deleteBuffer(b)
+		return
+	}
+	// Evict the oldest entries so changing read sizes cannot fill the cache with unusable buffers.
+	for len(g.pixelPackBuffers) >= maxPixelPackBuffers || g.pixelPackBufferBytes > maxPixelPackBufferBytes-size {
+		oldest := g.pixelPackBuffers[0]
+		g.context.deleteBuffer(oldest.buffer)
+		g.pixelPackBufferBytes -= oldest.size
+		g.pixelPackBuffers = slices.Delete(g.pixelPackBuffers, 0, 1)
+	}
+	g.pixelPackBuffers = append(g.pixelPackBuffers, pixelPackBuffer{
+		buffer: b,
+		size:   size,
+	})
+	g.pixelPackBufferBytes += size
+}
+
+// clearPixelPackBuffers deletes the cached pixel pack buffers.
+func (g *Graphics) clearPixelPackBuffers() {
+	for _, b := range g.pixelPackBuffers {
+		g.context.deleteBuffer(b.buffer)
+	}
+	g.pixelPackBuffers = nil
+	g.pixelPackBufferBytes = 0
 }
 
 func (c *context) newPixelPackBuffer(size int) (buffer, error) {

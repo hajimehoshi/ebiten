@@ -101,7 +101,10 @@ func TestReadPixelsAsyncGuestExit(t *testing.T) {
 	defer flush.Deallocate()
 	pixels := make([]byte, 4)
 	deadline := time.Now().Add(30 * time.Second)
-	for time.Now().Before(deadline) {
+	for range 100 {
+		if !time.Now().Before(deadline) {
+			break
+		}
 		guest.AdvanceTicks(1)
 		if !guest.WaitTicks() {
 			if err := guest.Err(); !errors.Is(err, ebiten.Termination) {

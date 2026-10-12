@@ -242,6 +242,32 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 	const w, h = 16, 16
 	region := image.Rect(0, 0, w, h)
 
+	t.Run("ReusedBuffersInFlight", func(t *testing.T) {
+		const count = 4
+		for round := range 2 {
+			pixels := make([][]byte, count)
+			chans := make([]<-chan error, count)
+			for i := range count {
+				img := graphicscommand.NewImage(w, h, false, "")
+				fillImage(t, img, color.RGBA{R: byte(0x40 + count*round + i), A: 0xff})
+				pixels[i] = make([]byte, 4*w*h)
+				chans[i] = img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+					Pixels: pixels[i],
+					Region: region,
+				}})
+			}
+			for i, ch := range chans {
+				if err := requireReadPixelsAsyncResult(t, ch); err != nil {
+					t.Errorf("round %d, read-back %d: %v", round, i, err)
+					continue
+				}
+				if got, want := pixels[i][0], byte(0x40+count*round+i); got != want {
+					t.Errorf("round %d, read-back %d: pixels[0] = %#x, want %#x", round, i, got, want)
+				}
+			}
+		}
+	})
+
 	t.Run("MultipleRegions", func(t *testing.T) {
 		const w, h = 17, 11
 		region := image.Rect(0, 0, w, h)
