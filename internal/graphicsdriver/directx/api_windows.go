@@ -26,7 +26,7 @@ const is64bit = unsafe.Sizeof(uintptr(0)) == 8
 type handleError windows.Handle
 
 func (h handleError) Error() string {
-	return fmt.Sprintf("HANDLE(%d)", h)
+	return fmt.Sprintf("HRESULT(%d)", h)
 }
 
 type (
