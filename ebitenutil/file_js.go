@@ -41,7 +41,9 @@ func OpenFile(path string) (ReadSeekCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer res.Body.Close()
+	defer func() {
+		_ = res.Body.Close()
+	}()
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		return nil, fmt.Errorf("ebitenutil: OpenFile: unexpected status %s for %s", res.Status, path)
 	}
