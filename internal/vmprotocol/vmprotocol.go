@@ -68,6 +68,8 @@ const (
 
 	// HostMessageKindAnswerReadPixels answers a GuestMessageKindQueryReadPixels.
 	HostMessageKindAnswerReadPixels
+	// HostMessageKindAnswerReadPixelsAsync answers a start or poll read-back query.
+	HostMessageKindAnswerReadPixelsAsync
 	// HostMessageKindAnswerMaxImageSize answers a GuestMessageKindQueryMaxImageSize.
 	HostMessageKindAnswerMaxImageSize
 	// HostMessageKindAnswerDeviceScaleFactor answers a GuestMessageKindQueryDeviceScaleFactor.
@@ -119,11 +121,17 @@ type HostMessage struct {
 	GamepadStates []GamepadState
 
 	// Err is the query failure, if any, as a string (gob cannot carry an error value). Set on
-	// HostMessageKindAnswerReadPixels.
+	// HostMessageKindAnswerReadPixels and HostMessageKindAnswerReadPixelsAsync.
 	Err string
 
-	// Pixels is set on HostMessageKindAnswerReadPixels: one buffer per requested region.
+	// Pixels carries one buffer per region in a synchronous or completed asynchronous read-back answer.
 	Pixels [][]byte
+
+	// ReadbackID identifies an asynchronous read-back returned by a start query.
+	ReadbackID uint64
+
+	// ReadbackDone reports completion in an asynchronous read-back poll answer.
+	ReadbackDone bool
 
 	// MaxImageSize is set on HostMessageKindAnswerMaxImageSize.
 	MaxImageSize int
@@ -252,12 +260,22 @@ const (
 	// after a tick whenever the value changes, so a host can mirror the shape on its own cursor. Zero
 	// or one precedes the concluding GuestMessageKindDone of an advance-tick operation.
 	GuestMessageKindCursorShape
+
+	// GuestMessageKindQueryReadPixelsAsync starts a read-back without waiting for the GPU.
+	GuestMessageKindQueryReadPixelsAsync
+	// GuestMessageKindQueryPollReadPixels polls the read-back identified by ReadbackID.
+	GuestMessageKindQueryPollReadPixels
+	// GuestMessageKindDisposeReadPixels releases the read-back identified by ReadbackID, without an answer.
+	GuestMessageKindDisposeReadPixels
 )
 
 // GuestMessage is a message a guest sends to the host while handling an operation: recorded graphics
 // commands, a query, or the operation's conclusion. Only the fields relevant to Kind are populated.
 type GuestMessage struct {
 	Kind GuestMessageKind
+
+	// ReadbackID identifies the asynchronous read-back to poll or release.
+	ReadbackID uint64
 
 	// Err is the deferred game error, if any, as a string (gob cannot carry an error value). Set on
 	// GuestMessageKindDone.
@@ -272,7 +290,7 @@ type GuestMessage struct {
 	// GuestMessageKindGraphicsCommands.
 	GraphicsCommands []GraphicsCommand
 
-	// ReadImageID and ReadRegions identify the read-back request on GuestMessageKindQueryReadPixels.
+	// ReadImageID and ReadRegions identify the image and regions in a synchronous or asynchronous read-back query.
 	ReadImageID graphicsdriver.ImageID
 	ReadRegions []image.Rectangle
 

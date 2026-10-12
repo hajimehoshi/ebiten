@@ -49,6 +49,9 @@ type Host interface {
 	// forwarded.
 	ReadPixels(id graphicsdriver.ImageID, regions []image.Rectangle) ([][]byte, error)
 
+	// ReadPixelsAsync starts a read-back of the image at the current command position.
+	ReadPixelsAsync(id graphicsdriver.ImageID, args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error)
+
 	// MaxImageSize reports the host graphics driver's maximum image size.
 	MaxImageSize() (int, error)
 
@@ -319,8 +322,13 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 }
 
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
-	// The host protocol serves read-backs synchronously.
-	// TODO: Support asynchronous read-backs in the host protocol (#3812).
+	g := i.graphics
+	if g.host != nil {
+		if err := g.Flush(); err != nil {
+			return nil, err
+		}
+		return g.host.ReadPixelsAsync(i.id, args)
+	}
 	if err := i.ReadPixels(args); err != nil {
 		return nil, err
 	}
