@@ -84,7 +84,7 @@ type GuestSession struct {
 	pixelsBuf      []byte
 	pixelsListBuf  [][]byte
 	nextReadbackID uint64
-	readbacks      map[uint64]*asyncPixelsReadback
+	readbacks      map[uint64]*asyncPixelReadback
 	// audioReadPCM and audioReadEOF capture the answer to the in-flight HostMessageKindReadAudio while
 	// sendAndReceive runs; runReadAudio hands them to the waiting reader.
 	audioReadPCM []byte
@@ -219,10 +219,10 @@ type readPixelsRequest struct {
 	// done reports that the host has filled pixels. It is guarded by GuestSession.mu.
 	done bool
 
-	async *asyncPixelsReadback
+	async *asyncPixelReadback
 }
 
-type asyncPixelsReadback struct {
+type asyncPixelReadback struct {
 	pixels  [][]byte
 	results []<-chan error
 }
@@ -700,7 +700,7 @@ func (g *GuestSession) startReadPixelsAsync(query *vmprotocol.GuestMessage) (uin
 		return 0, err
 	}
 	pixels := make([]byte, int(total))
-	readback := &asyncPixelsReadback{
+	readback := &asyncPixelReadback{
 		pixels:  make([][]byte, len(query.ReadRegions)),
 		results: make([]<-chan error, len(query.ReadRegions)),
 	}
@@ -720,7 +720,7 @@ func (g *GuestSession) startReadPixelsAsync(query *vmprotocol.GuestMessage) (uin
 	}
 	g.nextReadbackID++
 	if g.readbacks == nil {
-		g.readbacks = map[uint64]*asyncPixelsReadback{}
+		g.readbacks = map[uint64]*asyncPixelReadback{}
 	}
 	g.readbacks[g.nextReadbackID] = readback
 	return g.nextReadbackID, nil

@@ -38,7 +38,7 @@ type readPixelsRequest struct {
 	result chan error
 
 	// readback is the graphics driver's read-back, or nil before it starts and after it finishes.
-	readback graphicsdriver.PixelsReadback
+	readback graphicsdriver.PixelReadback
 
 	// finished reports whether the request has been completed.
 	finished bool

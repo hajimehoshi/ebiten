@@ -28,7 +28,7 @@ type readback struct {
 }
 
 // ReadPixelsAsync records texture copies without waiting for the GPU.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelReadback, err error) {
 	// Validate everything before recording commands or allocating resources.
 	var size uintptr
 	for _, arg := range args {

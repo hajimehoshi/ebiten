@@ -73,7 +73,7 @@ type readback struct {
 //
 // The reads are recorded in the command stream at the current position, so the read pixels include
 // the preceding drawing commands and exclude the following ones.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelReadback, err error) {
 	c := &i.graphics.context
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err

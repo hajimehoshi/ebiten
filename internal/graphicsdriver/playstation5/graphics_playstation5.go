@@ -222,7 +222,7 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	return nil
 }
 
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	regions := make([]C.ebitengine_Region, len(args))
 	for j, a := range args {
 		if got, want := len(a.Pixels), 4*a.Region.Dx()*a.Region.Dy(); got != want {
@@ -259,7 +259,7 @@ func (r *readback) Poll() (bool, error) {
 			continue
 		}
 		var done C.bool
-		if err := C.ebitengine_PollPixelsReadback(r.id, C.int(r.nextRegionIndex), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))), &done); !C.ebitengine_IsErrorNil(&err) {
+		if err := C.ebitengine_PollPixelReadback(r.id, C.int(r.nextRegionIndex), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))), &done); !C.ebitengine_IsErrorNil(&err) {
 			return true, newPlaystation5Error("(*playstation5.readback).Poll", err)
 		}
 		if !done {
@@ -271,7 +271,7 @@ func (r *readback) Poll() (bool, error) {
 }
 
 func (r *readback) Dispose() {
-	C.ebitengine_DisposePixelsReadback(r.id)
+	C.ebitengine_DisposePixelReadback(r.id)
 	r.args = nil
 }
 

@@ -80,12 +80,12 @@ type Image interface {
 	// ReadPixelsAsync must be called on the render thread.
 	//
 	// The returned read-back must remain valid after the image is disposed.
-	ReadPixelsAsync(args []PixelsArgs) (PixelsReadback, error)
+	ReadPixelsAsync(args []PixelsArgs) (PixelReadback, error)
 	WritePixels(args []PixelsArgs) error
 }
 
-// PixelsReadback represents a pending pixel read-back started by Image.ReadPixelsAsync.
-type PixelsReadback interface {
+// PixelReadback represents a pending pixel read-back started by Image.ReadPixelsAsync.
+type PixelReadback interface {
 	// Poll reports whether the read-back has completed. Poll must not wait for the GPU.
 	//
 	// When Poll reports true without an error, the read pixels have been copied into the

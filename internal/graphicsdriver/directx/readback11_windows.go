@@ -29,7 +29,7 @@ type readback11 struct {
 	args     []graphicsdriver.PixelsArgs
 }
 
-func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	if i.screen {
 		return nil, errors.New("directx: ReadPixelsAsync cannot be called on the screen")
 	}
