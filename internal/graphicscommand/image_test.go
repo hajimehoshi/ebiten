@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"testing"
 	"time"
 
@@ -370,4 +371,75 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			t.Errorf("pixels[0] = %#x, want %#x", p, byte(0x55))
 		}
 	})
+}
+
+func TestShaderUniformsAfterFramesWithoutPresenting(t *testing.T) {
+	const w, h = 16, 16
+	g := ui.Get().GraphicsDriverForTesting()
+
+	ir, err := graphics.CompileShader([]byte(`//kage:unit pixels
+
+package main
+
+var Color vec4
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return Color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := graphicscommand.NewShader(ir, "")
+	dst := graphicscommand.NewImage(w, h, false, "")
+	vs := quadVertices(w, h)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, w, h)
+
+	endFrame := func() {
+		t.Helper()
+		flushEndFrame(t)
+		if err := graphicscommand.FlushAndPollPixelReadbacks(g); err != nil {
+			t.Fatal(err)
+		}
+	}
+	endFrame()
+
+	clrs := []color.RGBA{
+		{R: 0xff, A: 0xff},
+		{R: 0xff, A: 0xff},
+		{G: 0xff, A: 0xff},
+	}
+	for i, clr := range clrs {
+		if i > 0 {
+			endFrame()
+		}
+		uniforms := []uint32{
+			math.Float32bits(float32(clr.R) / 0xff),
+			math.Float32bits(float32(clr.G) / 0xff),
+			math.Float32bits(float32(clr.B) / 0xff),
+			math.Float32bits(float32(clr.A) / 0xff),
+		}
+		dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, uniforms)
+	}
+
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(g, []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pix,
+			Region: dr,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	want := clrs[len(clrs)-1]
+	for j := range h {
+		for i := range w {
+			idx := 4 * (i + w*j)
+			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
+			if got != want {
+				t.Errorf("dst.At(%d, %d) after %d frames ending without presenting: got %v, want: %v", i, j, len(clrs)-1, got, want)
+			}
+		}
+	}
 }
