@@ -66,8 +66,6 @@ const (
 	// player's samples (identified by AudioPlayerID). The guest answers with GuestMessageKindAudioData.
 	HostMessageKindReadAudio
 
-	// HostMessageKindAnswerReadPixels answers a GuestMessageKindQueryReadPixels.
-	HostMessageKindAnswerReadPixels
 	// HostMessageKindAnswerReadPixelsAsync answers a start or poll read-back query.
 	HostMessageKindAnswerReadPixelsAsync
 	// HostMessageKindAnswerMaxImageSize answers a GuestMessageKindQueryMaxImageSize.
@@ -121,10 +119,10 @@ type HostMessage struct {
 	GamepadStates []GamepadState
 
 	// Err is the query failure, if any, as a string (gob cannot carry an error value). Set on
-	// HostMessageKindAnswerReadPixels and HostMessageKindAnswerReadPixelsAsync.
+	// HostMessageKindAnswerReadPixelsAsync.
 	Err string
 
-	// Pixels carries one buffer per region in a synchronous or completed asynchronous read-back answer.
+	// Pixels carries one buffer per region in a completed read-back answer.
 	Pixels [][]byte
 
 	// ReadbackID identifies an asynchronous read-back returned by a start query.
@@ -210,10 +208,6 @@ const (
 	// GuestMessageKindGraphicsCommands carries a batch of graphics commands for the host to replay.
 	// Zero or more precede the concluding GuestMessageKindDone within one operation.
 	GuestMessageKindGraphicsCommands
-	// GuestMessageKindQueryReadPixels asks the host to read pixels back (from the commands already
-	// sent) before the guest can finish the operation. The host answers with
-	// HostMessageKindAnswerReadPixels.
-	GuestMessageKindQueryReadPixels
 	// GuestMessageKindQueryMaxImageSize asks the host for its graphics driver's maximum image size
 	// before the guest can finish the operation. The host answers with
 	// HostMessageKindAnswerMaxImageSize.
@@ -290,7 +284,7 @@ type GuestMessage struct {
 	// GuestMessageKindGraphicsCommands.
 	GraphicsCommands []GraphicsCommand
 
-	// ReadImageID and ReadRegions identify the image and regions in a synchronous or asynchronous read-back query.
+	// ReadImageID and ReadRegions identify the image and regions in a start read-back query.
 	ReadImageID graphicsdriver.ImageID
 	ReadRegions []image.Rectangle
 

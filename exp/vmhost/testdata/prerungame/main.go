@@ -55,7 +55,7 @@ func run() error {
 				return
 			}
 			_ = enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
-				Kind:        vmprotocol.GuestMessageKindQueryReadPixels,
+				Kind:        vmprotocol.GuestMessageKindQueryReadPixelsAsync,
 				ReadImageID: 1,
 				ReadRegions: []image.Rectangle{image.Rect(0, 0, 4, 4)},
 			})

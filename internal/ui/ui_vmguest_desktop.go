@@ -896,21 +896,6 @@ func (h *vmHostClient) query(msg *vmprotocol.GuestMessage, want vmprotocol.HostM
 	return &answer, nil
 }
 
-func (h *vmHostClient) ReadPixels(id graphicsdriver.ImageID, regions []image.Rectangle) ([][]byte, error) {
-	answer, err := h.query(&vmprotocol.GuestMessage{
-		Kind:        vmprotocol.GuestMessageKindQueryReadPixels,
-		ReadImageID: id,
-		ReadRegions: regions,
-	}, vmprotocol.HostMessageKindAnswerReadPixels)
-	if err != nil {
-		return nil, err
-	}
-	if answer.Err != "" {
-		return nil, errors.New(answer.Err)
-	}
-	return answer.Pixels, nil
-}
-
 func (h *vmHostClient) ReadPixelsAsync(id graphicsdriver.ImageID, args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	regions := make([]image.Rectangle, len(args))
 	for j, a := range args {

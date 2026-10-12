@@ -17,14 +17,16 @@
 //
 // It is the graphics device of a virtualization guest: the guest runs unmodified against this driver,
 // never touching a GPU. Recorded commands (vmprotocol.GraphicsCommand) are flushed to the Host, which
-// renders them on real hardware, and ReadPixels round-trips to the Host synchronously.
+// renders them on real hardware and serves pixel read-back requests.
 package remote
 
 import (
 	"fmt"
 	"image"
+	"runtime"
 	"slices"
 	"sync"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -44,10 +46,6 @@ type Host interface {
 	// SendGraphicsCommands forwards a flushed batch of graphics commands for the host to render.
 	// cmds and the data it references are reused after the call returns and must not be retained.
 	SendGraphicsCommands(cmds []vmprotocol.GraphicsCommand) error
-
-	// ReadPixels returns the requested regions of the image, reproduced from the commands already
-	// forwarded.
-	ReadPixels(id graphicsdriver.ImageID, regions []image.Rectangle) ([][]byte, error)
 
 	// ReadPixelsAsync starts a read-back of the image at the current command position.
 	ReadPixelsAsync(id graphicsdriver.ImageID, args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error)
@@ -288,51 +286,40 @@ func (i *Image) Dispose() {
 }
 
 func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	regions := make([]image.Rectangle, len(args))
-	for j, a := range args {
-		regions[j] = a.Region
-	}
-
-	g := i.graphics
-	if g.host == nil {
-		g.record(vmprotocol.GraphicsCommand{
-			Kind:    vmprotocol.GraphicsCommandKindReadPixels,
-			ImageID: i.id,
-			Regions: regions,
-		})
-		// No host is attached, so the requested pixels stay as the caller allocated them (zeroed).
-		return nil
-	}
-
-	// The command queue is flushed before a read-back, so the commands recorded so far reproduce this
-	// image. Forward them, then ask the host to read the image back.
-	if err := g.Flush(); err != nil {
-		return err
-	}
-	pixels, err := g.host.ReadPixels(i.id, regions)
+	readback, err := i.ReadPixelsAsync(args)
 	if err != nil {
 		return err
 	}
-	for j := range args {
-		if j < len(pixels) {
-			copy(args[j].Pixels, pixels[j])
+	defer readback.Dispose()
+	delay := 50 * time.Microsecond
+	var attempts int
+	for {
+		done, err := readback.Poll()
+		if err != nil {
+			return err
 		}
+		if done {
+			return nil
+		}
+		if attempts < 4 {
+			runtime.Gosched()
+		} else {
+			time.Sleep(delay)
+			delay = min(2*delay, time.Millisecond)
+		}
+		attempts++
 	}
-	return nil
 }
 
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	g := i.graphics
-	if g.host != nil {
-		if err := g.Flush(); err != nil {
-			return nil, err
-		}
-		return g.host.ReadPixelsAsync(i.id, args)
+	if g.host == nil {
+		return completedReadback{}, nil
 	}
-	if err := i.ReadPixels(args); err != nil {
+	if err := g.Flush(); err != nil {
 		return nil, err
 	}
-	return completedReadback{}, nil
+	return g.host.ReadPixelsAsync(i.id, args)
 }
 
 type completedReadback struct{}

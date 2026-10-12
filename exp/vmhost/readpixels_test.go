@@ -24,10 +24,12 @@ import (
 	"image"
 	"image/color"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
 
@@ -277,8 +279,15 @@ func TestReadPixelsAsyncPendingAndDispose(t *testing.T) {
 }
 
 func TestReadPixelsAsyncPollWithoutHostWait(t *testing.T) {
+	if singleThreadBuild {
+		t.Skip("VM hosting is not supported in single-thread mode")
+	}
+
 	answers := make(chan vmprotocol.HostMessage, 4)
 	var id uint64
+	finish := make(chan struct{})
+	var finishOnce sync.Once
+	resume := func() { finishOnce.Do(func() { close(finish) }) }
 	guest := newFakeGuestSession(t, func(fg *fakeGuest) {
 		if id == 0 {
 			fg.sendCommands(vmprotocol.GraphicsCommand{
@@ -307,7 +316,10 @@ func TestReadPixelsAsyncPollWithoutHostWait(t *testing.T) {
 			}
 			return
 		}
-		for range 4 {
+		for n := 0; ; n++ {
+			if n == 4 {
+				<-finish
+			}
 			fg.send(&vmprotocol.GuestMessage{
 				Kind:       vmprotocol.GuestMessageKindQueryPollReadPixels,
 				ReadbackID: id,
@@ -317,8 +329,12 @@ func TestReadPixelsAsyncPollWithoutHostWait(t *testing.T) {
 				return
 			}
 			answers <- answer
+			if answer.ReadbackDone || answer.Err != "" {
+				return
+			}
 		}
 	})
+	t.Cleanup(resume)
 	setOutsideScreen(t, guest)
 	guest.AdvanceTicks(1)
 	if !guest.WaitTicks() {
@@ -333,6 +349,26 @@ func TestReadPixelsAsyncPollWithoutHostWait(t *testing.T) {
 			}
 		case <-time.After(5 * time.Second):
 			t.Fatal("guest poll required host progress")
+		}
+	}
+	ui.Get().FlushAndPollPixelReadbacks()
+	resume()
+	deadline := time.After(5 * time.Second)
+	for {
+		select {
+		case answer := <-answers:
+			if answer.Err != "" {
+				t.Fatal(answer.Err)
+			}
+			if !answer.ReadbackDone {
+				continue
+			}
+			if len(answer.Pixels) != 1 || !bytes.Equal(answer.Pixels[0], []byte{1, 2, 3, 255}) {
+				t.Errorf("completed pixels = %v, want [[1 2 3 255]]", answer.Pixels)
+			}
+			return
+		case <-deadline:
+			t.Fatal("submitted read-back required another host frame")
 		}
 	}
 }

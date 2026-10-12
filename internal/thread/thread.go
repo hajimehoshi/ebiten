@@ -155,6 +155,36 @@ func CallAsync[A any](t Thread, f func(A), arg A) {
 	}
 }
 
+// TryCallAsync reports whether f with arg was accepted.
+// On an OSThread, it queues the call only if the loop can accept it immediately, without waiting for execution.
+// On a NoopThread, it executes the call immediately unless the thread has stopped.
+func TryCallAsync[A any](t Thread, f func(A), arg A) bool {
+	if t, ok := t.(*NoopThread); ok {
+		if t.stopped.Load() {
+			logDiscardedCall()
+			return false
+		}
+		f(arg)
+		return true
+	}
+	th, ok := t.(*OSThread)
+	if !ok {
+		return false
+	}
+	c, pool := getCall[asyncCall[A]]()
+	c.pool = pool
+	c.f = f
+	c.arg = arg
+	select {
+	case th.funcs <- queueItem{f: c}:
+		// The worker owns c after accepting it, including returning it to the pool.
+		return true
+	default:
+		releaseCall(c, pool)
+		return false
+	}
+}
+
 type queueItem struct {
 	f callable
 

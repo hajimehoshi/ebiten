@@ -56,9 +56,9 @@ func (r *PixelReadback) Poll() (bool, error) {
 	}
 }
 
-// PollPixelReadbacks submits queued commands and checks completion on the render thread.
+// FlushAndPollPixelReadbacks submits queued commands and checks completion on the render thread.
 // The caller must hold the atlas backend mutex.
-func PollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
+func FlushAndPollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
 	// Intermediate flushes retain their queues until the end of the frame.
 	// Only submit when there are commands so waiting does not accumulate empty queues.
 	if q := theCommandQueueManager.current; q != nil && len(q.commands) != 0 {
@@ -74,6 +74,13 @@ func PollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
 		return err
 	}
 	return nil
+}
+
+// TryPollPixelReadbacks requests a completion check if the render loop is accepting work.
+func TryPollPixelReadbacks() {
+	// Only render-thread-owned pending requests are accessed, so no atlas lock is needed.
+	// A busy, inactive, or stopped loop leaves completion to a later poll or frame flush.
+	thread.TryCallAsync(theRenderThread, (*commandQueueManager).pollReadPixels, &theCommandQueueManager)
 }
 
 // readPixelsRequest holds the arguments, result, and driver resources for a pixel read-back.

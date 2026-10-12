@@ -878,12 +878,12 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 	return i.backend.backendImage.Dump(graphicsDriver, path, blackbg, image.Rect(0, 0, i.width, i.height))
 }
 
-// PollPixelReadbacks submits pending commands and checks read-back completion.
-func PollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
+// FlushAndPollPixelReadbacks submits pending commands and checks read-back completion.
+func FlushAndPollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
-	return graphicscommand.PollPixelReadbacks(graphicsDriver)
+	return graphicscommand.FlushAndPollPixelReadbacks(graphicsDriver)
 }
 
 // AbortReadPixels completes pending and queued pixel read-backs with an error.

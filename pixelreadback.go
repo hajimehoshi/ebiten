@@ -42,7 +42,7 @@ func (r *PixelReadback) Wait() error {
 		if done, err := r.Poll(); done {
 			return err
 		}
-		ui.Get().PollPixelReadbacks()
+		ui.Get().FlushAndPollPixelReadbacks()
 		if done, err := r.Poll(); done {
 			return err
 		}

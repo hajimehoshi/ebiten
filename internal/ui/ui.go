@@ -228,11 +228,16 @@ func (u *UserInterface) abortedReadPixels() *graphicscommand.PixelReadback {
 	return graphicscommand.NewCompletedPixelReadback(u.error())
 }
 
-// PollPixelReadbacks submits pending commands and checks read-back completion.
-func (u *UserInterface) PollPixelReadbacks() {
-	if err := atlas.PollPixelReadbacks(u.graphicsDriver); err != nil {
+// FlushAndPollPixelReadbacks submits pending commands and checks read-back completion.
+func (u *UserInterface) FlushAndPollPixelReadbacks() {
+	if err := atlas.FlushAndPollPixelReadbacks(u.graphicsDriver); err != nil {
 		u.setError(err)
 	}
+}
+
+// TryPollPixelReadbacks requests a completion check if the render loop is accepting work.
+func (u *UserInterface) TryPollPixelReadbacks() {
+	graphicscommand.TryPollPixelReadbacks()
 }
 
 func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) (string, error) {
