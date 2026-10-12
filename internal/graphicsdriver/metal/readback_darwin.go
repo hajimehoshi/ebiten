@@ -21,8 +21,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 )
 
-var _ graphicsdriver.AsyncPixelsReader = (*Image)(nil)
-
 type readback struct {
 	commandBuffer mtl.CommandBuffer
 	buffer        mtl.Buffer

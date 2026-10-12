@@ -318,6 +318,24 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	return nil
 }
 
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+	// The host protocol serves read-backs synchronously.
+	// TODO: Support asynchronous read-backs in the host protocol (#3812).
+	if err := i.ReadPixels(args); err != nil {
+		return nil, err
+	}
+	return completedReadback{}, nil
+}
+
+type completedReadback struct{}
+
+func (completedReadback) Poll() (bool, error) {
+	return true, nil
+}
+
+func (completedReadback) Dispose() {
+}
+
 func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	g := i.graphics
 	regionsStart := len(g.regionsBuf)

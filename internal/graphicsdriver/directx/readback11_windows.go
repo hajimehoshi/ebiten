@@ -29,8 +29,6 @@ type readback11 struct {
 	args     []graphicsdriver.PixelsArgs
 }
 
-var _ graphicsdriver.AsyncPixelsReader = (*image11)(nil)
-
 func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
 	if i.screen {
 		return nil, errors.New("directx: ReadPixelsAsync cannot be called on the screen")
