@@ -81,8 +81,10 @@ type GuestSession struct {
 	renderer *frameRenderer
 	// pixelsBuf and pixelsListBuf back the ReadPixels answers: one flat reused buffer, subsliced per
 	// region.
-	pixelsBuf     []byte
-	pixelsListBuf [][]byte
+	pixelsBuf      []byte
+	pixelsListBuf  [][]byte
+	nextReadbackID uint64
+	readbacks      map[uint64]*asyncPixelsReadback
 	// audioReadPCM and audioReadEOF capture the answer to the in-flight HostMessageKindReadAudio while
 	// sendAndReceive runs; runReadAudio hands them to the waiting reader.
 	audioReadPCM []byte
@@ -216,6 +218,13 @@ type readPixelsRequest struct {
 
 	// done reports that the host has filled pixels. It is guarded by GuestSession.mu.
 	done bool
+
+	async *asyncPixelsReadback
+}
+
+type asyncPixelsReadback struct {
+	pixels  [][]byte
+	results []<-chan error
 }
 
 // guestEventKind discriminates a guest event queued for handler delivery.
@@ -528,6 +537,7 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 		switch gm.Kind {
 		case vmprotocol.GuestMessageKindGraphicsCommands,
 			vmprotocol.GuestMessageKindQueryReadPixels,
+			vmprotocol.GuestMessageKindQueryReadPixelsAsync,
 			vmprotocol.GuestMessageKindQueryMaxImageSize,
 			vmprotocol.GuestMessageKindQueryColorSpace:
 			if !ui.Get().IsRunning() {
@@ -544,6 +554,19 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 			if err := g.answerReadPixels(&gm); err != nil {
 				return err
 			}
+			continue
+		case vmprotocol.GuestMessageKindQueryReadPixelsAsync:
+			if err := g.answerReadPixelsAsync(&gm); err != nil {
+				return err
+			}
+			continue
+		case vmprotocol.GuestMessageKindQueryPollReadPixels:
+			if err := g.answerPollReadPixels(gm.ReadbackID); err != nil {
+				return err
+			}
+			continue
+		case vmprotocol.GuestMessageKindDisposeReadPixels:
+			delete(g.readbacks, gm.ReadbackID)
 			continue
 		case vmprotocol.GuestMessageKindQueryMaxImageSize:
 			if err := g.answerMaxImageSize(); err != nil {
@@ -620,25 +643,9 @@ func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
 // subslice per region in g.pixelsListBuf. A region the host cannot read back fails with an error
 // before a buffer is sized from it.
 func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
-	mirror, ok := g.renderer.images[query.ReadImageID]
-	if !ok {
-		return fmt.Errorf("vmhost: ReadPixels references unknown image %d", query.ReadImageID)
-	}
-	bounds := image.Rect(0, 0, mirror.width, mirror.height)
-	// One flat reused buffer backs all the regions; the total is computed first so that growing the
-	// buffer cannot move the per-region subslices.
-	var total int64
-	for _, r := range query.ReadRegions {
-		if r.Empty() || !r.In(bounds) {
-			return fmt.Errorf("vmhost: ReadPixels region %v is not within image %d's bounds %v", r, query.ReadImageID, bounds)
-		}
-		total += 4 * int64(r.Dx()) * int64(r.Dy())
-	}
-	// A read-back cannot need more than the image holds, which bounds the buffer a guest can make the
-	// host allocate.
-	if maxTotal := 4 * int64(bounds.Dx()) * int64(bounds.Dy()); total > maxTotal {
-		return fmt.Errorf("vmhost: ReadPixels asks for %d bytes from image %d, which holds %d",
-			total, query.ReadImageID, maxTotal)
+	mirror, total, err := g.validateReadPixels(query)
+	if err != nil {
+		return err
 	}
 	n := int(total)
 	g.pixelsBuf = slices.Grow(g.pixelsBuf[:0], n)[:n]
@@ -652,6 +659,104 @@ func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
 	return g.readPixelsInHostFrame(mirror.img, g.pixelsListBuf, query.ReadRegions)
 }
 
+func (g *GuestSession) validateReadPixels(query *vmprotocol.GuestMessage) (*hostImage, int64, error) {
+	mirror, ok := g.renderer.images[query.ReadImageID]
+	if !ok {
+		return nil, 0, fmt.Errorf("vmhost: ReadPixels references unknown image %d", query.ReadImageID)
+	}
+	bounds := image.Rect(0, 0, mirror.width, mirror.height)
+	var total int64
+	for _, r := range query.ReadRegions {
+		if r.Empty() || !r.In(bounds) {
+			return nil, 0, fmt.Errorf("vmhost: ReadPixels region %v is not within image %d's bounds %v", r, query.ReadImageID, bounds)
+		}
+		total += 4 * int64(r.Dx()) * int64(r.Dy())
+	}
+	// A read-back cannot need more than the image holds, which bounds the buffer a guest can make the
+	// host allocate.
+	if maxTotal := 4 * int64(bounds.Dx()) * int64(bounds.Dy()); total > maxTotal {
+		return nil, 0, fmt.Errorf("vmhost: ReadPixels asks for %d bytes from image %d, which holds %d",
+			total, query.ReadImageID, maxTotal)
+	}
+	return mirror, total, nil
+}
+
+func (g *GuestSession) answerReadPixelsAsync(query *vmprotocol.GuestMessage) error {
+	answer := vmprotocol.HostMessage{
+		Kind: vmprotocol.HostMessageKindAnswerReadPixelsAsync,
+	}
+	id, err := g.startReadPixelsAsync(query)
+	if err != nil {
+		answer.Err = err.Error()
+	} else {
+		answer.ReadbackID = id
+	}
+	return g.enc.EncodeHostMessage(&answer)
+}
+
+func (g *GuestSession) startReadPixelsAsync(query *vmprotocol.GuestMessage) (uint64, error) {
+	mirror, total, err := g.validateReadPixels(query)
+	if err != nil {
+		return 0, err
+	}
+	pixels := make([]byte, int(total))
+	readback := &asyncPixelsReadback{
+		pixels:  make([][]byte, len(query.ReadRegions)),
+		results: make([]<-chan error, len(query.ReadRegions)),
+	}
+	var off int
+	for j, region := range query.ReadRegions {
+		n := 4 * region.Dx() * region.Dy()
+		readback.pixels[j] = pixels[off : off+n]
+		off += n
+	}
+	if err := g.requestReadPixelsInHostFrame(&readPixelsRequest{
+		img:     mirror.img,
+		pixels:  readback.pixels,
+		regions: query.ReadRegions,
+		async:   readback,
+	}); err != nil {
+		return 0, err
+	}
+	g.nextReadbackID++
+	if g.readbacks == nil {
+		g.readbacks = map[uint64]*asyncPixelsReadback{}
+	}
+	g.readbacks[g.nextReadbackID] = readback
+	return g.nextReadbackID, nil
+}
+
+func (g *GuestSession) answerPollReadPixels(id uint64) error {
+	answer := vmprotocol.HostMessage{
+		Kind: vmprotocol.HostMessageKindAnswerReadPixelsAsync,
+	}
+	readback, ok := g.readbacks[id]
+	if !ok {
+		answer.Err = fmt.Sprintf("vmhost: unknown read-back %d", id)
+		return g.enc.EncodeHostMessage(&answer)
+	}
+	answer.ReadbackDone = true
+	for j, result := range readback.results {
+		if result == nil {
+			continue
+		}
+		select {
+		case err := <-result:
+			readback.results[j] = nil
+			if err != nil {
+				answer.Err = err.Error()
+				return g.enc.EncodeHostMessage(&answer)
+			}
+		default:
+			answer.ReadbackDone = false
+		}
+	}
+	if answer.ReadbackDone {
+		answer.Pixels = readback.pixels
+	}
+	return g.enc.EncodeHostMessage(&answer)
+}
+
 // errReadPixelsAbandoned ends a guest read-back no host will ever perform because the session is over.
 var errReadPixelsAbandoned = errors.New("vmhost: the session ended before the guest's read-back")
 
@@ -659,23 +764,25 @@ var errReadPixelsAbandoned = errors.New("vmhost: the session ended before the gu
 // session goroutine must not read back itself: called in between two host frames the read defers to
 // the host's next frame, which a host blocked on this very tick never reaches.
 func (g *GuestSession) readPixelsInHostFrame(img *ui.Image, pixels [][]byte, regions []image.Rectangle) error {
-	req := readPixelsRequest{
+	return g.requestReadPixelsInHostFrame(&readPixelsRequest{
 		img:     img,
 		pixels:  pixels,
 		regions: regions,
-	}
+	})
+}
 
+func (g *GuestSession) requestReadPixelsInHostFrame(req *readPixelsRequest) error {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.closed || g.err != nil {
 		return errReadPixelsAbandoned
 	}
-	g.pendingReadPixels = &req
+	g.pendingReadPixels = req
 	g.cond.Broadcast()
 	for !req.done {
 		// A request no host has taken yet is dropped once the session ends, so a close never waits on a
 		// read-back. A taken one is being filled right now and is waited out.
-		if (g.closed || g.err != nil) && g.pendingReadPixels == &req {
+		if (g.closed || g.err != nil) && g.pendingReadPixels == req {
 			g.pendingReadPixels = nil
 			return errReadPixelsAbandoned
 		}
@@ -692,7 +799,11 @@ func (g *GuestSession) servePendingReadPixels() {
 		return
 	}
 	for i, r := range req.regions {
-		req.img.ReadPixels(req.pixels[i], r)
+		if req.async != nil {
+			req.async.results[i] = req.img.ReadPixelsAsync(req.pixels[i], r)
+		} else {
+			req.img.ReadPixels(req.pixels[i], r)
+		}
 	}
 	g.finishReadPixels(req)
 }
@@ -707,7 +818,7 @@ func (g *GuestSession) takePendingReadPixels() *readPixelsRequest {
 	return req
 }
 
-// finishReadPixels reports that req's buffers are filled and wakes the session goroutine waiting on it.
+// finishReadPixels wakes the session goroutine after a read-back is performed or enqueued.
 func (g *GuestSession) finishReadPixels(req *readPixelsRequest) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
@@ -1547,6 +1658,7 @@ func (g *GuestSession) Close() error {
 		<-g.done
 
 		g.renderer.dispose()
+		g.readbacks = nil
 		g.closeErr = g.conn.Close()
 	})
 	return g.closeErr

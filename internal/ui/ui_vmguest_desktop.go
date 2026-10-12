@@ -197,7 +197,13 @@ func (r *remoteBackend) serve(conn net.Conn) error {
 	// The remote driver forwards commands and read-backs to the host directly through this Host, and the
 	// UI queries host-owned values (the device scale factor) through it too. Its methods run on this same
 	// goroutine (the guest is single-threaded), so sharing enc/dec is safe.
-	host := &vmHostClient{enc: enc, dec: dec}
+	host := &vmHostClient{
+		enc: enc,
+		dec: dec,
+	}
+	defer func() {
+		host.closed = true
+	}()
 	r.graphics.SetHost(host)
 	r.vmHost = host
 
@@ -863,8 +869,9 @@ func (c *context) drawFrameForVMGuest(graphicsDriver graphicsdriver.Graphics, ou
 
 // vmHostClient forwards the guest's recorded graphics output to the host process over the connection.
 type vmHostClient struct {
-	enc *vmprotocol.Encoder
-	dec *vmprotocol.Decoder
+	enc    *vmprotocol.Encoder
+	dec    *vmprotocol.Decoder
+	closed bool
 }
 
 func (h *vmHostClient) SendGraphicsCommands(cmds []vmprotocol.GraphicsCommand) error {
@@ -902,6 +909,69 @@ func (h *vmHostClient) ReadPixels(id graphicsdriver.ImageID, regions []image.Rec
 		return nil, errors.New(answer.Err)
 	}
 	return answer.Pixels, nil
+}
+
+func (h *vmHostClient) ReadPixelsAsync(id graphicsdriver.ImageID, args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+	regions := make([]image.Rectangle, len(args))
+	for j, a := range args {
+		regions[j] = a.Region
+	}
+	answer, err := h.query(&vmprotocol.GuestMessage{
+		Kind:        vmprotocol.GuestMessageKindQueryReadPixelsAsync,
+		ReadImageID: id,
+		ReadRegions: regions,
+	}, vmprotocol.HostMessageKindAnswerReadPixelsAsync)
+	if err != nil {
+		return nil, err
+	}
+	if answer.Err != "" {
+		return nil, errors.New(answer.Err)
+	}
+	return &vmPixelsReadback{
+		host: h,
+		id:   answer.ReadbackID,
+		args: slices.Clone(args),
+	}, nil
+}
+
+type vmPixelsReadback struct {
+	host *vmHostClient
+	id   uint64
+	args []graphicsdriver.PixelsArgs
+}
+
+func (r *vmPixelsReadback) Poll() (bool, error) {
+	answer, err := r.host.query(&vmprotocol.GuestMessage{
+		Kind:       vmprotocol.GuestMessageKindQueryPollReadPixels,
+		ReadbackID: r.id,
+	}, vmprotocol.HostMessageKindAnswerReadPixelsAsync)
+	if err != nil {
+		return false, err
+	}
+	if answer.Err != "" {
+		return false, errors.New(answer.Err)
+	}
+	if !answer.ReadbackDone {
+		return false, nil
+	}
+	for j, a := range r.args {
+		if j < len(answer.Pixels) {
+			copy(a.Pixels, answer.Pixels[j])
+		}
+	}
+	return true, nil
+}
+
+func (r *vmPixelsReadback) Dispose() {
+	// Once the operation loop ends, the host no longer receives guest messages.
+	// The host releases the remaining read-backs when closing the session.
+	if !r.host.closed {
+		_ = r.host.enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
+			Kind:       vmprotocol.GuestMessageKindDisposeReadPixels,
+			ReadbackID: r.id,
+		})
+	}
+	r.args = nil
 }
 
 func (h *vmHostClient) MaxImageSize() (int, error) {
