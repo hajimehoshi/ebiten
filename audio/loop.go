@@ -189,7 +189,7 @@ func (i *InfiniteLoop) Read(b []byte) (int, error) {
 			return 0, io.EOF
 		}
 		if err := i.rewind(); err != nil {
-			return 0, err
+			return n, err
 		}
 		if n > 0 {
 			return n, nil
