@@ -36,7 +36,7 @@ func copyReadbackPixels(args []graphicsdriver.PixelsArgs, region image.Rectangle
 	for _, a := range args {
 		w := 4 * a.Region.Dx()
 		offset := 4*(a.Region.Min.X-region.Min.X) + stride*(a.Region.Min.Y-region.Min.Y)
-		for y := 0; y < a.Region.Dy(); y++ {
+		for y := range a.Region.Dy() {
 			copy(a.Pixels[y*w:(y+1)*w], src[offset+y*stride:offset+y*stride+w])
 		}
 	}
