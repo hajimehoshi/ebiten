@@ -241,6 +241,21 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	return textureNative(t), nil
 }
 
+// ensureEmptyTexture creates a 1x1 transparent texture if it does not exist yet.
+// Creating the texture binds it to the active texture unit.
+func (c *context) ensureEmptyTexture() error {
+	if c.emptyTexture != 0 {
+		return nil
+	}
+	t, err := c.newTexture(1, 1)
+	if err != nil {
+		return err
+	}
+	c.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, make([]byte, 4))
+	c.emptyTexture = t
+	return nil
+}
+
 func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rectangle) error {
 	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
 		return fmt.Errorf("opengl: len(buf) must be %d but was %d at framebufferPixels", got, want)
@@ -342,6 +357,10 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 func (c *context) deleteProgram(p program) {
 	c.locationCache.deleteProgram(p)
 	c.ctx.DeleteProgram(uint32(p))
+}
+
+func (c *context) hasUniform(p program, location string) bool {
+	return c.locationCache.GetUniformLocation(c, p, location) != invalidUniform
 }
 
 func (c *context) uniformInt(p program, location string, v int) bool {
