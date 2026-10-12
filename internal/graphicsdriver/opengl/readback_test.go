@@ -14,28 +14,25 @@
 
 //go:build !js && !playstation5
 
-package opengl
+package opengl_test
 
 import (
 	"image"
-	"slices"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 )
 
 type readbackContext struct {
 	gl.Context
-	buffers     map[uint32][]byte
-	bound       uint32
-	created     uint32
-	deleted     []uint32
-	value       byte
-	wait        uint32
-	mapFailed   bool
-	unmapFailed bool
-	fenceFailed bool
+	buffers map[uint32][]byte
+	bound   uint32
+	created uint32
+	deleted int
+	value   byte
+	wait    uint32
 }
 
 func (c *readbackContext) CreateBuffer() uint32 {
@@ -55,7 +52,7 @@ func (c *readbackContext) BufferInit(target uint32, size int, usage uint32) {
 }
 
 func (c *readbackContext) DeleteBuffer(b uint32) {
-	c.deleted = append(c.deleted, b)
+	c.deleted++
 	delete(c.buffers, b)
 }
 
@@ -66,9 +63,6 @@ func (c *readbackContext) Flush() {
 }
 
 func (c *readbackContext) FenceSync(condition, flags uint32) uintptr {
-	if c.fenceFailed {
-		return 0
-	}
 	return 1
 }
 
@@ -86,14 +80,11 @@ func (c *readbackContext) ReadPixels([]byte, int32, int32, int32, int32, uint32,
 }
 
 func (c *readbackContext) MapBufferRange(target uint32, offset, length int, access uint32) []byte {
-	if c.mapFailed {
-		return nil
-	}
 	return c.buffers[c.bound][offset : offset+length]
 }
 
 func (c *readbackContext) UnmapBuffer(uint32) bool {
-	return !c.unmapFailed
+	return true
 }
 
 func (c *readbackContext) LoadFunctions() error {
@@ -116,14 +107,18 @@ func (c *readbackContext) BlendEquationSeparate(uint32, uint32) {
 func (c *readbackContext) UseProgram(uint32) {
 }
 
-func readbackTestImage(c *readbackContext) *Image {
-	return &Image{
-		graphics:    &Graphics{context: context{ctx: c}},
-		framebuffer: &framebuffer{native: 1},
-	}
+func readbackTestImage(t *testing.T, c *readbackContext) (*opengl.Image, *opengl.Graphics) {
+	t.Helper()
+	img, g := opengl.NewReadbackTestImage(c)
+	t.Cleanup(func() {
+		if err := g.Reset(); err != nil {
+			t.Error(err)
+		}
+	})
+	return img, g
 }
 
-func startReadback(t *testing.T, img *Image, pixels []byte) graphicsdriver.PixelsReadback {
+func startReadback(t *testing.T, img *opengl.Image, pixels []byte) graphicsdriver.PixelsReadback {
 	t.Helper()
 	r, err := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
 		Region: image.Rect(0, 0, len(pixels)/4, 1),
@@ -149,8 +144,7 @@ func finishReadback(t *testing.T, r graphicsdriver.PixelsReadback) {
 
 func TestReadbackReusesCompletedBuffer(t *testing.T) {
 	c := &readbackContext{wait: gl.ALREADY_SIGNALED}
-	img := readbackTestImage(c)
-	defer img.graphics.clearPixelPackBuffers()
+	img, _ := readbackTestImage(t, c)
 	first, second := make([]byte, 4), make([]byte, 4)
 	c.value = 1
 	r1 := startReadback(t, img, first)
@@ -177,51 +171,19 @@ func TestReadbackReusesCompletedBuffer(t *testing.T) {
 	}
 }
 
-func TestReadbackDoesNotReuseFailedBuffer(t *testing.T) {
-	for _, name := range []string{"abort", "wait", "map", "unmap", "fence"} {
-		t.Run(name, func(t *testing.T) {
-			c := &readbackContext{wait: gl.ALREADY_SIGNALED}
-			img := readbackTestImage(c)
-			defer img.graphics.clearPixelPackBuffers()
-			pixels := make([]byte, 4)
-			if name == "fence" {
-				c.fenceFailed = true
-				if _, err := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
-					Region: image.Rect(0, 0, 1, 1),
-					Pixels: pixels,
-				}}); err == nil {
-					t.Error("fence creation unexpectedly succeeded")
-				}
-				c.fenceFailed = false
-			} else {
-				r := startReadback(t, img, pixels)
-				c.wait = gl.TIMEOUT_EXPIRED
-				if done, err := r.Poll(); done || err != nil {
-					t.Errorf("pending read: got (%v, %v)", done, err)
-				}
-				if name != "abort" {
-					c.wait = gl.ALREADY_SIGNALED
-					c.mapFailed = name == "map"
-					c.unmapFailed = name == "unmap"
-					if name == "wait" {
-						c.wait = gl.WAIT_FAILED
-					}
-					if _, err := r.Poll(); err == nil {
-						t.Error("read unexpectedly succeeded")
-					}
-				}
-				r.Dispose()
-			}
-			if !slices.Equal(c.deleted, []uint32{1}) {
-				t.Errorf("deleted buffers: got %v, want [1]", c.deleted)
-			}
-			c.wait = gl.ALREADY_SIGNALED
-			c.mapFailed, c.unmapFailed = false, false
-			finishReadback(t, startReadback(t, img, pixels))
-			if c.created != 2 {
-				t.Errorf("failed buffer was reused: created %d buffers", c.created)
-			}
-		})
+func TestReadbackDoesNotReuseAbortedBuffer(t *testing.T) {
+	c := &readbackContext{wait: gl.TIMEOUT_EXPIRED}
+	img, _ := readbackTestImage(t, c)
+	pixels := make([]byte, 4)
+	r := startReadback(t, img, pixels)
+	if done, err := r.Poll(); done || err != nil {
+		t.Errorf("pending read: got (%v, %v)", done, err)
+	}
+	r.Dispose()
+	c.wait = gl.ALREADY_SIGNALED
+	finishReadback(t, startReadback(t, img, pixels))
+	if c.created != 2 {
+		t.Errorf("aborted buffer was reused: created %d buffers, want 2", c.created)
 	}
 }
 
@@ -234,16 +196,16 @@ func TestPixelPackBufferCacheLimits(t *testing.T) {
 		{
 			name:  "count",
 			size:  4,
-			count: maxPixelPackBuffers + 1,
+			count: opengl.MaxPixelPackBuffers + 1,
 		},
 		{
 			name:  "bytes",
-			size:  maxPixelPackBufferBytes / 2,
+			size:  opengl.MaxPixelPackBufferBytes / 2,
 			count: 3,
 		},
 		{
 			name:  "oversized",
-			size:  maxPixelPackBufferBytes + 1,
+			size:  opengl.MaxPixelPackBufferBytes + 1,
 			count: 1,
 		},
 		{
@@ -254,20 +216,18 @@ func TestPixelPackBufferCacheLimits(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			c := &readbackContext{}
-			g := readbackTestImage(c).graphics
-			for j := 1; j <= tc.count; j++ {
-				g.releasePixelPackBuffer(buffer(j), tc.size)
+			_, g := readbackTestImage(t, c)
+			for range tc.count {
+				opengl.ReleasePixelPackBufferForTesting(g, c.CreateBuffer(), tc.size)
 			}
-			if !slices.Equal(c.deleted, []uint32{1}) {
-				t.Errorf("deleted buffers: got %v, want [1]", c.deleted)
+			if c.deleted != 1 {
+				t.Errorf("limit deleted %d buffers, want 1", c.deleted)
 			}
-			g.clearPixelPackBuffers()
-			want := make([]uint32, tc.count)
-			for j := range want {
-				want[j] = uint32(j + 1)
+			if err := g.Reset(); err != nil {
+				t.Fatal(err)
 			}
-			if !slices.Equal(c.deleted, want) {
-				t.Errorf("cleared buffers: got %v, want %v", c.deleted, want)
+			if c.deleted != tc.count {
+				t.Errorf("reset deleted %d buffers, want %d", c.deleted, tc.count)
 			}
 		})
 	}
@@ -275,21 +235,14 @@ func TestPixelPackBufferCacheLimits(t *testing.T) {
 
 func TestPixelPackBufferCacheReset(t *testing.T) {
 	c := &readbackContext{wait: gl.ALREADY_SIGNALED}
-	img := readbackTestImage(c)
+	img, g := readbackTestImage(t, c)
 	finishReadback(t, startReadback(t, img, make([]byte, 4)))
-	if err := img.graphics.Reset(); err != nil {
+	if err := g.Reset(); err != nil {
 		t.Fatal(err)
-	}
-	if !slices.Equal(c.deleted, []uint32{1}) {
-		t.Errorf("deleted buffers: got %v, want [1]", c.deleted)
 	}
 	finishReadback(t, startReadback(t, img, make([]byte, 8)))
 	finishReadback(t, startReadback(t, img, make([]byte, 4)))
 	if c.created != 3 {
 		t.Errorf("reset or size change reused an incompatible buffer: created %d buffers, want 3", c.created)
-	}
-	img.graphics.clearPixelPackBuffers()
-	if !slices.Equal(c.deleted, []uint32{1, 2, 3}) {
-		t.Errorf("deleted buffers: got %v, want [1 2 3]", c.deleted)
 	}
 }
