@@ -525,6 +525,7 @@ var (
 	sel_synchronizeResource                                                                                                                        = objc.RegisterName("synchronizeResource:")
 	sel_synchronizeTexture_slice_level                                                                                                             = objc.RegisterName("synchronizeTexture:slice:level:")
 	sel_copyFromBuffer_sourceOffset_sourceBytesPerRow_sourceBytesPerImage_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin = objc.RegisterName("copyFromBuffer:sourceOffset:sourceBytesPerRow:sourceBytesPerImage:sourceSize:toTexture:destinationSlice:destinationLevel:destinationOrigin:")
+	sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toBuffer_destinationOffset_destinationBytesPerRow_destinationBytesPerImage = objc.RegisterName("copyFromTexture:sourceSlice:sourceLevel:sourceOrigin:sourceSize:toBuffer:destinationOffset:destinationBytesPerRow:destinationBytesPerImage:")
 	sel_newFunctionWithName                                                                                                                        = objc.RegisterName("newFunctionWithName:")
 	sel_getBytes_bytesPerRow_fromRegion_mipmapLevel                                                                                                = objc.RegisterName("getBytes:bytesPerRow:fromRegion:mipmapLevel:")
 	sel_respondsToSelector                                                                                                                         = objc.RegisterName("respondsToSelector:")
@@ -1012,6 +1013,14 @@ func (bce BlitCommandEncoder) CopyFromBuffer(sourceBuffer Buffer, sourceOffset u
 		sourceBuffer.buffer, sourceOffset, sourceBytesPerRow, sourceBytesPerImage, sourceSize, destinationTexture, destinationSlice, destinationLevel, destinationOrigin)
 }
 
+// CopyFromTextureToBuffer encodes a command that copies image data from a texture slice into a buffer.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/copy(from:sourceslice:sourcelevel:sourceorigin:sourcesize:to:destinationoffset:destinationbytesperrow:destinationbytesperimage:)?language=objc.
+func (bce BlitCommandEncoder) CopyFromTextureToBuffer(sourceTexture Texture, sourceSlice int, sourceLevel int, sourceOrigin Origin, sourceSize Size, destinationBuffer Buffer, destinationOffset uintptr, destinationBytesPerRow uintptr, destinationBytesPerImage uintptr) {
+	bce.commandEncoder.Send(sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toBuffer_destinationOffset_destinationBytesPerRow_destinationBytesPerImage,
+		sourceTexture.texture, sourceSlice, sourceLevel, sourceOrigin, sourceSize, destinationBuffer.buffer, destinationOffset, destinationBytesPerRow, destinationBytesPerImage)
+}
+
 // Library is a collection of compiled graphics or compute functions.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtllibrary?language=objc.
@@ -1137,6 +1146,21 @@ func CopyToBufferAt[T byte | uint32 | float32](b Buffer, data []T, offset uintpt
 	if runtime.GOOS != "ios" {
 		b.buffer.Send(sel_didModifyRange, offset, size)
 	}
+}
+
+// CopyFromBufferAt copies the buffer's contents starting at offset, in bytes, into data.
+//
+// CopyFromBufferAt panics if data does not fit in the buffer.
+func CopyFromBufferAt(b Buffer, data []byte, offset uintptr) {
+	if len(data) == 0 {
+		return
+	}
+	size := uintptr(len(data))
+	if l := b.Length(); offset > l || size > l-offset {
+		panic(fmt.Sprintf("mtl: data (offset: %d, length: %d) does not fit in the buffer (length: %d)", offset, size, l))
+	}
+	contents := b.buffer.Send(sel_contents)
+	copy(data, unsafe.Slice((*byte)(unsafe.Add(unsafe.Pointer(contents), offset)), size))
 }
 
 func (b Buffer) Release() {
