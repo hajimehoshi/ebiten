@@ -24,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/readbackcache"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -64,11 +65,10 @@ type Graphics struct {
 	// activatedTextures is a set of activated textures.
 	activatedTextures []activatedTexture
 
-	// pixelPackBuffers are idle pixel pack buffers available for reuse, oldest first.
+	// pixelPackBuffers are idle pixel pack buffers available for reuse.
 	// Only completed read-backs enter this cache; pending read-backs own their buffers.
-	// The cache is accessed on the render thread and bounded by both bytes and buffer count.
-	pixelPackBuffers     []pixelPackBuffer
-	pixelPackBufferBytes int
+	// The cache is accessed on the render thread.
+	pixelPackBuffers readbackcache.Cache[buffer]
 
 	graphicsPlatform
 }
