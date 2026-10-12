@@ -241,7 +241,7 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 
 func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rectangle) error {
 	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
-		return fmt.Errorf("opengl: len(buf) must be %d but was %d at framebufferPixels", got, want)
+		return fmt.Errorf("opengl: len(buf) must be %d but was %d at framebufferPixels", want, got)
 	}
 
 	c.ctx.Flush()
