@@ -143,7 +143,7 @@ func (g *Graphics) acquireReadbackBuffer(size int) (mtl.Buffer, error) {
 // releaseReadbackBuffer caches b, a shared buffer of size bytes whose read completed successfully,
 // for reuse, or releases it.
 func (g *Graphics) releaseReadbackBuffer(b mtl.Buffer, size int) {
-	for _, dropped := range g.readbackBuffers.Put(b, size) {
+	for _, dropped := range g.readbackBuffers.Put(size, b, size) {
 		dropped.Release()
 	}
 }

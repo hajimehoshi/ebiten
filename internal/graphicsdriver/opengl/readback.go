@@ -153,7 +153,7 @@ func (g *Graphics) acquirePixelPackBuffer(size int) (buffer, error) {
 // releasePixelPackBuffer caches b, an unmapped buffer of size bytes whose read completed
 // successfully, for reuse, or deletes it.
 func (g *Graphics) releasePixelPackBuffer(b buffer, size int) {
-	for _, dropped := range g.pixelPackBuffers.Put(b, size) {
+	for _, dropped := range g.pixelPackBuffers.Put(size, b, size) {
 		g.context.deleteBuffer(dropped)
 	}
 }

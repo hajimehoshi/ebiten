@@ -72,7 +72,7 @@ type Graphics struct {
 	// readbackBuffers are idle shared buffers for pixel read-backs available for reuse.
 	// Only completed read-backs enter this cache; pending read-backs own their buffers.
 	// The cache is accessed on the render thread.
-	readbackBuffers readbackcache.Cache[mtl.Buffer]
+	readbackBuffers readbackcache.Cache[int, mtl.Buffer]
 
 	lastDst *Image
 

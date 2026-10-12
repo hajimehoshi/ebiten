@@ -16,6 +16,7 @@ package graphicscommand_test
 
 import (
 	"context"
+	"fmt"
 	"image"
 	"testing"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 func BenchmarkPrependPreservedUniforms(b *testing.B) {
@@ -80,5 +82,39 @@ func BenchmarkFlushThread(b *testing.B) {
 				})
 			}
 		})
+	}
+}
+
+func BenchmarkReadPixelsAsync(b *testing.B) {
+	for _, size := range []image.Point{{X: 16, Y: 16}, {X: 1080, Y: 1920}} {
+		b.Run(fmt.Sprintf("%dx%d", size.X, size.Y), func(b *testing.B) {
+			img := graphicscommand.NewImage(size.X, size.Y, false, "")
+			defer img.Dispose()
+			args := []graphicsdriver.PixelsArgs{{
+				Pixels: make([]byte, 4*size.X*size.Y),
+				Region: image.Rect(0, 0, size.X, size.Y),
+			}}
+			readPixelsAsyncAndWait(b, img, args)
+			b.SetBytes(int64(len(args[0].Pixels)))
+			for b.Loop() {
+				readPixelsAsyncAndWait(b, img, args)
+			}
+		})
+	}
+}
+
+func readPixelsAsyncAndWait(b *testing.B, img *graphicscommand.Image, args []graphicsdriver.PixelsArgs) {
+	b.Helper()
+	result := img.ReadPixelsAsync(args)
+	for {
+		if err := graphicscommand.FlushCommands(ui.Get().GraphicsDriverForTesting(), graphicsdriver.FlushModeEndFrame); err != nil {
+			b.Fatal(err)
+		}
+		if done, err := result.Poll(); done {
+			if err != nil {
+				b.Fatal(err)
+			}
+			return
+		}
 	}
 }

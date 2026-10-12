@@ -27,28 +27,30 @@ const (
 	maxCount = 16
 )
 
-type entry[V any] struct {
+type entry[K comparable, V any] struct {
+	key   K
 	value V
 	size  int
 }
 
-// Cache holds idle resources for pixel read-backs for reuse, keyed by their size in bytes.
+// Cache holds idle resources for pixel read-backs for reuse, keyed by K.
+// Resources put with equal keys must be interchangeable.
 //
 // A Cache is bounded both by the number of its resources and by their total size.
 // The zero value is an empty cache.
-type Cache[V any] struct {
+type Cache[K comparable, V any] struct {
 	// entries are the cached resources, oldest first.
-	entries []entry[V]
+	entries []entry[K, V]
 
 	// totalSize is the sum of the sizes of entries in bytes.
 	totalSize int
 }
 
-// Take removes the oldest resource of size bytes from the cache and returns it.
-// Take returns false if no resource has the size.
-func (c *Cache[V]) Take(size int) (V, bool) {
+// Take removes the oldest resource with key from the cache and returns it.
+// Take returns false if no resource has the key.
+func (c *Cache[K, V]) Take(key K) (V, bool) {
 	for i, e := range c.entries {
-		if e.size != size {
+		if e.key != key {
 			continue
 		}
 		c.entries = slices.Delete(c.entries, i, i+1)
@@ -59,11 +61,11 @@ func (c *Cache[V]) Take(size int) (V, bool) {
 	return zero, false
 }
 
-// Put adds value, a resource of size bytes, to the cache.
+// Put adds value, a resource of size bytes, to the cache with key.
 //
 // Put returns the resources dropped from the cache, which the caller must release.
 // They include value itself if value is empty or too large to cache.
-func (c *Cache[V]) Put(value V, size int) []V {
+func (c *Cache[K, V]) Put(key K, value V, size int) []V {
 	if size == 0 || size > maxSize {
 		return []V{value}
 	}
@@ -75,7 +77,8 @@ func (c *Cache[V]) Put(value V, size int) []V {
 		c.totalSize -= oldest.size
 		c.entries = slices.Delete(c.entries, 0, 1)
 	}
-	c.entries = append(c.entries, entry[V]{
+	c.entries = append(c.entries, entry[K, V]{
+		key:   key,
 		value: value,
 		size:  size,
 	})
@@ -84,7 +87,7 @@ func (c *Cache[V]) Put(value V, size int) []V {
 }
 
 // Clear removes every resource from the cache and returns them, which the caller must release.
-func (c *Cache[V]) Clear() []V {
+func (c *Cache[K, V]) Clear() []V {
 	values := make([]V, 0, len(c.entries))
 	for _, e := range c.entries {
 		values = append(values, e.value)

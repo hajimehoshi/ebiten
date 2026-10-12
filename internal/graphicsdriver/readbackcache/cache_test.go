@@ -23,32 +23,32 @@ import (
 
 func TestPut(t *testing.T) {
 	const n = readbackcache.MaxCount
-	var c readbackcache.Cache[int]
+	var c readbackcache.Cache[int, int]
 	for i := range n {
-		if dropped := c.Put(i, 1); len(dropped) != 0 {
-			t.Errorf("c.Put(%d, 1) dropped %v, want none", i, dropped)
+		if dropped := c.Put(1, i, 1); len(dropped) != 0 {
+			t.Errorf("c.Put(1, %d, 1) dropped %v, want none", i, dropped)
 		}
 	}
 
-	if got, want := c.Put(n, 1), []int{0}; !slices.Equal(got, want) {
-		t.Errorf("c.Put(%d, 1) dropped %v, want %v", n, got, want)
+	if got, want := c.Put(1, n, 1), []int{0}; !slices.Equal(got, want) {
+		t.Errorf("c.Put(1, %d, 1) dropped %v, want %v", n, got, want)
 	}
 
 	want := make([]int, n)
 	for i := range want {
 		want[i] = i + 1
 	}
-	if got := c.Put(n+1, readbackcache.MaxSize); !slices.Equal(got, want) {
-		t.Errorf("c.Put(%d, %d) dropped %v, want %v", n+1, readbackcache.MaxSize, got, want)
+	if got := c.Put(readbackcache.MaxSize, n+1, readbackcache.MaxSize); !slices.Equal(got, want) {
+		t.Errorf("c.Put(%[1]d, %[2]d, %[1]d) dropped %[3]v, want %[4]v", readbackcache.MaxSize, n+1, got, want)
 	}
 
-	if got, want := c.Put(n+2, readbackcache.MaxSize+1), []int{n + 2}; !slices.Equal(got, want) {
-		t.Errorf("c.Put(%d, %d) dropped %v, want %v", n+2, readbackcache.MaxSize+1, got, want)
+	if got, want := c.Put(readbackcache.MaxSize+1, n+2, readbackcache.MaxSize+1), []int{n + 2}; !slices.Equal(got, want) {
+		t.Errorf("c.Put(%[1]d, %[2]d, %[1]d) dropped %[3]v, want %[4]v", readbackcache.MaxSize+1, n+2, got, want)
 	}
 
-	for _, size := range []int{1, readbackcache.MaxSize + 1} {
-		if v, ok := c.Take(size); ok {
-			t.Errorf("c.Take(%d) = (%d, true), want (0, false)", size, v)
+	for _, key := range []int{1, readbackcache.MaxSize + 1} {
+		if v, ok := c.Take(key); ok {
+			t.Errorf("c.Take(%d) = (%d, true), want (0, false)", key, v)
 		}
 	}
 	if v, ok := c.Take(readbackcache.MaxSize); !ok || v != n+1 {

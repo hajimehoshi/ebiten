@@ -68,7 +68,7 @@ type Graphics struct {
 	// pixelPackBuffers are idle pixel pack buffers available for reuse.
 	// Only completed read-backs enter this cache; pending read-backs own their buffers.
 	// The cache is accessed on the render thread.
-	pixelPackBuffers readbackcache.Cache[buffer]
+	pixelPackBuffers readbackcache.Cache[int, buffer]
 
 	graphicsPlatform
 }
