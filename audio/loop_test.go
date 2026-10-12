@@ -1147,6 +1147,32 @@ func (f *failingSeekReader) Seek(offset int64, whence int) (int64, error) {
 	return f.src.Seek(offset, whence)
 }
 
+func TestInfiniteLoopReadReturnsDataOnRewindError(t *testing.T) {
+	src := []byte{1, 2, 3, 4}
+	seekErr := errors.New("seek failed")
+	r := &failingSeekReader{
+		src: bytes.NewReader(src),
+		err: seekErr,
+	}
+	l := audio.NewInfiniteLoop(r, int64(len(src)))
+	if _, err := l.Seek(0, io.SeekCurrent); err != nil {
+		t.Fatal(err)
+	}
+	r.fail = true
+
+	buf := make([]byte, len(src))
+	n, err := l.Read(buf)
+	if n != len(src) {
+		t.Errorf("Read: got %d bytes, want %d", n, len(src))
+	}
+	if !errors.Is(err, seekErr) {
+		t.Errorf("Read: got error %v, want %v", err, seekErr)
+	}
+	if !bytes.Equal(buf, src) {
+		t.Errorf("Read: got data %v, want %v", buf, src)
+	}
+}
+
 func TestInfiniteLoopKeepsBlendingOnFailedSourceSeek(t *testing.T) {
 	cases := []struct {
 		name            string
