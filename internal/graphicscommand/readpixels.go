@@ -37,9 +37,7 @@ type readPixelsRequest struct {
 	// The channel is buffered so completing the request never blocks the render thread.
 	result chan error
 
-	// readback is the graphics driver's read-back. This is nil while the enqueued command has not
-	// been executed yet, or when the graphics driver doesn't support an asynchronous read-back and
-	// the pixels have been read synchronously instead.
+	// readback is the graphics driver's read-back, or nil before it starts and after it finishes.
 	readback graphicsdriver.PixelsReadback
 
 	// finished reports whether the request has been completed.
@@ -96,22 +94,14 @@ func (c *readPixelsAsyncCommand) Exec(commandQueue *commandQueue, graphicsDriver
 		return nil
 	}
 
-	if r, ok := c.img.image.(graphicsdriver.AsyncPixelsReader); ok {
-		readback, err := r.ReadPixelsAsync(c.req.args)
-		if err != nil {
-			c.req.finish(err)
-			return nil
-		}
-		c.req.readback = readback
-		// Track the read-back so that a later flush can finish it.
-		theCommandQueueManager.addReadPixelsRequest(c.req)
+	readback, err := c.img.image.ReadPixelsAsync(c.req.args)
+	if err != nil {
+		c.req.finish(err)
 		return nil
 	}
-
-	// A graphics driver that doesn't implement graphicsdriver.AsyncPixelsReader reads the pixels
-	// synchronously. The request is completed right away and the read-back is not tracked.
-	err := c.img.image.ReadPixels(c.req.args)
-	c.req.finish(err)
+	c.req.readback = readback
+	// Track the read-back so that a later flush can finish it.
+	theCommandQueueManager.addReadPixelsRequest(c.req)
 	return nil
 }
 
