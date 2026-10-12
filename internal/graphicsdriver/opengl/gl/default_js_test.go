@@ -23,15 +23,19 @@ import (
 )
 
 // fakeWebGLContextSource creates an object that behaves like a WebGL context enough for the tests.
-// getUniformLocation returns a new object for each call, as a real WebGL implementation does.
+// getUniformLocation returns a new object for each call, as a real WebGL implementation does, or null
+// for a name in state.inactiveUniformNames.
 const fakeWebGLContextSource = `(() => {
-  const state = {locationCount: 0, uniform1iCalls: []};
+  const state = {locationCount: 0, uniform1iCalls: [], inactiveUniformNames: new Set()};
   const nop = function () { return null; };
   const ctx = {
     state: state,
     createProgram: function () { return {}; },
     isProgram: function (program) { return program !== null && program !== undefined; },
     getUniformLocation: function (program, name) {
+      if (state.inactiveUniformNames.has(name)) {
+        return null;
+      }
       const location = {index: state.locationCount};
       state.locationCount++;
       return location;
@@ -76,6 +80,37 @@ func TestGetUniformLocationManyUniforms(t *testing.T) {
 		if got, want := calls.Index(i).Int(), i; got != want {
 			t.Errorf("uniform %d: got location index %d, want %d", i, got, want)
 		}
+	}
+}
+
+func TestGetUniformLocationInactiveUniform(t *testing.T) {
+	v := js.Global().Call("eval", fakeWebGLContextSource)
+	v.Get("state").Get("inactiveUniformNames").Call("add", "Inactive")
+	c, err := gl.NewDefaultContext(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := c.CreateProgram()
+
+	if got, want := c.GetUniformLocation(p, "Inactive"), int32(-1); got != want {
+		t.Errorf("c.GetUniformLocation(p, %q): got: %d, want: %d", "Inactive", got, want)
+	}
+	l := c.GetUniformLocation(p, "Active")
+	if l == -1 {
+		t.Errorf("c.GetUniformLocation(p, %q): got: -1, want: a location other than -1", "Active")
+	}
+	if got, want := gl.UniformLocationCount(c), 1; got != want {
+		t.Errorf("gl.UniformLocationCount(c): got: %d, want: %d", got, want)
+	}
+
+	c.Uniform1i(l, 0)
+	calls := v.Get("state").Get("uniform1iCalls")
+	if got, want := calls.Length(), 1; got != want {
+		t.Fatalf("calls.Length(): got: %d, want: %d", got, want)
+	}
+	if got, want := calls.Index(0).Int(), 0; got != want {
+		t.Errorf("uniform %q: got location index %d, want %d", "Active", got, want)
 	}
 }
 

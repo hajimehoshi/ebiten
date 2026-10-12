@@ -473,6 +473,10 @@ func (c *defaultContext) GetShaderi(shader uint32, pname uint32) int {
 
 func (c *defaultContext) GetUniformLocation(program uint32, name string) int32 {
 	location := c.fnGetUniformLocation.Invoke(c.programs.get(program), name)
+	// WebGL returns null for a name that is not an active uniform, where GL returns -1.
+	if location.IsNull() {
+		return -1
+	}
 
 	// A location ID must be unique in the whole context, not only in the program, as Uniform*
 	// functions take a location ID without a program.
