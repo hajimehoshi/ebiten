@@ -93,7 +93,10 @@ func TestReadPixelsAsyncGuestExit(t *testing.T) {
 	if err := guest.SetOutsideScreen(screen); err != nil {
 		t.Fatal(err)
 	}
-	for guest.Err() == nil {
+	for range 100 {
+		if guest.Err() != nil {
+			break
+		}
 		guest.AdvanceTicks(1)
 		guest.WaitTicks()
 	}

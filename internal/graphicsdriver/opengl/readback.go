@@ -166,7 +166,8 @@ func (g *Graphics) acquirePixelPackBuffer(size int) (buffer, error) {
 	return g.context.newPixelPackBuffer(size)
 }
 
-// releasePixelPackBuffer retains an unmapped buffer whose read completed successfully.
+// releasePixelPackBuffer caches b, an unmapped buffer of size bytes whose read completed
+// successfully, for reuse, or deletes it.
 func (g *Graphics) releasePixelPackBuffer(b buffer, size int) {
 	if size == 0 || size > maxPixelPackBufferBytes {
 		g.context.deleteBuffer(b)
@@ -186,7 +187,7 @@ func (g *Graphics) releasePixelPackBuffer(b buffer, size int) {
 	g.pixelPackBufferBytes += size
 }
 
-// clearPixelPackBuffers releases cached buffers before resetting or releasing the context.
+// clearPixelPackBuffers deletes the cached pixel pack buffers.
 func (g *Graphics) clearPixelPackBuffers() {
 	for _, b := range g.pixelPackBuffers {
 		g.context.deleteBuffer(b.buffer)

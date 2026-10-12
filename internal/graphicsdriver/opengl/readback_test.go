@@ -160,9 +160,16 @@ func TestReadbackReusesCompletedBuffer(t *testing.T) {
 	if c.created != 2 {
 		t.Errorf("completed buffer was not reused: created %d buffers", c.created)
 	}
+	c.value = 4
+	fourth := make([]byte, 4)
+	r4 := startReadback(t, img, fourth)
+	if c.created != 3 {
+		t.Errorf("pending reads created %d buffers, want 3", c.created)
+	}
 	finishReadback(t, r2)
 	finishReadback(t, r3)
-	for j, pixels := range [][]byte{first, second, third} {
+	finishReadback(t, r4)
+	for j, pixels := range [][]byte{first, second, third, fourth} {
 		for _, v := range pixels {
 			if v != byte(j+1) {
 				t.Errorf("read %d: got %d, want %d", j, v, j+1)
