@@ -22,6 +22,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
@@ -77,8 +78,8 @@ func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byt
 	return m.orig.ReadPixels(graphicsDriver, pixels, region)
 }
 
-// ReadPixelsAsync queues a read-back of the original image and returns its result channel.
-func (m *Mipmap) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+// ReadPixelsAsync queues a read-back of the original image and returns its result.
+func (m *Mipmap) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	return m.orig.ReadPixelsAsync(pixels, region)
 }
 

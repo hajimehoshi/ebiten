@@ -79,7 +79,12 @@ type DrawPathOptions struct {
 	// values, and cyclic clip definitions cause a panic.
 	Clip Clip
 
-	// ColorScale is the color scale to apply to the path.
+	// Paint supplies the path's color. The default (nil) uses solid white.
+	// Paint values may be modified after drawing returns.
+	// A typed nil paint causes a panic. Paint is ignored for a nil or empty path.
+	Paint Paint
+
+	// ColorScale is the color scale to apply to the path's paint.
 	// The default (zero) value is identity, which is (1, 1, 1, 1) (white).
 	ColorScale ebiten.ColorScale
 
@@ -102,6 +107,11 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	}
 	if fillOptions == nil {
 		fillOptions = &FillOptions{}
+	}
+
+	paint := snapshotPaint(drawPathOptions.Paint, dst)
+	if paint.source != nil && fillOptions.FillRule != FillRuleNonZero && fillOptions.FillRule != FillRuleEvenOdd {
+		panic(fmt.Sprintf("vector: invalid fill rule: %d", fillOptions.FillRule))
 	}
 
 	var hasEmptyClip bool
@@ -127,29 +137,48 @@ func FillPath(dst *ebiten.Image, path *Path, fillOptions *FillOptions, drawPathO
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
 
-	key := weak.Make(dst)
+	// Vector writes do not use Image drawing methods until the batch is flushed.
+	flushPaintSource(dst)
+	if paint.source != nil {
+		flushFillPaths(paint.source)
+	}
 
-	// Remove the previous registered callbacks.
+	key := weak.Make(dst)
+	// Rendering into dst must not invoke its pending fill callback while the mutex is held.
 	if token, ok := theCallbackTokens[key]; ok {
 		theImageBridge.RemoveUsage(dst, token)
 	}
 	delete(theCallbackTokens, key)
-
-	s, ok := theFillPathsStates[key]
-	if !ok {
+	s := theFillPathsStates[key]
+	if s != nil && (s.antialias != drawPathOptions.AntiAlias || s.blend != drawPathOptions.Blend || s.fillRule != fillOptions.FillRule || (paint.source != nil && s.paintSource != nil && s.paintSource != paint.source)) {
+		if s.paintSource == nil {
+			s.fillPaths(dst)
+			s.reset()
+		} else {
+			flushFillPaths(dst)
+			s = nil
+		}
+	}
+	if s == nil {
 		s = theFillPathsStatesPool.Get().(*fillPathsState)
 		theFillPathsStates[key] = s
 		s.cleanup = runtime.AddCleanup(dst, releaseFillPathsState, key)
 	}
-	if s.antialias != drawPathOptions.AntiAlias || s.blend != drawPathOptions.Blend || s.fillRule != fillOptions.FillRule {
-		s.fillPaths(dst)
-		s.reset()
-	}
 	s.antialias = drawPathOptions.AntiAlias
 	s.blend = drawPathOptions.Blend
 	s.fillRule = fillOptions.FillRule
+	if paint.source != nil {
+		s.paintSource = paint.source
+	}
 	idx := s.addPath(path, bounds, drawPathOptions.ColorScale)
 	s.drawPathIndices = append(s.drawPathIndices, idx)
+	if paint.source != nil {
+		if s.pathIndexToImagePaint == nil {
+			s.pathIndexToImagePaint = map[int]imagePaint{}
+		}
+		s.pathIndexToImagePaint[idx] = paint
+		registerPaintSource(paint.source, dst)
+	}
 	if drawPathOptions.Clip != nil {
 		s.addClip(idx, path, drawPathOptions.Clip, bounds, clipState.pathIndices, clipState.visitStates)
 	}
@@ -162,28 +191,34 @@ func fillPathCallback(dst *ebiten.Image) {
 	if theImageBridge.OriginalImage(dst) != dst {
 		panic("vector: dst must be the original image")
 	}
-
 	theFillPathM.Lock()
 	defer theFillPathM.Unlock()
+	flushFillPaths(dst)
+}
 
+// flushFillPaths and its callers hold theFillPathM.
+func flushFillPaths(dst *ebiten.Image) {
 	key := weak.Make(dst)
-
-	// Remove the callback not to call this twice.
+	s := theFillPathsStates[key]
+	if s == nil {
+		return
+	}
+	if s.paintSource != nil && thePaintSources[weak.Make(s.paintSource)] != nil {
+		flushPaintSource(s.paintSource)
+		return
+	}
 	if token, ok := theCallbackTokens[key]; ok {
 		theImageBridge.RemoveUsage(dst, token)
 	}
 	delete(theCallbackTokens, key)
-
-	s, ok := theFillPathsStates[key]
-	if !ok {
-		panic("vector: fillPathsState must exist here")
-	}
-	s.fillPaths(dst)
-	s.reset()
 	delete(theFillPathsStates, key)
 	s.cleanup.Stop()
 	s.cleanup = runtime.Cleanup{}
-	theFillPathsStatesPool.Put(s)
+	defer func() {
+		s.reset()
+		theFillPathsStatesPool.Put(s)
+	}()
+	s.fillPaths(dst)
 }
 
 // releaseFillPathsState discards the state for a destination image that was collected before being used again.
@@ -198,6 +233,7 @@ func releaseFillPathsState(key weak.Pointer[ebiten.Image]) {
 	if !ok {
 		return
 	}
+	unregisterPaintSource(s.paintSource, key)
 	delete(theFillPathsStates, key)
 	s.cleanup = runtime.Cleanup{}
 	s.reset()
@@ -310,6 +346,8 @@ var (
 var theAtlas atlas
 
 type fillPathsState struct {
+	pathIndexToImagePaint   map[int]imagePaint
+	paintSource             *ebiten.Image
 	drawPathIndices         []int
 	drawPathIndexToClipPlan map[int]*clipPlan
 
@@ -331,6 +369,8 @@ type fillPathsState struct {
 }
 
 func (f *fillPathsState) reset() {
+	clear(f.pathIndexToImagePaint)
+	f.paintSource = nil
 	f.drawPathIndices = f.drawPathIndices[:0]
 	for _, plan := range f.drawPathIndexToClipPlan {
 		plan.release()
@@ -740,33 +780,37 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		op := &ebiten.DrawTrianglesShaderOptions{}
 		op.Blend = f.blend
 		op.Images[0] = stencilImage
-		var shader *ebiten.Shader
-		switch f.fillRule {
-		case FillRuleNonZero:
-			var err error
-			shader, err = ensureStencilBufferNonZeroShader(f.antialias)
-			if err != nil {
-				panic(fmt.Sprintf("vector: failed to create stencil buffer non-zero shader: %v", err))
-			}
-		case FillRuleEvenOdd:
-			var err error
-			shader, err = ensureStencilBufferEvenOddShader(f.antialias)
-			if err != nil {
-				panic(fmt.Sprintf("vector: failed to create stencil buffer even-odd shader: %v", err))
-			}
-		default:
-			panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
-		}
-		if clipped != nil {
-			shader = ensureClipResolveShader(f.antialias)
-		}
 		dst2 := dst
 		var recycle bool
 		if dst.Bounds() != f.bounds[i] {
 			dst2 = dst.RecyclableSubImage(f.bounds[i])
 			recycle = true
 		}
-		dst2.DrawTrianglesShader32(vs, is, shader, op)
+		if paint, ok := f.pathIndexToImagePaint[i]; ok {
+			paint.draw(dst2, vs, is, stencilImage, op, f.fillRule, f.antialias, clipped != nil)
+		} else {
+			var shader *ebiten.Shader
+			switch f.fillRule {
+			case FillRuleNonZero:
+				var err error
+				shader, err = ensureStencilBufferNonZeroShader(f.antialias)
+				if err != nil {
+					panic(fmt.Sprintf("vector: failed to create stencil buffer non-zero shader: %v", err))
+				}
+			case FillRuleEvenOdd:
+				var err error
+				shader, err = ensureStencilBufferEvenOddShader(f.antialias)
+				if err != nil {
+					panic(fmt.Sprintf("vector: failed to create stencil buffer even-odd shader: %v", err))
+				}
+			default:
+				panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
+			}
+			if clipped != nil {
+				shader = ensureClipResolveShader(f.antialias)
+			}
+			dst2.DrawTrianglesShader32(vs, is, shader, op)
+		}
 		if recycle {
 			dst2.Recycle()
 		}

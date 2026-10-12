@@ -93,6 +93,12 @@ ebitengine_Error ebitengine_NewScreenFramebufferImage(int *image, int width,
 void ebitengine_ReadPixels(int image, uint8_t *pixels,
                            ebitengine_Region region);
 ebitengine_Error ebitengine_FlushReadPixels(int image);
+ebitengine_Error ebitengine_ReadPixelsAsync(int *readback, int image,
+                                            const ebitengine_Region *regions,
+                                            int region_count);
+ebitengine_Error ebitengine_PollPixelReadback(int readback, int region_index,
+                                              uint8_t *pixels, bool *done);
+void ebitengine_DisposePixelReadback(int readback);
 void ebitengine_WritePixels(int image, const uint8_t *pixels,
                             ebitengine_Region region);
 ebitengine_Error ebitengine_FlushWritePixels(int image);

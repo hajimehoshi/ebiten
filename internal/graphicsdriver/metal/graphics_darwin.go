@@ -33,6 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/readbackcache"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -67,6 +68,11 @@ type Graphics struct {
 
 	buffers       map[int64][]mtl.Buffer
 	unusedBuffers map[mtl.Buffer]struct{}
+
+	// readbackBuffers are idle shared buffers for pixel read-backs available for reuse.
+	// Only completed read-backs enter this cache; pending read-backs own their buffers.
+	// The cache is accessed on the render thread.
+	readbackBuffers readbackcache.Cache[int, mtl.Buffer]
 
 	lastDst *Image
 

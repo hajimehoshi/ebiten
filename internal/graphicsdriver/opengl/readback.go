@@ -52,6 +52,9 @@ type readback struct {
 
 	// args hold the read regions and destination buffers in submission order.
 	args []graphicsdriver.PixelsArgs
+
+	// reusable is set only after the fence and every copy have succeeded.
+	reusable bool
 }
 
 // ReadPixelsAsync records pixel reads into pixel pack buffers and returns without waiting for the
@@ -59,7 +62,7 @@ type readback struct {
 //
 // The reads are recorded in the command stream at the current position, so the read pixels include
 // the preceding drawing commands and exclude the following ones.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelReadback, err error) {
 	c := &i.graphics.context
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
@@ -81,7 +84,7 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 		if len(arg.Pixels) != size {
 			return nil, fmt.Errorf("opengl: len(Pixels) must be %d but %d at ReadPixelsAsync", size, len(arg.Pixels))
 		}
-		b, err := c.newPixelPackBuffer(size)
+		b, err := i.graphics.acquirePixelPackBuffer(size)
 		if err != nil {
 			return nil, err
 		}
@@ -115,6 +118,7 @@ func (r *readback) Poll() (bool, error) {
 			return true, err
 		}
 	}
+	r.reusable = true
 	return true, nil
 }
 
@@ -126,11 +130,39 @@ func (r *readback) Dispose() {
 		r.fence = 0
 	}
 	for j, b := range r.pbos {
-		c.deleteBuffer(b)
+		if r.reusable {
+			r.graphics.releasePixelPackBuffer(b, len(r.args[j].Pixels))
+		} else {
+			c.deleteBuffer(b)
+		}
 		r.pbos[j] = 0
 	}
 	r.pbos = nil
 	r.args = nil
+}
+
+// acquirePixelPackBuffer returns a buffer bound to PIXEL_PACK_BUFFER.
+func (g *Graphics) acquirePixelPackBuffer(size int) (buffer, error) {
+	if b, ok := g.pixelPackBuffers.Take(size); ok {
+		g.context.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(b))
+		return b, nil
+	}
+	return g.context.newPixelPackBuffer(size)
+}
+
+// releasePixelPackBuffer caches b, an unmapped buffer of size bytes whose read completed
+// successfully, for reuse, or deletes it.
+func (g *Graphics) releasePixelPackBuffer(b buffer, size int) {
+	for _, dropped := range g.pixelPackBuffers.Put(size, b, size) {
+		g.context.deleteBuffer(dropped)
+	}
+}
+
+// clearPixelPackBuffers deletes the cached pixel pack buffers.
+func (g *Graphics) clearPixelPackBuffers() {
+	for _, b := range g.pixelPackBuffers.Clear() {
+		g.context.deleteBuffer(b)
+	}
 }
 
 func (c *context) newPixelPackBuffer(size int) (buffer, error) {

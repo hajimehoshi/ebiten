@@ -251,10 +251,11 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	h.Offset(offset, p.shaderDescriptorSize)
 	for _, src := range srcs {
 		h.Offset(1, p.shaderDescriptorSize)
-		if src == nil {
-			continue
+		var resource *_ID3D12Resource
+		if src != nil {
+			resource = src.resource()
 		}
-		device.CreateShaderResourceView(src.resource(), &_D3D12_SHADER_RESOURCE_VIEW_DESC{
+		device.CreateShaderResourceView(resource, &_D3D12_SHADER_RESOURCE_VIEW_DESC{
 			Format:                  _DXGI_FORMAT_R8G8B8A8_UNORM,
 			ViewDimension:           _D3D12_SRV_DIMENSION_TEXTURE2D,
 			Shader4ComponentMapping: _D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,

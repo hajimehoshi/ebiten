@@ -384,7 +384,7 @@ func TestIllFormedReadPixelsQueryIsAnsweredWithAnError(t *testing.T) {
 					Height:  16,
 				})
 				fg.send(&vmprotocol.GuestMessage{
-					Kind:        vmprotocol.GuestMessageKindQueryReadPixels,
+					Kind:        vmprotocol.GuestMessageKindQueryReadPixelsAsync,
 					ReadImageID: 1,
 					ReadRegions: tc.regions,
 				})

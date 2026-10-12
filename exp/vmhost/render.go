@@ -116,9 +116,8 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 		vmprotocol.GraphicsCommandKindBegin,
 		vmprotocol.GraphicsCommandKindEnd,
 		vmprotocol.GraphicsCommandKindSetTransparent,
-		vmprotocol.GraphicsCommandKindSetVsyncEnabled,
-		vmprotocol.GraphicsCommandKindReadPixels:
-		// Framing, vsync, and read-back are owned by the host's own ebiten loop, and the guest clears its
+		vmprotocol.GraphicsCommandKindSetVsyncEnabled:
+		// Framing and vsync are owned by the host's own ebiten loop, and the guest clears its
 		// own screen to the alpha its transparency setting implies.
 		return nil
 

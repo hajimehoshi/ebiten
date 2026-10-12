@@ -37,7 +37,6 @@ const (
 	GraphicsCommandKindDrawTriangles
 	GraphicsCommandKindSetVsyncEnabled
 	GraphicsCommandKindWritePixels
-	GraphicsCommandKindReadPixels
 	GraphicsCommandKindDisposeImage
 	GraphicsCommandKindDisposeShader
 )
@@ -66,8 +65,6 @@ func (k GraphicsCommandKind) String() string {
 		return "SetVsyncEnabled"
 	case GraphicsCommandKindWritePixels:
 		return "WritePixels"
-	case GraphicsCommandKindReadPixels:
-		return "ReadPixels"
 	case GraphicsCommandKindDisposeImage:
 		return "DisposeImage"
 	case GraphicsCommandKindDisposeShader:
@@ -99,7 +96,7 @@ type GraphicsCommand struct {
 	Indices  []uint32
 
 	// ImageID/Width/Height/Screen are set by NewImage and NewScreenFramebufferImage.
-	// ImageID is also set by WritePixels, ReadPixels, and DisposeImage.
+	// ImageID is also set by WritePixels and DisposeImage.
 	ImageID graphicsdriver.ImageID
 	Width   int
 	Height  int
@@ -120,7 +117,7 @@ type GraphicsCommand struct {
 	Blend       graphicsdriver.Blend
 	Uniforms    []uint32
 
-	// Regions is set by WritePixels and ReadPixels. Pixels holds a copy of the pixel bytes for each
+	// Regions is set by WritePixels. Pixels holds a copy of the pixel bytes for each
 	// region of a WritePixels.
 	Regions []image.Rectangle
 	Pixels  [][]byte

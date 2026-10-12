@@ -1252,8 +1252,7 @@ func (cs *compileState) parseExpr(block *block, fname string, expr ast.Expr, mar
 		}
 		idx := exprs[0]
 		if idx.Const != nil {
-			if !canTruncateToInteger(idx.Const) {
-				cs.addError(e.Index.Pos(), fmt.Sprintf("constant %s truncated to integer", idx.Const.String()))
+			if !cs.forceToInt(e.Index, &idx) {
 				return nil, nil, nil, false
 			}
 		} else if its[0].Main != shaderir.Int {
