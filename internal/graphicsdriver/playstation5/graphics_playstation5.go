@@ -222,6 +222,24 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 	return nil
 }
 
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+	// The PlayStation 5 API currently serves read-backs synchronously.
+	// TODO: Support asynchronous read-backs in the PlayStation 5 API (#3812).
+	if err := i.ReadPixels(args); err != nil {
+		return nil, err
+	}
+	return completedReadback{}, nil
+}
+
+type completedReadback struct{}
+
+func (completedReadback) Poll() (bool, error) {
+	return true, nil
+}
+
+func (completedReadback) Dispose() {
+}
+
 func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	defer runtime.KeepAlive(args)
 	for _, a := range args {
