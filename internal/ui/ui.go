@@ -235,6 +235,23 @@ func (u *UserInterface) FlushAndPollPixelReadbacks() {
 	}
 }
 
+// FlushAndWaitPixelReadbacks completes the given read-backs and returns their first error, if any.
+func (u *UserInterface) FlushAndWaitPixelReadbacks(results []*graphicscommand.PixelReadback) error {
+	if err := atlas.FlushAndWaitPixelReadbacks(u.graphicsDriver, results); err != nil {
+		u.setError(err)
+	}
+	for _, result := range results {
+		done, err := result.Poll()
+		if !done {
+			panic("ui: pixel read-back is incomplete after waiting")
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // TryPollPixelReadbacks requests a completion check if the render loop is accepting work.
 func (u *UserInterface) TryPollPixelReadbacks() {
 	graphicscommand.TryPollPixelReadbacks()

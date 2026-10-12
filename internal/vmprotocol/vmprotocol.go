@@ -66,7 +66,7 @@ const (
 	// player's samples (identified by AudioPlayerID). The guest answers with GuestMessageKindAudioData.
 	HostMessageKindReadAudio
 
-	// HostMessageKindAnswerReadPixelsAsync answers a start or poll read-back query.
+	// HostMessageKindAnswerReadPixelsAsync answers a read-back start, poll, or wait query.
 	HostMessageKindAnswerReadPixelsAsync
 	// HostMessageKindAnswerMaxImageSize answers a GuestMessageKindQueryMaxImageSize.
 	HostMessageKindAnswerMaxImageSize
@@ -128,7 +128,7 @@ type HostMessage struct {
 	// ReadbackID identifies an asynchronous read-back returned by a start query.
 	ReadbackID uint64
 
-	// ReadbackDone reports completion in an asynchronous read-back poll answer.
+	// ReadbackDone reports completion in a read-back poll or wait answer.
 	ReadbackDone bool
 
 	// MaxImageSize is set on HostMessageKindAnswerMaxImageSize.
@@ -259,6 +259,8 @@ const (
 	GuestMessageKindQueryReadPixelsAsync
 	// GuestMessageKindQueryPollReadPixels polls the read-back identified by ReadbackID.
 	GuestMessageKindQueryPollReadPixels
+	// GuestMessageKindQueryWaitReadPixels waits for the read-back identified by ReadbackID.
+	GuestMessageKindQueryWaitReadPixels
 	// GuestMessageKindDisposeReadPixels releases the read-back identified by ReadbackID, without an answer.
 	GuestMessageKindDisposeReadPixels
 )
@@ -268,7 +270,7 @@ const (
 type GuestMessage struct {
 	Kind GuestMessageKind
 
-	// ReadbackID identifies the asynchronous read-back to poll or release.
+	// ReadbackID identifies the asynchronous read-back to poll, wait for, or release.
 	ReadbackID uint64
 
 	// Err is the deferred game error, if any, as a string (gob cannot carry an error value). Set on

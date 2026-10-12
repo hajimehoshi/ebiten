@@ -270,6 +270,19 @@ func (r *readback) Poll() (bool, error) {
 	return true, nil
 }
 
+func (r *readback) Wait() error {
+	for r.nextRegionIndex < len(r.args) {
+		a := r.args[r.nextRegionIndex]
+		if len(a.Pixels) != 0 {
+			if err := C.ebitengine_WaitPixelReadback(r.id, C.int(r.nextRegionIndex), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels)))); !C.ebitengine_IsErrorNil(&err) {
+				return newPlaystation5Error("(*playstation5.readback).Wait", err)
+			}
+		}
+		r.nextRegionIndex++
+	}
+	return nil
+}
+
 func (r *readback) Dispose() {
 	C.ebitengine_DisposePixelReadback(r.id)
 	r.args = nil

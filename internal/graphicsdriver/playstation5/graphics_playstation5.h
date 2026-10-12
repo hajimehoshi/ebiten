@@ -98,6 +98,8 @@ ebitengine_Error ebitengine_ReadPixelsAsync(int *readback, int image,
                                             int region_count);
 ebitengine_Error ebitengine_PollPixelReadback(int readback, int region_index,
                                               uint8_t *pixels, bool *done);
+ebitengine_Error ebitengine_WaitPixelReadback(int readback, int region_index,
+                                              uint8_t *pixels);
 void ebitengine_DisposePixelReadback(int readback);
 void ebitengine_WritePixels(int image, const uint8_t *pixels,
                             ebitengine_Region region);

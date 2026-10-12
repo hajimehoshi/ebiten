@@ -83,6 +83,35 @@ func TryPollPixelReadbacks() {
 	thread.TryCallAsync(theRenderThread, (*commandQueueManager).pollReadPixels, &theCommandQueueManager)
 }
 
+// FlushAndWaitPixelReadbacks submits queued commands and completes the given read-backs.
+// The caller must hold the atlas backend mutex.
+func FlushAndWaitPixelReadbacks(graphicsDriver graphicsdriver.Graphics, results []*PixelReadback) error {
+	if !slices.ContainsFunc(results, func(result *PixelReadback) bool {
+		done, _ := result.Poll()
+		return !done
+	}) {
+		return nil
+	}
+	if err := FlushAndPollPixelReadbacks(graphicsDriver); err != nil {
+		return err
+	}
+	thread.Call(theRenderThread, func() {
+		theCommandQueueManager.waitReadPixels(results)
+	})
+	return nil
+}
+
+func (c *commandQueueManager) waitReadPixels(results []*PixelReadback) {
+	for _, req := range c.pendingReadPixels {
+		if slices.Contains(results, req.result) {
+			req.finish(req.readback.Wait())
+		}
+	}
+	c.pendingReadPixels = slices.DeleteFunc(c.pendingReadPixels, func(req *readPixelsRequest) bool {
+		return req.finished
+	})
+}
+
 // readPixelsRequest holds the arguments, result, and driver resources for a pixel read-back.
 //
 // The readback and finished fields of readPixelsRequest are accessed only on the render thread.

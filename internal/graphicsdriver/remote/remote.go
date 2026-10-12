@@ -23,10 +23,8 @@ package remote
 import (
 	"fmt"
 	"image"
-	"runtime"
 	"slices"
 	"sync"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -291,24 +289,7 @@ func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
 		return err
 	}
 	defer readback.Dispose()
-	delay := 50 * time.Microsecond
-	var attempts int
-	for {
-		done, err := readback.Poll()
-		if err != nil {
-			return err
-		}
-		if done {
-			return nil
-		}
-		if attempts < 4 {
-			runtime.Gosched()
-		} else {
-			time.Sleep(delay)
-			delay = min(2*delay, time.Millisecond)
-		}
-		attempts++
-	}
+	return readback.Wait()
 }
 
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
@@ -326,6 +307,10 @@ type completedReadback struct{}
 
 func (completedReadback) Poll() (bool, error) {
 	return true, nil
+}
+
+func (completedReadback) Wait() error {
+	return nil
 }
 
 func (completedReadback) Dispose() {

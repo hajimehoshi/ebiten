@@ -372,3 +372,104 @@ func TestReadPixelsAsyncPollWithoutHostWait(t *testing.T) {
 		}
 	}
 }
+
+func TestReadPixelsWaitProtocol(t *testing.T) {
+	for _, betweenFrames := range []bool{false, true} {
+		name := "in-frame"
+		if betweenFrames {
+			name = "between-frames"
+		}
+		t.Run(name, func(t *testing.T) {
+			answers := make(chan vmprotocol.HostMessage, 1)
+			var id uint64
+			guest := newFakeGuestSession(t, func(fg *fakeGuest) {
+				if id == 0 {
+					fg.sendCommands(vmprotocol.GraphicsCommand{
+						Kind:    vmprotocol.GraphicsCommandKindNewImage,
+						ImageID: 1,
+						Width:   2,
+						Height:  1,
+					}, vmprotocol.GraphicsCommand{
+						Kind:    vmprotocol.GraphicsCommandKindWritePixels,
+						ImageID: 1,
+						Regions: []image.Rectangle{image.Rect(0, 0, 2, 1)},
+						Pixels:  [][]byte{{1, 2, 3, 255, 4, 5, 6, 255}},
+					})
+					fg.send(&vmprotocol.GuestMessage{
+						Kind:        vmprotocol.GuestMessageKindQueryReadPixelsAsync,
+						ReadImageID: 1,
+						ReadRegions: []image.Rectangle{image.Rect(0, 0, 1, 1), image.Rect(1, 0, 2, 1)},
+					})
+					start, err := fg.receive()
+					if err != nil {
+						return
+					}
+					if start.Err != "" || start.ReadbackID == 0 {
+						t.Errorf("starting read-back: %+v", start)
+						return
+					}
+					id = start.ReadbackID
+					fg.sendCommands(vmprotocol.GraphicsCommand{
+						Kind:    vmprotocol.GraphicsCommandKindWritePixels,
+						ImageID: 1,
+						Regions: []image.Rectangle{image.Rect(0, 0, 2, 1)},
+						Pixels:  [][]byte{{9, 9, 9, 255, 9, 9, 9, 255}},
+					}, vmprotocol.GraphicsCommand{
+						Kind:    vmprotocol.GraphicsCommandKindDisposeImage,
+						ImageID: 1,
+					})
+					if betweenFrames {
+						return
+					}
+				}
+				fg.send(&vmprotocol.GuestMessage{
+					Kind:       vmprotocol.GuestMessageKindQueryWaitReadPixels,
+					ReadbackID: id,
+				})
+				answer, err := fg.receive()
+				if err != nil {
+					return
+				}
+				answers <- answer
+				fg.send(&vmprotocol.GuestMessage{
+					Kind:       vmprotocol.GuestMessageKindDisposeReadPixels,
+					ReadbackID: id,
+				})
+			})
+			setOutsideScreen(t, guest)
+			guest.AdvanceTicks(1)
+			waited := make(chan bool, 1)
+			go func() { waited <- guest.WaitTicks() }()
+			deadline := time.NewTimer(5 * time.Second)
+			defer deadline.Stop()
+			var tickDone, answered bool
+			for !tickDone || !answered {
+				select {
+				case ok := <-waited:
+					if !ok {
+						t.Fatal(guest.Err())
+					}
+					tickDone = true
+					waited = nil
+					if betweenFrames {
+						ui.Get().FlushAndPollPixelReadbacks()
+						guest.AdvanceTicks(1)
+					}
+				case answer := <-answers:
+					answered = true
+					if answer.Err != "" || !answer.ReadbackDone {
+						t.Errorf("wait: %+v", answer)
+					}
+					if len(answer.Pixels) != 2 || !bytes.Equal(answer.Pixels[0], []byte{1, 2, 3, 255}) || !bytes.Equal(answer.Pixels[1], []byte{4, 5, 6, 255}) {
+						t.Errorf("captured pixels = %v", answer.Pixels)
+					}
+				case <-deadline.C:
+					if err := guest.Close(); err != nil {
+						t.Error(err)
+					}
+					t.Fatal("wait required another host frame")
+				}
+			}
+		})
+	}
+}

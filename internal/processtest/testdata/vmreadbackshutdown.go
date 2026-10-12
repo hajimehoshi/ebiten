@@ -89,21 +89,26 @@ func (g *game) runGuest(conn net.Conn) {
 				id = answer.ReadbackID
 			} else {
 				<-g.resume
-				if err := enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
-					Kind:       vmprotocol.GuestMessageKindQueryPollReadPixels,
-					ReadbackID: id,
-				}); err != nil {
-					g.answer <- err
-					return
-				}
-				var answer vmprotocol.HostMessage
-				if err := dec.DecodeHostMessage(&answer); err != nil {
-					g.answer <- err
-					return
-				}
-				if answer.Err == "" {
-					g.answer <- fmt.Errorf("read-back was not aborted: %+v", answer)
-					return
+				for _, kind := range []vmprotocol.GuestMessageKind{
+					vmprotocol.GuestMessageKindQueryPollReadPixels,
+					vmprotocol.GuestMessageKindQueryWaitReadPixels,
+				} {
+					if err := enc.EncodeGuestMessage(&vmprotocol.GuestMessage{
+						Kind:       kind,
+						ReadbackID: id,
+					}); err != nil {
+						g.answer <- err
+						return
+					}
+					var answer vmprotocol.HostMessage
+					if err := dec.DecodeHostMessage(&answer); err != nil {
+						g.answer <- err
+						return
+					}
+					if answer.Err == "" {
+						g.answer <- fmt.Errorf("read-back was not aborted: %+v", answer)
+						return
+					}
 				}
 				g.answer <- nil
 			}
@@ -155,7 +160,7 @@ func main() {
 			panic(err)
 		}
 	case <-time.After(5 * time.Second):
-		panic("read-back poll blocked after RunGame returned")
+		panic("read-back completion blocked after RunGame returned")
 	}
 	closed := make(chan error, 1)
 	go func() { closed <- g.guest.Close() }()

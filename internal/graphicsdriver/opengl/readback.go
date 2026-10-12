@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"runtime"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
@@ -122,6 +124,27 @@ func (r *readback) Poll() (bool, error) {
 	return true, nil
 }
 
+func (r *readback) Wait() error {
+	for {
+		// WebGL requires returning to the browser event loop before a fence can signal.
+		var timeout uint64
+		if runtime.GOOS != "js" {
+			timeout = uint64(time.Millisecond)
+		}
+		done, err := r.graphics.context.waitFence(r.fence, timeout)
+		if err != nil {
+			return err
+		}
+		if done {
+			_, err := r.Poll()
+			return err
+		}
+		if runtime.GOOS == "js" {
+			time.Sleep(time.Millisecond)
+		}
+	}
+}
+
 // Dispose releases the pixel pack buffers and fence.
 func (r *readback) Dispose() {
 	c := &r.graphics.context
@@ -219,7 +242,11 @@ func (c *context) deleteFence(s syncObject) {
 }
 
 func (c *context) pollFence(s syncObject) (bool, error) {
-	switch r := c.ctx.ClientWaitSync(uintptr(s), 0, 0); r {
+	return c.waitFence(s, 0)
+}
+
+func (c *context) waitFence(s syncObject, timeout uint64) (bool, error) {
+	switch r := c.ctx.ClientWaitSync(uintptr(s), 0, timeout); r {
 	case gl.ALREADY_SIGNALED, gl.CONDITION_SATISFIED:
 		return true, nil
 	case gl.TIMEOUT_EXPIRED:

@@ -47,6 +47,12 @@ extern "C" ebitengine_Error ebitengine_PollPixelReadback(int readback,
   return {};
 }
 
+extern "C" ebitengine_Error ebitengine_WaitPixelReadback(int readback,
+                                                         int region_index,
+                                                         uint8_t *pixels) {
+  return {};
+}
+
 extern "C" void ebitengine_DisposePixelReadback(int readback) {}
 
 extern "C" void ebitengine_WritePixels(int image, const uint8_t *pixels,
