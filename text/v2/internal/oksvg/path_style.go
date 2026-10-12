@@ -29,6 +29,6 @@ type styleAttribute = map[string]string
 
 // DefaultStyle sets the default PathStyle to fill black, winding rule,
 // full opacity, no stroke, ButtCap line end and Bevel line connect.
-var DefaultStyle = PathStyle{1.0, 1.0, 2.0, 0.0, 4.0, nil, true,
+var DefaultStyle = PathStyle{1.0, 1.0, 1.0, 0.0, 4.0, nil, true,
 	color.NRGBA{0x00, 0x00, 0x00, 0xff}, nil,
 	nil, nil, rasterx.ButtCap, rasterx.Bevel, rasterx.MatrixAdder{M: rasterx.Identity}}

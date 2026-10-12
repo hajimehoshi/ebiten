@@ -15,6 +15,7 @@
 package oksvg_test
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -297,5 +298,53 @@ func TestClassesRepeatedName(t *testing.T) {
 	// A repeated class name must be applied only once, not compounded.
 	if got, want := icon.SVGPaths[0].FillOpacity, 0.5; got != want {
 		t.Errorf("FillOpacity = %v, want %v", got, want)
+	}
+}
+
+func TestStrokeWidth(t *testing.T) {
+	render := func(t *testing.T, body string) *image.RGBA {
+		t.Helper()
+		svg := `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">` + body + `</svg>`
+		icon, err := oksvg.ReadIconStream(strings.NewReader(svg))
+		if err != nil {
+			t.Fatal(err)
+		}
+		img := image.NewRGBA(image.Rect(0, 0, 16, 16))
+		scanner := rasterx.NewScannerGV(16, 16, img, img.Bounds())
+		icon.Draw(rasterx.NewDasher(16, 16, scanner), 1)
+		return img
+	}
+	const path = `<path d="M 2,8 L 14,8" stroke="black" fill="none" %s/>`
+	for _, tc := range []struct {
+		name  string
+		body  string
+		width string
+	}{
+		{
+			name:  "default",
+			body:  fmt.Sprintf(path, ""),
+			width: "1",
+		},
+		{
+			name:  "inherited",
+			body:  `<g stroke-width="3">` + fmt.Sprintf(path, "") + `</g>`,
+			width: "3",
+		},
+		{
+			name:  "override",
+			body:  `<g stroke-width="3">` + fmt.Sprintf(path, `stroke-width="4"`) + `</g>`,
+			width: "4",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := render(t, tc.body)
+			want := render(t, fmt.Sprintf(path, `stroke-width="`+tc.width+`"`))
+			if !bytes.Equal(got.Pix, want.Pix) {
+				t.Errorf("rendered stroke differs from explicit width %s", tc.width)
+			}
+			if bytes.Equal(got.Pix, make([]byte, len(got.Pix))) {
+				t.Error("rendered stroke is empty")
+			}
+		})
 	}
 }

@@ -11,6 +11,8 @@ included.
 
 ## Local modifications
 
+- The default stroke width is 1 user unit, as SVG specifies, instead of 2.
+
 - Gradient rendering under a drawing transform: `SvgPath.DrawTransformed`
   now builds gradient color functions with
   `Gradient.GetColorFunctionUS(opacity, objMatrix)`, passing the composed
