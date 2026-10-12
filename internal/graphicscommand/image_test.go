@@ -230,6 +230,48 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 	const w, h = 16, 16
 	region := image.Rect(0, 0, w, h)
 
+	t.Run("WaitAfterOverwriteAndDispose", func(t *testing.T) {
+		img := graphicscommand.NewImage(w, h, false, "")
+		fillImage(t, img, color.RGBA{R: 0x80, A: 0xff})
+		pixels := make([]byte, 4*w*h)
+		result := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+			{
+				Pixels: pixels,
+				Region: region,
+			},
+		})
+		fillImage(t, img, color.RGBA{G: 0xff, A: 0xff})
+		overwrittenPixels := make([]byte, 4*w*h)
+		overwrittenResult := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+			{
+				Pixels: overwrittenPixels,
+				Region: region,
+			},
+		})
+		img.Dispose()
+		if err := graphicscommand.FlushAndWaitPixelReadbacks(ui.Get().GraphicsDriverForTesting(), []*graphicscommand.PixelReadback{result, overwrittenResult}); err != nil {
+			t.Fatal(err)
+		}
+		if done, err := result.Poll(); !done || err != nil {
+			t.Errorf("read-back after waiting: done = %t, err = %v", done, err)
+		}
+		if done, err := overwrittenResult.Poll(); !done || err != nil {
+			t.Errorf("overwritten read-back after waiting: done = %t, err = %v", done, err)
+		}
+		for i := range w * h {
+			if got, want := (color.RGBA{R: overwrittenPixels[4*i], G: overwrittenPixels[4*i+1], B: overwrittenPixels[4*i+2], A: overwrittenPixels[4*i+3]}), (color.RGBA{G: 0xff, A: 0xff}); got != want {
+				t.Errorf("overwritten pixel %d = %v, want %v", i, got, want)
+				break
+			}
+		}
+		for i := range w * h {
+			if got, want := (color.RGBA{R: pixels[4*i], G: pixels[4*i+1], B: pixels[4*i+2], A: pixels[4*i+3]}), (color.RGBA{R: 0x80, A: 0xff}); got != want {
+				t.Errorf("pixel %d = %v, want %v", i, got, want)
+				break
+			}
+		}
+	})
+
 	t.Run("ReusedBuffersInFlight", func(t *testing.T) {
 		const count = 4
 		for round := range 2 {

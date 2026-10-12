@@ -205,23 +205,6 @@ func (i *Image) Dispose() {
 	C.ebitengine_DisposeImage(C.int(i.id))
 }
 
-func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	defer runtime.KeepAlive(args)
-	for _, a := range args {
-		region := C.ebitengine_Region{
-			min_x: C.int(a.Region.Min.X),
-			min_y: C.int(a.Region.Min.Y),
-			max_x: C.int(a.Region.Max.X),
-			max_y: C.int(a.Region.Max.Y),
-		}
-		C.ebitengine_ReadPixels(C.int(i.id), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))), region)
-	}
-	if err := C.ebitengine_FlushReadPixels(C.int(i.id)); !C.ebitengine_IsErrorNil(&err) {
-		return newPlaystation5Error("(*playstation5.Image).ReadPixels", err)
-	}
-	return nil
-}
-
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	regions := make([]C.ebitengine_Region, len(args))
 	for j, a := range args {

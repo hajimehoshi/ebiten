@@ -71,7 +71,6 @@ type Resetter interface {
 type Image interface {
 	ID() ImageID
 	Dispose()
-	ReadPixels(args []PixelsArgs) error
 	// ReadPixelsAsync starts reading pixels. Hardware drivers must return without waiting for the GPU.
 	//
 	// The read pixels include the drawing commands preceding this call and exclude the following

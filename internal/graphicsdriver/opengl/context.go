@@ -19,7 +19,6 @@ package opengl
 import (
 	"errors"
 	"fmt"
-	"image"
 	"runtime"
 	"sync"
 
@@ -237,21 +236,6 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	c.ctx.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
-}
-
-func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rectangle) error {
-	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
-		return fmt.Errorf("opengl: invalid buffer length at framebufferPixels: got %d, want %d", got, want)
-	}
-
-	c.ctx.Flush()
-	c.bindFramebuffer(f.native)
-	x := int32(region.Min.X)
-	y := int32(region.Min.Y)
-	width := int32(region.Dx())
-	height := int32(region.Dy())
-	c.ctx.ReadPixels(buf, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE)
-	return nil
 }
 
 func (c *context) deleteTexture(t textureNative) {

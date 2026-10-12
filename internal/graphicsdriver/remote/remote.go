@@ -283,15 +283,6 @@ func (i *Image) Dispose() {
 	})
 }
 
-func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	readback, err := i.ReadPixelsAsync(args)
-	if err != nil {
-		return err
-	}
-	defer readback.Dispose()
-	return readback.Wait()
-}
-
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	g := i.graphics
 	if g.host == nil {

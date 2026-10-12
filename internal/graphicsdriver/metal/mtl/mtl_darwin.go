@@ -523,7 +523,6 @@ var (
 	sel_drawPrimitives_vertexStart_vertexCount                                                                                                     = objc.RegisterName("drawPrimitives:vertexStart:vertexCount:")
 	sel_drawIndexedPrimitives_indexCount_indexType_indexBuffer_indexBufferOffset                                                                   = objc.RegisterName("drawIndexedPrimitives:indexCount:indexType:indexBuffer:indexBufferOffset:")
 	sel_synchronizeResource                                                                                                                        = objc.RegisterName("synchronizeResource:")
-	sel_synchronizeTexture_slice_level                                                                                                             = objc.RegisterName("synchronizeTexture:slice:level:")
 	sel_copyFromBuffer_sourceOffset_sourceBytesPerRow_sourceBytesPerImage_sourceSize_toTexture_destinationSlice_destinationLevel_destinationOrigin = objc.RegisterName("copyFromBuffer:sourceOffset:sourceBytesPerRow:sourceBytesPerImage:sourceSize:toTexture:destinationSlice:destinationLevel:destinationOrigin:")
 	sel_copyFromTexture_sourceSlice_sourceLevel_sourceOrigin_sourceSize_toBuffer_destinationOffset_destinationBytesPerRow_destinationBytesPerImage = objc.RegisterName("copyFromTexture:sourceSlice:sourceLevel:sourceOrigin:sourceSize:toBuffer:destinationOffset:destinationBytesPerRow:destinationBytesPerImage:")
 	sel_newFunctionWithName                                                                                                                        = objc.RegisterName("newFunctionWithName:")
@@ -993,16 +992,6 @@ func (bce BlitCommandEncoder) Synchronize(resource Resource) {
 		return
 	}
 	bce.commandEncoder.Send(sel_synchronizeResource, resource.resource())
-}
-
-// SynchronizeTexture encodes a command that synchronizes a part of the CPU’s copy of a texture so that it matches the GPU’s copy.
-//
-// Reference: https://developer.apple.com/documentation/metal/mtlblitcommandencoder/1400757-synchronizetexture?language=objc.
-func (bce BlitCommandEncoder) SynchronizeTexture(texture Texture, slice int, level int) {
-	if runtime.GOOS == "ios" {
-		return
-	}
-	bce.commandEncoder.Send(sel_synchronizeTexture_slice_level, texture.texture, slice, level)
 }
 
 // CopyFromBuffer encodes a command that copies image data from a buffer into a texture slice.

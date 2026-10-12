@@ -90,9 +90,6 @@ int ebitengine_MaxImageSize(void);
 ebitengine_Error ebitengine_NewImage(int *image, int width, int height);
 ebitengine_Error ebitengine_NewScreenFramebufferImage(int *image, int width,
                                                       int height);
-void ebitengine_ReadPixels(int image, uint8_t *pixels,
-                           ebitengine_Region region);
-ebitengine_Error ebitengine_FlushReadPixels(int image);
 ebitengine_Error ebitengine_ReadPixelsAsync(int *readback, int image,
                                             const ebitengine_Region *regions,
                                             int region_count);

@@ -15,8 +15,6 @@
 package directx
 
 import (
-	"errors"
-	"image"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -64,69 +62,6 @@ func (i *image11) disposeBuffers() {
 		i.shaderResourceView.Release()
 		i.shaderResourceView = nil
 	}
-}
-
-func (i *image11) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	if i.screen {
-		return errors.New("directx: ReadPixels cannot be called on the screen")
-	}
-
-	var unionRegion image.Rectangle
-	for _, a := range args {
-		unionRegion = unionRegion.Union(a.Region)
-	}
-
-	staging, err := i.graphics.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
-		Width:     uint32(unionRegion.Dx()),
-		Height:    uint32(unionRegion.Dy()),
-		MipLevels: 0,
-		ArraySize: 1,
-		Format:    _DXGI_FORMAT_R8G8B8A8_UNORM,
-		SampleDesc: _DXGI_SAMPLE_DESC{
-			Count:   1,
-			Quality: 0,
-		},
-		Usage:          _D3D11_USAGE_STAGING,
-		BindFlags:      0,
-		CPUAccessFlags: uint32(_D3D11_CPU_ACCESS_READ),
-		MiscFlags:      0,
-	}, nil)
-	if err != nil {
-		return err
-	}
-	defer staging.Release()
-
-	i.graphics.deviceContext.CopySubresourceRegion(unsafe.Pointer(staging), 0, 0, 0, 0, unsafe.Pointer(i.texture), 0, &_D3D11_BOX{
-		left:   uint32(unionRegion.Min.X),
-		top:    uint32(unionRegion.Min.Y),
-		front:  0,
-		right:  uint32(unionRegion.Max.X),
-		bottom: uint32(unionRegion.Max.Y),
-		back:   1,
-	})
-
-	var mapped _D3D11_MAPPED_SUBRESOURCE
-	if err := i.graphics.deviceContext.Map(unsafe.Pointer(staging), 0, _D3D11_MAP_READ, 0, &mapped); err != nil {
-		return err
-	}
-
-	stride := int(mapped.RowPitch)
-	srcPix := unsafe.Slice((*byte)(mapped.pData), stride*unionRegion.Dy())
-	for _, a := range args {
-		w := a.Region.Dx()
-		if unionRegion == a.Region && stride == 4*w {
-			copy(a.Pixels, srcPix)
-			continue
-		}
-		offset := 4*(a.Region.Min.X-unionRegion.Min.X) + stride*(a.Region.Min.Y-unionRegion.Min.Y)
-		for j := 0; j < a.Region.Dy(); j++ {
-			copy(a.Pixels[j*4*w:(j+1)*4*w], srcPix[offset+j*stride:])
-		}
-	}
-
-	i.graphics.deviceContext.Unmap(unsafe.Pointer(staging), 0)
-
-	return nil
 }
 
 func (i *image11) WritePixels(args []graphicsdriver.PixelsArgs) error {
