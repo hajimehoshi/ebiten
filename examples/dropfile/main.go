@@ -18,6 +18,7 @@ import (
 	"image/png"
 	"io/fs"
 	"log/slog"
+	"os"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -128,5 +129,6 @@ func main() {
 	ebiten.SetWindowTitle("Dropping Files (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		slog.Error("ebiten.RunGame failed", "err", err)
+		os.Exit(1)
 	}
 }
