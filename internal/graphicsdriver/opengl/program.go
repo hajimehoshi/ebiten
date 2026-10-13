@@ -303,12 +303,14 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 	// A sampler for a slot without an image must not sample a texture left by an earlier draw,
 	// as the texture might be the destination (#3923). Let such samplers sample an empty texture.
 	// Create the empty texture before binding source textures, as creating a texture binds it.
-	for i, t := range textures {
-		if !t.valid && g.context.hasUniform(program, g.textureVariableName(i)) {
-			if err := g.context.ensureEmptyTexture(); err != nil {
-				return err
+	if g.context.emptyTexture == 0 {
+		for i, t := range textures {
+			if !t.valid && g.context.hasUniform(program, g.textureVariableName(i)) {
+				if err := g.context.ensureEmptyTexture(); err != nil {
+					return err
+				}
+				break
 			}
-			break
 		}
 	}
 
