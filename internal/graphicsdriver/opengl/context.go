@@ -102,6 +102,7 @@ type context struct {
 	screenFramebuffer               framebufferNative // This might not be the default frame buffer '0' (e.g. iOS).
 	lastFramebuffer                 framebufferNative
 	lastTexture                     textureNative
+	emptyTexture                    textureNative
 	lastViewportWidth               int
 	lastViewportHeight              int
 	lastBlend                       graphicsdriver.Blend
@@ -181,6 +182,7 @@ func (c *context) reset() error {
 
 	c.locationCache = newLocationCache()
 	c.lastTexture = 0
+	c.emptyTexture = 0
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
@@ -236,6 +238,21 @@ func (c *context) newTexture(width, height int) (textureNative, error) {
 	c.ctx.TexImage2D(gl.TEXTURE_2D, 0, gl.RGBA, int32(width), int32(height), gl.RGBA, gl.UNSIGNED_BYTE, nil)
 
 	return textureNative(t), nil
+}
+
+// ensureEmptyTexture creates a 1x1 transparent texture if it does not exist yet.
+// Creating the texture binds it to the active texture unit.
+func (c *context) ensureEmptyTexture() error {
+	if c.emptyTexture != 0 {
+		return nil
+	}
+	t, err := c.newTexture(1, 1)
+	if err != nil {
+		return err
+	}
+	c.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, make([]byte, 4))
+	c.emptyTexture = t
+	return nil
 }
 
 func (c *context) deleteTexture(t textureNative) {
@@ -324,6 +341,10 @@ func (c *context) newProgram(shaders []shader, attributes []string) (program, er
 func (c *context) deleteProgram(p program) {
 	c.locationCache.deleteProgram(p)
 	c.ctx.DeleteProgram(uint32(p))
+}
+
+func (c *context) hasUniform(p program, location string) bool {
+	return c.locationCache.GetUniformLocation(c, p, location) != invalidUniform
 }
 
 func (c *context) uniformInt(p program, location string, v int) bool {
