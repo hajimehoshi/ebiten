@@ -274,7 +274,7 @@ func (s *GameScene) Update(state *GameState) error {
 
 	// Drop the current piece with gravity.
 	if !s.field.IsFlushAnimating() {
-		angle := s.currentPieceAngle
+		angle = s.currentPieceAngle
 		s.currentPieceYCarry += 2*s.level() + 1
 		const maxCarry = 60
 		for maxCarry <= s.currentPieceYCarry {
