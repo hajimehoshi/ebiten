@@ -617,9 +617,6 @@ func platformInit() error {
 		return err
 	}
 
-	// Initialize the high-resolution timer.
-	initTimerNS()
-
 	// Detect and register connected monitors.
 	if err := pollMonitorsNS(); err != nil {
 		return err
