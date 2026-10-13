@@ -109,6 +109,15 @@ func (r *readback) Poll() (bool, error) {
 	return true, nil
 }
 
+func (r *readback) Wait() error {
+	if r.commandBuffer == (mtl.CommandBuffer{}) {
+		return nil
+	}
+	r.commandBuffer.WaitUntilCompleted()
+	_, err := r.Poll()
+	return err
+}
+
 // Dispose releases the staging buffer and command buffer.
 func (r *readback) Dispose() {
 	// Metal command buffers retain encoded resources until execution finishes,

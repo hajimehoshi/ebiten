@@ -20,6 +20,8 @@ import (
 	"math"
 	"unsafe"
 
+	"golang.org/x/sys/windows"
+
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 )
 
@@ -135,6 +137,21 @@ func (r *readback12) Poll() (bool, error) {
 	copyReadbackPixels(r.args, r.region, unsafe.Slice((*byte)(unsafe.Pointer(m)), r.totalBytes), r.stride)
 	r.reusable = true
 	return true, nil
+}
+
+func (r *readback12) Wait() error {
+	if done, err := r.Poll(); done || err != nil {
+		return err
+	}
+	event := r.graphics.fenceWaitEvent
+	if err := r.graphics.readbackFence.SetEventOnCompletion(r.fenceValue, event); err != nil {
+		return err
+	}
+	if _, err := windows.WaitForSingleObject(event, windows.INFINITE); err != nil {
+		return err
+	}
+	_, err := r.Poll()
+	return err
 }
 
 func (r *readback12) Dispose() {

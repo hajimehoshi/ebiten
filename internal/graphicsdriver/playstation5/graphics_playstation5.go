@@ -205,23 +205,6 @@ func (i *Image) Dispose() {
 	C.ebitengine_DisposeImage(C.int(i.id))
 }
 
-func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	defer runtime.KeepAlive(args)
-	for _, a := range args {
-		region := C.ebitengine_Region{
-			min_x: C.int(a.Region.Min.X),
-			min_y: C.int(a.Region.Min.Y),
-			max_x: C.int(a.Region.Max.X),
-			max_y: C.int(a.Region.Max.Y),
-		}
-		C.ebitengine_ReadPixels(C.int(i.id), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels))), region)
-	}
-	if err := C.ebitengine_FlushReadPixels(C.int(i.id)); !C.ebitengine_IsErrorNil(&err) {
-		return newPlaystation5Error("(*playstation5.Image).ReadPixels", err)
-	}
-	return nil
-}
-
 func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	regions := make([]C.ebitengine_Region, len(args))
 	for j, a := range args {
@@ -268,6 +251,19 @@ func (r *readback) Poll() (bool, error) {
 		r.nextRegionIndex++
 	}
 	return true, nil
+}
+
+func (r *readback) Wait() error {
+	for r.nextRegionIndex < len(r.args) {
+		a := r.args[r.nextRegionIndex]
+		if len(a.Pixels) != 0 {
+			if err := C.ebitengine_WaitPixelReadback(r.id, C.int(r.nextRegionIndex), (*C.uint8_t)(unsafe.Pointer(unsafe.SliceData(a.Pixels)))); !C.ebitengine_IsErrorNil(&err) {
+				return newPlaystation5Error("(*playstation5.readback).Wait", err)
+			}
+		}
+		r.nextRegionIndex++
+	}
+	return nil
 }
 
 func (r *readback) Dispose() {

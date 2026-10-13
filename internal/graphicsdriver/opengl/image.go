@@ -66,18 +66,6 @@ func (i *Image) setViewport() error {
 	return nil
 }
 
-func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	if err := i.ensureFramebuffer(); err != nil {
-		return err
-	}
-	for _, arg := range args {
-		if err := i.graphics.context.framebufferPixels(arg.Pixels, i.framebuffer, arg.Region); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (i *Image) viewportSize() (int, int) {
 	if i.screen {
 		// The (default) framebuffer size can't be converted to a power of 2.

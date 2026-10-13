@@ -101,8 +101,11 @@ func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	g.context.ctx.Flush()
 
 	// The last uniforms must be reset before swapping the buffer (#2517).
-	if mode == graphicsdriver.FlushModePresent {
+	// The last uniforms also refer to the uniforms passed to DrawTriangles, whose memory can be reused after a frame ends.
+	if mode != graphicsdriver.FlushModeIntermediate {
 		g.state.resetLastUniforms()
+	}
+	if mode == graphicsdriver.FlushModePresent {
 		if err := g.swapBuffers(); err != nil {
 			return err
 		}

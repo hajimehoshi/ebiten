@@ -15,8 +15,6 @@
 package ebiten
 
 import (
-	"time"
-
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -38,16 +36,8 @@ func (r *PixelReadback) Poll() (done bool, err error) {
 // When Wait returns, Ebitengine no longer accesses the destination buffer.
 // Repeated calls return the same result. Wait is concurrent-safe unless single-thread mode is enabled.
 func (r *PixelReadback) Wait() error {
-	for {
-		if done, err := r.Poll(); done {
-			return err
-		}
-		ui.Get().FlushAndPollPixelReadbacks()
-		if done, err := r.Poll(); done {
-			return err
-		}
-		// WebGL fences can only become signaled after returning to the browser's event loop.
-		// A timer suspends this goroutine without holding rendering locks.
-		time.Sleep(time.Millisecond)
+	if done, err := r.Poll(); done {
+		return err
 	}
+	return ui.Get().FlushAndWaitPixelReadbacks([]*graphicscommand.PixelReadback{r.result})
 }

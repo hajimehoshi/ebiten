@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"runtime"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
@@ -31,7 +33,7 @@ import (
 type syncObject uintptr
 
 // readback is a pixel read-back that has been recorded into the command stream and whose pixels are
-// copied to the caller once a fence reports the reads are complete.
+// copied to the caller when the reads are complete.
 //
 // A readback owns its pixel pack buffers and its fence, so it can outlive the image it read from:
 // glReadPixels and glFenceSync have already been recorded, and OpenGL keeps the objects they refer
@@ -113,13 +115,42 @@ func (r *readback) Poll() (bool, error) {
 	if !done || err != nil {
 		return done, err
 	}
+	err = r.copyPixels()
+	// WebGL may retain a fence shadow copy after read-back until the buffer is deleted.
+	r.reusable = err == nil && runtime.GOOS != "js"
+	return true, err
+}
+
+func (r *readback) copyPixels() error {
 	for j, arg := range r.args {
 		if err := r.graphics.context.readPixelsFromPixelPackBuffer(r.pbos[j], arg.Region, arg.Pixels); err != nil {
-			return true, err
+			return err
 		}
 	}
-	r.reusable = true
-	return true, nil
+	return nil
+}
+
+func (r *readback) Wait() error {
+	if runtime.GOOS == "js" {
+		// Check for a lost context before reading the pixel pack buffers.
+		if _, err := r.graphics.context.pollFence(r.fence); err != nil {
+			return err
+		}
+		// WebGL fences can signal only after control returns to the browser event loop.
+		// getBufferSubData blocks until the pixel pack buffer writes complete, allowing
+		// this synchronous wait to finish within the current browser task.
+		return r.copyPixels()
+	}
+	for {
+		done, err := r.graphics.context.waitFence(r.fence, uint64(time.Millisecond))
+		if err != nil {
+			return err
+		}
+		if done {
+			_, err := r.Poll()
+			return err
+		}
+	}
 }
 
 // Dispose releases the pixel pack buffers and fence.
@@ -219,7 +250,11 @@ func (c *context) deleteFence(s syncObject) {
 }
 
 func (c *context) pollFence(s syncObject) (bool, error) {
-	switch r := c.ctx.ClientWaitSync(uintptr(s), 0, 0); r {
+	return c.waitFence(s, 0)
+}
+
+func (c *context) waitFence(s syncObject, timeout uint64) (bool, error) {
+	switch r := c.ctx.ClientWaitSync(uintptr(s), 0, timeout); r {
 	case gl.ALREADY_SIGNALED, gl.CONDITION_SATISFIED:
 		return true, nil
 	case gl.TIMEOUT_EXPIRED:

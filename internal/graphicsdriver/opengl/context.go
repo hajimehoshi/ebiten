@@ -19,7 +19,6 @@ package opengl
 import (
 	"errors"
 	"fmt"
-	"image"
 	"runtime"
 	"sync"
 
@@ -253,21 +252,6 @@ func (c *context) ensureEmptyTexture() error {
 	}
 	c.ctx.TexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, make([]byte, 4))
 	c.emptyTexture = t
-	return nil
-}
-
-func (c *context) framebufferPixels(buf []byte, f *framebuffer, region image.Rectangle) error {
-	if got, want := len(buf), 4*region.Dx()*region.Dy(); got != want {
-		return fmt.Errorf("opengl: len(buf) must be %d but was %d at framebufferPixels", got, want)
-	}
-
-	c.ctx.Flush()
-	c.bindFramebuffer(f.native)
-	x := int32(region.Min.X)
-	y := int32(region.Min.Y)
-	width := int32(region.Dx())
-	height := int32(region.Dy())
-	c.ctx.ReadPixels(buf, x, y, width, height, gl.RGBA, gl.UNSIGNED_BYTE)
 	return nil
 }
 

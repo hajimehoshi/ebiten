@@ -71,7 +71,6 @@ type Resetter interface {
 type Image interface {
 	ID() ImageID
 	Dispose()
-	ReadPixels(args []PixelsArgs) error
 	// ReadPixelsAsync starts reading pixels. Hardware drivers must return without waiting for the GPU.
 	//
 	// The read pixels include the drawing commands preceding this call and exclude the following
@@ -93,6 +92,12 @@ type PixelReadback interface {
 	// and their contents are unspecified. Poll must not be called again after it reports done or
 	// returns an error.
 	Poll() (done bool, err error)
+
+	// Wait completes the read-back and copies its pixels, or returns an error.
+	// Wait must be called on the render thread, and must not be called after
+	// Poll reports completion or an error. Neither Poll nor Wait may be called after Wait.
+	// For hardware drivers, Wait must be called outside a Begin/End command batch.
+	Wait() error
 
 	// Dispose releases the resources for the read-back.
 	// Dispose must be called exactly once, whether the read-back completed or was aborted.

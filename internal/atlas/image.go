@@ -886,6 +886,14 @@ func FlushAndPollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
 	return graphicscommand.FlushAndPollPixelReadbacks(graphicsDriver)
 }
 
+// FlushAndWaitPixelReadbacks submits pending commands and completes the given read-backs.
+func FlushAndWaitPixelReadbacks(graphicsDriver graphicsdriver.Graphics, results []*graphicscommand.PixelReadback) error {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	return graphicscommand.FlushAndWaitPixelReadbacks(graphicsDriver, results)
+}
+
 // AbortReadPixels completes pending and queued pixel read-backs with an error.
 func AbortReadPixels() {
 	backendsM.Lock()

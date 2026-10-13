@@ -65,13 +65,22 @@ func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdri
 	return r, nil
 }
 
+func (r *readback11) Wait() error {
+	_, err := r.readPixels(0)
+	return err
+}
+
 func (r *readback11) Poll() (bool, error) {
+	return r.readPixels(uint32(_D3D11_MAP_FLAG_DO_NOT_WAIT))
+}
+
+func (r *readback11) readPixels(flags uint32) (bool, error) {
 	if r.staging == nil {
 		return true, nil
 	}
 	var mapped _D3D11_MAPPED_SUBRESOURCE
-	if err := r.graphics.deviceContext.Map(unsafe.Pointer(r.staging), 0, _D3D11_MAP_READ, uint32(_D3D11_MAP_FLAG_DO_NOT_WAIT), &mapped); err != nil {
-		if errors.Is(err, _DXGI_ERROR_WAS_STILL_DRAWING) {
+	if err := r.graphics.deviceContext.Map(unsafe.Pointer(r.staging), 0, _D3D11_MAP_READ, flags, &mapped); err != nil {
+		if flags&uint32(_D3D11_MAP_FLAG_DO_NOT_WAIT) != 0 && errors.Is(err, _DXGI_ERROR_WAS_STILL_DRAWING) {
 			return false, nil
 		}
 		return true, err

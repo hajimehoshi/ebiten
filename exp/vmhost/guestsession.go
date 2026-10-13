@@ -227,6 +227,9 @@ type readPixelsRequest struct {
 
 	// poll reports whether the host should submit commands and poll pending read-backs.
 	poll bool
+
+	// wait holds the read-backs the host should submit and complete.
+	wait []*graphicscommand.PixelReadback
 }
 
 type asyncPixelReadback struct {
@@ -578,6 +581,11 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 				return err
 			}
 			continue
+		case vmprotocol.GuestMessageKindQueryWaitReadPixels:
+			if err := g.answerWaitReadPixels(gm.ReadbackID); err != nil {
+				return err
+			}
+			continue
 		case vmprotocol.GuestMessageKindDisposeReadPixels:
 			g.disposeReadback(gm.ReadbackID)
 			continue
@@ -756,6 +764,56 @@ func (g *GuestSession) answerPollReadPixels(id uint64) error {
 	return g.enc.EncodeHostMessage(&answer)
 }
 
+func (g *GuestSession) answerWaitReadPixels(id uint64) error {
+	answer := vmprotocol.HostMessage{
+		Kind: vmprotocol.HostMessageKindAnswerReadPixelsAsync,
+	}
+	readback, ok := g.readbacks[id]
+	if !ok {
+		answer.Err = fmt.Sprintf("vmhost: unknown read-back %d", id)
+		return g.enc.EncodeHostMessage(&answer)
+	}
+	if err := g.waitReadPixels(readback); err != nil {
+		answer.Err = err.Error()
+	} else {
+		answer.ReadbackDone = true
+		answer.Pixels = readback.pixels
+	}
+	return g.enc.EncodeHostMessage(&answer)
+}
+
+func (g *GuestSession) waitReadPixels(readback *asyncPixelReadback) error {
+	for {
+		if done, err := readback.completion(); done || err != nil {
+			return err
+		}
+		if err := g.readbackWaitError(); err != nil {
+			return err
+		}
+		if g.hostIsWaiting() {
+			if err := g.requestReadPixelsInHostFrame(&readPixelsRequest{
+				wait: readback.results,
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+		if done, err := readback.tryPoll(); done || err != nil {
+			return err
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func (g *GuestSession) readbackWaitError() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return errReadPixelsAbandoned
+	}
+	return nil
+}
+
 func (r *asyncPixelReadback) tryPoll() (bool, error) {
 	if done, err := r.completion(); done || err != nil {
 		return done, err
@@ -820,6 +878,10 @@ func (g *GuestSession) servePendingReadPixels() {
 	// Advance its read-backs here so completion does not require another host frame.
 	if req.poll {
 		ui.Get().FlushAndPollPixelReadbacks()
+	}
+	if req.wait != nil {
+		// The session goroutine reads each result after this request completes.
+		_ = ui.Get().FlushAndWaitPixelReadbacks(req.wait)
 	}
 	for i, r := range req.regions {
 		req.readback.results[i] = req.img.ReadPixelsAsync(req.readback.pixels[i], r)

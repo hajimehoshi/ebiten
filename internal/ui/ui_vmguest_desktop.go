@@ -925,9 +925,24 @@ type vmPixelReadback struct {
 	args []graphicsdriver.PixelsArgs
 }
 
+func (r *vmPixelReadback) Wait() error {
+	done, err := r.readPixels(vmprotocol.GuestMessageKindQueryWaitReadPixels)
+	if err != nil {
+		return err
+	}
+	if !done {
+		return errors.New("ui: host returned an incomplete pixel read-back from Wait")
+	}
+	return nil
+}
+
 func (r *vmPixelReadback) Poll() (bool, error) {
+	return r.readPixels(vmprotocol.GuestMessageKindQueryPollReadPixels)
+}
+
+func (r *vmPixelReadback) readPixels(kind vmprotocol.GuestMessageKind) (bool, error) {
 	answer, err := r.host.query(&vmprotocol.GuestMessage{
-		Kind:       vmprotocol.GuestMessageKindQueryPollReadPixels,
+		Kind:       kind,
 		ReadbackID: r.id,
 	}, vmprotocol.HostMessageKindAnswerReadPixelsAsync)
 	if err != nil {
