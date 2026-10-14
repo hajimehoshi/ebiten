@@ -23,6 +23,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
@@ -206,18 +207,18 @@ func (i *Image) readPixels(pixels []byte, region image.Rectangle) (bool, error) 
 	return i.mipmap.ReadPixels(i.ui.graphicsDriver, pixels, region)
 }
 
-// readPixelsAsync queues a pixel read-back and returns its result channel.
+// readPixelsAsync queues a pixel read-back and returns its result.
 //
 // The caller must not hold the mutex, as the frame needs the mutex to draw the image.
-func (i *Image) readPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+func (i *Image) readPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
 	return i.mipmap.ReadPixelsAsync(pixels, region)
 }
 
-// ReadPixelsAsync starts a pixel read-back and returns its result channel.
-func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) <-chan error {
+// ReadPixelsAsync starts a pixel read-back and returns its result.
+func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	// Check the error existence and avoid unnecessary calls.
 	if i.ui.error() != nil {
 		return i.ui.abortedReadPixels()

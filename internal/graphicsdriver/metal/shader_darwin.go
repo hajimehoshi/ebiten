@@ -89,7 +89,7 @@ func (s *Shader) init(device mtl.Device) (err error) {
 		src = msl.Compile(s.ir)
 		lib, err = device.NewLibraryWithSource(src, mtl.CompileOptions{})
 		if err != nil {
-			return fmt.Errorf("metal: device.MakeLibrary failed: %w, source: %s", err, src)
+			return fmt.Errorf("metal: device.NewLibraryWithSource failed: %w, source: %s", err, src)
 		}
 	}
 	defer func() {
@@ -101,9 +101,9 @@ func (s *Shader) init(device mtl.Device) (err error) {
 	vs, err := lib.NewFunctionWithName(msl.VertexName)
 	if err != nil {
 		if src != "" {
-			return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w, source: %s", err, src)
+			return fmt.Errorf("metal: lib.NewFunctionWithName for vertex failed: %w, source: %s", err, src)
 		}
-		return fmt.Errorf("metal: lib.MakeFunction for vertex failed: %w", err)
+		return fmt.Errorf("metal: lib.NewFunctionWithName for vertex failed: %w", err)
 	}
 	defer func() {
 		if err != nil {
@@ -114,9 +114,9 @@ func (s *Shader) init(device mtl.Device) (err error) {
 	fs, err := lib.NewFunctionWithName(msl.FragmentName)
 	if err != nil {
 		if src != "" {
-			return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w, source: %s", err, src)
+			return fmt.Errorf("metal: lib.NewFunctionWithName for fragment failed: %w, source: %s", err, src)
 		}
-		return fmt.Errorf("metal: lib.MakeFunction for fragment failed: %w", err)
+		return fmt.Errorf("metal: lib.NewFunctionWithName for fragment failed: %w", err)
 	}
 
 	s.lib = lib

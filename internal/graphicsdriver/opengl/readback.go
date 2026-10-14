@@ -20,6 +20,8 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"runtime"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
@@ -31,7 +33,7 @@ import (
 type syncObject uintptr
 
 // readback is a pixel read-back that has been recorded into the command stream and whose pixels are
-// copied to the caller once a fence reports the reads are complete.
+// copied to the caller when the reads are complete.
 //
 // A readback owns its pixel pack buffers and its fence, so it can outlive the image it read from:
 // glReadPixels and glFenceSync have already been recorded, and OpenGL keeps the objects they refer
@@ -52,6 +54,9 @@ type readback struct {
 
 	// args hold the read regions and destination buffers in submission order.
 	args []graphicsdriver.PixelsArgs
+
+	// reusable is set only after the fence and every copy have succeeded.
+	reusable bool
 }
 
 // ReadPixelsAsync records pixel reads into pixel pack buffers and returns without waiting for the
@@ -59,7 +64,7 @@ type readback struct {
 //
 // The reads are recorded in the command stream at the current position, so the read pixels include
 // the preceding drawing commands and exclude the following ones.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelReadback, err error) {
 	c := &i.graphics.context
 	if err := i.ensureFramebuffer(); err != nil {
 		return nil, err
@@ -81,7 +86,7 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 		if len(arg.Pixels) != size {
 			return nil, fmt.Errorf("opengl: len(Pixels) must be %d but %d at ReadPixelsAsync", size, len(arg.Pixels))
 		}
-		b, err := c.newPixelPackBuffer(size)
+		b, err := i.graphics.acquirePixelPackBuffer(size)
 		if err != nil {
 			return nil, err
 		}
@@ -110,12 +115,42 @@ func (r *readback) Poll() (bool, error) {
 	if !done || err != nil {
 		return done, err
 	}
+	err = r.copyPixels()
+	// WebGL may retain a fence shadow copy after read-back until the buffer is deleted.
+	r.reusable = err == nil && runtime.GOOS != "js"
+	return true, err
+}
+
+func (r *readback) copyPixels() error {
 	for j, arg := range r.args {
 		if err := r.graphics.context.readPixelsFromPixelPackBuffer(r.pbos[j], arg.Region, arg.Pixels); err != nil {
-			return true, err
+			return err
 		}
 	}
-	return true, nil
+	return nil
+}
+
+func (r *readback) Wait() error {
+	if runtime.GOOS == "js" {
+		// Check for a lost context before reading the pixel pack buffers.
+		if _, err := r.graphics.context.pollFence(r.fence); err != nil {
+			return err
+		}
+		// WebGL fences can signal only after control returns to the browser event loop.
+		// getBufferSubData blocks until the pixel pack buffer writes complete, allowing
+		// this synchronous wait to finish within the current browser task.
+		return r.copyPixels()
+	}
+	for {
+		done, err := r.graphics.context.waitFence(r.fence, uint64(time.Millisecond))
+		if err != nil {
+			return err
+		}
+		if done {
+			_, err := r.Poll()
+			return err
+		}
+	}
 }
 
 // Dispose releases the pixel pack buffers and fence.
@@ -126,11 +161,39 @@ func (r *readback) Dispose() {
 		r.fence = 0
 	}
 	for j, b := range r.pbos {
-		c.deleteBuffer(b)
+		if r.reusable {
+			r.graphics.releasePixelPackBuffer(b, len(r.args[j].Pixels))
+		} else {
+			c.deleteBuffer(b)
+		}
 		r.pbos[j] = 0
 	}
 	r.pbos = nil
 	r.args = nil
+}
+
+// acquirePixelPackBuffer returns a buffer bound to PIXEL_PACK_BUFFER.
+func (g *Graphics) acquirePixelPackBuffer(size int) (buffer, error) {
+	if b, ok := g.pixelPackBuffers.Take(size); ok {
+		g.context.ctx.BindBuffer(gl.PIXEL_PACK_BUFFER, uint32(b))
+		return b, nil
+	}
+	return g.context.newPixelPackBuffer(size)
+}
+
+// releasePixelPackBuffer caches b, an unmapped buffer of size bytes whose read completed
+// successfully, for reuse, or deletes it.
+func (g *Graphics) releasePixelPackBuffer(b buffer, size int) {
+	for _, dropped := range g.pixelPackBuffers.Put(size, b, size) {
+		g.context.deleteBuffer(dropped)
+	}
+}
+
+// clearPixelPackBuffers deletes the cached pixel pack buffers.
+func (g *Graphics) clearPixelPackBuffers() {
+	for _, b := range g.pixelPackBuffers.Clear() {
+		g.context.deleteBuffer(b)
+	}
 }
 
 func (c *context) newPixelPackBuffer(size int) (buffer, error) {
@@ -187,7 +250,11 @@ func (c *context) deleteFence(s syncObject) {
 }
 
 func (c *context) pollFence(s syncObject) (bool, error) {
-	switch r := c.ctx.ClientWaitSync(uintptr(s), 0, 0); r {
+	return c.waitFence(s, 0)
+}
+
+func (c *context) waitFence(s syncObject, timeout uint64) (bool, error) {
+	switch r := c.ctx.ClientWaitSync(uintptr(s), 0, timeout); r {
 	case gl.ALREADY_SIGNALED, gl.CONDITION_SATISFIED:
 		return true, nil
 	case gl.TIMEOUT_EXPIRED:

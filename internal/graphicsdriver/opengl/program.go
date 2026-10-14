@@ -300,24 +300,42 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.state.lastUniforms[u.name] = u.value
 	}
 
+	// A sampler for a slot without an image must not sample a texture left by an earlier draw,
+	// as the texture might be the destination (#3923). Let such samplers sample an empty texture.
+	// Create the empty texture before binding source textures, as creating a texture binds it.
+	if g.context.emptyTexture == 0 {
+		for i, t := range textures {
+			if !t.valid && g.context.hasUniform(program, g.textureVariableName(i)) {
+				if err := g.context.ensureEmptyTexture(); err != nil {
+					return err
+				}
+				break
+			}
+		}
+	}
+
 	var idx int
 loop:
 	for i, t := range textures {
+		native := t.native
 		if !t.valid {
-			continue
+			if !g.context.hasUniform(program, g.textureVariableName(i)) {
+				continue
+			}
+			native = g.context.emptyTexture
 		}
 
 		// If the texture is already bound, set the texture variable to point to the texture.
 		// Rebinding the same texture seems problematic (#1193).
 		for _, at := range g.activatedTextures {
-			if t.native == at.textureNative {
+			if native == at.textureNative {
 				g.context.uniformInt(program, g.textureVariableName(i), at.index)
 				continue loop
 			}
 		}
 
 		g.activatedTextures = append(g.activatedTextures, activatedTexture{
-			textureNative: t.native,
+			textureNative: native,
 			index:         idx,
 		})
 		g.context.uniformInt(program, g.textureVariableName(i), idx)
@@ -328,7 +346,7 @@ loop:
 		}
 
 		// Apparently, a texture must be bound every time. The cache is not used here.
-		g.context.bindTexture(t.native)
+		g.context.bindTexture(native)
 
 		idx++
 	}

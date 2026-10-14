@@ -3415,3 +3415,51 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		})
 	}
 }
+
+// Issue #3923
+func TestShaderSrcImageSlotWithoutImage(t *testing.T) {
+	const w, h = 16, 16
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return imageSrc0At(src0Pos) + imageSrc1AtFromSrc0Pos(src0Pos)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Deallocate()
+
+	src0 := ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), &ebiten.NewImageOptions{Unmanaged: true})
+	defer src0.Deallocate()
+	src0.Fill(color.RGBA{G: 0xff, A: 0xff})
+
+	src1 := ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), &ebiten.NewImageOptions{Unmanaged: true})
+	defer src1.Deallocate()
+	src1.Fill(color.RGBA{R: 0xff, A: 0xff})
+
+	dst := ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), &ebiten.NewImageOptions{Unmanaged: true})
+	defer dst.Deallocate()
+
+	op := &ebiten.DrawRectShaderOptions{}
+	op.Blend = ebiten.BlendCopy
+	op.Images[0] = src0
+	op.Images[1] = src1
+	dst.DrawRectShader(w, h, s, op)
+
+	// Draw onto src1, which the previous draw used as a source image.
+	op.Images[1] = nil
+	src1.DrawRectShader(w, h, s, op)
+
+	for j := range h {
+		for i := range w {
+			got := src1.At(i, j).(color.RGBA)
+			want := color.RGBA{G: 0xff, A: 0xff}
+			if got != want {
+				t.Errorf("src1.At(%d, %d): got: %v, want: %v", i, j, got, want)
+			}
+		}
+	}
+}

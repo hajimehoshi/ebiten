@@ -748,6 +748,24 @@ func TestCompileIndexType(t *testing.T) {
 	}
 }
 
+func TestCompileConstantFloatIndex(t *testing.T) {
+	const src = `//kage:unit pixels
+package main
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+ values := [2]float{0, 1}
+ return vec4(values[1.0])
+}`
+	p, err := graphics.CompileShader([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, fragment := glsl.Compile(p, glsl.GLSLVersionDefault)
+	if strings.Contains(fragment, "[1.0]") {
+		t.Errorf("GLSL contains a floating-point array index:\n%s", fragment)
+	}
+}
+
 func TestCompileUnaryOperandType(t *testing.T) {
 	cases := []struct {
 		stmt string

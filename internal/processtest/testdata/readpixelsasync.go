@@ -26,39 +26,44 @@ import (
 )
 
 type game struct {
-	result <-chan error
+	result *ebiten.PixelReadback
 	pixels []byte
 	image  *ebiten.Image
+	reads  int
 }
 
 func (g *game) Update() error {
 	if g.result == nil {
 		g.image = ebiten.NewImage(16, 16)
-		sub := g.image.SubImage(image.Rect(3, 4, 5, 6)).(*ebiten.Image)
-		sub.Fill(color.RGBA{R: 123, A: 255})
-		g.pixels = make([]byte, 16)
+		width := 2 + (g.reads/3)%2
+		sub := g.image.SubImage(image.Rect(3, 4, 3+width, 6)).(*ebiten.Image)
+		sub.Fill(color.RGBA{R: byte(123 + g.reads), A: 255})
+		g.pixels = make([]byte, 4*width*2)
 		g.result = sub.ReadPixelsAsync(g.pixels)
 		sub.Fill(color.White)
 		g.image.Deallocate()
 		return nil
 	}
-	select {
-	case err := <-g.result:
+	if done, err := g.result.Poll(); done {
 		if err != nil {
 			return err
 		}
 		for n, v := range g.pixels {
-			if want := []byte{123, 0, 0, 255}[n%4]; v != want {
+			if want := []byte{byte(123 + g.reads), 0, 0, 255}[n%4]; v != want {
 				return fmt.Errorf("pixel %d: got %d, want %d", n, v, want)
 			}
+		}
+		g.reads++
+		if g.reads < 6 {
+			g.result = nil
+			return nil
 		}
 		img := ebiten.NewImage(1, 1)
 		img.Fill(color.White)
 		g.result = img.ReadPixelsAsync(make([]byte, 4))
 		return ebiten.Termination
-	default:
-		return nil
 	}
+	return nil
 }
 
 func (*game) Draw(*ebiten.Image) {
@@ -74,12 +79,25 @@ func main() {
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
-	select {
-	case err := <-g.result:
-		if err == nil {
-			panic("unsubmitted read-back succeeded")
+	const waiters = 8
+	done := make(chan error, waiters)
+	for range waiters {
+		go func() { done <- g.result.Wait() }()
+	}
+	for range waiters {
+		select {
+		case err := <-done:
+			if err == nil {
+				panic("unsubmitted read-back succeeded")
+			}
+			if again := g.result.Wait(); again != err {
+				panic("read-back error changed")
+			}
+			if complete, again := g.result.Poll(); !complete || again != err {
+				panic("poll disagrees with wait")
+			}
+		case <-time.After(5 * time.Second):
+			panic("unsubmitted read-back was not aborted on exit")
 		}
-	case <-time.After(5 * time.Second):
-		panic("unsubmitted read-back was not aborted on exit")
 	}
 }

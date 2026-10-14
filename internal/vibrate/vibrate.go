@@ -18,6 +18,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
 // Vibration is a device vibration request: how long it lasts and its magnitude, in 0..1.
@@ -80,7 +82,7 @@ func (r *recorder) record(duration time.Duration, magnitude float64) {
 	}
 	r.m.Lock()
 	defer r.m.Unlock()
-	r.pending = Vibration{Duration: duration, Magnitude: magnitude}
+	r.pending = Vibration{Duration: duration, Magnitude: mathutil.Clamp01(magnitude)}
 	r.hasPending = true
 }
 

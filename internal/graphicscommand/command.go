@@ -231,31 +231,6 @@ func (c *writePixelsCommand) NeedsSync() bool {
 	return false
 }
 
-type readPixelsCommand struct {
-	img  *Image
-	args []graphicsdriver.PixelsArgs
-}
-
-// Exec executes a readPixelsCommand.
-func (c *readPixelsCommand) Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error {
-	if err := c.img.image.ReadPixels(c.args); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *readPixelsCommand) NeedsSync() bool {
-	return true
-}
-
-func (c *readPixelsCommand) String() string {
-	var args []string
-	for _, a := range c.args {
-		args = append(args, fmt.Sprintf("region: %s", a.Region.String()))
-	}
-	return fmt.Sprintf("read-pixels: image: %d, args: %v", c.img.id, strings.Join(args, ", "))
-}
-
 // disposeImageCommand represents a command to dispose an image.
 type disposeImageCommand struct {
 	target *Image

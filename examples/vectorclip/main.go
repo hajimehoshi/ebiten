@@ -15,9 +15,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
+	_ "image/jpeg"
 	"log"
 	"math"
 
@@ -25,6 +27,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
@@ -110,6 +113,8 @@ type Game struct {
 	slightOffset bool
 	evenOdd      bool
 	showClips    bool
+	imagePaint   bool
+	paintImage   *ebiten.Image
 	layers       [3]*ebiten.Image
 	resolved     [3]*ebiten.Image
 	checker      *ebiten.Image
@@ -145,6 +150,9 @@ func (g *Game) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyC) {
 		g.showClips = !g.showClips
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
+		g.imagePaint = !g.imagePaint
+	}
 	_, err := g.debugui.Update(func(ctx *debugui.Context) error {
 		ctx.Window("Clip case [Left/Right]", image.Rect(16, 16, 464, 208), func(layout debugui.ContainerLayout) {
 			ctx.SetGridLayout([]int{-1, -1}, nil)
@@ -175,6 +183,7 @@ func (g *Game) Update() error {
 			ctx.Checkbox(&g.slightOffset, "Slight offset [O]")
 			ctx.Checkbox(&g.evenOdd, "Even-odd holes [H]")
 			ctx.Checkbox(&g.showClips, "Clip regions [C]")
+			ctx.Checkbox(&g.imagePaint, "Image paint [I]")
 		})
 		return nil
 	})
@@ -337,7 +346,24 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		op := &vector.DrawPathOptions{
 			AntiAlias: quality.antialias,
 		}
-		op.ColorScale.ScaleWithColor(color.RGBA{R: 70, G: 205, B: 235, A: 255})
+		if g.imagePaint {
+			paint := &vector.ImagePaint{
+				Image:  g.paintImage,
+				Filter: ebiten.FilterLinear,
+			}
+			bounds := g.paintImage.Bounds()
+			// Cover the layer while preserving the image's aspect ratio.
+			scale := math.Max(float64(pathSize)/float64(bounds.Dx()), float64(pathSize)/float64(bounds.Dy()))
+			paint.GeoM.Scale(scale, scale)
+			paint.GeoM.Translate((pathSize-float64(bounds.Dx())*scale)/2, (pathSize-float64(bounds.Dy())*scale)/2)
+			if g.slightOffset {
+				paint.GeoM.Translate(0.375, 0.375)
+			}
+			paint.GeoM.Scale(float64(quality.scale), float64(quality.scale))
+			op.Paint = paint
+		} else {
+			op.ColorScale.ScaleWithColor(color.RGBA{R: 70, G: 205, B: 235, A: 255})
+		}
 		if i == 1 {
 			op.Clip = clip
 		}
@@ -422,9 +448,14 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
+	img, _, err := image.Decode(bytes.NewReader(images.Gophers_jpg))
+	if err != nil {
+		log.Fatal(err)
+	}
 	ebiten.SetWindowSize(screenWidth, screenHeight)
 	ebiten.SetWindowTitle("Vector clipping (Ebitengine Demo)")
 	if err := ebiten.RunGame(&Game{
+		paintImage:   ebiten.NewImageFromImage(img),
 		scene:        2,
 		quality:      1,
 		showClips:    true,

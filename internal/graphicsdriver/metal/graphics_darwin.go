@@ -33,6 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/ca"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/readbackcache"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -67,6 +68,11 @@ type Graphics struct {
 
 	buffers       map[int64][]mtl.Buffer
 	unusedBuffers map[mtl.Buffer]struct{}
+
+	// readbackBuffers are idle shared buffers for pixel read-backs available for reuse.
+	// Only completed read-backs enter this cache; pending read-backs own their buffers.
+	// The cache is accessed on the render thread.
+	readbackBuffers readbackcache.Cache[int, mtl.Buffer]
 
 	lastDst *Image
 
@@ -853,51 +859,6 @@ func (i *Image) Dispose() {
 		i.texture = mtl.Texture{}
 	}
 	i.graphics.removeImage(i)
-}
-
-func (i *Image) syncTexture() error {
-	i.graphics.flushCommandBufferIfNeeded(false)
-
-	// Calling SynchronizeTexture is ignored on iOS (see the mtl package), but it looks like committing BlitCommandEncoder
-	// is necessary (#1337).
-	if i.graphics.cb != (mtl.CommandBuffer{}) {
-		panic("metal: command buffer must be empty at syncTexture")
-	}
-
-	cb, err := i.graphics.cq.CommandBuffer()
-	if err != nil {
-		return fmt.Errorf("metal: cq.CommandBuffer failed: %w", err)
-	}
-	bce, err := cb.BlitCommandEncoder()
-	if err != nil {
-		return fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
-	}
-	bce.SynchronizeTexture(i.texture, 0, 0)
-	bce.EndEncoding()
-
-	cb.Commit()
-	// TODO: Are fences available here?
-	cb.WaitUntilCompleted()
-	return nil
-}
-
-func (i *Image) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	if err := i.syncTexture(); err != nil {
-		return err
-	}
-
-	for _, arg := range args {
-		if got, want := len(arg.Pixels), 4*arg.Region.Dx()*arg.Region.Dy(); got != want {
-			return fmt.Errorf("metal: len(buf) must be %d but %d at ReadPixels", want, got)
-		}
-		if err := i.texture.GetBytes(arg.Pixels, 4*arg.Region.Dx(), mtl.Region{
-			Origin: mtl.Origin{X: arg.Region.Min.X, Y: arg.Region.Min.Y},
-			Size:   mtl.Size{Width: arg.Region.Dx(), Height: arg.Region.Dy(), Depth: 1},
-		}, 0); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (i *Image) WritePixels(args []graphicsdriver.PixelsArgs) error {

@@ -16,7 +16,6 @@ package directx
 
 import (
 	"errors"
-	"image"
 	"unsafe"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -56,97 +55,6 @@ func (i *image12) disposeImpl() {
 		i.texture.Release()
 		i.texture = nil
 	}
-}
-
-func (i *image12) ReadPixels(args []graphicsdriver.PixelsArgs) error {
-	if i.screen {
-		return errors.New("directx: ReadPixels cannot be called on the screen")
-	}
-
-	if err := i.graphics.flushCommandList(i.graphics.drawCommandList); err != nil {
-		return err
-	}
-
-	var unionRegion image.Rectangle
-	for _, a := range args {
-		unionRegion = unionRegion.Union(a.Region)
-	}
-
-	desc := _D3D12_RESOURCE_DESC{
-		Dimension:        _D3D12_RESOURCE_DIMENSION_TEXTURE2D,
-		Alignment:        0,
-		Width:            uint64(unionRegion.Dx()),
-		Height:           uint32(unionRegion.Dy()),
-		DepthOrArraySize: 1,
-		MipLevels:        0,
-		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
-		SampleDesc: _DXGI_SAMPLE_DESC{
-			Count:   1,
-			Quality: 0,
-		},
-		Layout: _D3D12_TEXTURE_LAYOUT_UNKNOWN,
-		Flags:  _D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET,
-	}
-	layouts, _, _, totalBytes := i.graphics.device.GetCopyableFootprints(&desc, 0, 1, 0)
-	readingStagingBuffer, err := createBuffer(i.graphics.device, totalBytes, _D3D12_HEAP_TYPE_READBACK)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		readingStagingBuffer.Release()
-	}()
-
-	if rb, ok := i.transiteState(_D3D12_RESOURCE_STATE_COPY_SOURCE); ok {
-		i.graphics.copyCommandList.ResourceBarrier([]_D3D12_RESOURCE_BARRIER_Transition{rb})
-	}
-
-	m, err := readingStagingBuffer.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
-	if err != nil {
-		return err
-	}
-
-	dst := _D3D12_TEXTURE_COPY_LOCATION_PlacedFootprint{
-		pResource:       readingStagingBuffer,
-		Type:            _D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT,
-		PlacedFootprint: layouts,
-	}
-	src := _D3D12_TEXTURE_COPY_LOCATION_SubresourceIndex{
-		pResource:        i.texture,
-		Type:             _D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX,
-		SubresourceIndex: 0,
-	}
-	i.graphics.needFlushCopyCommandList = true
-	i.graphics.copyCommandList.CopyTextureRegion_PlacedFootprint_SubresourceIndex(
-		&dst, 0, 0, 0, &src, &_D3D12_BOX{
-			left:   uint32(unionRegion.Min.X),
-			top:    uint32(unionRegion.Min.Y),
-			front:  0,
-			right:  uint32(unionRegion.Max.X),
-			bottom: uint32(unionRegion.Max.Y),
-			back:   1,
-		})
-
-	if err := i.graphics.flushCommandList(i.graphics.copyCommandList); err != nil {
-		return err
-	}
-
-	stride := int(layouts.Footprint.RowPitch)
-	srcPix := unsafe.Slice((*byte)(unsafe.Pointer(m)), totalBytes)
-	for _, a := range args {
-		w := a.Region.Dx()
-		if unionRegion == a.Region && stride == 4*w {
-			copy(a.Pixels, srcPix)
-			continue
-		}
-		offset := 4*(a.Region.Min.X-unionRegion.Min.X) + stride*(a.Region.Min.Y-unionRegion.Min.Y)
-		for j := 0; j < a.Region.Dy(); j++ {
-			copy(a.Pixels[j*w*4:(j+1)*w*4], srcPix[offset+j*stride:])
-		}
-	}
-
-	readingStagingBuffer.Unmap(0, nil)
-
-	return nil
 }
 
 func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
