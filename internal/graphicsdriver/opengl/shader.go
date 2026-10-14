@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"runtime"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/opengl/gl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -67,7 +68,7 @@ func (s *Shader) compile() error {
 	if vs, fs, ok := shaderprecomp.GLSL(s.ir.SourceID, version == glsl.GLSLVersionES300); ok {
 		vssrc, fssrc = string(vs), string(fs)
 	} else {
-		vssrc, fssrc = glsl.Compile(s.ir, version)
+		vssrc, fssrc = glsl.Compile(s.ir, version, graphics.ProjectionMatrixUniformVariableIndex)
 	}
 
 	vs, err := s.graphics.context.newShader(gl.VERTEX_SHADER, vssrc)

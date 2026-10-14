@@ -103,8 +103,8 @@ func Fragment(position vec4) vec4 {
 		return p
 	}
 	outputs := func(p *shaderir.Program) []string {
-		vs, fs := glsl.Compile(p, glsl.GLSLVersionDefault)
-		esVS, esFS := glsl.Compile(p, glsl.GLSLVersionES300)
+		vs, fs := glsl.Compile(p, glsl.GLSLVersionDefault, -1)
+		esVS, esFS := glsl.Compile(p, glsl.GLSLVersionES300, -1)
 		hvs, hfs, _, _ := hlsl.Compile(p)
 		return []string{vs, fs, esVS, esFS, hvs, hfs, msl.Compile(p)}
 	}
