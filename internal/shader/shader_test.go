@@ -760,7 +760,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, fragment := glsl.Compile(p, glsl.GLSLVersionDefault)
+	_, fragment := glsl.Compile(p, glsl.GLSLVersionDefault, graphics.ProjectionMatrixUniformVariableIndex)
 	if strings.Contains(fragment, "[1.0]") {
 		t.Errorf("GLSL contains a floating-point array index:\n%s", fragment)
 	}
