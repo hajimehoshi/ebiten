@@ -181,8 +181,13 @@ func (c *context) reset() error {
 	}
 
 	c.locationCache = newLocationCache()
+	// Delete the empty texture before any texture is created.
+	// After a context loss, a texture of the new context can have the same name.
+	if c.emptyTexture != 0 {
+		c.deleteTexture(c.emptyTexture)
+		c.emptyTexture = 0
+	}
 	c.lastTexture = 0
-	c.emptyTexture = 0
 	c.lastFramebuffer = invalidFramebuffer
 	c.lastViewportWidth = 0
 	c.lastViewportHeight = 0
