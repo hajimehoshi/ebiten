@@ -300,27 +300,23 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.state.lastUniforms[u.name] = u.value
 	}
 
-	// A sampler for a slot without an image must not sample a texture left by an earlier draw,
-	// as the texture might be the destination (#3923). Let such samplers sample an empty texture.
-	// Create the empty texture before binding source textures, as creating a texture binds it.
-	if g.context.emptyTexture == 0 {
-		for i, t := range textures {
-			if !t.valid && g.context.hasUniform(program, g.textureVariableName(i)) {
-				if err := g.context.ensureEmptyTexture(); err != nil {
-					return err
-				}
-				break
-			}
-		}
-	}
-
 	var idx int
 loop:
 	for i, t := range textures {
 		native := t.native
+		// A sampler for a slot without an image must not sample a texture left by an earlier draw,
+		// as the texture might be the destination (#3923). Let such samplers sample an empty texture.
 		if !t.valid {
 			if !g.context.hasUniform(program, g.textureVariableName(i)) {
 				continue
+			}
+			if g.context.emptyTexture == 0 {
+				// Creating a texture binds it to the active texture unit. Activate the unit idx first:
+				// the new texture takes it, and no texture of this draw is bound to it yet.
+				g.activateTextureUnit(idx)
+				if err := g.context.ensureEmptyTexture(); err != nil {
+					return err
+				}
 			}
 			native = g.context.emptyTexture
 		}
@@ -339,11 +335,7 @@ loop:
 			index:         idx,
 		})
 		g.context.uniformInt(program, g.textureVariableName(i), idx)
-		if g.state.lastActiveTexture != idx {
-			g.context.ctx.ActiveTexture(uint32(gl.TEXTURE0 + idx))
-			g.state.lastActiveTexture = idx
-			g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
-		}
+		g.activateTextureUnit(idx)
 
 		// Apparently, a texture must be bound every time. The cache is not used here.
 		g.context.bindTexture(native)
@@ -357,6 +349,16 @@ loop:
 	g.activatedTextures = g.activatedTextures[:0]
 
 	return nil
+}
+
+// activateTextureUnit makes the texture unit at index active.
+func (g *Graphics) activateTextureUnit(index int) {
+	if g.state.lastActiveTexture == index {
+		return
+	}
+	g.context.ctx.ActiveTexture(uint32(gl.TEXTURE0 + index))
+	g.state.lastActiveTexture = index
+	g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
 }
 
 func uint32sToFloat32s(s []uint32) []float32 {
