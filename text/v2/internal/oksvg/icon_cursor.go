@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"maps"
 	"math"
 	"slices"
 	"strings"
@@ -386,7 +387,7 @@ func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) error 
 	// A class attribute can hold several space-separated classes. Collect the
 	// names into a set so that repeated names are applied only once.
 	names := map[string]struct{}{}
-	for _, name := range strings.Fields(className) {
+	for name := range strings.FieldsSeq(className) {
 		names[name] = struct{}{}
 	}
 	// Resolve the winning declaration for each property by walking the
@@ -405,9 +406,7 @@ func (c *IconCursor) adaptClasses(pathStyle *PathStyle, className string) error 
 		if attrs == nil {
 			attrs = styleAttribute{}
 		}
-		for k, v := range rule.attrs {
-			attrs[k] = v
-		}
+		maps.Copy(attrs, rule.attrs)
 	}
 	for k, v := range attrs {
 		if err := c.readStyleAttr(pathStyle, k, v); err != nil {
