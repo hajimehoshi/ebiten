@@ -74,3 +74,7 @@ func (i *glfwInput) SetContentSizeForTest(width, height float64) {
 func (i *glfwInput) ReadForTest(dst *InputState) {
 	i.read(dst)
 }
+
+func (i *glfwInput) SyncModKeysForTest(mods glfw.ModifierKey) {
+	i.syncModKeys(mods)
+}
