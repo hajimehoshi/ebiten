@@ -93,7 +93,7 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 	w, h := dstBounds.Dx(), dstBounds.Dy()
 	// For antialiasing, doubled regions in the X direction are used.
 	if antialias {
-		w *= 2
+		w = 2 * roundUp16(w)
 	}
 	// Keep the size below 2^12 (4096), as a region in internal/atlas has 1px padding.
 	maxImageSize := max(4093, w, h)
