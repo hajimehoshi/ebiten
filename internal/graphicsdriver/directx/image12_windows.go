@@ -169,7 +169,7 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 			Width:            uint64(a.Region.Dx()),
 			Height:           uint32(a.Region.Dy()),
 			DepthOrArraySize: 1,
-			MipLevels:        0,
+			MipLevels:        1,
 			Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
 			SampleDesc: _DXGI_SAMPLE_DESC{
 				Count:   1,
