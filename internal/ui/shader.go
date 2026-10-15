@@ -121,7 +121,7 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 						dst[idx+i] = math.Float32bits(float32(v.Index(i).Float()))
 					}
 				default:
-					panic(fmt.Sprintf("ui: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
+					panic(fmt.Sprintf("ui: unexpected uniform value type: %s (%s)", name, t.Elem().Kind().String()))
 				}
 			default:
 				panic(fmt.Sprintf("ui: unexpected uniform value type: %s (%s)", name, v.Kind().String()))
