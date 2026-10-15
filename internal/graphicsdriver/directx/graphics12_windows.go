@@ -1217,7 +1217,7 @@ func (g *graphics12) NewImage(width, height int) (graphicsdriver.Image, error) {
 		Width:            uint64(graphics.InternalImageSize(width)),
 		Height:           uint32(graphics.InternalImageSize(height)),
 		DepthOrArraySize: 1,
-		MipLevels:        0,
+		MipLevels:        1,
 		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
 		SampleDesc: _DXGI_SAMPLE_DESC{
 			Count:   1,
