@@ -330,7 +330,7 @@ type InputState struct {
 	// degrees clockwise. 8 or above is centered.
 	Hat byte
 
-	// Buttons has bit i set while button i+1 is pressed:
+	// Buttons has bit i set while the button at index i below is pressed:
 	//
 	//	0 Square, 1 Cross, 2 Circle, 3 Triangle, 4 L1, 5 R1, 6 L2, 7 R2,
 	//	8 Share (Create), 9 Options, 10 L3, 11 R3, 12 PS, 13 Touchpad,
