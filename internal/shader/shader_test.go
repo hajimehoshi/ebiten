@@ -834,6 +834,75 @@ func TestCompileUnaryOperandType(t *testing.T) {
 	}
 }
 
+func TestCompileCompoundAssignmentErrors(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "var f float; f <<= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var f float; f >>= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var v vec2; v <<= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var v vec2; v >>= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var m mat2; m <<= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var m mat2; m >>= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var f float; f += 2.0",
+			err:  false,
+		},
+		{
+			stmt: "var v vec2; v *= 2.0",
+			err:  false,
+		},
+		{
+			stmt: "var m mat2; m *= 2.0",
+			err:  false,
+		},
+		{
+			stmt: "var i int; i <<= 2",
+			err:  false,
+		},
+		{
+			stmt: "var i int; i >>= 2",
+			err:  false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.stmt, func(t *testing.T) {
+			err := compileFragmentStmt(c.stmt)
+			if !c.err {
+				if err != nil {
+					t.Errorf("Compile must not return an error, but got %v", err)
+				}
+				return
+			}
+			var perr *shader.ParseError
+			if !errors.As(err, &perr) {
+				t.Errorf("Compile must return a *shader.ParseError, but got %v", err)
+			} else if got, want := len(perr.Positions()), 1; got != want {
+				t.Errorf("the number of the errors: got: %d, want: %d (%v)", got, want, err)
+			}
+		})
+	}
+}
+
 func TestCompileCompositeLitBoolConstant(t *testing.T) {
 	err := compileFragmentStmt("_ = [2]bool{1, 2}")
 	if err == nil {
