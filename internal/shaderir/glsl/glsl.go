@@ -96,11 +96,11 @@ out vec4 fragColor;`
 }
 
 type compileContext struct {
-	version                 GLSLVersion
-	windowYFlipUniformIndex int
-	structNames             map[string]string
-	structTypes             []shaderir.Type
-	assignedAttributes      []bool
+	version                      GLSLVersion
+	projectionMatrixUniformIndex int
+	structNames                  map[string]string
+	structTypes                  []shaderir.Type
+	assignedAttributes           []bool
 }
 
 func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) string {
@@ -119,17 +119,17 @@ func (c *compileContext) structName(p *shaderir.Program, t *shaderir.Type) strin
 
 // Compile compiles p into GLSL vertex and fragment shaders.
 //
-// windowYFlipUniformIndex is the index of the projection matrix uniform variable, or -1 for no adjustment.
+// projectionMatrixUniformIndex is the index of the projection matrix uniform variable, or -1 for no adjustment.
 // While the projection matrix's Y scale is negative, the fragment shader's position, Y derivatives, and facing
 // are adjusted as if the window coordinates started at the top.
-func Compile(p *shaderir.Program, version GLSLVersion, windowYFlipUniformIndex int) (vertexShader, fragmentShader string) {
+func Compile(p *shaderir.Program, version GLSLVersion, projectionMatrixUniformIndex int) (vertexShader, fragmentShader string) {
 	p = adjustProgram(p)
 
 	c := &compileContext{
-		version:                 version,
-		windowYFlipUniformIndex: windowYFlipUniformIndex,
-		structNames:             map[string]string{},
-		assignedAttributes:      p.AssignedAttributes(),
+		version:                      version,
+		projectionMatrixUniformIndex: projectionMatrixUniformIndex,
+		structNames:                  map[string]string{},
+		assignedAttributes:           p.AssignedAttributes(),
 	}
 
 	// Vertex func
@@ -416,19 +416,19 @@ func attributeCopyName(idx int) string {
 
 // windowYFlipped returns a GLSL boolean expression that is true when the window coordinates start at the bottom of the destination.
 // The projection matrix's Y scale is negative for such a destination, like OpenGL's default framebuffer.
-// The expression is valid only when c.windowYFlipUniformIndex is not negative.
+// The expression is valid only when c.projectionMatrixUniformIndex is not negative.
 func (c *compileContext) windowYFlipped() string {
-	return fmt.Sprintf("(U%d[1][1] < 0.0)", c.windowYFlipUniformIndex)
+	return fmt.Sprintf("(U%d[1][1] < 0.0)", c.projectionMatrixUniformIndex)
 }
 
 // fragCoord returns a GLSL expression of the fragment position, whose Y counts from the top of the destination.
 func (c *compileContext) fragCoord() string {
-	if c.windowYFlipUniformIndex < 0 {
+	if c.projectionMatrixUniformIndex < 0 {
 		return "gl_FragCoord"
 	}
 	// The projection matrix's Y scale is 2/height or -2/height, where height is an integer.
 	// Rounding recovers the exact height from the inexact division.
-	height := fmt.Sprintf("floor(0.5 + 2.0 / abs(U%d[1][1]))", c.windowYFlipUniformIndex)
+	height := fmt.Sprintf("floor(0.5 + 2.0 / abs(U%d[1][1]))", c.projectionMatrixUniformIndex)
 	return fmt.Sprintf("vec4(gl_FragCoord.x, %s ? %s - gl_FragCoord.y : gl_FragCoord.y, gl_FragCoord.zw)", c.windowYFlipped(), height)
 }
 
@@ -562,12 +562,12 @@ func (c *compileContext) block(p *shaderir.Program, topBlock, block *shaderir.Bl
 					}
 					return result
 				}
-				if callee.BuiltinFunc == shaderir.Dfdy && c.windowYFlipUniformIndex >= 0 {
+				if callee.BuiltinFunc == shaderir.Dfdy && c.projectionMatrixUniformIndex >= 0 {
 					// Flipping the window's Y axis negates the derivative.
 					return fmt.Sprintf("(%s(%s) * (%s ? -1.0 : 1.0))", expr(&callee), args[0], c.windowYFlipped())
 				}
 				if callee.BuiltinFunc == shaderir.FrontFacing {
-					if c.windowYFlipUniformIndex >= 0 {
+					if c.projectionMatrixUniformIndex >= 0 {
 						// Flipping the window's Y axis reverses the winding.
 						return fmt.Sprintf("(gl_FrontFacing != %s)", c.windowYFlipped())
 					}
