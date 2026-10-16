@@ -15,6 +15,7 @@
 package vector_test
 
 import (
+	"bytes"
 	"fmt"
 	"image"
 	"image/color"
@@ -555,6 +556,61 @@ func TestStrokeRectThickStrokeWideOffset(t *testing.T) {
 					return
 				}
 			}
+		}
+	}
+}
+
+func TestStrokeRectNegativeSize(t *testing.T) {
+	tests := []struct {
+		name   string
+		x      float32
+		y      float32
+		width  float32
+		height float32
+	}{
+		{
+			name:   "negative width",
+			x:      44,
+			y:      24,
+			width:  -20,
+			height: 16,
+		},
+		{
+			name:   "negative height",
+			x:      24,
+			y:      40,
+			width:  20,
+			height: -16,
+		},
+		{
+			name:   "negative width and height",
+			x:      44,
+			y:      40,
+			width:  -20,
+			height: -16,
+		},
+	}
+	for _, antialias := range []bool{false, true} {
+		for _, strokeWidth := range []float32{2, 24} {
+			t.Run(fmt.Sprintf("antialias=%v/strokeWidth=%v", antialias, strokeWidth), func(t *testing.T) {
+				reference := ebiten.NewImage(64, 64)
+				defer reference.Deallocate()
+				vector.StrokeRect(reference, 24, 24, 20, 16, strokeWidth, color.White, antialias)
+				want := make([]byte, 64*64*4)
+				reference.ReadPixels(want)
+				for _, test := range tests {
+					t.Run(test.name, func(t *testing.T) {
+						dst := ebiten.NewImage(64, 64)
+						defer dst.Deallocate()
+						vector.StrokeRect(dst, test.x, test.y, test.width, test.height, strokeWidth, color.White, antialias)
+						got := make([]byte, len(want))
+						dst.ReadPixels(got)
+						if !bytes.Equal(got, want) {
+							t.Error("negative-size rectangle differs from the same rectangle with positive size")
+						}
+					})
+				}
+			})
 		}
 	}
 }

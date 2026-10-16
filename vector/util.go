@@ -180,6 +180,15 @@ func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr
 		return
 	}
 
+	if width < 0 {
+		x += width
+		width = -width
+	}
+	if height < 0 {
+		y += height
+		height = -height
+	}
+
 	if strokeWidth >= width || strokeWidth >= height {
 		fillRect(dst, x-strokeWidth/2, y-strokeWidth/2, width+strokeWidth, height+strokeWidth, clr, false)
 		return
