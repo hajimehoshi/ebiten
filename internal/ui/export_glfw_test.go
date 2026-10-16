@@ -74,3 +74,15 @@ func (i *glfwInput) SetContentSizeForTest(width, height float64) {
 func (i *glfwInput) ReadForTest(dst *InputState) {
 	i.read(dst)
 }
+
+type WindowSettingForTest[T comparable] struct {
+	windowSetting[T]
+}
+
+func (s *WindowSettingForTest[T]) ApplyForTest(f func(T) error) error {
+	return s.apply(f)
+}
+
+func (s *WindowSettingForTest[T]) ObserveForTest(value T) {
+	s.observe(value)
+}

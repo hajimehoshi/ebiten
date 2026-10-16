@@ -17,6 +17,7 @@
 package ui_test
 
 import (
+	"errors"
 	"image"
 	"math"
 	"testing"
@@ -246,5 +247,75 @@ func TestSmallWindowSizeAtLowContentScale(t *testing.T) {
 				t.Errorf("scale %v, size %v: restore size (%d, %d); want (%d, %d)", scale, size, rw, rh, actualW, actualH)
 			}
 		}
+	}
+}
+
+func TestWindowSettingRepeatRequestAfterObservation(t *testing.T) {
+	var setting ui.WindowSettingForTest[image.Point]
+	requested := image.Pt(800, 600)
+	actual := image.Point{}
+	apply := func(value image.Point) error {
+		actual = value
+		return nil
+	}
+	setting.Store(requested)
+	if err := setting.ApplyForTest(apply); err != nil {
+		t.Fatal(err)
+	}
+	actual = image.Pt(500, 400)
+	setting.ObserveForTest(actual)
+	if !setting.Store(requested) {
+		t.Error("request to restore the previous value was ignored")
+	}
+	if err := setting.ApplyForTest(apply); err != nil {
+		t.Fatal(err)
+	}
+	if actual != requested {
+		t.Errorf("got %v, want %v", actual, requested)
+	}
+	if setting.Store(requested) {
+		t.Error("unchanged request was not deduplicated")
+	}
+}
+
+func TestWindowSettingObservationPreservesPendingRequest(t *testing.T) {
+	var setting ui.WindowSettingForTest[int]
+	setting.Store(1)
+	if err := setting.ApplyForTest(func(int) error { return nil }); err != nil {
+		t.Fatal(err)
+	}
+	setting.Store(2)
+	setting.ObserveForTest(3)
+	sentinel := errors.New("apply failed")
+	if err := setting.ApplyForTest(func(value int) error {
+		if value != 2 {
+			t.Errorf("got %d, want 2", value)
+		}
+		setting.ObserveForTest(4)
+		return sentinel
+	}); !errors.Is(err, sentinel) {
+		t.Errorf("got %v, want %v", err, sentinel)
+	}
+	if err := setting.ApplyForTest(func(value int) error {
+		if value != 2 {
+			t.Errorf("retry got %d, want 2", value)
+		}
+		done := make(chan struct{})
+		go func() {
+			setting.Store(5)
+			close(done)
+		}()
+		<-done
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := setting.ApplyForTest(func(value int) error {
+		if value != 5 {
+			t.Errorf("new request got %d, want 5", value)
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
 	}
 }

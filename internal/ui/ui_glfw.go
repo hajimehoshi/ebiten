@@ -694,6 +694,7 @@ func (u *glfwBackend) registerWindowPosCallback() error {
 				u.setError(err)
 				return
 			}
+			u.desktopWindow.windowPositionInDIP.observe(image.Pt(nx, ny))
 		}
 	}
 	if _, err := u.window.SetPosCallback(u.posCallback); err != nil {
@@ -796,6 +797,7 @@ func (u *glfwBackend) registerWindowFramebufferSizeCallback() error {
 				u.setError(err)
 				return
 			}
+			u.desktopWindow.windowSizeInDIP.observe(image.Pt(ww, wh))
 
 			// While the window is being resized on macOS or Windows, the OS traps the main
 			// thread in an event-handling loop and the game loop cannot proceed. Render a frame
