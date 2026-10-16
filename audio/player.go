@@ -335,7 +335,7 @@ func (p *playerImpl) PauseAndStopReading() {
 	defer p.m.Unlock()
 
 	if p.closed {
-		p.context.setError(fmt.Errorf("audio: PauseAndStopReading for a closed player"))
+		p.context.setError(fmt.Errorf("audio: PauseAndStopReading called on a closed player"))
 		return
 	}
 
@@ -678,7 +678,7 @@ func (s *timeStream) Seek(offset int64, whence int) (int64, error) {
 
 	if !s.seekable {
 		// TODO: Should this return an error?
-		panic("audio: the source must be io.Seeker to seek")
+		panic("audio: source must be io.Seeker")
 	}
 	pos, err := s.r.(io.Seeker).Seek(offset, whence)
 	if err != nil {

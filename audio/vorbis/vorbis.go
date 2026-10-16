@@ -138,7 +138,7 @@ retry:
 
 func (s *i16Stream) Seek(offset int64, whence int) (int64, error) {
 	if !s.seekable {
-		return 0, fmt.Errorf("vorbis: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
+		return 0, fmt.Errorf("vorbis: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
 	var base int64

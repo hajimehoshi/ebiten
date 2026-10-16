@@ -130,7 +130,7 @@ func (c *ColorM) ChangeHSV(hueTheta float64, saturationScale float64, valueScale
 // Otherwise, Element panics.
 func (c *ColorM) Element(i, j int) float64 {
 	if i < 0 || Dim-1 <= i || j < 0 || Dim <= j {
-		panic("ebiten: i or j is out of index")
+		panic("colorm: i or j is out of index")
 	}
 	return float64(c.affineColorM().At(i, j))
 }
@@ -141,7 +141,7 @@ func (c *ColorM) Element(i, j int) float64 {
 // Otherwise, SetElement panics.
 func (c *ColorM) SetElement(i, j int, element float64) {
 	if i < 0 || Dim-1 <= i || j < 0 || Dim <= j {
-		panic("ebiten: i or j is out of index")
+		panic("colorm: i or j is out of index")
 	}
 	c.impl = affine.ColorMSetElement(c.affineColorM(), i, j, float32(element))
 }
@@ -163,10 +163,10 @@ func (c *ColorM) Invert() {
 // len(body) must be 16 and len(translation) must be 4. Otherwise, ReadElements panics.
 func (c *ColorM) ReadElements(body []float32, translation []float32) {
 	if len(body) != 16 {
-		panic(fmt.Sprintf("ebiten: len(body) must be 16 but %d", len(body)))
+		panic(fmt.Sprintf("colorm: len(body) must be 16 but %d", len(body)))
 	}
 	if len(translation) != 4 {
-		panic(fmt.Sprintf("ebiten: len(translation) must be 4 but %d", len(translation)))
+		panic(fmt.Sprintf("colorm: len(translation) must be 4 but %d", len(translation)))
 	}
 	c.affineColorM().Elements(body, translation)
 }
