@@ -335,20 +335,20 @@ func (u *UserInterface) canCaptureCursor() bool {
 	return time.Since(u.lastCaptureExitTime) >= 1500*time.Millisecond
 }
 
-func (u *UserInterface) update() error {
+func (u *UserInterface) update() (suspended bool, err error) {
 	if u.captureCursorLater && u.canCaptureCursor() {
 		u.setCursorMode(CursorModeCaptured)
 	}
 
-	suspended := u.suspended()
+	suspended = u.suspended()
 	clock.SetDurationSuspended(suspended)
 	if suspended {
-		return hook.SuspendAudio()
+		return true, hook.SuspendAudio()
 	}
 	if err := hook.ResumeAudio(); err != nil {
-		return err
+		return false, err
 	}
-	return u.updateImpl(false)
+	return false, u.updateImpl(false)
 }
 
 func (u *UserInterface) updateImpl(force bool) (err error) {
@@ -439,11 +439,12 @@ func (u *UserInterface) loopGame() error {
 			return err
 		}
 		if u.needsUpdate() {
-			defer func() {
-				u.onceUpdateCalled = true
-			}()
-			if err := u.update(); err != nil {
+			suspended, err := u.update()
+			if err != nil {
 				return err
+			}
+			if !suspended {
+				u.onceUpdateCalled = true
 			}
 		}
 		switch u.FPSMode() {
