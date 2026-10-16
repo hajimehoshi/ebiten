@@ -428,6 +428,8 @@ func (g *graphics11) NewScreenFramebufferImage(width, height int) (graphicsdrive
 	if g.screenImage != nil {
 		// Dispose the screen image, so that no reference to the swap chain's buffer remains before
 		// ResizeBuffers.
+		// The context also holds a reference to the bound render-target view.
+		g.deviceContext.OMSetRenderTargets(nil)
 		g.screenImage.Dispose()
 		g.screenImage = nil
 	}
