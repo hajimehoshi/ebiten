@@ -25,6 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/readbackcache"
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
@@ -101,6 +102,14 @@ type graphics12 struct {
 	disposedImages           [frameCount][]*image12
 	disposedReadbacks        [frameCount][]*readback12
 	disposedUploadingBuffers [frameCount][]*_ID3D12Resource
+
+	// readbackFence is signaled with an increasing value after each pixel read-back's copy.
+	readbackFence      *_ID3D12Fence
+	readbackFenceValue uint64
+
+	// readbackBuffers are idle READBACK-heap buffers for pixel read-backs available for reuse.
+	// Only completed read-backs enter this cache; pending read-backs own their buffers.
+	readbackBuffers readbackcache.Cache[uint64, *_ID3D12Resource]
 
 	shaders         map[graphicsdriver.ShaderID]*shader12
 	nextShaderID    graphicsdriver.ShaderID
@@ -396,6 +405,13 @@ func (g *graphics12) initializeMembers() (err error) {
 		g.fences[i] = f
 	}
 
+	// Create a fence for pixel read-backs.
+	rf, err := g.device.CreateFence(0, _D3D12_FENCE_FLAG_NONE)
+	if err != nil {
+		return err
+	}
+	g.readbackFence = rf
+
 	// Create command lists.
 	dcl, err := g.device.CreateCommandList(0, _D3D12_COMMAND_LIST_TYPE_DIRECT, g.drawCommandAllocators[0], nil)
 	if err != nil {
@@ -454,6 +470,11 @@ func (g *graphics12) releaseMembers() {
 	if g.drawCommandList != nil {
 		g.drawCommandList.Release()
 		g.drawCommandList = nil
+	}
+
+	if g.readbackFence != nil {
+		g.readbackFence.Release()
+		g.readbackFence = nil
 	}
 
 	for i := range frameCount {
@@ -1217,7 +1238,7 @@ func (g *graphics12) NewImage(width, height int) (graphicsdriver.Image, error) {
 		Width:            uint64(graphics.InternalImageSize(width)),
 		Height:           uint32(graphics.InternalImageSize(height)),
 		DepthOrArraySize: 1,
-		MipLevels:        0,
+		MipLevels:        1,
 		Format:           _DXGI_FORMAT_R8G8B8A8_UNORM,
 		SampleDesc: _DXGI_SAMPLE_DESC{
 			Count:   1,

@@ -83,3 +83,49 @@ func TestRecording(t *testing.T) {
 		t.Errorf("after two requests, AppendPendingVibrations = %v; want %v (last write wins)", got, want)
 	}
 }
+
+func TestRecordingMagnitude(t *testing.T) {
+	vibrate.EnableRecording()
+	tests := []struct {
+		magnitude float64
+		want      float64
+	}{
+		{
+			magnitude: -1,
+			want:      0,
+		},
+		{
+			magnitude: 2,
+			want:      1,
+		},
+		{
+			magnitude: math.NaN(),
+			want:      0,
+		},
+		{
+			magnitude: 0,
+			want:      0,
+		},
+		{
+			magnitude: 0.5,
+			want:      0.5,
+		},
+		{
+			magnitude: 1,
+			want:      1,
+		},
+	}
+	for _, test := range tests {
+		vibrate.Vibrate(500*time.Millisecond, test.magnitude)
+		got := vibrate.AppendPendingVibrations(nil)
+		want := []vibrate.Vibration{
+			{
+				Duration:  500 * time.Millisecond,
+				Magnitude: test.want,
+			},
+		}
+		if !slices.Equal(got, want) {
+			t.Errorf("recording magnitude %v: got %v, want %v", test.magnitude, got, want)
+		}
+	}
+}

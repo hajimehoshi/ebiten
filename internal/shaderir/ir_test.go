@@ -1056,7 +1056,7 @@ void main(void) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.Name, func(t *testing.T) {
-			vs, fs := glsl.Compile(&tc.Program, glsl.GLSLVersionDefault)
+			vs, fs := glsl.Compile(&tc.Program, glsl.GLSLVersionDefault, -1)
 			{
 				got := vs
 				want := tc.GlslVS + "\n"

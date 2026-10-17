@@ -28,6 +28,11 @@
 // [GuestSession.AdvanceTicks] and [GuestSession.WaitTicks], on the goroutine calling them, so a host
 // never deals with the session's own goroutine.
 //
+// Hosting guests requires multithread mode. [ebiten.RunGameOptions.SingleThread] and the
+// ebitenginesinglethread and ebitensinglethread build tags are not supported for hosts.
+// [NewGuestSession] or [ebiten.RunGameWithOptions] returns an error for this combination.
+// Close existing sessions before starting a single-threaded game.
+//
 // This package is experimental and the API might be changed in the future.
 package vmhost
 
@@ -45,6 +50,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/internal/clock"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
@@ -59,9 +65,9 @@ import (
 // from within the host's frame (its Update or Draw), and not concurrently with one another. The other
 // methods may be called from any goroutine.
 //
-// A guest reading one of its own images back needs the host's frame, so the read is performed by
-// whichever of CompositeFrame, [GuestSession.WaitTicks], and [GuestSession.WaitFrame] the host calls
-// next: the guest's tick does not complete until one of them does.
+// Guest read-backs are started within the host's frame by CompositeFrame, [GuestSession.WaitTicks],
+// or [GuestSession.WaitFrame]. Submitted read-backs can complete between frames while the host's
+// render loop is accepting work.
 type GuestSession struct {
 	// conn is safe for concurrent use: the session goroutine reads and writes through the codecs while
 	// Close pokes its deadline and closes it.
@@ -78,13 +84,10 @@ type GuestSession struct {
 	dec *vmprotocol.Decoder
 	// renderer mirrors the guest's images. Close disposes it after the goroutine has joined, and
 	// finishFrame publishes its screen into compositableFrame under mu.
-	renderer *frameRenderer
-	// pixelsBuf and pixelsListBuf back the ReadPixels answers: one flat reused buffer, subsliced per
-	// region.
-	pixelsBuf      []byte
-	pixelsListBuf  [][]byte
-	nextReadbackID uint64
-	readbacks      map[uint64]*asyncPixelsReadback
+	renderer          *frameRenderer
+	nextReadbackID    uint64
+	readbacks         map[uint64]*asyncPixelReadback
+	readbackPixelsBuf []byte
 	// audioReadPCM and audioReadEOF capture the answer to the in-flight HostMessageKindReadAudio while
 	// sendAndReceive runs; runReadAudio hands them to the waiting reader.
 	audioReadPCM []byte
@@ -111,6 +114,8 @@ type GuestSession struct {
 	// pendingReadPixels is the guest read-back the session goroutine is parked on, waiting for a host
 	// call within the host's frame to perform it; nil when none is in flight.
 	pendingReadPixels *readPixelsRequest
+	// hostWaiters counts blocked tick and frame waits.
+	hostWaiters int
 	// submittedTicks and consumedTicks count ticks requested and processed; their difference is the
 	// backlog. They only increase. submittedTicks is touched only by the host goroutine, but it lives
 	// here because WaitTicks compares it against consumedTicks, which the session writes.
@@ -210,21 +215,27 @@ type op struct {
 }
 
 // readPixelsRequest is one guest read-back the session goroutine has prepared and handed to the host,
-// which performs it into pixels from within the host's frame.
+// which starts or polls it from within the host's frame.
 type readPixelsRequest struct {
 	img     *ui.Image
-	pixels  [][]byte
 	regions []image.Rectangle
 
-	// done reports that the host has filled pixels. It is guarded by GuestSession.mu.
+	// done reports that the host has served the request. It is guarded by GuestSession.mu.
 	done bool
 
-	async *asyncPixelsReadback
+	readback *asyncPixelReadback
+
+	// poll reports whether the host should submit commands and poll pending read-backs.
+	poll bool
+
+	// wait holds the read-backs the host should submit and complete.
+	wait []*graphicscommand.PixelReadback
 }
 
-type asyncPixelsReadback struct {
+type asyncPixelReadback struct {
+	buffer  []byte
 	pixels  [][]byte
-	results []<-chan error
+	results []*graphicscommand.PixelReadback
 }
 
 // guestEventKind discriminates a guest event queued for handler delivery.
@@ -295,10 +306,20 @@ type NewGuestSessionOptions struct {
 	OnTextInput func(*GuestTextInput)
 }
 
-// NewGuestSession opens a session with a guest process over an established connection. It performs the
-// protocol handshake and returns an error if the guest's protocol version does not match the host's.
+// NewGuestSession opens a session with a guest process over an established connection.
+// It returns an error if the protocol handshake fails, including a protocol version mismatch,
+// or if single-thread mode is already selected by [ebiten.RunGameWithOptions] or a build tag.
 // options can be nil, which means the default options.
 func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSession, error) {
+	if err := ui.RegisterVMHost(); err != nil {
+		return nil, err
+	}
+	var sessionCreated bool
+	defer func() {
+		if !sessionCreated {
+			ui.UnregisterVMHost()
+		}
+	}()
 	var idleConn *idleTimeoutConn
 	var rw io.ReadWriter = conn
 	if options != nil && options.IdleTimeout > 0 {
@@ -336,6 +357,7 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 	}
 	g.cond = sync.NewCond(&g.mu)
 	go g.sessionLoop()
+	sessionCreated = true
 	return g, nil
 }
 
@@ -536,7 +558,6 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 		// Serving these needs the host's graphics driver, which exists only while the host's game runs.
 		switch gm.Kind {
 		case vmprotocol.GuestMessageKindGraphicsCommands,
-			vmprotocol.GuestMessageKindQueryReadPixels,
 			vmprotocol.GuestMessageKindQueryReadPixelsAsync,
 			vmprotocol.GuestMessageKindQueryMaxImageSize,
 			vmprotocol.GuestMessageKindQueryColorSpace:
@@ -550,11 +571,6 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 				return err
 			}
 			continue
-		case vmprotocol.GuestMessageKindQueryReadPixels:
-			if err := g.answerReadPixels(&gm); err != nil {
-				return err
-			}
-			continue
 		case vmprotocol.GuestMessageKindQueryReadPixelsAsync:
 			if err := g.answerReadPixelsAsync(&gm); err != nil {
 				return err
@@ -565,8 +581,13 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 				return err
 			}
 			continue
+		case vmprotocol.GuestMessageKindQueryWaitReadPixels:
+			if err := g.answerWaitReadPixels(gm.ReadbackID); err != nil {
+				return err
+			}
+			continue
 		case vmprotocol.GuestMessageKindDisposeReadPixels:
-			delete(g.readbacks, gm.ReadbackID)
+			g.disposeReadback(gm.ReadbackID)
 			continue
 		case vmprotocol.GuestMessageKindQueryMaxImageSize:
 			if err := g.answerMaxImageSize(); err != nil {
@@ -625,40 +646,6 @@ func (g *GuestSession) sendAndReceive(msg *vmprotocol.HostMessage) error {
 	}
 }
 
-// answerReadPixels reads the requested regions back from the renderer and answers with the pixels.
-// The commands reproducing the image have already arrived and been rendered.
-func (g *GuestSession) answerReadPixels(query *vmprotocol.GuestMessage) error {
-	answer := vmprotocol.HostMessage{
-		Kind: vmprotocol.HostMessageKindAnswerReadPixels,
-	}
-	if err := g.readQueriedPixels(query); err != nil {
-		answer.Err = err.Error()
-	} else {
-		answer.Pixels = g.pixelsListBuf
-	}
-	return g.enc.EncodeHostMessage(&answer)
-}
-
-// readQueriedPixels reads the query's regions back into the session's reused buffers, leaving one
-// subslice per region in g.pixelsListBuf. A region the host cannot read back fails with an error
-// before a buffer is sized from it.
-func (g *GuestSession) readQueriedPixels(query *vmprotocol.GuestMessage) error {
-	mirror, total, err := g.validateReadPixels(query)
-	if err != nil {
-		return err
-	}
-	n := int(total)
-	g.pixelsBuf = slices.Grow(g.pixelsBuf[:0], n)[:n]
-	g.pixelsListBuf = slices.Delete(g.pixelsListBuf, 0, len(g.pixelsListBuf))
-	var off int
-	for _, r := range query.ReadRegions {
-		n := 4 * r.Dx() * r.Dy()
-		g.pixelsListBuf = append(g.pixelsListBuf, g.pixelsBuf[off:off+n])
-		off += n
-	}
-	return g.readPixelsInHostFrame(mirror.img, g.pixelsListBuf, query.ReadRegions)
-}
-
 func (g *GuestSession) validateReadPixels(query *vmprotocol.GuestMessage) (*hostImage, int64, error) {
 	mirror, ok := g.renderer.images[query.ReadImageID]
 	if !ok {
@@ -699,10 +686,12 @@ func (g *GuestSession) startReadPixelsAsync(query *vmprotocol.GuestMessage) (uin
 	if err != nil {
 		return 0, err
 	}
-	pixels := make([]byte, int(total))
-	readback := &asyncPixelsReadback{
+	pixels := slices.Grow(g.readbackPixelsBuf[:0], int(total))[:int(total)]
+	g.readbackPixelsBuf = nil
+	readback := &asyncPixelReadback{
+		buffer:  pixels,
 		pixels:  make([][]byte, len(query.ReadRegions)),
-		results: make([]<-chan error, len(query.ReadRegions)),
+		results: make([]*graphicscommand.PixelReadback, len(query.ReadRegions)),
 	}
 	var off int
 	for j, region := range query.ReadRegions {
@@ -711,19 +700,36 @@ func (g *GuestSession) startReadPixelsAsync(query *vmprotocol.GuestMessage) (uin
 		off += n
 	}
 	if err := g.requestReadPixelsInHostFrame(&readPixelsRequest{
-		img:     mirror.img,
-		pixels:  readback.pixels,
-		regions: query.ReadRegions,
-		async:   readback,
+		img:      mirror.img,
+		regions:  query.ReadRegions,
+		readback: readback,
 	}); err != nil {
 		return 0, err
 	}
 	g.nextReadbackID++
 	if g.readbacks == nil {
-		g.readbacks = map[uint64]*asyncPixelsReadback{}
+		g.readbacks = map[uint64]*asyncPixelReadback{}
 	}
 	g.readbacks[g.nextReadbackID] = readback
 	return g.nextReadbackID, nil
+}
+
+func (g *GuestSession) disposeReadback(id uint64) {
+	readback, ok := g.readbacks[id]
+	if !ok {
+		return
+	}
+	delete(g.readbacks, id)
+	// The host's command queue owns the buffers until every region has completed, even on error.
+	for _, result := range readback.results {
+		if done, _ := result.Poll(); !done {
+			return
+		}
+	}
+	// Retain at most one buffer, as synchronous reads normally release before starting the next.
+	if cap(readback.buffer) > cap(g.readbackPixelsBuf) {
+		g.readbackPixelsBuf = readback.buffer[:0]
+	}
 }
 
 func (g *GuestSession) answerPollReadPixels(id uint64) error {
@@ -735,41 +741,111 @@ func (g *GuestSession) answerPollReadPixels(id uint64) error {
 		answer.Err = fmt.Sprintf("vmhost: unknown read-back %d", id)
 		return g.enc.EncodeHostMessage(&answer)
 	}
-	answer.ReadbackDone = true
-	for j, result := range readback.results {
-		if result == nil {
-			continue
+	// Polling only requests a GPU completion check if the render loop can accept it immediately.
+	// Waiting for that loop could block the session indefinitely after shutdown or while mobile
+	// rendering is suspended. A later guest poll or host frame can retry if the loop is unavailable.
+	done, err := readback.tryPoll()
+	// A waiting host can also submit commands that have not reached a frame flush yet.
+	if !done && err == nil && g.hostIsWaiting() {
+		if err := g.requestReadPixelsInHostFrame(&readPixelsRequest{
+			poll: true,
+		}); err != nil {
+			answer.Err = err.Error()
+			return g.enc.EncodeHostMessage(&answer)
 		}
-		select {
-		case err := <-result:
-			readback.results[j] = nil
-			if err != nil {
-				answer.Err = err.Error()
-				return g.enc.EncodeHostMessage(&answer)
-			}
-		default:
-			answer.ReadbackDone = false
-		}
+		done, err = readback.completion()
 	}
-	if answer.ReadbackDone {
+	answer.ReadbackDone = done
+	if err != nil {
+		answer.Err = err.Error()
+	} else if done {
 		answer.Pixels = readback.pixels
 	}
 	return g.enc.EncodeHostMessage(&answer)
 }
 
+func (g *GuestSession) answerWaitReadPixels(id uint64) error {
+	answer := vmprotocol.HostMessage{
+		Kind: vmprotocol.HostMessageKindAnswerReadPixelsAsync,
+	}
+	readback, ok := g.readbacks[id]
+	if !ok {
+		answer.Err = fmt.Sprintf("vmhost: unknown read-back %d", id)
+		return g.enc.EncodeHostMessage(&answer)
+	}
+	if err := g.waitReadPixels(readback); err != nil {
+		answer.Err = err.Error()
+	} else {
+		answer.ReadbackDone = true
+		answer.Pixels = readback.pixels
+	}
+	return g.enc.EncodeHostMessage(&answer)
+}
+
+func (g *GuestSession) waitReadPixels(readback *asyncPixelReadback) error {
+	for {
+		if done, err := readback.completion(); done || err != nil {
+			return err
+		}
+		if err := g.readbackWaitError(); err != nil {
+			return err
+		}
+		if g.hostIsWaiting() {
+			if err := g.requestReadPixelsInHostFrame(&readPixelsRequest{
+				wait: readback.results,
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+		if done, err := readback.tryPoll(); done || err != nil {
+			return err
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func (g *GuestSession) readbackWaitError() error {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	if g.closed || g.err != nil {
+		return errReadPixelsAbandoned
+	}
+	return nil
+}
+
+func (r *asyncPixelReadback) tryPoll() (bool, error) {
+	if done, err := r.completion(); done || err != nil {
+		return done, err
+	}
+	// Submission belongs to the host's frame. Completion can advance between frames.
+	ui.Get().TryPollPixelReadbacks()
+	return r.completion()
+}
+
+func (r *asyncPixelReadback) completion() (bool, error) {
+	complete := true
+	for _, result := range r.results {
+		done, err := result.Poll()
+		if err != nil {
+			return false, err
+		}
+		if !done {
+			complete = false
+		}
+	}
+	return complete, nil
+}
+
+// hostIsWaiting reports whether a host tick or frame wait is blocked.
+func (g *GuestSession) hostIsWaiting() bool {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	return g.hostWaiters != 0
+}
+
 // errReadPixelsAbandoned ends a guest read-back no host will ever perform because the session is over.
 var errReadPixelsAbandoned = errors.New("vmhost: the session ended before the guest's read-back")
-
-// readPixelsInHostFrame hands the read-back to the host and blocks until a host call performs it. The
-// session goroutine must not read back itself: called in between two host frames the read defers to
-// the host's next frame, which a host blocked on this very tick never reaches.
-func (g *GuestSession) readPixelsInHostFrame(img *ui.Image, pixels [][]byte, regions []image.Rectangle) error {
-	return g.requestReadPixelsInHostFrame(&readPixelsRequest{
-		img:     img,
-		pixels:  pixels,
-		regions: regions,
-	})
-}
 
 func (g *GuestSession) requestReadPixelsInHostFrame(req *readPixelsRequest) error {
 	g.mu.Lock()
@@ -798,12 +874,17 @@ func (g *GuestSession) servePendingReadPixels() {
 	if req == nil {
 		return
 	}
+	// A guest can wait inside a tick or frame while the host waits for that same operation.
+	// Advance its read-backs here so completion does not require another host frame.
+	if req.poll {
+		ui.Get().FlushAndPollPixelReadbacks()
+	}
+	if req.wait != nil {
+		// The session goroutine reads each result after this request completes.
+		_ = ui.Get().FlushAndWaitPixelReadbacks(req.wait)
+	}
 	for i, r := range req.regions {
-		if req.async != nil {
-			req.async.results[i] = req.img.ReadPixelsAsync(req.pixels[i], r)
-		} else {
-			req.img.ReadPixels(req.pixels[i], r)
-		}
+		req.readback.results[i] = req.img.ReadPixelsAsync(req.readback.pixels[i], r)
 	}
 	g.finishReadPixels(req)
 }
@@ -1034,7 +1115,9 @@ func (g *GuestSession) waitFrameStep(want int64) (done, ok bool) {
 		if g.pendingReadPixels != nil {
 			return false, false
 		}
+		g.hostWaiters++
 		g.cond.Wait()
+		g.hostWaiters--
 	}
 }
 
@@ -1047,8 +1130,7 @@ func (g *GuestSession) waitFrameStep(want int64) (done, ok bool) {
 // The frame replaces the outside screen's content rather than blending over it, so the outside screen
 // carries the guest screen's alpha.
 func (g *GuestSession) CompositeFrame() bool {
-	// A host that never waits for a tick or a frame still calls this every frame, so a guest read-back is
-	// picked up here at the latest.
+	// Start queued read-backs even when the host does not wait for guest ticks or frames.
 	g.servePendingReadPixels()
 
 	frame := g.takeFrame()
@@ -1148,7 +1230,9 @@ func (g *GuestSession) waitTicksStep(target int64) (done, ok bool) {
 		if g.pendingReadPixels != nil {
 			return false, false
 		}
+		g.hostWaiters++
 		g.cond.Wait()
+		g.hostWaiters--
 	}
 	return true, true
 }
@@ -1659,7 +1743,9 @@ func (g *GuestSession) Close() error {
 
 		g.renderer.dispose()
 		g.readbacks = nil
+		g.readbackPixelsBuf = nil
 		g.closeErr = g.conn.Close()
+		ui.UnregisterVMHost()
 	})
 	return g.closeErr
 }

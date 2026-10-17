@@ -16,6 +16,7 @@ package vmhost_test
 
 import (
 	"bytes"
+	"image"
 	"net"
 	"os"
 	"os/exec"
@@ -25,6 +26,8 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/exp/vmhost"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
+	"github.com/hajimehoshi/ebiten/v2/internal/vmprotocol"
 )
 
 // TestCloseShutsGuestDownCleanly asserts that a closed session lets the guest process exit by itself
@@ -294,4 +297,100 @@ func (silentAddr) Network() string {
 
 func (silentAddr) String() string {
 	return "silent"
+}
+
+func TestCloseWithPendingReadback(t *testing.T) {
+	sent := make(chan struct{})
+	guest := newFakeGuestSession(t, func(fg *fakeGuest) {
+		fg.sendCommands(vmprotocol.GraphicsCommand{
+			Kind:    vmprotocol.GraphicsCommandKindNewImage,
+			ImageID: 1,
+			Width:   1,
+			Height:  1,
+		}, vmprotocol.GraphicsCommand{
+			Kind:    vmprotocol.GraphicsCommandKindWritePixels,
+			ImageID: 1,
+			Regions: []image.Rectangle{image.Rect(0, 0, 1, 1)},
+			Pixels:  [][]byte{{1, 2, 3, 255}},
+		})
+		fg.send(&vmprotocol.GuestMessage{
+			Kind:        vmprotocol.GuestMessageKindQueryReadPixelsAsync,
+			ReadImageID: 1,
+			ReadRegions: []image.Rectangle{image.Rect(0, 0, 1, 1)},
+		})
+		close(sent)
+		_, _ = fg.receive()
+	})
+	setOutsideScreen(t, guest)
+	guest.AdvanceTicks(1)
+	select {
+	case <-sent:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the guest did not send its read-back request")
+	}
+	if err := guest.Close(); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestCloseWithPendingReadbackWait(t *testing.T) {
+	var id uint64
+	sent := make(chan struct{})
+	guest := newFakeGuestSession(t, func(fg *fakeGuest) {
+		if id == 0 {
+			fg.sendCommands(vmprotocol.GraphicsCommand{
+				Kind:    vmprotocol.GraphicsCommandKindNewImage,
+				ImageID: 1,
+				Width:   1,
+				Height:  1,
+			}, vmprotocol.GraphicsCommand{
+				Kind:    vmprotocol.GraphicsCommandKindWritePixels,
+				ImageID: 1,
+				Regions: []image.Rectangle{image.Rect(0, 0, 1, 1)},
+				Pixels:  [][]byte{{1, 2, 3, 255}},
+			})
+			fg.send(&vmprotocol.GuestMessage{
+				Kind:        vmprotocol.GuestMessageKindQueryReadPixelsAsync,
+				ReadImageID: 1,
+				ReadRegions: []image.Rectangle{image.Rect(0, 0, 1, 1)},
+			})
+			answer, err := fg.receive()
+			if err != nil {
+				return
+			}
+			id = answer.ReadbackID
+			if id == 0 || answer.Err != "" {
+				t.Errorf("starting read-back: %+v", answer)
+			}
+			return
+		}
+		fg.send(&vmprotocol.GuestMessage{
+			Kind:       vmprotocol.GuestMessageKindQueryWaitReadPixels,
+			ReadbackID: id,
+		})
+		close(sent)
+		_, _ = fg.receive()
+	})
+	setOutsideScreen(t, guest)
+	guest.AdvanceTicks(1)
+	if !guest.WaitTicks() {
+		t.Fatal(guest.Err())
+	}
+	guest.AdvanceTicks(1)
+	select {
+	case <-sent:
+	case <-time.After(5 * time.Second):
+		t.Fatal("guest did not send its wait request")
+	}
+	closed := make(chan error, 1)
+	go func() { closed <- guest.Close() }()
+	select {
+	case err := <-closed:
+		if err != nil {
+			t.Error(err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("Close blocked on a pending read-back wait")
+		ui.Get().FlushAndPollPixelReadbacks()
+	}
 }

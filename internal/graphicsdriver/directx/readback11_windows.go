@@ -27,9 +27,12 @@ type readback11 struct {
 	staging  *_ID3D11Texture2D
 	region   image.Rectangle
 	args     []graphicsdriver.PixelsArgs
+
+	// reusable is set only after the map and the copy have succeeded.
+	reusable bool
 }
 
-func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	if i.screen {
 		return nil, errors.New("directx: ReadPixelsAsync cannot be called on the screen")
 	}
@@ -45,16 +48,7 @@ func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdri
 	if region.Empty() {
 		return r, nil
 	}
-	staging, err := i.graphics.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
-		Width:          uint32(region.Dx()),
-		Height:         uint32(region.Dy()),
-		MipLevels:      1,
-		ArraySize:      1,
-		Format:         _DXGI_FORMAT_R8G8B8A8_UNORM,
-		SampleDesc:     _DXGI_SAMPLE_DESC{Count: 1},
-		Usage:          _D3D11_USAGE_STAGING,
-		CPUAccessFlags: uint32(_D3D11_CPU_ACCESS_READ),
-	}, nil)
+	staging, err := i.graphics.acquireStagingTexture(region.Size())
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +65,22 @@ func (i *image11) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (graphicsdri
 	return r, nil
 }
 
+func (r *readback11) Wait() error {
+	_, err := r.readPixels(0)
+	return err
+}
+
 func (r *readback11) Poll() (bool, error) {
+	return r.readPixels(uint32(_D3D11_MAP_FLAG_DO_NOT_WAIT))
+}
+
+func (r *readback11) readPixels(flags uint32) (bool, error) {
 	if r.staging == nil {
 		return true, nil
 	}
 	var mapped _D3D11_MAPPED_SUBRESOURCE
-	if err := r.graphics.deviceContext.Map(unsafe.Pointer(r.staging), 0, _D3D11_MAP_READ, uint32(_D3D11_MAP_FLAG_DO_NOT_WAIT), &mapped); err != nil {
-		if errors.Is(err, _DXGI_ERROR_WAS_STILL_DRAWING) {
+	if err := r.graphics.deviceContext.Map(unsafe.Pointer(r.staging), 0, _D3D11_MAP_READ, flags, &mapped); err != nil {
+		if flags&uint32(_D3D11_MAP_FLAG_DO_NOT_WAIT) != 0 && errors.Is(err, _DXGI_ERROR_WAS_STILL_DRAWING) {
 			return false, nil
 		}
 		return true, err
@@ -85,14 +88,44 @@ func (r *readback11) Poll() (bool, error) {
 	defer r.graphics.deviceContext.Unmap(unsafe.Pointer(r.staging), 0)
 	stride := int(mapped.RowPitch)
 	copyReadbackPixels(r.args, r.region, unsafe.Slice((*byte)(mapped.pData), stride*r.region.Dy()), stride)
+	r.reusable = true
 	return true, nil
 }
 
 func (r *readback11) Dispose() {
-	// The immediate context retains resources referenced by its outstanding commands.
 	if r.staging != nil {
-		r.staging.Release()
+		if r.reusable {
+			r.graphics.releaseStagingTexture(r.staging, r.region.Size())
+		} else {
+			// The immediate context retains resources referenced by its outstanding commands.
+			r.staging.Release()
+		}
 		r.staging = nil
 	}
 	r.args = nil
+}
+
+// acquireStagingTexture returns a staging texture of size pixels that the CPU can read.
+func (g *graphics11) acquireStagingTexture(size image.Point) (*_ID3D11Texture2D, error) {
+	if t, ok := g.stagingTextures.Take(size); ok {
+		return t, nil
+	}
+	return g.device.CreateTexture2D(&_D3D11_TEXTURE2D_DESC{
+		Width:          uint32(size.X),
+		Height:         uint32(size.Y),
+		MipLevels:      1,
+		ArraySize:      1,
+		Format:         _DXGI_FORMAT_R8G8B8A8_UNORM,
+		SampleDesc:     _DXGI_SAMPLE_DESC{Count: 1},
+		Usage:          _D3D11_USAGE_STAGING,
+		CPUAccessFlags: uint32(_D3D11_CPU_ACCESS_READ),
+	}, nil)
+}
+
+// releaseStagingTexture caches t, an unmapped texture of size pixels whose read completed
+// successfully, for reuse, or releases it.
+func (g *graphics11) releaseStagingTexture(t *_ID3D11Texture2D, size image.Point) {
+	for _, dropped := range g.stagingTextures.Put(size, t, 4*size.X*size.Y) {
+		dropped.Release()
+	}
 }

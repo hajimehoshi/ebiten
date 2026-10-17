@@ -214,6 +214,11 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
+      - name: go vet (vettool, Wasm)
+        run: |
+          go install ./internal/vettools
+          env GOOS=js GOARCH=wasm go vet -vettool=$(which vettools) -v ./... ./skills/run-ebitengine-app-headless/_driver
+
       - name: go build
         run: |
           env GOOS=darwin GOARCH=amd64 go build -v ./...

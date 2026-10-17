@@ -66,9 +66,7 @@ const (
 	// player's samples (identified by AudioPlayerID). The guest answers with GuestMessageKindAudioData.
 	HostMessageKindReadAudio
 
-	// HostMessageKindAnswerReadPixels answers a GuestMessageKindQueryReadPixels.
-	HostMessageKindAnswerReadPixels
-	// HostMessageKindAnswerReadPixelsAsync answers a start or poll read-back query.
+	// HostMessageKindAnswerReadPixelsAsync answers a read-back start, poll, or wait query.
 	HostMessageKindAnswerReadPixelsAsync
 	// HostMessageKindAnswerMaxImageSize answers a GuestMessageKindQueryMaxImageSize.
 	HostMessageKindAnswerMaxImageSize
@@ -121,16 +119,16 @@ type HostMessage struct {
 	GamepadStates []GamepadState
 
 	// Err is the query failure, if any, as a string (gob cannot carry an error value). Set on
-	// HostMessageKindAnswerReadPixels and HostMessageKindAnswerReadPixelsAsync.
+	// HostMessageKindAnswerReadPixelsAsync.
 	Err string
 
-	// Pixels carries one buffer per region in a synchronous or completed asynchronous read-back answer.
+	// Pixels carries one buffer per region in a completed read-back answer.
 	Pixels [][]byte
 
 	// ReadbackID identifies an asynchronous read-back returned by a start query.
 	ReadbackID uint64
 
-	// ReadbackDone reports completion in an asynchronous read-back poll answer.
+	// ReadbackDone reports completion in a read-back poll or wait answer.
 	ReadbackDone bool
 
 	// MaxImageSize is set on HostMessageKindAnswerMaxImageSize.
@@ -210,10 +208,6 @@ const (
 	// GuestMessageKindGraphicsCommands carries a batch of graphics commands for the host to replay.
 	// Zero or more precede the concluding GuestMessageKindDone within one operation.
 	GuestMessageKindGraphicsCommands
-	// GuestMessageKindQueryReadPixels asks the host to read pixels back (from the commands already
-	// sent) before the guest can finish the operation. The host answers with
-	// HostMessageKindAnswerReadPixels.
-	GuestMessageKindQueryReadPixels
 	// GuestMessageKindQueryMaxImageSize asks the host for its graphics driver's maximum image size
 	// before the guest can finish the operation. The host answers with
 	// HostMessageKindAnswerMaxImageSize.
@@ -265,6 +259,8 @@ const (
 	GuestMessageKindQueryReadPixelsAsync
 	// GuestMessageKindQueryPollReadPixels polls the read-back identified by ReadbackID.
 	GuestMessageKindQueryPollReadPixels
+	// GuestMessageKindQueryWaitReadPixels waits for the read-back identified by ReadbackID.
+	GuestMessageKindQueryWaitReadPixels
 	// GuestMessageKindDisposeReadPixels releases the read-back identified by ReadbackID, without an answer.
 	GuestMessageKindDisposeReadPixels
 )
@@ -274,7 +270,7 @@ const (
 type GuestMessage struct {
 	Kind GuestMessageKind
 
-	// ReadbackID identifies the asynchronous read-back to poll or release.
+	// ReadbackID identifies the asynchronous read-back to poll, wait for, or release.
 	ReadbackID uint64
 
 	// Err is the deferred game error, if any, as a string (gob cannot carry an error value). Set on
@@ -290,7 +286,7 @@ type GuestMessage struct {
 	// GuestMessageKindGraphicsCommands.
 	GraphicsCommands []GraphicsCommand
 
-	// ReadImageID and ReadRegions identify the image and regions in a synchronous or asynchronous read-back query.
+	// ReadImageID and ReadRegions identify the image and regions in a start read-back query.
 	ReadImageID graphicsdriver.ImageID
 	ReadRegions []image.Rectangle
 

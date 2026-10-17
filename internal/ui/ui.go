@@ -196,11 +196,11 @@ func (u *UserInterface) readPixels(img *Image, pixels []byte, region image.Recta
 	return nil
 }
 
-// readPixelsAsync starts reading pixels and returns the channel to receive the result.
+// readPixelsAsync starts reading pixels and returns its result.
 //
 // A read-back never fails to be enqueued, so this reports a failure to read the pixels only via the
-// returned channel.
-func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.Rectangle) <-chan error {
+// returned result.
+func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	if !u.running.Load() {
 		panic("ui: ReadPixelsAsync cannot be called before the game starts")
 	}
@@ -223,17 +223,38 @@ func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.
 	return result
 }
 
-// abortedReadPixels returns a channel that immediately receives the error that stopped the graphics
-// driver.
-//
-// A read-back must always receive a result, so a read-back that cannot even be enqueued reports the
-// error that prevented it.
-func (u *UserInterface) abortedReadPixels() <-chan error {
-	err := u.error()
-	ch := make(chan error, 1)
-	ch <- err
-	close(ch)
-	return ch
+// abortedReadPixels returns the error that stopped the graphics driver.
+func (u *UserInterface) abortedReadPixels() *graphicscommand.PixelReadback {
+	return graphicscommand.NewCompletedPixelReadback(u.error())
+}
+
+// FlushAndPollPixelReadbacks submits pending commands and checks read-back completion.
+func (u *UserInterface) FlushAndPollPixelReadbacks() {
+	if err := atlas.FlushAndPollPixelReadbacks(u.graphicsDriver); err != nil {
+		u.setError(err)
+	}
+}
+
+// FlushAndWaitPixelReadbacks completes the given read-backs and returns their first error, if any.
+func (u *UserInterface) FlushAndWaitPixelReadbacks(results []*graphicscommand.PixelReadback) error {
+	if err := atlas.FlushAndWaitPixelReadbacks(u.graphicsDriver, results); err != nil {
+		u.setError(err)
+	}
+	for _, result := range results {
+		done, err := result.Poll()
+		if !done {
+			panic("ui: pixel read-back is incomplete after waiting")
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// TryPollPixelReadbacks requests a completion check if the render loop is accepting work.
+func (u *UserInterface) TryPollPixelReadbacks() {
+	graphicscommand.TryPollPixelReadbacks()
 }
 
 func (u *UserInterface) dumpScreenshot(mipmap *mipmap.Mipmap, name string, blackbg bool) (string, error) {

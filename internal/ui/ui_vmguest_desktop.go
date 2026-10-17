@@ -896,22 +896,7 @@ func (h *vmHostClient) query(msg *vmprotocol.GuestMessage, want vmprotocol.HostM
 	return &answer, nil
 }
 
-func (h *vmHostClient) ReadPixels(id graphicsdriver.ImageID, regions []image.Rectangle) ([][]byte, error) {
-	answer, err := h.query(&vmprotocol.GuestMessage{
-		Kind:        vmprotocol.GuestMessageKindQueryReadPixels,
-		ReadImageID: id,
-		ReadRegions: regions,
-	}, vmprotocol.HostMessageKindAnswerReadPixels)
-	if err != nil {
-		return nil, err
-	}
-	if answer.Err != "" {
-		return nil, errors.New(answer.Err)
-	}
-	return answer.Pixels, nil
-}
-
-func (h *vmHostClient) ReadPixelsAsync(id graphicsdriver.ImageID, args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelsReadback, error) {
+func (h *vmHostClient) ReadPixelsAsync(id graphicsdriver.ImageID, args []graphicsdriver.PixelsArgs) (graphicsdriver.PixelReadback, error) {
 	regions := make([]image.Rectangle, len(args))
 	for j, a := range args {
 		regions[j] = a.Region
@@ -927,22 +912,37 @@ func (h *vmHostClient) ReadPixelsAsync(id graphicsdriver.ImageID, args []graphic
 	if answer.Err != "" {
 		return nil, errors.New(answer.Err)
 	}
-	return &vmPixelsReadback{
+	return &vmPixelReadback{
 		host: h,
 		id:   answer.ReadbackID,
 		args: slices.Clone(args),
 	}, nil
 }
 
-type vmPixelsReadback struct {
+type vmPixelReadback struct {
 	host *vmHostClient
 	id   uint64
 	args []graphicsdriver.PixelsArgs
 }
 
-func (r *vmPixelsReadback) Poll() (bool, error) {
+func (r *vmPixelReadback) Wait() error {
+	done, err := r.readPixels(vmprotocol.GuestMessageKindQueryWaitReadPixels)
+	if err != nil {
+		return err
+	}
+	if !done {
+		return errors.New("ui: host returned an incomplete pixel read-back from Wait")
+	}
+	return nil
+}
+
+func (r *vmPixelReadback) Poll() (bool, error) {
+	return r.readPixels(vmprotocol.GuestMessageKindQueryPollReadPixels)
+}
+
+func (r *vmPixelReadback) readPixels(kind vmprotocol.GuestMessageKind) (bool, error) {
 	answer, err := r.host.query(&vmprotocol.GuestMessage{
-		Kind:       vmprotocol.GuestMessageKindQueryPollReadPixels,
+		Kind:       kind,
 		ReadbackID: r.id,
 	}, vmprotocol.HostMessageKindAnswerReadPixelsAsync)
 	if err != nil {
@@ -962,7 +962,7 @@ func (r *vmPixelsReadback) Poll() (bool, error) {
 	return true, nil
 }
 
-func (r *vmPixelsReadback) Dispose() {
+func (r *vmPixelReadback) Dispose() {
 	// Once the operation loop ends, the host no longer receives guest messages.
 	// The host releases the remaining read-backs when closing the session.
 	if !r.host.closed {

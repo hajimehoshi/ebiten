@@ -55,19 +55,20 @@ func takeScreenshot(screen *Image, transparent bool) error {
 }
 
 func dumpInternalImages() error {
-	dumpedDir, err := ui.Get().DumpImages("internalimages_" + datetimeForFilename())
-	if err != nil {
-		return err
-	}
+	dir := "internalimages_" + datetimeForFilename()
 	// Use the home directory for mobiles as a provisional implementation.
 	if runtime.GOOS == "android" || runtime.GOOS == "ios" {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			return err
 		}
-		dumpedDir = filepath.Join(home, dumpedDir)
+		dir = filepath.Join(home, dir)
 	}
-	if _, err := fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dumpedDir); err != nil {
+	dir, err := ui.Get().DumpImages(dir)
+	if err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(os.Stderr, "Dumped the internal images at: %s\n", dir); err != nil {
 		return err
 	}
 	return nil

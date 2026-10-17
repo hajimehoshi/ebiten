@@ -74,7 +74,7 @@ func (o object) points() [][2]float64 {
 		points = append(points, [2]float64{wall.X2, wall.Y2})
 	}
 	p := [2]float64{o.walls[0].X1, o.walls[0].Y1}
-	if p[0] != points[len(points)-1][0] && p[1] != points[len(points)-1][1] {
+	if p[0] != points[len(points)-1][0] || p[1] != points[len(points)-1][1] {
 		points = append(points, [2]float64{o.walls[0].X1, o.walls[0].Y1})
 	}
 	return points

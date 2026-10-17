@@ -27,11 +27,6 @@ extern "C" ebitengine_Error ebitengine_NewImage(int *image, int width,
   return {};
 }
 
-extern "C" void ebitengine_ReadPixels(int image, uint8_t *pixels,
-                                      ebitengine_Region region) {}
-
-extern "C" ebitengine_Error ebitengine_FlushReadPixels(int image) { return {}; }
-
 extern "C" ebitengine_Error
 ebitengine_ReadPixelsAsync(int *readback, int image,
                            const ebitengine_Region *regions, int region_count) {
@@ -39,15 +34,21 @@ ebitengine_ReadPixelsAsync(int *readback, int image,
   return {};
 }
 
-extern "C" ebitengine_Error ebitengine_PollPixelsReadback(int readback,
-                                                          int region_index,
-                                                          uint8_t *pixels,
-                                                          bool *done) {
+extern "C" ebitengine_Error ebitengine_PollPixelReadback(int readback,
+                                                         int region_index,
+                                                         uint8_t *pixels,
+                                                         bool *done) {
   *done = true;
   return {};
 }
 
-extern "C" void ebitengine_DisposePixelsReadback(int readback) {}
+extern "C" ebitengine_Error ebitengine_WaitPixelReadback(int readback,
+                                                         int region_index,
+                                                         uint8_t *pixels) {
+  return {};
+}
+
+extern "C" void ebitengine_DisposePixelReadback(int readback) {}
 
 extern "C" void ebitengine_WritePixels(int image, const uint8_t *pixels,
                                        ebitengine_Region region) {}

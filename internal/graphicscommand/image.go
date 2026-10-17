@@ -154,21 +154,20 @@ func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 // ReadPixels reads the image's pixels.
 // ReadPixels returns an error when an error happens in the graphics driver.
 func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, args []graphicsdriver.PixelsArgs) error {
-	i.flushBufferedWritePixels()
-	c := &readPixelsCommand{
-		img:  i,
-		args: args,
-	}
-	theCommandQueueManager.enqueueCommand(c)
-	if err := theCommandQueueManager.flush(graphicsDriver, graphicsdriver.FlushModeIntermediate); err != nil {
+	result := i.ReadPixelsAsync(args)
+	if err := FlushAndWaitPixelReadbacks(graphicsDriver, []*PixelReadback{result}); err != nil {
 		return err
 	}
-	return nil
+	done, err := result.Poll()
+	if !done {
+		panic("graphicscommand: pixel read-back is not complete after waiting")
+	}
+	return err
 }
 
-// ReadPixelsAsync queues a read of the image's pixels and returns its result channel.
+// ReadPixelsAsync queues a read of the image's pixels and returns its result.
 // ReadPixelsAsync must not be called after the image is disposed.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) <-chan error {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) *PixelReadback {
 	i.flushBufferedWritePixels()
 	req := newReadPixelsRequest(args)
 	theCommandQueueManager.enqueueCommand(&readPixelsAsyncCommand{

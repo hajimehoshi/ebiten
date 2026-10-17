@@ -110,6 +110,10 @@ func (u *UserInterface) init() error {
 }
 
 func (u *UserInterface) Run(game Game, options *RunOptions) error {
+	if err := setVMHostThreadMode(options.SingleThread); err != nil {
+		return err
+	}
+
 	b := maybeNewVMGuestBackend(u, options)
 	vmguest.MarkGuest(b != nil)
 	if b != nil {

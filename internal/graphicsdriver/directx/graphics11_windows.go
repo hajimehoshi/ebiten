@@ -16,6 +16,7 @@ package directx
 
 import (
 	"fmt"
+	"image"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -23,6 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/readbackcache"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
@@ -156,6 +158,10 @@ type graphics11 struct {
 
 	shaders      map[graphicsdriver.ShaderID]*shader11
 	nextShaderID graphicsdriver.ShaderID
+
+	// stagingTextures are idle staging textures for pixel read-backs available for reuse, keyed by their size.
+	// Only completed read-backs enter this cache; pending read-backs own their textures.
+	stagingTextures readbackcache.Cache[image.Point, *_ID3D11Texture2D]
 
 	vertexBuffer            *_ID3D11Buffer
 	vertexBufferSizeInBytes uint32

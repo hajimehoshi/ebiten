@@ -123,3 +123,36 @@ func TestGLFWInputScrollAnomalyDropsBothChannels(t *testing.T) {
 		t.Errorf("scroll: got %v, want 100", s.ScrollDeltaY)
 	}
 }
+
+func TestGLFWInputModifierPolling(t *testing.T) {
+	i := ui.NewGLFWInputForTest()
+	for range 1 << 20 {
+		i.SyncModKeysForTest(0)
+	}
+	i.SyncModKeysForTest(glfw.ModControl | glfw.ModShift)
+	var s ui.InputState
+	i.ReadForTest(&s)
+	pressed := s.KeyPressedTimes[ui.KeyControlLeft]
+	if pressed == 0 {
+		t.Error("Control was not pressed")
+	}
+	if got := s.KeyPressedTimes[ui.KeyShiftLeft]; got != pressed {
+		t.Errorf("Shift press time: got %v, want %v", got, pressed)
+	}
+	for range 1 << 20 {
+		i.SyncModKeysForTest(glfw.ModControl | glfw.ModShift)
+	}
+	i.ReadForTest(&s)
+	if got := s.KeyPressedTimes[ui.KeyControlLeft]; got != pressed {
+		t.Errorf("Control press time changed: got %v, want %v", got, pressed)
+	}
+	i.SyncModKeysForTest(0)
+	i.ReadForTest(&s)
+	released := s.KeyReleasedTimes[ui.KeyControlLeft]
+	if released <= pressed {
+		t.Errorf("Control release time %v must be after press time %v", released, pressed)
+	}
+	if got := s.KeyReleasedTimes[ui.KeyShiftLeft]; got != released {
+		t.Errorf("Shift release time: got %v, want %v", got, released)
+	}
+}

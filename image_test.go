@@ -372,6 +372,49 @@ func TestImageReadPixelsAsync(t *testing.T) {
 	})
 }
 
+func TestPixelReadbackWait(t *testing.T) {
+	for _, scenario := range []string{"SingleWaiter", "ConcurrentWaiters"} {
+		t.Run(scenario, func(t *testing.T) {
+			img := ebiten.NewImage(8, 8)
+			sub := img.SubImage(image.Rect(2, 3, 4, 5)).(*ebiten.Image)
+			sub.Fill(color.RGBA{R: 123, A: 255})
+			pixels := make([]byte, 16)
+			result := sub.ReadPixelsAsync(pixels)
+			if done, err := result.Poll(); done || err != nil {
+				t.Errorf("unsubmitted read: got (%v, %v), want (false, nil)", done, err)
+			}
+			sub.Fill(color.White)
+			img.Deallocate()
+			check := func() {
+				if err := result.Wait(); err != nil {
+					t.Error(err)
+					return
+				}
+				for j, got := range pixels {
+					if want := []byte{123, 0, 0, 255}[j%4]; got != want {
+						t.Errorf("pixels[%d]: got %d, want %d", j, got, want)
+					}
+				}
+				if done, err := result.Poll(); !done || err != nil {
+					t.Errorf("completed read: got (%v, %v), want (true, nil)", done, err)
+				}
+				if err := result.Wait(); err != nil {
+					t.Errorf("repeated wait: %v", err)
+				}
+			}
+			if scenario == "SingleWaiter" {
+				check()
+				return
+			}
+			var wg sync.WaitGroup
+			for range 8 {
+				wg.Go(check)
+			}
+			wg.Wait()
+		})
+	}
+}
+
 func TestImageDeallocate(t *testing.T) {
 	img := ebiten.NewImage(16, 16)
 	img.Fill(color.White)

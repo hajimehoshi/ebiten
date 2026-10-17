@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"testing"
 	"time"
 
@@ -197,25 +198,12 @@ func flushEndFrame(t *testing.T) {
 	}
 }
 
-func requireReadPixelsAsyncResult(t *testing.T, ch <-chan error) error {
+func requireReadPixelsAsyncResult(t *testing.T, result *graphicscommand.PixelReadback) error {
 	t.Helper()
 	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
-		select {
-		case err, ok := <-ch:
-			if ok && err == nil {
-				t.Error("a successful read-back must close without sending a value")
-			}
-			select {
-			case err, ok := <-ch:
-				if ok || err != nil {
-					t.Errorf("the result channel must be closed: got (%v, %v)", err, ok)
-				}
-			case <-time.After(5 * time.Second):
-				t.Error("the result channel was not closed")
-			}
+		if done, err := result.Poll(); done {
 			return err
-		default:
 		}
 		flushEndFrame(t)
 		time.Sleep(time.Millisecond)
@@ -242,22 +230,64 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 	const w, h = 16, 16
 	region := image.Rect(0, 0, w, h)
 
+	t.Run("WaitAfterOverwriteAndDispose", func(t *testing.T) {
+		img := graphicscommand.NewImage(w, h, false, "")
+		fillImage(t, img, color.RGBA{R: 0x80, A: 0xff})
+		pixels := make([]byte, 4*w*h)
+		result := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+			{
+				Pixels: pixels,
+				Region: region,
+			},
+		})
+		fillImage(t, img, color.RGBA{G: 0xff, A: 0xff})
+		overwrittenPixels := make([]byte, 4*w*h)
+		overwrittenResult := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+			{
+				Pixels: overwrittenPixels,
+				Region: region,
+			},
+		})
+		img.Dispose()
+		if err := graphicscommand.FlushAndWaitPixelReadbacks(ui.Get().GraphicsDriverForTesting(), []*graphicscommand.PixelReadback{result, overwrittenResult}); err != nil {
+			t.Fatal(err)
+		}
+		if done, err := result.Poll(); !done || err != nil {
+			t.Errorf("read-back after waiting: done = %t, err = %v", done, err)
+		}
+		if done, err := overwrittenResult.Poll(); !done || err != nil {
+			t.Errorf("overwritten read-back after waiting: done = %t, err = %v", done, err)
+		}
+		for i := range w * h {
+			if got, want := (color.RGBA{R: overwrittenPixels[4*i], G: overwrittenPixels[4*i+1], B: overwrittenPixels[4*i+2], A: overwrittenPixels[4*i+3]}), (color.RGBA{G: 0xff, A: 0xff}); got != want {
+				t.Errorf("overwritten pixel %d = %v, want %v", i, got, want)
+				break
+			}
+		}
+		for i := range w * h {
+			if got, want := (color.RGBA{R: pixels[4*i], G: pixels[4*i+1], B: pixels[4*i+2], A: pixels[4*i+3]}), (color.RGBA{R: 0x80, A: 0xff}); got != want {
+				t.Errorf("pixel %d = %v, want %v", i, got, want)
+				break
+			}
+		}
+	})
+
 	t.Run("ReusedBuffersInFlight", func(t *testing.T) {
 		const count = 4
 		for round := range 2 {
 			pixels := make([][]byte, count)
-			chans := make([]<-chan error, count)
+			results := make([]*graphicscommand.PixelReadback, count)
 			for i := range count {
 				img := graphicscommand.NewImage(w, h, false, "")
 				fillImage(t, img, color.RGBA{R: byte(0x40 + count*round + i), A: 0xff})
 				pixels[i] = make([]byte, 4*w*h)
-				chans[i] = img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+				results[i] = img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
 					Pixels: pixels[i],
 					Region: region,
 				}})
 			}
-			for i, ch := range chans {
-				if err := requireReadPixelsAsyncResult(t, ch); err != nil {
+			for i, result := range results {
+				if err := requireReadPixelsAsyncResult(t, result); err != nil {
 					t.Errorf("round %d, read-back %d: %v", round, i, err)
 					continue
 				}
@@ -291,7 +321,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 				Region: region,
 			},
 		}
-		ch := img.ReadPixelsAsync(args)
+		result := img.ReadPixelsAsync(args)
 		img.WritePixels(graphics.NewManagedBytes(4*w*h, func(bs []byte) {
 			clear(bs)
 		}), region)
@@ -303,7 +333,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			},
 		})
 		img.Dispose()
-		if err := requireReadPixelsAsyncResult(t, ch); err != nil {
+		if err := requireReadPixelsAsyncResult(t, result); err != nil {
 			t.Error(err)
 			return
 		}
@@ -331,20 +361,20 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 		const count = 16
 		clrs := make([]color.RGBA, count)
 		pixels := make([][]byte, count)
-		chans := make([]<-chan error, count)
+		results := make([]*graphicscommand.PixelReadback, count)
 		for i := range count {
 			clr := color.RGBA{R: byte(0x40 + i), G: byte(0x80 + i), B: byte(0xc0 + i), A: 0xff}
 			clrs[i] = clr
 			img := graphicscommand.NewImage(w, h, false, "")
 			fillImage(t, img, clr)
 			pixels[i] = make([]byte, 4*w*h)
-			chans[i] = img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+			results[i] = img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
 				Pixels: pixels[i],
 				Region: region,
 			}})
 		}
-		for i, ch := range chans {
-			if err := requireReadPixelsAsyncResult(t, ch); err != nil {
+		for i, result := range results {
+			if err := requireReadPixelsAsyncResult(t, result); err != nil {
 				t.Errorf("read-back %d: %v", i, err)
 				continue
 			}
@@ -371,11 +401,11 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 		flushEndFrame(t)
 
 		pix := make([]byte, 4*w*h)
-		ch := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+		result := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
 			Pixels: pix,
 			Region: region,
 		}})
-		if err := requireReadPixelsAsyncResult(t, ch); err != nil {
+		if err := requireReadPixelsAsyncResult(t, result); err != nil {
 			t.Error(err)
 			return
 		}
@@ -383,4 +413,75 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			t.Errorf("pixels[0] = %#x, want %#x", p, byte(0x55))
 		}
 	})
+}
+
+func TestShaderUniformsAfterFramesWithoutPresenting(t *testing.T) {
+	const w, h = 16, 16
+	g := ui.Get().GraphicsDriverForTesting()
+
+	ir, err := graphics.CompileShader([]byte(`//kage:unit pixels
+
+package main
+
+var Color vec4
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return Color
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := graphicscommand.NewShader(ir, "")
+	dst := graphicscommand.NewImage(w, h, false, "")
+	vs := quadVertices(w, h)
+	is := graphics.QuadIndices()
+	dr := image.Rect(0, 0, w, h)
+
+	endFrame := func() {
+		t.Helper()
+		flushEndFrame(t)
+		if err := graphicscommand.FlushAndPollPixelReadbacks(g); err != nil {
+			t.Fatal(err)
+		}
+	}
+	endFrame()
+
+	clrs := []color.RGBA{
+		{R: 0xff, A: 0xff},
+		{R: 0xff, A: 0xff},
+		{G: 0xff, A: 0xff},
+	}
+	for i, clr := range clrs {
+		if i > 0 {
+			endFrame()
+		}
+		uniforms := []uint32{
+			math.Float32bits(float32(clr.R) / 0xff),
+			math.Float32bits(float32(clr.G) / 0xff),
+			math.Float32bits(float32(clr.B) / 0xff),
+			math.Float32bits(float32(clr.A) / 0xff),
+		}
+		dst.DrawTriangles([graphics.ShaderSrcImageCount]*graphicscommand.Image{}, vs, is, graphicsdriver.BlendCopy, dr, [graphics.ShaderSrcImageCount]image.Rectangle{}, s, uniforms)
+	}
+
+	pix := make([]byte, 4*w*h)
+	if err := dst.ReadPixels(g, []graphicsdriver.PixelsArgs{
+		{
+			Pixels: pix,
+			Region: dr,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	want := clrs[len(clrs)-1]
+	for j := range h {
+		for i := range w {
+			idx := 4 * (i + w*j)
+			got := color.RGBA{R: pix[idx], G: pix[idx+1], B: pix[idx+2], A: pix[idx+3]}
+			if got != want {
+				t.Errorf("dst.At(%d, %d) after %d frames ending without presenting: got %v, want: %v", i, j, len(clrs)-1, got, want)
+			}
+		}
+	}
 }

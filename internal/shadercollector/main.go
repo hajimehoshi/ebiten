@@ -41,6 +41,7 @@ import (
 	"golang.org/x/tools/go/ast/inspector"
 	"golang.org/x/tools/go/packages"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/legacyshader"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/glsl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
@@ -553,12 +554,12 @@ func compile(shader *Shader, targets []string) error {
 	for _, target := range targets {
 		switch target {
 		case "glsl":
-			vs, fs := glsl.Compile(ir, glsl.GLSLVersionDefault)
+			vs, fs := glsl.Compile(ir, glsl.GLSLVersionDefault, graphics.ProjectionMatrixUniformVariableIndex)
 			shader.GLSL = &GLSL{
 				Vertex:   vs,
 				Fragment: fs,
 			}
-			esVS, esFS := glsl.Compile(ir, glsl.GLSLVersionES300)
+			esVS, esFS := glsl.Compile(ir, glsl.GLSLVersionES300, graphics.ProjectionMatrixUniformVariableIndex)
 			shader.GLSLES = &GLSLES{
 				Vertex:   esVS,
 				Fragment: esFS,

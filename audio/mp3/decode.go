@@ -71,7 +71,7 @@ func (s *Stream) Read(buf []byte) (int, error) {
 // rounded down to a sample boundary.
 func (s *Stream) Seek(offset int64, whence int) (int64, error) {
 	if !s.seekable {
-		return 0, fmt.Errorf("mp3: the source must be io.Seeker to seek: %w", errors.ErrUnsupported)
+		return 0, fmt.Errorf("mp3: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
 	// A query for the current position does not seek the decoder. A seek restarts decoding from the

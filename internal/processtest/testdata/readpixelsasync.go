@@ -26,7 +26,7 @@ import (
 )
 
 type game struct {
-	result <-chan error
+	result *ebiten.PixelReadback
 	pixels []byte
 	image  *ebiten.Image
 	reads  int
@@ -44,8 +44,7 @@ func (g *game) Update() error {
 		g.image.Deallocate()
 		return nil
 	}
-	select {
-	case err := <-g.result:
+	if done, err := g.result.Poll(); done {
 		if err != nil {
 			return err
 		}
@@ -63,9 +62,8 @@ func (g *game) Update() error {
 		img.Fill(color.White)
 		g.result = img.ReadPixelsAsync(make([]byte, 4))
 		return ebiten.Termination
-	default:
-		return nil
 	}
+	return nil
 }
 
 func (*game) Draw(*ebiten.Image) {
@@ -81,12 +79,25 @@ func main() {
 	if err := ebiten.RunGame(g); err != nil {
 		panic(err)
 	}
-	select {
-	case err := <-g.result:
-		if err == nil {
-			panic("unsubmitted read-back succeeded")
+	const waiters = 8
+	done := make(chan error, waiters)
+	for range waiters {
+		go func() { done <- g.result.Wait() }()
+	}
+	for range waiters {
+		select {
+		case err := <-done:
+			if err == nil {
+				panic("unsubmitted read-back succeeded")
+			}
+			if again := g.result.Wait(); again != err {
+				panic("read-back error changed")
+			}
+			if complete, again := g.result.Poll(); !complete || again != err {
+				panic("poll disagrees with wait")
+			}
+		case <-time.After(5 * time.Second):
+			panic("unsubmitted read-back was not aborted on exit")
 		}
-	case <-time.After(5 * time.Second):
-		panic("unsubmitted read-back was not aborted on exit")
 	}
 }

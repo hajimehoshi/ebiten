@@ -22,22 +22,32 @@ import (
 )
 
 type readback struct {
+	graphics      *Graphics
 	commandBuffer mtl.CommandBuffer
 	buffer        mtl.Buffer
+	size          int
 	args          []graphicsdriver.PixelsArgs
+
+	// reusable is set only after the command buffer and every copy have succeeded.
+	reusable bool
 }
 
 // ReadPixelsAsync records texture copies without waiting for the GPU.
-func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelsReadback, err error) {
+func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdriver.PixelReadback, err error) {
 	// Validate everything before recording commands or allocating resources.
-	var size uintptr
+	var size int
 	for _, arg := range args {
 		if got, want := len(arg.Pixels), 4*arg.Region.Dx()*arg.Region.Dy(); got != want {
 			return nil, fmt.Errorf("metal: len(Pixels) must be %d but %d at ReadPixelsAsync", want, got)
 		}
-		size += uintptr(len(arg.Pixels))
+		size += len(arg.Pixels)
 	}
-	r := &readback{args: args}
+	g := i.graphics
+	r := &readback{
+		graphics: g,
+		size:     size,
+		args:     args,
+	}
 	defer func() {
 		if err != nil {
 			r.Dispose()
@@ -46,11 +56,10 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 	if size == 0 {
 		return r, nil
 	}
-	g := i.graphics
 	// A separate shared buffer preserves the capture across later writes or disposal.
-	r.buffer, err = g.view.getMTLDevice().NewBufferWithLength(size, mtl.ResourceStorageModeShared)
+	r.buffer, err = g.acquireReadbackBuffer(size)
 	if err != nil {
-		return nil, fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
+		return nil, err
 	}
 
 	g.flushRenderCommandEncoderIfNeeded()
@@ -96,7 +105,17 @@ func (r *readback) Poll() (bool, error) {
 		mtl.CopyFromBufferAt(r.buffer, arg.Pixels, offset)
 		offset += uintptr(len(arg.Pixels))
 	}
+	r.reusable = true
 	return true, nil
+}
+
+func (r *readback) Wait() error {
+	if r.commandBuffer == (mtl.CommandBuffer{}) {
+		return nil
+	}
+	r.commandBuffer.WaitUntilCompleted()
+	_, err := r.Poll()
+	return err
 }
 
 // Dispose releases the staging buffer and command buffer.
@@ -104,12 +123,36 @@ func (r *readback) Dispose() {
 	// Metal command buffers retain encoded resources until execution finishes,
 	// including when a pending read-back is discarded during shutdown.
 	if r.buffer != (mtl.Buffer{}) {
-		r.buffer.Release()
+		if r.reusable {
+			r.graphics.releaseReadbackBuffer(r.buffer, r.size)
+		} else {
+			r.buffer.Release()
+		}
 		r.buffer = mtl.Buffer{}
 	}
 	r.args = nil
 	if r.commandBuffer != (mtl.CommandBuffer{}) {
 		r.commandBuffer.Release()
 		r.commandBuffer = mtl.CommandBuffer{}
+	}
+}
+
+// acquireReadbackBuffer returns a shared buffer of size bytes.
+func (g *Graphics) acquireReadbackBuffer(size int) (mtl.Buffer, error) {
+	if b, ok := g.readbackBuffers.Take(size); ok {
+		return b, nil
+	}
+	b, err := g.view.getMTLDevice().NewBufferWithLength(uintptr(size), mtl.ResourceStorageModeShared)
+	if err != nil {
+		return mtl.Buffer{}, fmt.Errorf("metal: device.NewBufferWithLength failed: %w", err)
+	}
+	return b, nil
+}
+
+// releaseReadbackBuffer caches b, a shared buffer of size bytes whose read completed successfully,
+// for reuse, or releases it.
+func (g *Graphics) releaseReadbackBuffer(b mtl.Buffer, size int) {
+	for _, dropped := range g.readbackBuffers.Put(size, b, size) {
+		dropped.Release()
 	}
 }

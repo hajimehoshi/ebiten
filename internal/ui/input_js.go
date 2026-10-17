@@ -387,7 +387,9 @@ func (u *UserInterface) KeyName(key Key) string {
 }
 
 func (u *UserInterface) UpdateInputFromEvent(e js.Value) {
-	u.updateInputFromEvent(e)
+	if err := u.updateInputFromEvent(e); err != nil {
+		u.setError(err)
+	}
 }
 
 func (u *UserInterface) saveCursorPosition() {

@@ -139,6 +139,39 @@ func TestFillPathAfterLargePath(t *testing.T) {
 	}
 }
 
+func TestFillPathAntialiasWideDestination(t *testing.T) {
+	// These widths exercise rounding around the stencil atlas size limit.
+	for _, width := range []int{2047, 2048, 2049, 2063, 2064} {
+		t.Run(fmt.Sprintf("width=%d", width), func(t *testing.T) {
+			const height = 16
+			dst := ebiten.NewImage(width, height)
+			defer dst.Deallocate()
+
+			var path vector.Path
+			path.MoveTo(0, 0)
+			path.LineTo(float32(width), 0)
+			path.LineTo(float32(width), height)
+			path.LineTo(0, height)
+			path.Close()
+			vector.FillPath(dst, &path, nil, &vector.DrawPathOptions{
+				AntiAlias: true,
+			})
+
+			pixels := make([]byte, 4*width*height)
+			dst.ReadPixels(pixels)
+			for y := range height {
+				for x := range width {
+					i := 4 * (y*width + x)
+					if got := pixels[i : i+4]; !bytes.Equal(got, []byte{255, 255, 255, 255}) {
+						t.Errorf("pixel at (%d, %d): got %v, want opaque white", x, y, got)
+						return
+					}
+				}
+			}
+		})
+	}
+}
+
 func TestFillPathZeroCoverage(t *testing.T) {
 	for _, aa := range []bool{false, true} {
 		for _, rule := range []vector.FillRule{vector.FillRuleNonZero, vector.FillRuleEvenOdd} {

@@ -326,7 +326,7 @@ func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	defer p.mu.Unlock()
 	s, ok := p.src.(io.Seeker)
 	if !ok {
-		return 0, fmt.Errorf("vmaudio: the source must be an io.Seeker: %w", errors.ErrUnsupported)
+		return 0, fmt.Errorf("vmaudio: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 	n, err := s.Seek(offset, whence)
 	if err != nil {

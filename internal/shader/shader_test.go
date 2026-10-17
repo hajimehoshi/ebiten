@@ -172,7 +172,7 @@ func TestCompile(t *testing.T) {
 			}
 
 			// GLSL
-			vs, fs := glsl.Compile(s, glsl.GLSLVersionDefault)
+			vs, fs := glsl.Compile(s, glsl.GLSLVersionDefault, -1)
 			if got, want := glslVertexNormalize(vs), glslVertexNormalize(string(tc.VS)); got != want {
 				compare(t, "GLSL Vertex", got, want)
 			}
@@ -583,7 +583,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, fs := glsl.Compile(prog, glsl.GLSLVersionDefault)
+	_, fs := glsl.Compile(prog, glsl.GLSLVersionDefault, -1)
 	if !strings.Contains(fs, "return;") {
 		t.Errorf("GLSL fragment shader should contain a bare return, but got:\n%s", fs)
 	}
@@ -617,7 +617,7 @@ func Fragment(position vec4, texCoord vec2, color vec4) vec4 {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, fs := glsl.Compile(s, glsl.GLSLVersionDefault)
+	_, fs := glsl.Compile(s, glsl.GLSLVersionDefault, -1)
 	if strings.Contains(fs, "-9223372036854775808") {
 		t.Errorf("GLSL must not contain the overflowed int64 literal, but got:\n%s", fs)
 	}
@@ -760,7 +760,7 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, fragment := glsl.Compile(p, glsl.GLSLVersionDefault)
+	_, fragment := glsl.Compile(p, glsl.GLSLVersionDefault, -1)
 	if strings.Contains(fragment, "[1.0]") {
 		t.Errorf("GLSL contains a floating-point array index:\n%s", fragment)
 	}
@@ -834,12 +834,80 @@ func TestCompileUnaryOperandType(t *testing.T) {
 	}
 }
 
+func TestCompileCompoundAssignmentErrors(t *testing.T) {
+	cases := []struct {
+		stmt string
+		err  bool
+	}{
+		{
+			stmt: "var f float; f <<= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var f float; f >>= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var v vec2; v <<= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var v vec2; v >>= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var m mat2; m <<= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var m mat2; m >>= 2.0",
+			err:  true,
+		},
+		{
+			stmt: "var f float; f += 2.0",
+			err:  false,
+		},
+		{
+			stmt: "var v vec2; v *= 2.0",
+			err:  false,
+		},
+		{
+			stmt: "var m mat2; m *= 2.0",
+			err:  false,
+		},
+		{
+			stmt: "var i int; i <<= 2",
+			err:  false,
+		},
+		{
+			stmt: "var i int; i >>= 2",
+			err:  false,
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.stmt, func(t *testing.T) {
+			err := compileFragmentStmt(c.stmt)
+			if !c.err {
+				if err != nil {
+					t.Errorf("Compile must not return an error, but got %v", err)
+				}
+				return
+			}
+			var perr *shader.ParseError
+			if !errors.As(err, &perr) {
+				t.Errorf("Compile must return a *shader.ParseError, but got %v", err)
+			} else if got, want := len(perr.Positions()), 1; got != want {
+				t.Errorf("the number of the errors: got: %d, want: %d (%v)", got, want, err)
+			}
+		})
+	}
+}
+
 func TestCompileCompositeLitBoolConstant(t *testing.T) {
 	err := compileFragmentStmt("_ = [2]bool{1, 2}")
-	var perr *shader.ParseError
 	if err == nil {
 		t.Errorf("Compile must return an error for a non-bool constant in a bool array literal, but got nil")
-	} else if !errors.As(err, &perr) {
+	} else if perr, ok := errors.AsType[*shader.ParseError](err); !ok {
 		t.Errorf("Compile must return a *shader.ParseError, but got %v", err)
 	} else if got, want := len(perr.Positions()), 1; got != want {
 		t.Errorf("the number of the errors: got: %d, want: %d (%v)", got, want, err)
@@ -1636,7 +1704,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 			if err != nil {
 				return
 			}
-			glsl.Compile(s, glsl.GLSLVersionDefault)
+			glsl.Compile(s, glsl.GLSLVersionDefault, -1)
 			hlsl.Compile(s)
 			msl.Compile(s)
 		})
