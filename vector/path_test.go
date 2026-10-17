@@ -1204,3 +1204,34 @@ func TestAddStrokeAllocs(t *testing.T) {
 		})
 	}
 }
+
+func TestAddStrokeInvalidWidth(t *testing.T) {
+	var src vector.Path
+	src.MoveTo(4, 4)
+	src.LineTo(28, 28)
+	for _, width := range []float32{0, -2, float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
+		var dst vector.Path
+		dst.MoveTo(1, 2)
+		dst.LineTo(3, 4)
+		before := vector.PathOperationsString(&dst)
+		checkStrokeWidthPanic(t, width, func() {
+			dst.AddStroke(&src, &vector.AddStrokeOptions{
+				StrokeOptions: vector.StrokeOptions{
+					Width: width,
+				},
+			})
+		})
+		if got := vector.PathOperationsString(&dst); got != before {
+			t.Errorf("width %v changed the path", width)
+		}
+		// Continuing the path checks that rejection preserved its current position.
+		dst.LineTo(5, 6)
+		var want vector.Path
+		want.MoveTo(1, 2)
+		want.LineTo(3, 4)
+		want.LineTo(5, 6)
+		if vector.PathOperationsString(&dst) != vector.PathOperationsString(&want) {
+			t.Errorf("width %v changed subsequent path operations", width)
+		}
+	}
+}

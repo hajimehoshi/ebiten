@@ -676,10 +676,12 @@ func TestZeroSizeDrawing(t *testing.T) {
 					vector.DrawFilledRect(dst, 16, 16, zero, size, color.White, aa)
 					vector.DrawFilledRect(dst, 16, 16, size, zero, color.White, aa)
 				}
-				vector.StrokeRect(dst, 16, 16, zero, zero, 4, color.White, aa)
+				for _, width := range []float32{4, -2, float32(math.NaN()), float32(math.Inf(1))} {
+					vector.StrokeRect(dst, 16, 16, zero, zero, width, color.White, aa)
+					vector.StrokeCircle(dst, 16, 16, zero, width, color.White, aa)
+				}
 				vector.FillCircle(dst, 16, 16, zero, color.White, aa)
 				vector.DrawFilledCircle(dst, 16, 16, zero, color.White, aa)
-				vector.StrokeCircle(dst, 16, 16, zero, 4, color.White, aa)
 				after := make([]byte, len(before))
 				dst.ReadPixels(after)
 				if !bytes.Equal(after, before) {
@@ -726,6 +728,75 @@ func TestStrokeRectZeroDimension(t *testing.T) {
 						}
 					})
 				}
+			}
+		}
+	}
+}
+
+func checkStrokeWidthPanic(t *testing.T, width float32, f func()) {
+	t.Helper()
+	defer func() {
+		want := width < 0 && !math.IsInf(float64(width), -1)
+		if got := recover() != nil; got != want {
+			t.Errorf("panicked: %v, want: %v", got, want)
+		}
+	}()
+	f()
+}
+
+func TestInvalidStrokeWidth(t *testing.T) {
+	var path vector.Path
+	path.MoveTo(4, 4)
+	path.LineTo(28, 28)
+	draws := []struct {
+		name string
+		draw func(*ebiten.Image, float32, bool)
+	}{
+		{
+			name: "Line",
+			draw: func(dst *ebiten.Image, width float32, aa bool) {
+				vector.StrokeLine(dst, 4, 4, 28, 28, width, color.White, aa)
+			},
+		},
+		{
+			name: "Rect",
+			draw: func(dst *ebiten.Image, width float32, aa bool) {
+				vector.StrokeRect(dst, 4, 4, 24, 24, width, color.White, aa)
+			},
+		},
+		{
+			name: "Circle",
+			draw: func(dst *ebiten.Image, width float32, aa bool) {
+				vector.StrokeCircle(dst, 16, 16, 12, width, color.White, aa)
+			},
+		},
+		{
+			name: "Path",
+			draw: func(dst *ebiten.Image, width float32, aa bool) {
+				vector.StrokePath(dst, &path, &vector.StrokeOptions{
+					Width: width,
+				}, &vector.DrawPathOptions{
+					AntiAlias: aa,
+				})
+			},
+		},
+	}
+	for _, draw := range draws {
+		for _, aa := range []bool{false, true} {
+			for _, width := range []float32{0, float32(math.Copysign(0, -1)), -2, float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
+				t.Run(fmt.Sprintf("%s/AA=%v/width=%v", draw.name, aa, width), func(t *testing.T) {
+					dst := ebiten.NewImage(32, 32)
+					defer dst.Deallocate()
+					dst.Fill(color.RGBA{R: 40, G: 80, B: 120, A: 255})
+					before := make([]byte, 32*32*4)
+					dst.ReadPixels(before)
+					checkStrokeWidthPanic(t, width, func() { draw.draw(dst, width, aa) })
+					after := make([]byte, len(before))
+					dst.ReadPixels(after)
+					if !bytes.Equal(after, before) {
+						t.Error("invalid stroke width changed the destination")
+					}
+				})
 			}
 		}
 	}

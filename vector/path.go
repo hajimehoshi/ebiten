@@ -112,6 +112,16 @@ func (s *subPath) reset() {
 	s.invalid = false
 }
 
+func checkRegularNonNegative(value float64, name string) bool {
+	if !isRegular(value) {
+		return false
+	}
+	if value < 0 {
+		panic("vector: " + name + " must be non-negative")
+	}
+	return true
+}
+
 func isRegular(x float64) bool {
 	return !math.IsNaN(x) && !math.IsInf(x, 0)
 }
@@ -492,8 +502,8 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	if len(p.subPaths) == 0 {
 		p.moveTo(float64(x1), float64(y1))
 	}
-	if radius < 0 {
-		panic("vector: radius must be non-negative")
+	if !checkRegularNonNegative(float64(radius), "radius") {
+		return
 	}
 	p.arcTo(float64(x1), float64(y1), float64(x2), float64(y2), float64(radius))
 }
@@ -575,11 +585,11 @@ func euclideanMod(a, b float32) float32 {
 // Otherwise, Arc panics if radius is negative, leaving the path unchanged.
 // If radius is zero, Arc adds a line to (x, y), or starts a sub-path there if none exists.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
-	if !isRegular(float64(x)) || !isRegular(float64(y)) || !isRegular(float64(radius)) || !isRegular(float64(startAngle)) || !isRegular(float64(endAngle)) {
+	if !isRegular(float64(x)) || !isRegular(float64(y)) || !isRegular(float64(startAngle)) || !isRegular(float64(endAngle)) {
 		return
 	}
-	if radius < 0 {
-		panic("vector: radius must be non-negative")
+	if !checkRegularNonNegative(float64(radius), "radius") {
+		return
 	}
 	p.addArc(float64(x), float64(y), float64(radius), startAngle, endAngle, dir)
 }

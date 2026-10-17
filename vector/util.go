@@ -75,7 +75,11 @@ var (
 )
 
 // StrokeLine strokes a line (x0, y0)-(x1, y1) with the specified width and color.
+// Zero, infinite, and NaN stroke widths draw nothing. A negative finite stroke width causes a panic.
 func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, clr color.Color, antialias bool) {
+	if !checkRegularNonNegative(float64(strokeWidth), "stroke width") || strokeWidth == 0 {
+		return
+	}
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
@@ -160,13 +164,17 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 // StrokeRect strokes a rectangle with the specified position (x, y), size (width, height), stroke width and color.
 // Negative width or height extends the rectangle left or up from (x, y), respectively.
 // If both dimensions are zero, StrokeRect does nothing.
-// If exactly one dimension is zero, StrokeRect draws a line with butt caps.
+// Otherwise, zero, infinite, and NaN stroke widths draw nothing, and negative finite stroke widths cause a panic.
+// With a positive finite stroke width, exactly one zero dimension produces a line with butt caps.
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	strokeRect(dst, float64(x), float64(y), float64(width), float64(height), float64(strokeWidth), clr, antialias)
 }
 
 func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr color.Color, antialias bool) {
 	if width == 0 && height == 0 {
+		return
+	}
+	if !checkRegularNonNegative(strokeWidth, "stroke width") || strokeWidth == 0 {
 		return
 	}
 
@@ -192,10 +200,6 @@ func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr
 		drawOp.AntiAlias = true
 		drawOp.ColorScale.ScaleWithColor(clr)
 		StrokePath(dst, path, strokeOp, drawOp)
-		return
-	}
-
-	if strokeWidth <= 0 {
 		return
 	}
 
@@ -266,11 +270,11 @@ func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias
 }
 
 func fillCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color, antialias bool) {
-	if !isRegular(cx) || !isRegular(cy) || !isRegular(r) {
+	if !isRegular(cx) || !isRegular(cy) {
 		return
 	}
-	if r < 0 {
-		panic("vector: radius must be non-negative")
+	if !checkRegularNonNegative(r, "radius") {
+		return
 	}
 	if r == 0 {
 		return
@@ -343,18 +347,22 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 // If cx, cy, or r is infinite or NaN, StrokeCircle does nothing.
 // Otherwise, StrokeCircle panics if r is negative, leaving dst unchanged.
 // If r is zero, StrokeCircle does nothing.
+// Otherwise, zero, infinite, and NaN stroke widths draw nothing, and negative finite stroke widths cause a panic.
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
 	strokeCircle(dst, float64(cx), float64(cy), float64(r), float64(strokeWidth), clr, antialias)
 }
 
 func strokeCircle(dst *ebiten.Image, cx, cy, r, strokeWidth float64, clr color.Color, antialias bool) {
-	if !isRegular(cx) || !isRegular(cy) || !isRegular(r) {
+	if !isRegular(cx) || !isRegular(cy) {
 		return
 	}
-	if r < 0 {
-		panic("vector: radius must be non-negative")
+	if !checkRegularNonNegative(r, "radius") {
+		return
 	}
 	if r == 0 {
+		return
+	}
+	if !checkRegularNonNegative(strokeWidth, "stroke width") || strokeWidth == 0 {
 		return
 	}
 
@@ -373,10 +381,6 @@ func strokeCircle(dst *ebiten.Image, cx, cy, r, strokeWidth float64, clr color.C
 		drawOp.AntiAlias = true
 		drawOp.ColorScale.ScaleWithColor(clr)
 		StrokePath(dst, path, strokeOp, drawOp)
-		return
-	}
-
-	if strokeWidth <= 0 {
 		return
 	}
 

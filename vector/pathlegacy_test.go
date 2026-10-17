@@ -111,3 +111,24 @@ func TestLegacyFlatteningNonFiniteControl(t *testing.T) {
 		}
 	}
 }
+
+func TestAppendVerticesAndIndicesForStrokeInvalidWidth(t *testing.T) {
+	var path vector.Path
+	path.MoveTo(4, 4)
+	path.LineTo(28, 28)
+	for _, width := range []float32{0, -2, float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
+		vertices := []ebiten.Vertex{{
+			DstX: 1,
+			DstY: 2,
+		}}
+		indices := []uint16{0}
+		checkStrokeWidthPanic(t, width, func() {
+			gotVertices, gotIndices := path.AppendVerticesAndIndicesForStroke(vertices, indices, &vector.StrokeOptions{
+				Width: width,
+			})
+			if !slices.Equal(gotVertices, vertices) || !slices.Equal(gotIndices, indices) {
+				t.Errorf("width %v changed existing geometry", width)
+			}
+		})
+	}
+}

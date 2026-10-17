@@ -42,6 +42,7 @@ const (
 // StrokeOptions is options to render a stroke.
 type StrokeOptions struct {
 	// Width is the stroke width in pixels.
+	// Zero, infinite, and NaN widths produce no stroke. Negative finite widths cause a panic.
 	//
 	// The default (zero) value is 0.
 	Width float32
@@ -84,7 +85,7 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 	if options == nil {
 		return
 	}
-	if options.Width <= 0 {
+	if !checkRegularNonNegative(float64(options.Width), "stroke width") || options.Width == 0 {
 		return
 	}
 
