@@ -482,8 +482,18 @@ func (p *Path) currentPosition() (point, bool) {
 // (x1, y1) is the corner point where the two tangent lines meet, and (x2, y2) gives the direction of the second
 // tangent line. The arc ends at the tangent point on the second tangent line, which is at the distance of
 // radius / tan(θ/2) from (x1, y1), where θ is the angle at (x1, y1) between the two rays.
-// radius must be non-negative. A negative radius produces an undefined result.
+// If any numeric argument is infinite or NaN, ArcTo does nothing.
+// Otherwise, ArcTo starts a sub-path at (x1, y1) if none exists, then panics if radius is negative.
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
+	if !isRegular(float64(x1)) || !isRegular(float64(y1)) || !isRegular(float64(x2)) || !isRegular(float64(y2)) || !isRegular(float64(radius)) {
+		return
+	}
+	if len(p.subPaths) == 0 {
+		p.moveTo(float64(x1), float64(y1))
+	}
+	if radius < 0 {
+		panic("vector: radius must be non-negative")
+	}
 	p.arcTo(float64(x1), float64(y1), float64(x2), float64(y2), float64(radius))
 }
 
@@ -555,8 +565,15 @@ func euclideanMod(a, b float32) float32 {
 
 // Arc adds an arc to the path.
 // (x, y) is the center of the arc.
-// radius must be non-negative. A negative radius produces an undefined result.
+// If any coordinate, radius, or angle is infinite or NaN, Arc does nothing.
+// Otherwise, Arc panics if radius is negative, leaving the path unchanged.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
+	if !isRegular(float64(x)) || !isRegular(float64(y)) || !isRegular(float64(radius)) || !isRegular(float64(startAngle)) || !isRegular(float64(endAngle)) {
+		return
+	}
+	if radius < 0 {
+		panic("vector: radius must be non-negative")
+	}
 	p.addArc(float64(x), float64(y), float64(radius), startAngle, endAngle, dir)
 }
 

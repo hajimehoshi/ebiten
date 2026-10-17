@@ -233,11 +233,20 @@ func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr
 }
 
 // FillCircle fills a circle with the specified center position (cx, cy), the radius (r) and color.
+// If cx, cy, or r is infinite or NaN, FillCircle does nothing.
+// Otherwise, FillCircle panics if r is negative, leaving dst unchanged.
 func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
 	fillCircle(dst, float64(cx), float64(cy), float64(r), clr, antialias)
 }
 
 func fillCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color, antialias bool) {
+	if !isRegular(cx) || !isRegular(cy) || !isRegular(r) {
+		return
+	}
+	if r < 0 {
+		panic("vector: radius must be non-negative")
+	}
+
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
@@ -292,6 +301,8 @@ func fillCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color, antialias
 }
 
 // DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r) and color.
+// If cx, cy, or r is infinite or NaN, DrawFilledCircle does nothing.
+// Otherwise, DrawFilledCircle panics if r is negative, leaving dst unchanged.
 //
 // Deprecated: as of v2.9. Use [FillCircle] instead.
 func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
@@ -299,11 +310,20 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 }
 
 // StrokeCircle strokes a circle with the specified center position (cx, cy), the radius (r), width and color.
+// If cx, cy, or r is infinite or NaN, StrokeCircle does nothing.
+// Otherwise, StrokeCircle panics if r is negative, leaving dst unchanged.
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
 	strokeCircle(dst, float64(cx), float64(cy), float64(r), float64(strokeWidth), clr, antialias)
 }
 
 func strokeCircle(dst *ebiten.Image, cx, cy, r, strokeWidth float64, clr color.Color, antialias bool) {
+	if !isRegular(cx) || !isRegular(cy) || !isRegular(r) {
+		return
+	}
+	if r < 0 {
+		panic("vector: radius must be non-negative")
+	}
+
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
