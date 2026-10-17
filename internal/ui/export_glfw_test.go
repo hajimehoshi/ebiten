@@ -78,3 +78,15 @@ func (i *glfwInput) ReadForTest(dst *InputState) {
 func (i *glfwInput) SyncModKeysForTest(mods glfw.ModifierKey) {
 	i.syncModKeys(mods)
 }
+
+type WindowSettingForTest[T comparable] struct {
+	windowSetting[T]
+}
+
+func (s *WindowSettingForTest[T]) ApplyForTest(f func(T) error) error {
+	return s.apply(f)
+}
+
+func (s *WindowSettingForTest[T]) ObserveForTest(value T) {
+	s.observe(value)
+}

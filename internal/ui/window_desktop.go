@@ -24,7 +24,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/microsoftgdk"
 )
 
-// windowSetting holds a requested value and the last request applied by the backend.
+// windowSetting holds a requested or observed value and the last request applied by the backend.
 type windowSetting[T comparable] struct {
 	value   atomic.Pointer[T]
 	applied atomic.Pointer[T]
@@ -47,6 +47,17 @@ func (s *windowSetting[T]) Store(value T) bool {
 		if s.value.CompareAndSwap(old, &value) {
 			return true
 		}
+	}
+}
+
+// observe records a backend change without replacing a pending request.
+func (s *windowSetting[T]) observe(value T) {
+	old := s.value.Load()
+	if old != s.applied.Load() || old != nil && *old == value {
+		return
+	}
+	if s.value.CompareAndSwap(old, &value) {
+		s.applied.CompareAndSwap(old, &value)
 	}
 }
 
