@@ -660,3 +660,73 @@ func TestFillRectNegativeSize(t *testing.T) {
 		}
 	}
 }
+
+func TestZeroSizeDrawing(t *testing.T) {
+	for _, aa := range []bool{false, true} {
+		for _, zero := range []float32{0, float32(math.Copysign(0, -1))} {
+			t.Run(fmt.Sprintf("AA=%v/zero=%v", aa, zero), func(t *testing.T) {
+				dst := ebiten.NewImage(32, 32)
+				defer dst.Deallocate()
+				dst.Fill(color.RGBA{R: 40, G: 80, B: 120, A: 255})
+				before := make([]byte, 32*32*4)
+				dst.ReadPixels(before)
+				for _, size := range []float32{-8, zero, 8} {
+					vector.FillRect(dst, 16, 16, zero, size, color.White, aa)
+					vector.FillRect(dst, 16, 16, size, zero, color.White, aa)
+					vector.DrawFilledRect(dst, 16, 16, zero, size, color.White, aa)
+					vector.DrawFilledRect(dst, 16, 16, size, zero, color.White, aa)
+				}
+				vector.StrokeRect(dst, 16, 16, zero, zero, 4, color.White, aa)
+				vector.FillCircle(dst, 16, 16, zero, color.White, aa)
+				vector.DrawFilledCircle(dst, 16, 16, zero, color.White, aa)
+				vector.StrokeCircle(dst, 16, 16, zero, 4, color.White, aa)
+				after := make([]byte, len(before))
+				dst.ReadPixels(after)
+				if !bytes.Equal(after, before) {
+					t.Error("zero-size geometry changed the destination")
+				}
+			})
+		}
+	}
+}
+
+func TestStrokeRectZeroDimension(t *testing.T) {
+	for _, aa := range []bool{false, true} {
+		for _, zero := range []float32{0, float32(math.Copysign(0, -1))} {
+			for _, length := range []float32{-8, 8} {
+				for _, vertical := range []bool{false, true} {
+					t.Run(fmt.Sprintf("AA=%v/zero=%v/length=%v/vertical=%v", aa, zero, length, vertical), func(t *testing.T) {
+						dst := ebiten.NewImage(32, 32)
+						defer dst.Deallocate()
+						width, height := length, zero
+						if vertical {
+							width, height = zero, length
+						}
+						clr := color.RGBA{R: 64, G: 32, B: 16, A: 128}
+						vector.StrokeRect(dst, 16, 16, width, height, 4, clr, aa)
+						pixels := make([]byte, 32*32*4)
+						dst.ReadPixels(pixels)
+						for y := range 32 {
+							for x := range 32 {
+								along, across := x, y
+								if vertical {
+									along, across = y, x
+								}
+								var want color.RGBA
+								if along >= min(16, 16+int(length)) && along < max(16, 16+int(length)) && across >= 14 && across < 18 {
+									want = clr
+								}
+								i := 4 * (32*y + x)
+								got := color.RGBA{R: pixels[i], G: pixels[i+1], B: pixels[i+2], A: pixels[i+3]}
+								if got != want {
+									t.Errorf("pixel (%d, %d): got %v, want %v", x, y, got, want)
+									return
+								}
+							}
+						}
+					})
+				}
+			}
+		}
+	}
+}

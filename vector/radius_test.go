@@ -163,3 +163,70 @@ func TestArcNegativeRadius(t *testing.T) {
 		}
 	}
 }
+
+func TestArcZeroRadius(t *testing.T) {
+	arcs := []struct {
+		name string
+		add  func(*vector.Path, float32)
+	}{
+		{
+			name: "Arc clockwise",
+			add:  func(p *vector.Path, r float32) { p.Arc(16, 16, r, 0, 2*math.Pi, vector.Clockwise) },
+		},
+		{
+			name: "Arc counterclockwise",
+			add:  func(p *vector.Path, r float32) { p.Arc(16, 16, r, 1, -2, vector.CounterClockwise) },
+		},
+		{
+			name: "Arc equal angles",
+			add:  func(p *vector.Path, r float32) { p.Arc(16, 16, r, 1, 1, vector.Clockwise) },
+		},
+		{
+			name: "ArcTo corner",
+			add:  func(p *vector.Path, r float32) { p.ArcTo(16, 16, 24, 8, r) },
+		},
+		{
+			name: "ArcTo coincident endpoints",
+			add:  func(p *vector.Path, r float32) { p.ArcTo(16, 16, 8, 8, r) },
+		},
+		{
+			name: "ArcTo collinear",
+			add:  func(p *vector.Path, r float32) { p.ArcTo(16, 16, 12, 12, r) },
+		},
+	}
+	for _, arc := range arcs {
+		for _, state := range []string{"empty", "open", "closed"} {
+			for _, zero := range []float32{0, float32(math.Copysign(0, -1))} {
+				t.Run(fmt.Sprintf("%s/%s/zero=%v", arc.name, state, zero), func(t *testing.T) {
+					var got, want vector.Path
+					for _, p := range []*vector.Path{&got, &want} {
+						if state != "empty" {
+							p.MoveTo(8, 8)
+							if state == "closed" {
+								p.LineTo(24, 8)
+								p.LineTo(8, 24)
+								p.Close()
+							}
+						}
+					}
+					arc.add(&got, zero)
+					want.LineTo(16, 16)
+					// Continuing checks both the connection and the new current position.
+					for _, p := range []*vector.Path{&got, &want} {
+						p.LineTo(24, 24)
+						p.LineTo(8, 24)
+					}
+					op := &vector.StrokeOptions{
+						Width:   4,
+						LineCap: vector.LineCapRound,
+					}
+					gotVertices, gotIndices := got.AppendVerticesAndIndicesForStroke(nil, nil, op)
+					wantVertices, wantIndices := want.AppendVerticesAndIndicesForStroke(nil, nil, op)
+					if !reflect.DeepEqual(gotVertices, wantVertices) || !reflect.DeepEqual(gotIndices, wantIndices) {
+						t.Error("zero-radius arc differs from a line to its connection point")
+					}
+				})
+			}
+		}
+	}
+}

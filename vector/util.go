@@ -113,11 +113,16 @@ func strokeLineGeoM(x0, y0, x1, y1, strokeWidth float32) ebiten.GeoM {
 
 // FillRect fills a rectangle with the specified position (x, y), size (width, height) and color.
 // Negative width or height extends the rectangle left or up from (x, y), respectively.
+// If either dimension is zero, FillRect does nothing.
 func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	fillRect(dst, float64(x), float64(y), float64(width), float64(height), clr, antialias)
 }
 
 func fillRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color, antialias bool) {
+	if width == 0 || height == 0 {
+		return
+	}
+
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
@@ -145,6 +150,7 @@ func fillRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color, a
 
 // DrawFilledRect fills a rectangle with the specified position (x, y), size (width, height) and color.
 // Negative width or height extends the rectangle left or up from (x, y), respectively.
+// If either dimension is zero, DrawFilledRect does nothing.
 //
 // Deprecated: as of v2.9. Use [FillRect] instead.
 func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
@@ -153,11 +159,17 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 
 // StrokeRect strokes a rectangle with the specified position (x, y), size (width, height), stroke width and color.
 // Negative width or height extends the rectangle left or up from (x, y), respectively.
+// If both dimensions are zero, StrokeRect does nothing.
+// If exactly one dimension is zero, StrokeRect draws a line with butt caps.
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	strokeRect(dst, float64(x), float64(y), float64(width), float64(height), float64(strokeWidth), clr, antialias)
 }
 
 func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr color.Color, antialias bool) {
+	if width == 0 && height == 0 {
+		return
+	}
+
 	if antialias {
 		path := thePathPool.Get().(*Path)
 		defer func() {
@@ -165,10 +177,14 @@ func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr
 			thePathPool.Put(path)
 		}()
 		path.moveTo(x, y)
-		path.lineTo(x, y+height)
-		path.lineTo(x+width, y+height)
-		path.lineTo(x+width, y)
-		path.Close()
+		if width == 0 || height == 0 {
+			path.lineTo(x+width, y+height)
+		} else {
+			path.lineTo(x, y+height)
+			path.lineTo(x+width, y+height)
+			path.lineTo(x+width, y)
+			path.Close()
+		}
 		strokeOp := &StrokeOptions{}
 		strokeOp.Width = float32(strokeWidth)
 		strokeOp.MiterLimit = 10
@@ -190,6 +206,15 @@ func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr
 	if height < 0 {
 		y += height
 		height = -height
+	}
+
+	if width == 0 {
+		fillRect(dst, x-strokeWidth/2, y, strokeWidth, height, clr, false)
+		return
+	}
+	if height == 0 {
+		fillRect(dst, x, y-strokeWidth/2, width, strokeWidth, clr, false)
+		return
 	}
 
 	if strokeWidth >= width || strokeWidth >= height {
@@ -235,6 +260,7 @@ func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr
 // FillCircle fills a circle with the specified center position (cx, cy), the radius (r) and color.
 // If cx, cy, or r is infinite or NaN, FillCircle does nothing.
 // Otherwise, FillCircle panics if r is negative, leaving dst unchanged.
+// If r is zero, FillCircle does nothing.
 func FillCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
 	fillCircle(dst, float64(cx), float64(cy), float64(r), clr, antialias)
 }
@@ -245,6 +271,9 @@ func fillCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color, antialias
 	}
 	if r < 0 {
 		panic("vector: radius must be non-negative")
+	}
+	if r == 0 {
+		return
 	}
 
 	if antialias {
@@ -303,6 +332,7 @@ func fillCircle(dst *ebiten.Image, cx, cy, r float64, clr color.Color, antialias
 // DrawFilledCircle fills a circle with the specified center position (cx, cy), the radius (r) and color.
 // If cx, cy, or r is infinite or NaN, DrawFilledCircle does nothing.
 // Otherwise, DrawFilledCircle panics if r is negative, leaving dst unchanged.
+// If r is zero, DrawFilledCircle does nothing.
 //
 // Deprecated: as of v2.9. Use [FillCircle] instead.
 func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, antialias bool) {
@@ -312,6 +342,7 @@ func DrawFilledCircle(dst *ebiten.Image, cx, cy, r float32, clr color.Color, ant
 // StrokeCircle strokes a circle with the specified center position (cx, cy), the radius (r), width and color.
 // If cx, cy, or r is infinite or NaN, StrokeCircle does nothing.
 // Otherwise, StrokeCircle panics if r is negative, leaving dst unchanged.
+// If r is zero, StrokeCircle does nothing.
 func StrokeCircle(dst *ebiten.Image, cx, cy, r float32, strokeWidth float32, clr color.Color, antialias bool) {
 	strokeCircle(dst, float64(cx), float64(cy), float64(r), float64(strokeWidth), clr, antialias)
 }
@@ -322,6 +353,9 @@ func strokeCircle(dst *ebiten.Image, cx, cy, r, strokeWidth float64, clr color.C
 	}
 	if r < 0 {
 		panic("vector: radius must be non-negative")
+	}
+	if r == 0 {
+		return
 	}
 
 	if antialias {

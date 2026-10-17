@@ -484,6 +484,7 @@ func (p *Path) currentPosition() (point, bool) {
 // radius / tan(θ/2) from (x1, y1), where θ is the angle at (x1, y1) between the two rays.
 // If any numeric argument is infinite or NaN, ArcTo does nothing.
 // Otherwise, ArcTo starts a sub-path at (x1, y1) if none exists, then panics if radius is negative.
+// If radius is zero, ArcTo adds a line to (x1, y1).
 func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 	if !isRegular(float64(x1)) || !isRegular(float64(y1)) || !isRegular(float64(x2)) || !isRegular(float64(y2)) || !isRegular(float64(radius)) {
 		return
@@ -498,6 +499,11 @@ func (p *Path) ArcTo(x1, y1, x2, y2, radius float32) {
 }
 
 func (p *Path) arcTo(x1, y1, x2, y2, radius float64) {
+	if radius == 0 {
+		p.lineTo(x1, y1)
+		return
+	}
+
 	p0, ok := p.currentPosition()
 	if !ok {
 		p0 = point{x: x1, y: y1}
@@ -567,6 +573,7 @@ func euclideanMod(a, b float32) float32 {
 // (x, y) is the center of the arc.
 // If any coordinate, radius, or angle is infinite or NaN, Arc does nothing.
 // Otherwise, Arc panics if radius is negative, leaving the path unchanged.
+// If radius is zero, Arc adds a line to (x, y), or starts a sub-path there if none exists.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	if !isRegular(float64(x)) || !isRegular(float64(y)) || !isRegular(float64(radius)) || !isRegular(float64(startAngle)) || !isRegular(float64(endAngle)) {
 		return
@@ -578,6 +585,11 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 }
 
 func (p *Path) addArc(x, y, radius float64, startAngle, endAngle float32, dir Direction) {
+	if radius == 0 {
+		p.lineTo(x, y)
+		return
+	}
+
 	origStartAngle := startAngle
 	origEndAngle := endAngle
 
