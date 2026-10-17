@@ -801,3 +801,60 @@ func TestInvalidStrokeWidth(t *testing.T) {
 		}
 	}
 }
+
+func TestDrawingNonFiniteGeometry(t *testing.T) {
+	draws := []struct {
+		name string
+		draw func(*ebiten.Image, [4]float32, float32, bool)
+	}{
+		{
+			name: "StrokeLine",
+			draw: func(dst *ebiten.Image, a [4]float32, width float32, aa bool) {
+				vector.StrokeLine(dst, a[0], a[1], a[2], a[3], width, color.White, aa)
+			},
+		},
+		{
+			name: "FillRect",
+			draw: func(dst *ebiten.Image, a [4]float32, _ float32, aa bool) {
+				vector.FillRect(dst, a[0], a[1], a[2], a[3], color.White, aa)
+			},
+		},
+		{
+			name: "DrawFilledRect",
+			draw: func(dst *ebiten.Image, a [4]float32, _ float32, aa bool) {
+				vector.DrawFilledRect(dst, a[0], a[1], a[2], a[3], color.White, aa)
+			},
+		},
+		{
+			name: "StrokeRect",
+			draw: func(dst *ebiten.Image, a [4]float32, width float32, aa bool) {
+				vector.StrokeRect(dst, a[0], a[1], a[2], a[3], width, color.White, aa)
+			},
+		},
+	}
+	for _, draw := range draws {
+		for _, aa := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/AA=%v", draw.name, aa), func(t *testing.T) {
+				dst := ebiten.NewImage(32, 32)
+				defer dst.Deallocate()
+				dst.Fill(color.RGBA{R: 40, G: 80, B: 120, A: 255})
+				before := make([]byte, 32*32*4)
+				dst.ReadPixels(before)
+				for _, value := range []float32{float32(math.NaN()), float32(math.Inf(1)), float32(math.Inf(-1))} {
+					for i := range 4 {
+						args := [4]float32{4, 6, 20, 18}
+						args[i] = value
+						draw.draw(dst, args, 2, aa)
+						// Geometry rejection precedes stroke-width validation.
+						checkRadiusPanic(t, false, func() { draw.draw(dst, args, -1, aa) })
+					}
+				}
+				after := make([]byte, len(before))
+				dst.ReadPixels(after)
+				if !bytes.Equal(after, before) {
+					t.Error("non-finite geometry changed the destination")
+				}
+			})
+		}
+	}
+}

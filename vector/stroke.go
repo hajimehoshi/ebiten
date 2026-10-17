@@ -79,6 +79,7 @@ type AddStrokeOptions struct {
 }
 
 // AddStroke adds a stroke path to the path p.
+// After validating the width, AddStroke does nothing if the geometry matrix has an infinite or NaN element.
 //
 // The added stroke path must be rendered with FillRuleNonZero.
 func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
@@ -87,6 +88,14 @@ func (p *Path) AddStroke(src *Path, options *AddStrokeOptions) {
 	}
 	if !checkRegularNonNegative(float64(options.Width), "stroke width") || options.Width == 0 {
 		return
+	}
+
+	for i := range 2 {
+		for j := range 3 {
+			if !isRegular(options.GeoM.Element(i, j)) {
+				return
+			}
+		}
 	}
 
 	halfWidth := float64(options.Width) / 2

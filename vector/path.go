@@ -212,8 +212,7 @@ func (s *subPath) endDir(index int) vec2 {
 
 // Path represents a collection of vector graphics operations.
 //
-// All the coordinates in a path must be finite.
-// A path with a non-finite coordinate produces an undefined result.
+// Methods that take coordinates, radii, or angles ignore calls with infinite or NaN arguments.
 type Path struct {
 	subPaths []subPath
 
@@ -247,6 +246,9 @@ func (p *Path) addSubPaths(n int) {
 // MoveTo starts a new sub-path with the given position (x, y), without adding any line segments.
 // If the last sub-path is still empty, MoveTo updates its start position instead of adding a new one.
 func (p *Path) MoveTo(x, y float32) {
+	if !isRegular(float64(x)) || !isRegular(float64(y)) {
+		return
+	}
 	p.moveTo(float64(x), float64(y))
 }
 
@@ -266,6 +268,9 @@ func (p *Path) moveTo(x, y float64) {
 // If p doesn't have any sub-paths, LineTo sets (x, y) as the start position of a new sub-path.
 // If the last sub-path is closed, LineTo creates a new sub-path whose start position is the same as the closed sub-path's.
 func (p *Path) LineTo(x, y float32) {
+	if !isRegular(float64(x)) || !isRegular(float64(y)) {
+		return
+	}
 	p.lineTo(float64(x), float64(y))
 }
 
@@ -293,6 +298,9 @@ func (p *Path) lineTo(x, y float64) {
 // QuadTo adds a quadratic Bézier curve to the path.
 // (x1, y1) is the control point, and (x2, y2) is the destination.
 func (p *Path) QuadTo(x1, y1, x2, y2 float32) {
+	if !isRegular(float64(x1)) || !isRegular(float64(y1)) || !isRegular(float64(x2)) || !isRegular(float64(y2)) {
+		return
+	}
 	p.quadTo(float64(x1), float64(y1), float64(x2), float64(y2))
 }
 
@@ -324,6 +332,9 @@ func (p *Path) quadTo(x1, y1, x2, y2 float64) {
 // CubicTo adds a cubic Bézier curve to the path.
 // (x1, y1) and (x2, y2) are the control points, and (x3, y3) is the destination.
 func (p *Path) CubicTo(x1, y1, x2, y2, x3, y3 float32) {
+	if !isRegular(float64(x1)) || !isRegular(float64(y1)) || !isRegular(float64(x2)) || !isRegular(float64(y2)) || !isRegular(float64(x3)) || !isRegular(float64(y3)) {
+		return
+	}
 	p.addCubic(float64(x1), float64(y1), float64(x2), float64(y2), float64(x3), float64(y3))
 }
 
@@ -698,12 +709,20 @@ type AddPathOptions struct {
 }
 
 // AddPath adds the given path src to this path p as a sub-path.
+// If the geometry matrix has an infinite or NaN element, AddPath does nothing.
 func (p *Path) AddPath(src *Path, options *AddPathOptions) {
-	p.resetFlatPaths()
-
 	if options == nil {
 		options = &AddPathOptions{}
 	}
+
+	for i := range 2 {
+		for j := range 3 {
+			if !isRegular(options.GeoM.Element(i, j)) {
+				return
+			}
+		}
+	}
+	p.resetFlatPaths()
 
 	srcN := len(src.subPaths)
 	n := len(p.subPaths)

@@ -75,8 +75,12 @@ var (
 )
 
 // StrokeLine strokes a line (x0, y0)-(x1, y1) with the specified width and color.
-// Zero, infinite, and NaN stroke widths draw nothing. A negative finite stroke width causes a panic.
+// If any coordinate is infinite or NaN, StrokeLine does nothing.
+// Otherwise, zero, infinite, and NaN stroke widths draw nothing, and negative finite stroke widths cause a panic.
 func StrokeLine(dst *ebiten.Image, x0, y0, x1, y1 float32, strokeWidth float32, clr color.Color, antialias bool) {
+	if !isRegular(float64(x0)) || !isRegular(float64(y0)) || !isRegular(float64(x1)) || !isRegular(float64(y1)) {
+		return
+	}
 	if !checkRegularNonNegative(float64(strokeWidth), "stroke width") || strokeWidth == 0 {
 		return
 	}
@@ -116,6 +120,7 @@ func strokeLineGeoM(x0, y0, x1, y1, strokeWidth float32) ebiten.GeoM {
 }
 
 // FillRect fills a rectangle with the specified position (x, y), size (width, height) and color.
+// If the position or dimensions are infinite or NaN, FillRect does nothing.
 // Negative width or height extends the rectangle left or up from (x, y), respectively.
 // If either dimension is zero, FillRect does nothing.
 func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
@@ -123,6 +128,9 @@ func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, a
 }
 
 func fillRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color, antialias bool) {
+	if !isRegular(x) || !isRegular(y) || !isRegular(width) || !isRegular(height) {
+		return
+	}
 	if width == 0 || height == 0 {
 		return
 	}
@@ -153,6 +161,7 @@ func fillRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color, a
 }
 
 // DrawFilledRect fills a rectangle with the specified position (x, y), size (width, height) and color.
+// If the position or dimensions are infinite or NaN, DrawFilledRect does nothing.
 // Negative width or height extends the rectangle left or up from (x, y), respectively.
 // If either dimension is zero, DrawFilledRect does nothing.
 //
@@ -162,6 +171,7 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 }
 
 // StrokeRect strokes a rectangle with the specified position (x, y), size (width, height), stroke width and color.
+// If the position or dimensions are infinite or NaN, StrokeRect does nothing.
 // Negative width or height extends the rectangle left or up from (x, y), respectively.
 // If both dimensions are zero, StrokeRect does nothing.
 // Otherwise, zero, infinite, and NaN stroke widths draw nothing, and negative finite stroke widths cause a panic.
@@ -171,6 +181,9 @@ func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth floa
 }
 
 func strokeRect(dst *ebiten.Image, x, y, width, height, strokeWidth float64, clr color.Color, antialias bool) {
+	if !isRegular(x) || !isRegular(y) || !isRegular(width) || !isRegular(height) {
+		return
+	}
 	if width == 0 && height == 0 {
 		return
 	}
