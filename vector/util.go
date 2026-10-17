@@ -112,6 +112,7 @@ func strokeLineGeoM(x0, y0, x1, y1, strokeWidth float32) ebiten.GeoM {
 }
 
 // FillRect fills a rectangle with the specified position (x, y), size (width, height) and color.
+// Negative width or height extends the rectangle left or up from (x, y), respectively.
 func FillRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
 	fillRect(dst, float64(x), float64(y), float64(width), float64(height), clr, antialias)
 }
@@ -143,6 +144,7 @@ func fillRect(dst *ebiten.Image, x, y, width, height float64, clr color.Color, a
 }
 
 // DrawFilledRect fills a rectangle with the specified position (x, y), size (width, height) and color.
+// Negative width or height extends the rectangle left or up from (x, y), respectively.
 //
 // Deprecated: as of v2.9. Use [FillRect] instead.
 func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Color, antialias bool) {
@@ -150,6 +152,7 @@ func DrawFilledRect(dst *ebiten.Image, x, y, width, height float32, clr color.Co
 }
 
 // StrokeRect strokes a rectangle with the specified position (x, y), size (width, height), stroke width and color.
+// Negative width or height extends the rectangle left or up from (x, y), respectively.
 func StrokeRect(dst *ebiten.Image, x, y, width, height float32, strokeWidth float32, clr color.Color, antialias bool) {
 	strokeRect(dst, float64(x), float64(y), float64(width), float64(height), float64(strokeWidth), clr, antialias)
 }

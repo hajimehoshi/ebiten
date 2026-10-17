@@ -614,3 +614,49 @@ func TestStrokeRectNegativeSize(t *testing.T) {
 		}
 	}
 }
+
+func TestFillRectNegativeSize(t *testing.T) {
+	for _, antialias := range []bool{false, true} {
+		for _, draw := range []struct {
+			name string
+			fill func(*ebiten.Image, float32, float32, float32, float32, color.Color, bool)
+		}{
+			{
+				name: "FillRect",
+				fill: vector.FillRect,
+			},
+			{
+				name: "DrawFilledRect",
+				fill: vector.DrawFilledRect,
+			},
+		} {
+			t.Run(fmt.Sprintf("%s/antialias=%t", draw.name, antialias), func(t *testing.T) {
+				clr := color.RGBA{R: 0x60, G: 0x30, B: 0x18, A: 0x80}
+				reference := ebiten.NewImage(32, 32)
+				defer reference.Deallocate()
+				vector.FillRect(reference, 8.25, 8.5, 16, 12, clr, antialias)
+				want := make([]byte, 32*32*4)
+				reference.ReadPixels(want)
+				for _, signs := range [][2]float32{{-1, 1}, {1, -1}, {-1, -1}} {
+					t.Run(fmt.Sprintf("signs=%v", signs), func(t *testing.T) {
+						x, y := float32(8.25), float32(8.5)
+						if signs[0] < 0 {
+							x += 16
+						}
+						if signs[1] < 0 {
+							y += 12
+						}
+						dst := ebiten.NewImage(32, 32)
+						defer dst.Deallocate()
+						draw.fill(dst, x, y, 16*signs[0], 12*signs[1], clr, antialias)
+						got := make([]byte, len(want))
+						dst.ReadPixels(got)
+						if !bytes.Equal(got, want) {
+							t.Error("negative-size rectangle differs from the same rectangle with positive size")
+						}
+					})
+				}
+			})
+		}
+	}
+}
