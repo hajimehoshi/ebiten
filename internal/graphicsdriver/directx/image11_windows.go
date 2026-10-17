@@ -50,6 +50,14 @@ func (i *image11) Dispose() {
 }
 
 func (i *image11) disposeBuffers() {
+	// Release context-held references to the image. The next draw restores these bindings.
+	if i.renderTargetView != nil {
+		i.graphics.deviceContext.OMSetRenderTargets(nil)
+	}
+	if i.shaderResourceView != nil {
+		var srvs [graphics.ShaderSrcImageCount]*_ID3D11ShaderResourceView
+		i.graphics.deviceContext.PSSetShaderResources(0, srvs[:])
+	}
 	if i.texture != nil {
 		i.texture.Release()
 		i.texture = nil

@@ -62,18 +62,24 @@ func (s *shader11) disposeImpl() {
 		s.vertexShaderBlob = nil
 	}
 	if s.inputLayout != nil {
+		// The next draw restores the bindings cleared here to release context-held references.
+		s.graphics.deviceContext.IASetInputLayout(nil)
 		s.inputLayout.Release()
 		s.inputLayout = nil
 	}
 	if s.vertexShader != nil {
+		s.graphics.deviceContext.VSSetShader(nil, nil)
 		s.vertexShader.Release()
 		s.vertexShader = nil
 	}
 	if s.pixelShader != nil {
+		s.graphics.deviceContext.PSSetShader(nil, nil)
 		s.pixelShader.Release()
 		s.pixelShader = nil
 	}
 	if s.constantBuffer != nil {
+		s.graphics.deviceContext.VSSetConstantBuffers(0, []*_ID3D11Buffer{nil})
+		s.graphics.deviceContext.PSSetConstantBuffers(0, []*_ID3D11Buffer{nil})
 		s.constantBuffer.Release()
 		s.constantBuffer = nil
 	}
