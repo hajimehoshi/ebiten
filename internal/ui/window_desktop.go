@@ -421,8 +421,20 @@ func (w *desktopWindow) Minimize() {
 	b.Window().Minimize()
 }
 
+func (w *desktopWindow) isMaximized() bool {
+	if w.ui.isTerminated() {
+		return false
+	}
+	b := w.ui.runningBackend()
+	if b == nil {
+		return w.isInitWindowMaximized()
+	}
+	return b.Window().IsMaximized()
+}
+
 func (w *desktopWindow) Restore() {
-	isMaximized := w.IsMaximized()
+	// Restoration depends on the native state even when resizing has been disabled.
+	isMaximized := w.isMaximized()
 	isMinimized := w.IsMinimized()
 	if !isMaximized && !isMinimized {
 		panic("ebiten: RestoreWindow must be called on a maximized or a minimized window")
