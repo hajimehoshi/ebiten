@@ -368,13 +368,6 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		if u.value == nil {
 			continue
 		}
-		if got, expected := len(u.value), u.typ.DwordCount(); got != expected {
-			// Copy a shaderir.Type value once. Do not pass u.typ directly to fmt.Errorf arguments, or
-			// the value u would be allocated on heap.
-			typ := u.typ
-			return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
-		}
-
 		if g.state.lastUniforms.isSame(uniformSlot(i), u.value) {
 			continue
 		}

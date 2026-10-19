@@ -234,7 +234,7 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 	var idx int
 	for i, typ := range shader.ir.Uniforms {
-		n := typ.DwordCount()
+		n := shader.uniformDwordCounts[i]
 		g.uniformVars[i].name = shader.uniformNames[i]
 		g.uniformVars[i].value = uniforms[idx : idx+n]
 		g.uniformVars[i].typ = typ
