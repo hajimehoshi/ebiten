@@ -34,6 +34,9 @@ type Shader struct {
 
 	ir *shaderir.Program
 	p  program
+
+	// uniformNames holds the names of the uniform variables in the GLSL source.
+	uniformNames []string
 }
 
 func newShader(id graphicsdriver.ShaderID, graphics *Graphics, program *shaderir.Program) (*Shader, error) {
@@ -41,6 +44,10 @@ func newShader(id graphicsdriver.ShaderID, graphics *Graphics, program *shaderir
 		id:       id,
 		graphics: graphics,
 		ir:       program,
+	}
+	s.uniformNames = make([]string, len(program.Uniforms))
+	for i := range s.uniformNames {
+		s.uniformNames[i] = fmt.Sprintf("U%d", i)
 	}
 	if err := s.compile(); err != nil {
 		return nil, err

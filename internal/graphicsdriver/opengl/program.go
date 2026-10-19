@@ -245,17 +245,14 @@ type textureVariable struct {
 	native textureNative
 }
 
-func (g *Graphics) textureVariableName(idx int) string {
-	if v, ok := g.textureVariableNameCache[idx]; ok {
-		return v
+// textureVariableNames holds the names of the sampler variables of the source images.
+var textureVariableNames = func() [graphics.ShaderSrcImageCount]string {
+	var names [graphics.ShaderSrcImageCount]string
+	for i := range names {
+		names[i] = fmt.Sprintf("T%d", i)
 	}
-	if g.textureVariableNameCache == nil {
-		g.textureVariableNameCache = map[int]string{}
-	}
-	name := fmt.Sprintf("T%d", idx)
-	g.textureVariableNameCache[idx] = name
-	return name
-}
+	return names
+}()
 
 func (g *Graphics) deleteProgram(p program) {
 	// A name of a deleted program can be reused for a new program.
@@ -307,7 +304,7 @@ loop:
 		// A sampler for a slot without an image must not sample a texture left by an earlier draw,
 		// as the texture might be the destination (#3923). Let such samplers sample an empty texture.
 		if !t.valid {
-			if !g.context.hasUniform(program, g.textureVariableName(i)) {
+			if !g.context.hasUniform(program, textureVariableNames[i]) {
 				continue
 			}
 			if g.context.emptyTexture == 0 {
@@ -325,7 +322,7 @@ loop:
 		// Rebinding the same texture seems problematic (#1193).
 		for _, at := range g.activatedTextures {
 			if native == at.textureNative {
-				g.context.uniformInt(program, g.textureVariableName(i), at.index)
+				g.context.uniformInt(program, textureVariableNames[i], at.index)
 				continue loop
 			}
 		}
@@ -334,7 +331,7 @@ loop:
 			textureNative: native,
 			index:         idx,
 		})
-		g.context.uniformInt(program, g.textureVariableName(i), idx)
+		g.context.uniformInt(program, textureVariableNames[i], idx)
 		g.activateTextureUnit(idx)
 
 		// Apparently, a texture must be bound every time. The cache is not used here.
