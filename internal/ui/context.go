@@ -213,7 +213,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 	// unpainted while the window is being resized (#3477).
 	if updateCount == 0 && (!c.updateCalled || resized) {
 		updateCount = 1
-		c.updateCalled = true
 		// Reconcile the forced tick with the clock: forcing an Update on every resize step
 		// (#3477) would otherwise advance the game time faster than the target TPS (#2615).
 		clock.SinkTick()
@@ -243,6 +242,10 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		}
 
 		ui.incrementTick()
+	}
+
+	if updateCount > 0 {
+		c.updateCalled = true
 	}
 
 	// Update window icons during a frame, since an icon might be *ebiten.Image and
