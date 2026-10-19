@@ -120,7 +120,7 @@ adapterLoop:
 				return err
 			}
 			if monitor == nil {
-				return nil
+				continue displayLoop
 			}
 
 			if err := inputMonitor(monitor, Connected, typ); err != nil {
@@ -144,7 +144,7 @@ adapterLoop:
 				return err
 			}
 			if monitor == nil {
-				return nil
+				continue adapterLoop
 			}
 
 			if err := inputMonitor(monitor, Connected, typ); err != nil {
