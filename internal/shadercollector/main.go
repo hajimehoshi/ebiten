@@ -464,15 +464,29 @@ func appendShadersFromManifest(shaders []Shader, manifest string) ([]Shader, err
 
 	dir := filepath.Dir(manifest)
 	visitedPaths := map[string]struct{}{}
+	for _, shader := range shaders {
+		if shader.KageFile == "" {
+			continue
+		}
+		path, err := filepath.Abs(shader.KageFile)
+		if err != nil {
+			return nil, err
+		}
+		visitedPaths[path] = struct{}{}
+	}
 	for _, s := range m.ShaderFiles {
 		path := filepath.FromSlash(s)
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(dir, path)
 		}
-		if _, ok := visitedPaths[path]; ok {
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := visitedPaths[absPath]; ok {
 			continue
 		}
-		visitedPaths[path] = struct{}{}
+		visitedPaths[absPath] = struct{}{}
 		shaders, err = appendShaderFromFile(shaders, "", "", path)
 		if err != nil {
 			return nil, err
