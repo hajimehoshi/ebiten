@@ -3463,3 +3463,53 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		}
 	}
 }
+
+func TestShaderUniformsAcrossShadersAndDeallocation(t *testing.T) {
+	const src = `//kage:unit pixels
+
+package main
+
+var U float
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	return vec4(U, 0, 0, 1)
+}
+`
+	newShader := func() *ebiten.Shader {
+		s, err := ebiten.NewShader([]byte(src))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	draw := func(s *ebiten.Shader, u float32) *ebiten.Image {
+		dst := ebiten.NewImage(1, 1)
+		op := &ebiten.DrawRectShaderOptions{}
+		op.Uniforms = map[string]any{"U": u}
+		dst.DrawRectShader(1, 1, s, op)
+		return dst
+	}
+	check := func(name string, dst *ebiten.Image, want color.RGBA) {
+		if got := dst.At(0, 0).(color.RGBA); !sameColors(got, want, 1) {
+			t.Errorf("%s: got: %v, want: %v", name, got, want)
+		}
+	}
+
+	// A program keeps its uniform values while another program runs.
+	s0 := newShader()
+	s1 := newShader()
+	check("s0, 1", draw(s0, 1), color.RGBA{R: 0xff, A: 0xff})
+	check("s1, 0.5", draw(s1, 0.5), color.RGBA{R: 0x80, A: 0xff})
+	check("s0, 1 again", draw(s0, 1), color.RGBA{R: 0xff, A: 0xff})
+	check("s1, 0", draw(s1, 0), color.RGBA{A: 0xff})
+
+	// A new program can reuse the name of a deallocated program, but not its uniform values.
+	// A new program starts with 0, so a stale value of 1 would skip the upload.
+	for i := range 4 {
+		s0.Deallocate()
+		s0 = newShader()
+		check(fmt.Sprintf("new s0 %d", i), draw(s0, 1), color.RGBA{R: 0xff, A: 0xff})
+	}
+	s0.Deallocate()
+	s1.Deallocate()
+}

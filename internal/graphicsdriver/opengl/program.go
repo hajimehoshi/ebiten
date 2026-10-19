@@ -134,8 +134,96 @@ type openGLState struct {
 	elementArrayBufferSizeInBytes int
 
 	lastProgram       program
-	lastUniforms      map[string][]uint32
+	lastUniforms      uniformCache
 	lastActiveTexture int
+}
+
+// uniformCache keeps the last values of the uniform variables of each program, the sampler variables
+// included, so that a draw does not send a value that the program already has.
+// OpenGL keeps uniform values for each program object, so a switch of programs does not invalidate them.
+// A slot names a variable of a program: samplerSlot for a sampler variable and uniformSlot for a uniform variable.
+type uniformCache struct {
+	programs       map[program]*programUniforms
+	current        *programUniforms
+	currentProgram program
+
+	// generation invalidates every cached value at once when it changes.
+	generation uint64
+}
+
+// programUniforms holds the cached values of one program, indexed by slot.
+type programUniforms struct {
+	values []cachedUniform
+}
+
+type cachedUniform struct {
+	// value is an owned copy, as the caller's slice is reused for the next frame.
+	value      []uint32
+	generation uint64
+}
+
+// samplerSlot returns the slot of the sampler variable of the source image i.
+func samplerSlot(i int) int {
+	return i
+}
+
+// uniformSlot returns the slot of the uniform variable i.
+func uniformSlot(i int) int {
+	return graphics.ShaderSrcImageCount + i
+}
+
+// use makes p the program of the next calls of isSame and set.
+func (c *uniformCache) use(p program) {
+	if c.programs == nil {
+		c.programs = map[program]*programUniforms{}
+	}
+	m, ok := c.programs[p]
+	if !ok {
+		m = &programUniforms{}
+		c.programs[p] = m
+	}
+	c.current = m
+	c.currentProgram = p
+}
+
+// isSame reports whether the current program has the value for the variable of the slot.
+func (c *uniformCache) isSame(slot int, value []uint32) bool {
+	if c.current == nil || slot >= len(c.current.values) {
+		return false
+	}
+	cached := &c.current.values[slot]
+	return cached.generation == c.generation && areSameUint32Array(cached.value, value)
+}
+
+// set records that the current program has the value for the variable of the slot.
+func (c *uniformCache) set(slot int, value []uint32) {
+	if slot >= len(c.current.values) {
+		c.current.values = append(c.current.values, make([]cachedUniform, slot+1-len(c.current.values))...)
+	}
+	cached := &c.current.values[slot]
+	cached.value = append(cached.value[:0], value...)
+	cached.generation = c.generation
+}
+
+// invalidate forgets the values of every program, and keeps the storage for the next values.
+func (c *uniformCache) invalidate() {
+	c.generation++
+}
+
+// deleteProgram forgets the values of p, as a new program can reuse its name.
+func (c *uniformCache) deleteProgram(p program) {
+	delete(c.programs, p)
+	if c.currentProgram == p {
+		c.current = nil
+		c.currentProgram = 0
+	}
+}
+
+// clear forgets every program, for a new context.
+func (c *uniformCache) clear() {
+	clear(c.programs)
+	c.current = nil
+	c.currentProgram = 0
 }
 
 // reset resets or initializes the OpenGL state.
@@ -146,7 +234,7 @@ func (s *openGLState) reset(context *context) error {
 
 	s.lastProgram = 0
 	context.ctx.UseProgram(0)
-	clear(s.lastUniforms)
+	s.lastUniforms.clear()
 
 	if s.arrayBuffer != 0 {
 		context.ctx.DeleteBuffer(uint32(s.arrayBuffer))
@@ -218,7 +306,7 @@ func (s *openGLState) setVertices(context *context, vertices []float32, indices 
 }
 
 func (s *openGLState) resetLastUniforms() {
-	clear(s.lastUniforms)
+	s.lastUniforms.invalidate()
 }
 
 // areSameUint32Array returns a boolean indicating if a and b are deeply equal.
@@ -260,6 +348,7 @@ func (g *Graphics) deleteProgram(p program) {
 	if g.state.lastProgram == p {
 		g.state.lastProgram = 0
 	}
+	g.state.lastUniforms.deleteProgram(p)
 	g.context.deleteProgram(p)
 }
 
@@ -269,13 +358,13 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 		g.context.ctx.UseProgram(uint32(program))
 
 		g.state.lastProgram = program
-		clear(g.state.lastUniforms)
+		g.state.lastUniforms.use(program)
 		g.state.lastActiveTexture = 0
 		g.context.ctx.ActiveTexture(gl.TEXTURE0)
 		g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
 	}
 
-	for _, u := range uniforms {
+	for i, u := range uniforms {
 		if u.value == nil {
 			continue
 		}
@@ -286,15 +375,11 @@ func (g *Graphics) useProgram(program program, uniforms []uniformVariable, textu
 			return fmt.Errorf("opengl: length of a uniform variables %s (%s) doesn't match: expected %d but %d", u.name, typ.String(), expected, got)
 		}
 
-		cached, ok := g.state.lastUniforms[u.name]
-		if ok && areSameUint32Array(cached, u.value) {
+		if g.state.lastUniforms.isSame(uniformSlot(i), u.value) {
 			continue
 		}
 		g.context.uniforms(program, u.name, u.value, u.typ)
-		if g.state.lastUniforms == nil {
-			g.state.lastUniforms = map[string][]uint32{}
-		}
-		g.state.lastUniforms[u.name] = u.value
+		g.state.lastUniforms.set(uniformSlot(i), u.value)
 	}
 
 	var idx int
@@ -322,7 +407,7 @@ loop:
 		// Rebinding the same texture seems problematic (#1193).
 		for _, at := range g.activatedTextures {
 			if native == at.textureNative {
-				g.context.uniformInt(program, textureVariableNames[i], at.index)
+				g.setSampler(program, i, at.index)
 				continue loop
 			}
 		}
@@ -331,7 +416,7 @@ loop:
 			textureNative: native,
 			index:         idx,
 		})
-		g.context.uniformInt(program, textureVariableNames[i], idx)
+		g.setSampler(program, i, idx)
 		g.activateTextureUnit(idx)
 
 		// Apparently, a texture must be bound every time. The cache is not used here.
@@ -356,6 +441,16 @@ func (g *Graphics) activateTextureUnit(index int) {
 	g.context.ctx.ActiveTexture(uint32(gl.TEXTURE0 + index))
 	g.state.lastActiveTexture = index
 	g.context.lastTexture = 0 // Make sure next bindTexture call actually does something.
+}
+
+// setSampler sets the sampler variable of the texture i to the texture unit, unless the program has it already.
+func (g *Graphics) setSampler(program program, i int, unit int) {
+	v := [...]uint32{uint32(unit)}
+	if g.state.lastUniforms.isSame(samplerSlot(i), v[:]) {
+		return
+	}
+	g.context.uniformInt(program, textureVariableNames[i], unit)
+	g.state.lastUniforms.set(samplerSlot(i), v[:])
 }
 
 func uint32sToFloat32s(s []uint32) []float32 {
