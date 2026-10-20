@@ -315,7 +315,8 @@ func IsWindowMinimized() bool {
 
 // RestoreWindow restores the window from its maximized or minimized state.
 //
-// RestoreWindow panics when the window is neither maximized nor minimized on desktops.
+// RestoreWindow panics on desktops if the window is neither maximized nor minimized,
+// or if the window is not resizable and is not minimized.
 //
 // RestoreWindow does nothing if the platform is not a desktop.
 //
