@@ -181,7 +181,11 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install libdrm2 libegl1 libegl-mesa0 libgbm1 libgl1-mesa-dri libgles2 linux-modules-extra-$(uname -r)
+          sudo apt-get install libdrm2 libegl1 libegl-mesa0 libgbm1 libgl1-mesa-dri libgles2
+          # Some kernels ship vkms in linux-modules-extra, and others have no such package and ship vkms in linux-modules.
+          if ! modinfo vkms > /dev/null 2>&1; then
+            sudo apt-get install linux-modules-extra-$(uname -r)
+          fi
 
       - name: Load vkms
         run: |
