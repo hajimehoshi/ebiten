@@ -98,7 +98,6 @@ func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	g.context.ctx.Flush()
 
 	// Reset the last uniforms at the end of every frame so that each program sends its uniforms again in the next frame (#2517).
-	// The last uniforms are copies, so they do not refer to the uniforms passed to DrawTriangles.
 	if mode != graphicsdriver.FlushModeIntermediate {
 		g.state.resetLastUniforms()
 	}
