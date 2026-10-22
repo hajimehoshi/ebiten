@@ -143,9 +143,8 @@ type openGLState struct {
 // OpenGL keeps uniform values for each program object, so a switch of programs does not invalidate them.
 // A slot names a variable of a program: samplerSlot for a sampler variable and uniformSlot for a uniform variable.
 type uniformCache struct {
-	programs       map[program]*programUniforms
-	current        *programUniforms
-	currentProgram program
+	programs map[program]*programUniforms
+	current  *programUniforms
 
 	// generation invalidates every cached value at once when it changes.
 	generation uint64
@@ -183,7 +182,6 @@ func (c *uniformCache) use(p program) {
 		c.programs[p] = m
 	}
 	c.current = m
-	c.currentProgram = p
 }
 
 // isSame reports whether the current program has the value for the variable of the slot.
@@ -212,18 +210,16 @@ func (c *uniformCache) invalidate() {
 
 // deleteProgram forgets the values of p, as a new program can reuse its name.
 func (c *uniformCache) deleteProgram(p program) {
-	delete(c.programs, p)
-	if c.currentProgram == p {
+	if c.current == c.programs[p] {
 		c.current = nil
-		c.currentProgram = 0
 	}
+	delete(c.programs, p)
 }
 
 // clear forgets every program, for a new context.
 func (c *uniformCache) clear() {
 	clear(c.programs)
 	c.current = nil
-	c.currentProgram = 0
 }
 
 // reset resets or initializes the OpenGL state.
