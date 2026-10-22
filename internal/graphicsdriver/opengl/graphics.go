@@ -97,8 +97,8 @@ func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.ctx.Flush()
 
-	// The last uniforms must be reset before swapping the buffer (#2517).
-	// The last uniforms also refer to the uniforms passed to DrawTriangles, whose memory can be reused after a frame ends.
+	// Reset the last uniforms at the end of every frame so that each program sends its uniforms again in the next frame (#2517).
+	// The last uniforms are copies, so they do not refer to the uniforms passed to DrawTriangles.
 	if mode != graphicsdriver.FlushModeIntermediate {
 		g.state.resetLastUniforms()
 	}
