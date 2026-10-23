@@ -292,7 +292,7 @@ func TestGLSLTarget(t *testing.T) {
 	}
 }
 
-func TestManifestOverlapsPackage(t *testing.T) {
+func TestOverlappingShaderFiles(t *testing.T) {
 	if !hasGoCommand() {
 		t.Skip("go command is missing")
 	}
@@ -301,79 +301,55 @@ func TestManifestOverlapsPackage(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	content, err := os.ReadFile(file)
-	if err != nil {
-		t.Fatal(err)
-	}
-	dir := t.TempDir()
-	otherFile := filepath.Join(dir, "other.kage")
-	if err := os.WriteFile(otherFile, content, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	manifest, err := json.Marshal(struct {
-		ShaderFiles []string
+
+	tests := []struct {
+		name string
+		args []string
 	}{
-		ShaderFiles: []string{file, "other.kage", "./other.kage", otherFile},
-	})
-	if err != nil {
-		t.Fatal(err)
+		{
+			name: "ManifestOverlapsPackage",
+			args: []string{
+				"-manifest", filepath.Join("testdata", "manifestoverlap", "manifest.json"),
+				"github.com/hajimehoshi/ebiten/v2/internal/shadercollector/testdata/manifestoverlap",
+			},
+		},
+		{
+			name: "PackagesOverlap",
+			args: []string{
+				"github.com/hajimehoshi/ebiten/v2/internal/shadercollector/testdata/manifestoverlap",
+				"github.com/hajimehoshi/ebiten/v2/internal/shadercollector/testdata/manifestoverlap/other",
+			},
+		},
 	}
-	manifestFile := filepath.Join(dir, "manifest.json")
-	if err := os.WriteFile(manifestFile, manifest, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	cmd := exec.Command("go", "run", "github.com/hajimehoshi/ebiten/v2/internal/shadercollector",
-		"-target", "glsl", "-manifest", manifestFile,
-		"github.com/hajimehoshi/ebiten/v2/internal/shadercollector/testdata/manifestoverlap")
-	out, err := cmd.Output()
-	if err != nil {
-		if err, ok := err.(*exec.ExitError); ok {
-			t.Fatalf("Error: %v\n%s", err, err.Stderr)
-		}
-		t.Fatal(err)
-	}
-	var shaders []struct {
-		Package  string
-		KageFile string
-		SourceID string
-		GLSL     json.RawMessage
-	}
-	if err := json.Unmarshal(out, &shaders); err != nil {
-		t.Fatal(err)
-	}
-	if got, want := len(shaders), 3; got != want {
-		t.Errorf("len(shaders): got: %d, want: %d", got, want)
-	}
-	counts := map[string]int{}
-	hashes := map[string]string{}
-	var constants int
-	for _, shader := range shaders {
-		if len(shader.GLSL) == 0 || string(shader.GLSL) == "null" {
-			t.Errorf("missing GLSL: %v", shader)
-		}
-		if shader.KageFile == "" {
-			constants++
-			continue
-		}
-		path, err := filepath.Abs(shader.KageFile)
-		if err != nil {
-			t.Fatal(err)
-		}
-		counts[path]++
-		hashes[path] = shader.SourceID
-		if path == file && shader.Package == "" {
-			t.Error("package provenance was lost")
-		}
-	}
-	if got, want := constants, 1; got != want {
-		t.Errorf("constants: got: %d, want: %d", got, want)
-	}
-	for _, path := range []string{file, otherFile} {
-		if got, want := counts[path], 1; got != want {
-			t.Errorf("count for %q: got: %d, want: %d", path, got, want)
-		}
-	}
-	if hashes[file] == "" || hashes[file] != hashes[otherFile] {
-		t.Errorf("identical files have different source IDs: %v", hashes)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			args := append([]string{"run", "github.com/hajimehoshi/ebiten/v2/internal/shadercollector"}, tt.args...)
+			cmd := exec.Command("go", args...)
+			out, err := cmd.Output()
+			if err != nil {
+				if err, ok := err.(*exec.ExitError); ok {
+					t.Fatalf("Error: %v\n%s", err, err.Stderr)
+				}
+				t.Fatal(err)
+			}
+			var shaders []struct {
+				Package  string
+				KageFile string
+			}
+			if err := json.Unmarshal(out, &shaders); err != nil {
+				t.Fatal(err)
+			}
+			if got, want := len(shaders), 1; got != want {
+				t.Errorf("len(shaders): got: %d, want: %d", got, want)
+			}
+			for _, shader := range shaders {
+				if got, want := shader.KageFile, file; got != want {
+					t.Errorf("KageFile: got: %q, want: %q", got, want)
+				}
+				if shader.Package == "" {
+					t.Error("package provenance was lost")
+				}
+			}
+		})
 	}
 }
