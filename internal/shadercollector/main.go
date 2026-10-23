@@ -115,6 +115,7 @@ func xmain() error {
 	// Collect shader information.
 	// Even if no shader is found, the output should be a JSON array. Start with an empty slice, not nil.
 	shaders := []Shader{}
+	visitedPaths := map[string]struct{}{}
 
 	// Collect shaders statically discovered in the given packages.
 	if args := flag.Args(); len(args) > 0 {
@@ -139,7 +140,7 @@ func xmain() error {
 
 			origN := len(shaders)
 			var err error
-			shaders, err = appendShaderSources(shaders, pkg)
+			shaders, err = appendShaderSources(shaders, pkg, visitedPaths)
 			if err != nil {
 				visitErr = err
 				return false
@@ -157,11 +158,11 @@ func xmain() error {
 	}
 
 	// Collect shaders listed in the manifest file given via the -manifest flag.
-	// These are not tied to any package.
+	// Only new paths are appended without a package; paths already collected from packages keep their records.
 	if manifest := *flagManifest; manifest != "" {
 		origN := len(shaders)
 		var err error
-		shaders, err = appendShadersFromManifest(shaders, manifest)
+		shaders, err = appendShadersFromManifest(shaders, manifest, visitedPaths)
 		if err != nil {
 			return err
 		}
@@ -222,10 +223,9 @@ func includesGlobMetaChar(str string) bool {
 	return strings.ContainsAny(str, "*?[]")
 }
 
-func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, error) {
+func appendShaderSources(shaders []Shader, pkg *packages.Package, visitedPaths map[string]struct{}) ([]Shader, error) {
 	// Resolve ebitengine:shaderfile directives.
 	visitedPatterns := map[string]struct{}{}
-	visitedPaths := map[string]struct{}{}
 	for _, f := range pkg.Syntax {
 		var funcs []*ast.FuncDecl
 		for _, decl := range f.Decls {
@@ -448,8 +448,8 @@ func appendShaderSources(shaders []Shader, pkg *packages.Package) ([]Shader, err
 
 // appendShadersFromManifest reads the JSON manifest file at manifest, whose "ShaderFiles" array holds
 // shader source file paths resolved relative to the manifest's directory, and appends each as a shader.
-// Duplicate paths are skipped.
-func appendShadersFromManifest(shaders []Shader, manifest string) ([]Shader, error) {
+// Duplicate paths, including paths already collected from packages, are skipped.
+func appendShadersFromManifest(shaders []Shader, manifest string, visitedPaths map[string]struct{}) ([]Shader, error) {
 	content, err := os.ReadFile(manifest)
 	if err != nil {
 		return nil, err
@@ -463,16 +463,19 @@ func appendShadersFromManifest(shaders []Shader, manifest string) ([]Shader, err
 	}
 
 	dir := filepath.Dir(manifest)
-	visitedPaths := map[string]struct{}{}
 	for _, s := range m.ShaderFiles {
 		path := filepath.FromSlash(s)
 		if !filepath.IsAbs(path) {
 			path = filepath.Join(dir, path)
 		}
-		if _, ok := visitedPaths[path]; ok {
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := visitedPaths[absPath]; ok {
 			continue
 		}
-		visitedPaths[path] = struct{}{}
+		visitedPaths[absPath] = struct{}{}
 		shaders, err = appendShaderFromFile(shaders, "", "", path)
 		if err != nil {
 			return nil, err
