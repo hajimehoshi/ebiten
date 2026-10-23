@@ -637,6 +637,8 @@ func (g *nativeGamepadDesktop) close() {
 		g.dinputDevice = nil
 	}
 	g.rumble.close()
+	// Get can return a gamepad just before disconnection closes it.
+	g.rumble = noRumbler{}
 }
 
 func (g *nativeGamepadDesktop) update(gamepads *gamepads) (err error) {
