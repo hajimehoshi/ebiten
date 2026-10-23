@@ -57,9 +57,6 @@ type Graphics struct {
 	// drawCalled is true just after DrawTriangles is called. This holds true until WritePixels is called.
 	drawCalled bool
 
-	uniformVariableNameCache map[int]string
-	textureVariableNameCache map[int]string
-
 	uniformVars []uniformVariable
 
 	// activatedTextures is a set of activated textures.
@@ -100,8 +97,7 @@ func (g *Graphics) End(mode graphicsdriver.FlushMode) error {
 	// TODO: examples/sprites worked without this. Is this really needed?
 	g.context.ctx.Flush()
 
-	// The last uniforms must be reset before swapping the buffer (#2517).
-	// The last uniforms also refer to the uniforms passed to DrawTriangles, whose memory can be reused after a frame ends.
+	// Reset the last uniforms at the end of every frame so that each program sends its uniforms again in the next frame (#2517).
 	if mode != graphicsdriver.FlushModeIntermediate {
 		g.state.resetLastUniforms()
 	}
@@ -211,18 +207,6 @@ func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {
 	return nil
 }
 
-func (g *Graphics) uniformVariableName(idx int) string {
-	if v, ok := g.uniformVariableNameCache[idx]; ok {
-		return v
-	}
-	if g.uniformVariableNameCache == nil {
-		g.uniformVariableNameCache = map[int]string{}
-	}
-	name := fmt.Sprintf("U%d", idx)
-	g.uniformVariableNameCache[idx] = name
-	return name
-}
-
 func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, shaderID graphicsdriver.ShaderID, dstRegions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, uniforms []uint32) error {
 	if shaderID == graphicsdriver.InvalidShaderID {
 		return fmt.Errorf("opengl: shader ID is invalid")
@@ -249,8 +233,8 @@ func (g *Graphics) DrawTriangles(dstID graphicsdriver.ImageID, srcIDs [graphics.
 
 	var idx int
 	for i, typ := range shader.ir.Uniforms {
-		n := typ.DwordCount()
-		g.uniformVars[i].name = g.uniformVariableName(i)
+		n := shader.uniformDwordCounts[i]
+		g.uniformVars[i].name = shader.uniformNames[i]
 		g.uniformVars[i].value = uniforms[idx : idx+n]
 		g.uniformVars[i].typ = typ
 		idx += n
