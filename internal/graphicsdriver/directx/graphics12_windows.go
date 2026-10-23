@@ -1363,7 +1363,9 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 		return fmt.Errorf("directx: shader ID is invalid")
 	}
 
-	if err := g.flushCommandList(g.copyCommandList); err != nil {
+	// Submit earlier copies without resetting their allocator or waiting for the GPU.
+	// Both lists are DIRECT lists on one queue, so submission order is execution order.
+	if err := g.submitCommandList(g.copyCommandList); err != nil {
 		return err
 	}
 
@@ -1375,7 +1377,7 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 				return err
 			}
 		} else {
-			// A read-back might have submitted the draws using these buffers without waiting for them.
+			// A pixel write or a read-back might have submitted the draws using these buffers without waiting for them.
 			if err := g.waitForCommandQueue(); err != nil {
 				return err
 			}

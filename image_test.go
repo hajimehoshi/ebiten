@@ -307,6 +307,26 @@ func TestImageWritePixels(t *testing.T) {
 	}
 }
 
+func TestImageWritePixelsBetweenDraws(t *testing.T) {
+	// Keep the source off the atlas so uploads and draws use the same texture.
+	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 1, 1), &ebiten.NewImageOptions{Unmanaged: true})
+	dst := ebiten.NewImageWithOptions(image.Rect(0, 0, 2, 1), &ebiten.NewImageOptions{Unmanaged: true})
+	want := []byte{0xff, 0, 0, 0xff, 0, 0xff, 0, 0xff}
+	for i := range 2 {
+		src.WritePixels(want[4*i : 4*(i+1)])
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(i), 0)
+		dst.DrawImage(src, op)
+	}
+
+	// Read only after both draws so readback does not serialize the uploads.
+	got := make([]byte, len(want))
+	dst.ReadPixels(got)
+	if !bytes.Equal(got, want) {
+		t.Errorf("ReadPixels: got %v, want %v", got, want)
+	}
+}
+
 func TestImageWritePixelsNil(t *testing.T) {
 	defer func() {
 		if r := recover(); r == nil {
