@@ -267,7 +267,8 @@ func (g *nativeGamepadGC) axisCount() int {
 }
 
 func (g *nativeGamepadGC) buttonCount() int {
-	return len(g.buttons)
+	// The hat directions stored at the end are counted separately by ButtonCountWithHats.
+	return len(g.buttons) - len(g.hats)*4
 }
 
 func (g *nativeGamepadGC) hatCount() int {
