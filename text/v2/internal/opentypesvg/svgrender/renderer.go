@@ -100,8 +100,10 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			r.paint = nil
 		}
 		bounds := image.Rect(0, 0, width, height)
-		// Isolate scratch targets from vector's stencil textures to avoid growing
-		// their shared engine atlas around a large sample surface.
+		// The samples and paint scratch surfaces stay off vector's stencil atlas
+		// to limit page growth and retained texture storage for large glyphs.
+		// Their dependent render passes do not benefit from sharing an atlas
+		// for draw batching.
 		r.samples = ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{
 			Unmanaged: true,
 		})
