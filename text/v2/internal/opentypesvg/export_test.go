@@ -21,15 +21,6 @@ type Element = element
 
 var Parse = parse
 
-var (
-	ErrXML            = errXML
-	ErrNamespace      = errNamespace
-	ErrLimit          = errLimit
-	ErrGlyphNotFound  = errGlyphNotFound
-	ErrReference      = errReference
-	ErrReferenceCycle = errReferenceCycle
-)
-
 func (e *element) Name() xml.Name {
 	return e.xmlName()
 }
@@ -107,7 +98,6 @@ const (
 )
 
 var (
-	ErrGeometry     = errGeometry
 	ParseNumber     = parseNumber
 	ResolveLength   = resolveLength
 	ParsePath       = parsePath
@@ -157,8 +147,6 @@ type (
 var (
 	NewStylesheet    = newStylesheet
 	NewStyleResolver = newStyleResolver
-	ErrStyle         = errStyle
-	ErrUnsupported   = errUnsupported
 )
 
 const (
@@ -187,3 +175,5 @@ func (g resolvedGradient) StopCount() int {
 func (g resolvedGradient) Stop(index int) gradientStop {
 	return g.stop(index)
 }
+
+const MaxRenderCoordinate = maxRenderCoordinate

@@ -390,10 +390,11 @@ func parse(source []byte) (*document, error) {
 
 func ignoredElement(name string) bool {
 	switch name {
-	case "a", "altGlyph", "altGlyphDef", "altGlyphItem", "color-profile", "desc", "font", "font-face",
-		"font-face-format", "font-face-name", "font-face-src", "font-face-uri", "foreignObject", "glyph",
-		"glyphRef", "hkern", "metadata", "missing-glyph", "script", "switch", "text", "textPath", "title", "tref",
-		"tspan", "view", "vkern":
+	case "a", "altGlyph", "altGlyphDef", "altGlyphItem", "animate", "animateColor", "animateMotion",
+		"animateTransform", "color-profile", "desc", "font", "font-face", "font-face-format", "font-face-name",
+		"font-face-src", "font-face-uri", "foreignObject", "glyph", "glyphRef", "hkern", "metadata",
+		"missing-glyph", "mpath", "script", "set", "switch", "text", "textPath", "title", "tref", "tspan",
+		"view", "vkern":
 		return true
 	}
 	return false

@@ -33,6 +33,10 @@ func identity() matrix {
 }
 
 // apply maps a point, rejecting nonfinite inputs and results.
+func (m matrix) values() [6]float64 {
+	return [6]float64{m.A, m.B, m.C, m.D, m.E, m.F}
+}
+
 func (m matrix) apply(p point) (point, error) {
 	if !m.isValid() || !areValidNumbers(p.X, p.Y) {
 		return point{}, errGeometry

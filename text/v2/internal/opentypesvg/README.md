@@ -1,11 +1,11 @@
 # OpenType SVG
 
-CPU-only foundations for the internal glyph renderer planned in
+Internal glyph interpretation and GPU rendering for
 [#3796](https://github.com/hajimehoshi/ebiten/issues/3796). Document parsing,
-glyph selection, retained geometry, viewport mapping, styles, colors and
-linear/radial gradients are implemented. Rendering and text integration are
-not implemented. Successful interpretation does not establish complete
-rendering support.
+glyph selection, retained geometry, viewport mapping, styles and paint
+interpretation remain CPU-only. `PrepareRender` produces a bounded render plan;
+`svgrender.Renderer` uses vector paths and `vector.ImagePaint` for gradient paints. Text integration and glyph caching are not implemented. Successful
+parsing alone does not establish rendering support.
 
 [Acceptance fixtures](testdata/README.md) describe the real-font records,
 focused cases, licenses and intended rendering results. Existing
@@ -24,13 +24,11 @@ The target is the required subset of [OpenType SVG][opentype] and SVG 1.1.
 | Styles | Presentation attributes, inline styles, the CSS subset below, cascade and inheritance |
 | Paint | Named/numeric colors, currentColor, CPAL variables, local URL paints and fallbacks |
 | Gradients | Linear/radial definitions, href inheritance, stops, units, transforms, spread and focal parameters |
-| Composition inputs | Fill/clip rules, stroke parameters, clip references, opacity, display and visibility |
+| Rendering | Painter order, transformed fills/strokes, dashes, gradient sampling and nested clips |
+| Composition | Paint opacity, display/visibility and single-paint element opacity; isolated groups deferred |
 
-Geometry stays as curves until output scale is known. Units and transforms use
-explicit contexts; source ancestry is not an instance transform parent. The
-root viewport preserves font coordinates without introducing an implicit clip.
-The generic geometry helper supports em/ex with supplied metrics; style and
-gradient lengths enforce the OpenType restriction on those units.
+The root viewport preserves font coordinates without introducing an implicit
+clip. Style and gradient lengths enforce the OpenType restriction on em/ex.
 
 Selectors use source ancestry, while inherited values come from the explicit
 instance parent. This follows [SVG 1.1 use semantics][svg-use] for glyph
@@ -73,8 +71,11 @@ Their ordinary XML attributes remain inputs to the geometry parser.
 Filters, patterns, effective mask images, markers and other deferred rendering
 effects are reported rather than silently omitted. Inert mask longhands are
 ignored. External paint URLs are unsupported and are never fetched. Restricted
-OpenType element subtrees are ignored by the document parser. Other element
-support still needs interpreter-level classification.
+OpenType element subtrees and animation subtrees are ignored by the document
+parser. Static rendering never runs animations. Unknown rendered
+elements report `ErrUnsupported`. Nested SVG viewports,
+`symbol` instances, pathLength-calibrated dashes and embedded images are
+currently unsupported.
 
 ### Compatibility allowances
 
@@ -90,30 +91,52 @@ include empty SVG namespaces, unprefixed href, adjacent transform functions,
 repeated transform separators, and a zero gradient focal radius. These do not
 imply general CSS, SVG 2 or browser rendering support.
 
-## Renderer handoff
+## Rendering
 
-The later interpreter must:
+`PrepareRender(source, RenderOptions)` is CPU-only. Supply the glyph ID, UPEM,
+output dimensions, font-to-output transform, foreground/palette and sample
+density (1, 2, 4 or 8 per axis). Foreground is straight `color.NRGBA`; use opaque
+black for the ordinary default. A zero transform means identity. Treat the
+returned plan as immutable.
 
-- Supply use-instance parents and compose local, viewport and output transforms
-  explicitly. Do not apply a selected root's style or transform twice.
-- Sample paints with their separate paint opacity, then apply element/group
-  opacity to the composed result. Premultiply only at the rendering boundary.
-- Provide object bounds and viewport lengths for gradients; honor disabled and
-  solid-color results, color interpolation, spread modes and focal behavior.
-  Singular transforms and a focus on the circle need sampling treatment.
-- Expand/dash strokes, traverse and bound clip references, perform clipping and
-  composition, and prune display:none subtrees while retaining definitions.
-  Hidden visibility can be overridden by descendants.
-- Decide how to report or draw completed geometry prefixes on malformed input.
-  Bound aggregate geometry and any additional instance/reference expansion.
-- Bound gzip decompression before document parsing. go-text currently
-  decompresses before this package receives the source. Check embedded image
-  dimensions against a pixel budget before decoding PNG/JPEG data.
+Call `svgrender.Renderer.Draw` and `Deallocate` within Ebitengine's graphics
+lifecycle. Reuse a renderer for successive glyphs. Gradient paints are rasterized
+on the chosen sample grid and applied through `vector.ImagePaint`; final resolve
+still occurs only after composition. Sampling density remains an explicit
+evaluation choice; no production quality policy has been selected.
 
-Unresolved or wrong-type references return `errReference`; cycles return
-`errReferenceCycle`. Explicit paint fallbacks can handle unusable gradients.
-`errLimit` and `errUnsupported` always propagate. Geometry, paint sampling,
-embedded images, text integration and caching still need rendering validation.
+Empty gradients disable paint; single-stop and degenerate linear/radial
+gradients use the final stop. Singular gradient transforms use a supplied URL
+fallback or return `ErrGeometry`; excessive inverse scales return `ErrLimit`.
+At a radial focus on the circumference, rays without a forward circle
+intersection take the final stop, including with repeat/reflect. Singular
+geometry transforms draw nothing. Nonfinite values and excessive coordinates
+fail preparation.
+
+Clip children form a union; own and ancestor clips intersect that union.
+Descendants of hidden elements may set `visibility:visible`. display:none
+subtrees are pruned while shared definitions remain available. Display does not
+apply to a clipPath itself, but does apply to its children. Shape elements have
+no rendered children. Clip content is limited to shapes and uses that directly
+reference a shape; groups and indirect use chains are ignored. Malformed
+geometry that must be interpreted rejects the whole plan, including any valid
+prefix. Errors never return partial successful artwork;
+use `errors.Is` with the exported error identities to classify failures.
+
+Isolated element/group opacity and embedded PNG/JPEG rendering remain item 6.
+Zero opacity produces no draws and skips painting effects. Such a subtree is
+otherwise skipped unless an active ancestor needs its geometry for an
+objectBoundingBox clip. In that case its geometry, transforms, display values
+and use references contribute to the bounds; errors needed to resolve those
+bounds propagate. Filters, masks and other painting effects remain ignored.
+Opacity is ignored in clip content.
+Opacity strictly between zero and one on containers or elements with both fill
+and stroke returns `ErrUnsupported`. Single-paint leaf opacity and independent
+fill/stroke opacity are supported. Text integration, caching, external foreground/palette
+plumbing, gzip limits, production quality selection and replacement of oksvg
+remain separate work. The sample-preserving composition requirements for item 6
+are documented beside the surfaces and final resolve in
+[renderer.go](svgrender/renderer.go).
 
 ## Limits
 
@@ -126,33 +149,82 @@ Depth, element, rule, selector, stop and dash limits are declared beside their
 parsers in [document.go](document.go), [number.go](number.go),
 [css.go](css.go) and [svgcss/syntax.go](svgcss/syntax.go). Resolver work,
 instances and cached values have independent budgets; expensive input can hit
-`errLimit` before another ceiling is reached. Work charging includes repeated
-parsing of inherited color and stroke values. Cache-entry checks are defensive
-backstops to the document element limit; the shared cached-value budget is a
-reachable limit. These are record/work bounds, not allocator byte guarantees.
+`ErrLimit` before another ceiling is reached. These are record/work bounds,
+not allocator byte guarantees.
+
+Render preparation bounds geometry, instances, gradient stops, stroke expansion,
+coordinates and sample surfaces. Stencil accounting has two independent limits:
+
+- Per flush: 8,388,608 pixels (33,554,432 RGBA bytes of requested regions), enough
+  for one maximum-area draw and clip. A single draw and its distinct clip leaves
+  are indivisible; exceeding this limit returns `ErrLimit`.
+- Per plan: 67,108,864 pixels (268,435,456 RGBA bytes of cumulative region work),
+  bounding rasterization work across all flushes.
+
+Preparation marks batch boundaries on draws. The renderer flushes pending vector
+fills there without clearing, resolving or resampling the color surface. Gradient
+painting is explicitly finished as its own batch. Fill-rule transitions explicitly end pending
+batches, including when the new draw is culled. Bounds are conservative,
+intersected with draw/surface bounds and rounded to 16 pixels per axis. Clip
+commands remain charged per submission.
+
+These are region/work bounds, not physical GPU memory limits. Metal allocation
+traces showed engine atlas pages growing to 16384×4096 when scratch targets shared
+pages with vector's stencil textures. Scratch targets now use separate textures.
+Vector's atlas rounding, row packing, engine page growth and retained clip masks
+still amplify allocation: maximum-area single-flush gradient/clip probes reached
+352.25 MiB of additional GPU image memory. This is an observed worst case among
+the measured probes, not a universal physical bound. The rationale is beside the
+constants in [renderplan.go](renderplan.go).
+Complex but valid records can exceed these conservative internal limits.
 
 ## Validation
 
-All package tests are CPU-only and require no display or graphics harness.
-They cover fixtures, malformed input, cascade, instance inheritance, paint
-interpretation and resource limits. They do not establish pixel compatibility.
+The parent package and `svgcss` tests remain CPU-only. Render preparation tests
+cover errors, pruning, inheritance, analytic bounds, limits and fuzzing. GPU tests
+live in `svgrender` with an external test package and a hidden-window run loop.
+On Linux, invoke them under `xvfb-run`, including recursive package tests.
 
 ```sh
-go test ./text/v2/internal/opentypesvg/...
-go test -race -count=1 ./text/v2/internal/opentypesvg/...
+go test ./text/v2/internal/opentypesvg ./text/v2/internal/opentypesvg/svgcss
+go test -race -count=1 ./text/v2/internal/opentypesvg ./text/v2/internal/opentypesvg/svgcss
 go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzDocument$' -fuzztime 10s
 go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzPath$' -fuzztime 10s
 go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzCoordinates$' -fuzztime 10s
 go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzStyles$' -fuzztime 10s
 go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzStyleValues$' -fuzztime 10s
+go test ./text/v2/internal/opentypesvg -run '^$' -fuzz '^FuzzRenderPreparation$' -fuzztime 10s
 go test ./text/v2/internal/opentypesvg/svgcss -run '^$' -fuzz '^FuzzSyntax$' -fuzztime 10s
 ```
 
-[Composition tests](../../../../vector/clipgroup_test.go) provide a separate
-baseline for nested opacity and clipping. Run graphics tests under xvfb-run on
-Linux. Raster quality, JPEG coverage, full-font evaluation and independent
-comparisons at multiple sizes and fractional offsets remain acceptance work
-before replacing oksvg.
+```sh
+# macOS: the GPU TestMain hides its window.
+go test -count=1 ./text/v2/internal/opentypesvg/svgrender
+EBITENGINE_GRAPHICS_LIBRARY=opengl go test -count=1 ./text/v2/internal/opentypesvg/svgrender
+# Linux:
+xvfb-run -a go test -count=1 ./text/v2/internal/opentypesvg/svgrender
+```
+
+Deterministic tests cover rendering semantics, clip identity, full-sample
+resolve, forced flush callbacks, composition across batches and selected
+real-font pixels. All ten real records also prepare at 256 pixels with
+8 samples per axis and at 512 pixels with 4 samples per axis. `TestIndependentReference` additionally
+compares focused cases and four real-font records with `rsvg-convert` when it
+is installed. Both sides use an explicit 8x density and full box averaging.
+The checks require occupied-pixel mean channel error at most 5 and no pixel
+with a channel error above 32. This is a bounded regression comparison, not
+pixel equivalence or a production sampling policy.
+
+librsvg 2.62.3/Cairo 1.18.4 disagrees on linearRGB gradients and percentage
+coordinates in bounding-box clips. Those cases use analytic color and
+normalized-coordinate equivalence tests. Set `SVG_RENDER_REPORT_DIR`
+to an existing directory to retain comparison PNGs.
+
+[Composition tests](../../../../vector/clipgroup_test.go) provide the separate
+baseline for nested isolated opacity. The renderer rejects the `group-identity`,
+`nested-groups` and embedded-image fixtures until item 6. Full-font evaluation,
+additional platforms and caching/integration acceptance remain necessary before
+replacing oksvg.
 
 [opentype]: https://learn.microsoft.com/en-us/typography/opentype/spec/svg
 [svg-use]: https://www.w3.org/TR/SVG11/struct.html#UseElement

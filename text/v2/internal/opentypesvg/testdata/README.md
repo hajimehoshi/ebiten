@@ -80,3 +80,11 @@ viewport and object bounds and check definitions, transforms, inherited stops,
 stop alpha and references without flattening geometry or sampling pixels.
 The resolver's supported subset, compatibility allowances, limits and error
 policy are documented in [the package README](../README.md#supported-behavior).
+
+## GPU validation
+
+`../svgrender` exercises the focused vector fixtures and selected real-font
+records through `PrepareRender`. Tests keep a point-sample grid until the final
+GPU box resolve. Group opacity and embedded-image fixtures remain explicit
+unsupported cases for item 6. See [renderer validation](../README.md#validation)
+for test commands, independent-comparison scope and limitations.

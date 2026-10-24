@@ -355,6 +355,18 @@ func (r *styleResolver) initialStyle() style {
 
 // compute resolves an element with an explicit instance parent, or initial values if nil.
 func (r *styleResolver) compute(e *element, parent *style) (style, error) {
+	return r.computeMode(e, parent, styleAll)
+}
+
+type styleMode uint8
+
+const (
+	styleAll styleMode = iota
+	stylePainting
+	styleBounds
+)
+
+func (r *styleResolver) computeMode(e *element, parent *style, mode styleMode) (style, error) {
 	if err := r.spend(1); err != nil {
 		return style{}, err
 	}
@@ -387,80 +399,56 @@ func (r *styleResolver) compute(e *element, parent *style) (style, error) {
 			values[p] = value
 		}
 	}
-	s.Display = values[propDisplay] != "none"
-	if s.Display {
-		for p, info := range properties {
-			if !info.unsupported || !effectApplies(property(p), e) {
-				continue
+
+	if err := r.spend(len(values[propOpacity])); err != nil {
+		return style{}, err
+	}
+	s.Opacity, _ = opacity(values[propOpacity])
+	paintProperties := mode != styleBounds && (mode != stylePainting || s.Opacity != 0)
+	if paintProperties {
+		// color:currentColor has the same computed value as inherited color.
+		colorValue := declarations[propColor]
+		switch colorValue {
+		case "", "inherit", "unset", "currentColor", "currentcolor":
+			s.Color = parent.Color
+		case "initial":
+			s.Color = r.colors.Foreground
+		default:
+			if err := r.spend(len(values[propColor])); err != nil {
+				return style{}, err
 			}
-			value := values[p]
-			overridesAttribute := false
-			// Even an initial CSS value can disable a non-initial XML geometry
-			// attribute, so it must not silently fall through to the geometry parser.
-			if info.cssOnly && declarations[p] != "" {
-				if err := r.spend(len(e.attributes)); err != nil {
+			s.Color, err = parseColor(values[propColor], parent.Color, r.colors)
+			if err != nil {
+				if errors.Is(err, errLimit) || errors.Is(err, errUnsupported) {
 					return style{}, err
 				}
-				_, overridesAttribute = e.attribute("", info.name)
+				s.Color = parent.Color
 			}
-			if value == info.initial && !overridesAttribute {
-				continue
-			}
-			if err := r.spend(len(value)); err != nil {
+		}
+		// Missing variables invalidate at computed-value time, after the cascade.
+		for _, p := range []property{propFill, propStroke, propStopColor} {
+			if err := r.spend(len(values[p])); err != nil {
 				return style{}, err
 			}
-			return style{}, errUnsupported
-		}
-		if value := values[propClipPath]; value != "none" && !svgcss.HasFunction(value, "url") {
-			if err := r.spend(len(value)); err != nil {
-				return style{}, err
-			}
-			return style{}, errUnsupported
-		}
-	}
-	// color:currentColor has the same computed value as inherited color.
-	colorValue := declarations[propColor]
-	switch colorValue {
-	case "", "inherit", "unset", "currentColor", "currentcolor":
-		s.Color = parent.Color
-	case "initial":
-		s.Color = r.colors.Foreground
-	default:
-		if err := r.spend(len(values[propColor])); err != nil {
-			return style{}, err
-		}
-		s.Color, err = parseColor(values[propColor], parent.Color, r.colors)
-		if err != nil {
-			if errors.Is(err, errLimit) || errors.Is(err, errUnsupported) {
-				return style{}, err
-			}
-			s.Color = parent.Color
-		}
-	}
-	// Missing variables invalidate at computed-value time, after the cascade.
-	for _, p := range []property{propFill, propStroke, propStopColor} {
-		if err := r.spend(len(values[p])); err != nil {
-			return style{}, err
-		}
-		if _, err := parsePaint(values[p], s.Color, r.colors, p != propStopColor); err != nil {
-			if errors.Is(err, errLimit) || errors.Is(err, errUnsupported) {
-				return style{}, err
-			}
-			if properties[p].inherited {
-				values[p] = parent.value(property(p))
-			} else {
-				values[p] = properties[p].initial
+			if _, err := parsePaint(values[p], s.Color, r.colors, p != propStopColor); err != nil {
+				if errors.Is(err, errLimit) || errors.Is(err, errUnsupported) {
+					return style{}, err
+				}
+				if properties[p].inherited {
+					values[p] = parent.value(property(p))
+				} else {
+					values[p] = properties[p].initial
+				}
 			}
 		}
 	}
-	for _, p := range []property{propFillOpacity, propStrokeOpacity, propOpacity, propStopOpacity, propStrokeMiter} {
+	for _, p := range []property{propFillOpacity, propStrokeOpacity, propStopOpacity, propStrokeMiter} {
 		if err := r.spend(len(values[p])); err != nil {
 			return style{}, err
 		}
 	}
 	s.FillOpacity, _ = opacity(values[propFillOpacity])
 	s.StrokeOpacity, _ = opacity(values[propStrokeOpacity])
-	s.Opacity, _ = opacity(values[propOpacity])
 	s.StopOpacity, _ = opacity(values[propStopOpacity])
 	s.FillRule = values[propFillRule]
 	s.ClipRule = values[propClipRule]
@@ -481,6 +469,11 @@ func (r *styleResolver) compute(e *element, parent *style) (style, error) {
 			value:    value,
 		}
 		s.values = append(s.values, entry)
+	}
+	if mode == styleBounds || paintProperties {
+		if err := r.checkEffects(e, s, mode == styleBounds); err != nil {
+			return style{}, err
+		}
 	}
 	return s, nil
 }
@@ -854,6 +847,41 @@ func validateClipValue(text string) error {
 			return err
 		}
 		shape = true
+	}
+	return nil
+}
+
+func (r *styleResolver) checkEffects(e *element, s style, geometryOnly bool) error {
+	if !s.Display {
+		return nil
+	}
+	for p, info := range properties {
+		if !info.unsupported || geometryOnly && !info.cssOnly || !effectApplies(property(p), e) {
+			continue
+		}
+		value := s.value(property(p))
+		var overridesAttribute bool
+		if _, declared := r.specified[e].lookup(property(p)); info.cssOnly && declared {
+			if err := r.spend(len(e.attributes)); err != nil {
+				return err
+			}
+			_, overridesAttribute = e.attribute("", info.name)
+		}
+		if value == info.initial && !overridesAttribute {
+			continue
+		}
+		if err := r.spend(len(value)); err != nil {
+			return err
+		}
+		return errUnsupported
+	}
+	if !geometryOnly {
+		if value := s.value(propClipPath); value != "none" && !svgcss.HasFunction(value, "url") {
+			if err := r.spend(len(value)); err != nil {
+				return err
+			}
+			return errUnsupported
+		}
 	}
 	return nil
 }
