@@ -309,13 +309,16 @@ func TestImageWritePixels(t *testing.T) {
 
 func TestImageWritePixelsBetweenDraws(t *testing.T) {
 	// Keep the source off the atlas so uploads and draws use the same texture.
-	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 1, 1), &ebiten.NewImageOptions{Unmanaged: true})
-	dst := ebiten.NewImageWithOptions(image.Rect(0, 0, 2, 1), &ebiten.NewImageOptions{Unmanaged: true})
-	want := []byte{0xff, 0, 0, 0xff, 0, 0xff, 0, 0xff}
+	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 2, 1), &ebiten.NewImageOptions{Unmanaged: true})
+	dst := ebiten.NewImageWithOptions(image.Rect(0, 0, 4, 1), &ebiten.NewImageOptions{Unmanaged: true})
+	want := []byte{
+		0xff, 0, 0, 0xff, 0xff, 0, 0, 0xff,
+		0, 0xff, 0, 0xff, 0, 0xff, 0, 0xff,
+	}
 	for i := range 2 {
-		src.WritePixels(want[4*i : 4*(i+1)])
+		src.WritePixels(want[8*i : 8*(i+1)])
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(i), 0)
+		op.GeoM.Translate(float64(2*i), 0)
 		dst.DrawImage(src, op)
 	}
 
