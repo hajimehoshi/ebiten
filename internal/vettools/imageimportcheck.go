@@ -57,7 +57,7 @@ func runImageImportCheck(pass *analysis.Pass) (any, error) {
 		return imageImportCheckResult{}, nil
 	}
 
-	if pkgPath == "github.com/hajimehoshi/ebiten/v2/text/v2" {
+	if pkgPath == "github.com/hajimehoshi/ebiten/v2/text/v2" || pkgPath == "github.com/hajimehoshi/ebiten/v2/text/v2/internal/opentypesvg" {
 		return imageImportCheckResult{}, nil
 	}
 
