@@ -95,6 +95,37 @@ third-party source. To reproduce its payload, fill an 8×8 image.RGBA with
 color.RGBA{R: 80, G: 160, B: 240, A: 255}, encode with the standard-library
 image/jpeg encoder and jpeg.Options{Quality: 100}, and base64-encode the bytes.
 
+## Native production reference checks
+
+`TestSVGProductionReference` compares public glyph images and `text.Draw` with
+librsvg (`rsvg-convert`), using the Noto gradient numeral and Twemoji even-odd
+sunglasses records above in a synthetic font. It rejects outline fallback.
+The four cases cover 24- and 96-pixel em sizes; the small cases use a preceding
+space to exercise fractional layout. Font origins follow text quantization;
+reference placement does not use the renderer's computed ink bounds.
+
+Production uses native-size vector AA unchanged. Only the independent reference
+uses 8x rendering and CPU box averaging. Occupied premultiplied RGBA mean error
+must be at most 8, with no channel error above 64. These are regression bounds,
+not pixel equivalence: the tiny Noto numeral exhibits discrete native coverage
+steps, including weak edge coverage absent from production. Inspection at native
+and magnified sizes found edge differences; an unaveraged librsvg comparison
+showed similar differences. These two single-paint records do not validate
+coincident overpainting, adjoining-fill seams, or full-font compatibility.
+
+Run one small case first, from the repository root:
+
+```sh
+go test -p 1 -count=1 -run '^TestSVGProductionReference/noto-3330-3330/24$' -v ./text/v2
+```
+
+On Linux prefix with `xvfb-run -a`. The test skips if `rsvg-convert` is absent.
+Set `EBITENGINE_SVG_RENDER_REPORT_DIR` to an existing directory to retain native
+production and averaged reference PNGs. Each comparison uses two 128x128 GPU
+destinations and one small glyph image; the reference is at most 1024x1024.
+Run sequentially and measure process memory before adding cases. Resource counts
+do not bound physical GPU memory or engine allocation overhead.
+
 ## Full-font preparation inventory and bounded smoke checks
 
 This is an incomplete acceptance workflow. It does not establish full-font GPU
