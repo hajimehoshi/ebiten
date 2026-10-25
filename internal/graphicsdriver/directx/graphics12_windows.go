@@ -857,18 +857,15 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 
 	// Release the vertex and index buffers when too many have been created.
 	// The threshold is an arbitrary number.
-	// Tests can submit command batches without completing a frame.
+	// Tests can submit command batches without completing a frame, so the descriptor tables and the constant buffers
+	// are also made reusable here.
 	if len(g.vertices[g.frameIndex]) >= 16 {
 		if err := g.waitForCommandQueue(); err != nil {
 			return err
 		}
 		g.releaseResources(g.frameIndex)
 		g.resetVerticesAndIndices(g.frameIndex, true)
-	}
-
-	// An intermediate flush does not wait for the GPU, so draws using these buffers might still be in flight.
-	if mode != graphicsdriver.FlushModeIntermediate {
-		g.pipelineStates.resetConstantBuffers(g.frameIndex)
+		g.pipelineStates.resetFrame(g.frameIndex)
 	}
 
 	if mode == graphicsdriver.FlushModePresent {
@@ -899,6 +896,7 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 
 		g.releaseResources(g.frameIndex)
 		g.resetVerticesAndIndices(g.frameIndex, false)
+		g.pipelineStates.resetFrame(g.frameIndex)
 
 		g.frameStarted = false
 	}
@@ -1367,22 +1365,6 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 	// Both lists are DIRECT lists on one queue, so submission order is execution order.
 	if err := g.submitCommandList(g.copyCommandList); err != nil {
 		return err
-	}
-
-	// Release constant buffers when too many ones will be created.
-	numPipelines := 1
-	if len(g.pipelineStates.constantBuffers[g.frameIndex])+numPipelines > numDescriptorsPerFrame {
-		if g.needFlushDrawCommandList {
-			if err := g.flushCommandList(g.drawCommandList); err != nil {
-				return err
-			}
-		} else {
-			// A pixel write or a read-back might have submitted the draws using these buffers without waiting for them.
-			if err := g.waitForCommandQueue(); err != nil {
-				return err
-			}
-		}
-		g.pipelineStates.releaseConstantBuffers(g.frameIndex)
 	}
 
 	dst := g.images[dstID]

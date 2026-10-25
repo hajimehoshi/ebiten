@@ -75,7 +75,21 @@ func init() {
 	}
 }
 
-const numDescriptorsPerFrame = 32
+const (
+	// initialDescriptorTableCount is the number of descriptor tables in a frame's first shader-visible descriptor heap.
+	initialDescriptorTableCount = 256
+
+	// maxDescriptorTableCount is the number of descriptor tables in the largest shader-visible descriptor heap that
+	// every device supports.
+	maxDescriptorTableCount = _D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1 / numConstantBufferAndSourceTextures
+
+	// initialConstantBufferSize is the size in bytes of a frame's first upload buffer for constant buffers.
+	initialConstantBufferSize = 64 * 1024
+
+	// maxConstantBufferSize is the size in bytes of the largest upload buffer for constant buffers that every device
+	// supports.
+	maxConstantBufferSize = _D3D12_REQ_RESOURCE_SIZE_IN_MEGABYTES_EXPRESSION_A_TERM * 1024 * 1024
+)
 
 func blendFactorToBlend12(f graphicsdriver.BlendFactor, alpha bool) _D3D12_BLEND {
 	// D3D12_RENDER_TARGET_BLEND_DESC's *BlendAlpha members don't allow *_COLOR values.
@@ -141,114 +155,54 @@ func blendOperationToBlendOp12(o graphicsdriver.BlendOperation) _D3D12_BLEND_OP 
 type pipelineStates struct {
 	rootSignature *_ID3D12RootSignature
 
-	shaderDescriptorHeap *_ID3D12DescriptorHeap
 	shaderDescriptorSize uint32
 
-	constantBuffers    [frameCount][]*_ID3D12Resource
-	constantBufferMaps [frameCount][]uintptr
+	// descriptorTables and constantBuffers are indexed by the frame index.
+	descriptorTables [frameCount]descriptorTableAllocator
+	constantBuffers  [frameCount]constantBufferAllocator
 }
 
 const numConstantBufferAndSourceTextures = 1 + graphics.ShaderSrcImageCount
 
 func (p *pipelineStates) initialize(device *_ID3D12Device) (err error) {
-	// Create a CBV/SRV/UAV descriptor heap.
-	//   5n+0:        constants
-	//   5n+m (1<=m<=4): textures
-	shaderH, err := device.CreateDescriptorHeap(&_D3D12_DESCRIPTOR_HEAP_DESC{
-		Type:           _D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-		NumDescriptors: frameCount * numDescriptorsPerFrame * numConstantBufferAndSourceTextures,
-		Flags:          _D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-		NodeMask:       0,
-	})
-	if err != nil {
-		return err
-	}
-	p.shaderDescriptorHeap = shaderH
 	defer func() {
 		if err != nil {
 			p.release()
 		}
 	}()
+
 	p.shaderDescriptorSize = device.GetDescriptorHandleIncrementSize(_D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+
+	// Create the first shader-visible descriptor heaps.
+	for i := range p.descriptorTables {
+		if err := p.descriptorTables[i].grow(device); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
 
 // release releases the objects created by initialize.
 func (p *pipelineStates) release() {
-	if p.shaderDescriptorHeap != nil {
-		p.shaderDescriptorHeap.Release()
-		p.shaderDescriptorHeap = nil
+	for i := range p.descriptorTables {
+		p.descriptorTables[i].release()
 	}
 	p.shaderDescriptorSize = 0
 }
 
 func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D12GraphicsCommandList, frameIndex int, screen bool, srcs [graphics.ShaderSrcImageCount]*image12, shader *shader12, dstRegions []graphicsdriver.DstRegion, uniforms []uint32, blend graphicsdriver.Blend, indexOffset int) error {
-	idx := len(p.constantBuffers[frameIndex])
-	if idx >= numDescriptorsPerFrame {
-		return fmt.Errorf("directx: too many constant buffers")
-	}
-
-	if cap(p.constantBuffers[frameIndex]) > idx {
-		p.constantBuffers[frameIndex] = p.constantBuffers[frameIndex][:idx+1]
-		p.constantBufferMaps[frameIndex] = p.constantBufferMaps[frameIndex][:idx+1]
-	} else {
-		p.constantBuffers[frameIndex] = append(p.constantBuffers[frameIndex], nil)
-		p.constantBufferMaps[frameIndex] = append(p.constantBufferMaps[frameIndex], 0)
-	}
-
-	const bufferSizeAlignment = 256
-	bufferSize := uint32(unsafe.Sizeof(uint32(0))) * uint32(len(uniforms))
-	if bufferSize > 0 {
-		bufferSize = ((bufferSize-1)/bufferSizeAlignment + 1) * bufferSizeAlignment
-	}
-
-	cb := p.constantBuffers[frameIndex][idx]
-	m := p.constantBufferMaps[frameIndex][idx]
-	if cb != nil {
-		if uint32(cb.GetDesc().Width) < bufferSize {
-			p.constantBuffers[frameIndex][idx].Unmap(0, nil)
-			p.constantBuffers[frameIndex][idx].Release()
-			p.constantBuffers[frameIndex][idx] = nil
-			p.constantBufferMaps[frameIndex][idx] = 0
-			cb = nil
-		}
-	}
-	if cb == nil {
-		var err error
-		cb, err = createBuffer(device, uint64(bufferSize), _D3D12_HEAP_TYPE_UPLOAD)
-		if err != nil {
-			return err
-		}
-		p.constantBuffers[frameIndex][idx] = cb
-
-		h, err := p.shaderDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
-		if err != nil {
-			return err
-		}
-		offset := int32(numConstantBufferAndSourceTextures * (frameIndex*numDescriptorsPerFrame + idx))
-		h.Offset(offset, p.shaderDescriptorSize)
-		device.CreateConstantBufferView(&_D3D12_CONSTANT_BUFFER_VIEW_DESC{
-			BufferLocation: cb.GetGPUVirtualAddress(),
-			SizeInBytes:    bufferSize,
-		}, h)
-
-		m, err = cb.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
-		if err != nil {
-			return err
-		}
-		p.constantBufferMaps[frameIndex][idx] = m
-	}
-	if m == 0 {
-		return fmt.Errorf("directx: ID3D12Resource::Map failed")
-	}
-
-	h, err := p.shaderDescriptorHeap.GetCPUDescriptorHandleForHeapStart()
+	heap, h, gh, err := p.descriptorTables[frameIndex].allocate(device, p.shaderDescriptorSize)
 	if err != nil {
 		return err
 	}
-	offset := int32(numConstantBufferAndSourceTextures * (frameIndex*numDescriptorsPerFrame + idx))
-	h.Offset(offset, p.shaderDescriptorSize)
+
+	cbv, err := p.constantBuffers[frameIndex].allocate(device, uniforms)
+	if err != nil {
+		return err
+	}
+	device.CreateConstantBufferView(&cbv, h)
+
 	for _, src := range srcs {
 		h.Offset(1, p.shaderDescriptorSize)
 		var resource *_ID3D12Resource
@@ -265,9 +219,6 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 		}, h)
 	}
 
-	// Update the constant buffer.
-	copy(unsafe.Slice((*uint32)(unsafe.Pointer(m)), len(uniforms)), uniforms)
-
 	rs, err := p.ensureRootSignature(device)
 	if err != nil {
 		return err
@@ -275,15 +226,10 @@ func (p *pipelineStates) drawTriangles(device *_ID3D12Device, commandList *_ID3D
 	commandList.SetGraphicsRootSignature(rs)
 
 	commandList.SetDescriptorHeaps([]*_ID3D12DescriptorHeap{
-		p.shaderDescriptorHeap,
+		heap,
 	})
 
 	// Match the indices with rootParams in graphicsPipelineState.
-	gh, err := p.shaderDescriptorHeap.GetGPUDescriptorHandleForHeapStart()
-	if err != nil {
-		return err
-	}
-	gh.Offset(offset, p.shaderDescriptorSize)
 	commandList.SetGraphicsRootDescriptorTable(0, gh)
 	commandList.SetGraphicsRootDescriptorTable(1, gh)
 
@@ -451,21 +397,176 @@ func (p *pipelineStates) newPipelineState(device *_ID3D12Device, vsh, psh *_ID3D
 	return s, nil
 }
 
-func (p *pipelineStates) releaseConstantBuffers(frameIndex int) {
-	// An entry can be nil when drawTriangles failed to create a buffer.
-	for i, cb := range p.constantBuffers[frameIndex] {
-		if cb != nil {
-			cb.Unmap(0, nil)
-			cb.Release()
-		}
-		p.constantBuffers[frameIndex][i] = nil
-		p.constantBufferMaps[frameIndex][i] = 0
-	}
-	p.constantBuffers[frameIndex] = p.constantBuffers[frameIndex][:0]
-	p.constantBufferMaps[frameIndex] = p.constantBufferMaps[frameIndex][:0]
+// resetFrame makes the descriptor tables and the constant buffers allocated for the frame reusable.
+// The GPU must have finished the commands using them.
+func (p *pipelineStates) resetFrame(frameIndex int) {
+	p.descriptorTables[frameIndex].reset()
+	p.constantBuffers[frameIndex].reset()
 }
 
-func (p *pipelineStates) resetConstantBuffers(frameIndex int) {
-	p.constantBuffers[frameIndex] = p.constantBuffers[frameIndex][:0]
-	p.constantBufferMaps[frameIndex] = p.constantBufferMaps[frameIndex][:0]
+// descriptorTableAllocator allocates a frame's descriptor tables from a shader-visible descriptor heap.
+// A descriptor table is a CBV followed by the SRVs of the source textures.
+type descriptorTableAllocator struct {
+	heap           *_ID3D12DescriptorHeap
+	cpuHandleStart _D3D12_CPU_DESCRIPTOR_HANDLE
+	gpuHandleStart _D3D12_GPU_DESCRIPTOR_HANDLE
+	tableCount     int
+	usedTableCount int
+
+	// retiredHeaps are the heaps that ran out earlier in the frame. The GPU might still read them.
+	retiredHeaps []*_ID3D12DescriptorHeap
+}
+
+// allocate returns the heap and the CPU and GPU handles of an unused descriptor table.
+func (d *descriptorTableAllocator) allocate(device *_ID3D12Device, descriptorSize uint32) (*_ID3D12DescriptorHeap, _D3D12_CPU_DESCRIPTOR_HANDLE, _D3D12_GPU_DESCRIPTOR_HANDLE, error) {
+	if d.usedTableCount == d.tableCount {
+		if err := d.grow(device); err != nil {
+			return nil, _D3D12_CPU_DESCRIPTOR_HANDLE{}, _D3D12_GPU_DESCRIPTOR_HANDLE{}, err
+		}
+	}
+
+	offset := int32(d.usedTableCount * numConstantBufferAndSourceTextures)
+	d.usedTableCount++
+
+	cpuHandle := d.cpuHandleStart
+	cpuHandle.Offset(offset, descriptorSize)
+	gpuHandle := d.gpuHandleStart
+	gpuHandle.Offset(offset, descriptorSize)
+	return d.heap, cpuHandle, gpuHandle, nil
+}
+
+// grow replaces the heap with a larger one. The replaced heap stays alive until reset.
+func (d *descriptorTableAllocator) grow(device *_ID3D12Device) (err error) {
+	tableCount := min(max(2*d.tableCount, initialDescriptorTableCount), maxDescriptorTableCount)
+	heap, err := device.CreateDescriptorHeap(&_D3D12_DESCRIPTOR_HEAP_DESC{
+		Type:           _D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+		NumDescriptors: uint32(tableCount * numConstantBufferAndSourceTextures),
+		Flags:          _D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+		NodeMask:       0,
+	})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			heap.Release()
+		}
+	}()
+
+	cpuHandle, err := heap.GetCPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+	gpuHandle, err := heap.GetGPUDescriptorHandleForHeapStart()
+	if err != nil {
+		return err
+	}
+
+	if d.heap != nil {
+		d.retiredHeaps = append(d.retiredHeaps, d.heap)
+	}
+	d.heap = heap
+	d.cpuHandleStart = cpuHandle
+	d.gpuHandleStart = gpuHandle
+	d.tableCount = tableCount
+	d.usedTableCount = 0
+	return nil
+}
+
+// reset makes all the descriptor tables of the heap unused, and releases the retired heaps.
+// The GPU must have finished the commands using them.
+func (d *descriptorTableAllocator) reset() {
+	for i, h := range d.retiredHeaps {
+		h.Release()
+		d.retiredHeaps[i] = nil
+	}
+	d.retiredHeaps = d.retiredHeaps[:0]
+	d.usedTableCount = 0
+}
+
+// release releases all the heaps.
+func (d *descriptorTableAllocator) release() {
+	d.reset()
+	if d.heap != nil {
+		d.heap.Release()
+	}
+	*d = descriptorTableAllocator{}
+}
+
+// constantBufferAllocator allocates a frame's constant buffers from an upload buffer.
+type constantBufferAllocator struct {
+	buffer *_ID3D12Resource
+
+	// mapped is the memory of buffer, which stays mapped while buffer is alive.
+	mapped []uint32
+
+	gpuAddress _D3D12_GPU_VIRTUAL_ADDRESS
+	size       uint64
+	usedSize   uint64
+
+	// retiredBuffers are the upload buffers that ran out earlier in the frame. The GPU might still read them.
+	retiredBuffers []*_ID3D12Resource
+}
+
+// allocate copies uniforms to an unused constant buffer and returns its view.
+func (c *constantBufferAllocator) allocate(device *_ID3D12Device, uniforms []uint32) (_D3D12_CONSTANT_BUFFER_VIEW_DESC, error) {
+	size := uint64(unsafe.Sizeof(uniforms[0])) * uint64(len(uniforms))
+	size = (size + _D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1) &^ (_D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT - 1)
+
+	if c.usedSize+size > c.size {
+		if err := c.grow(device, size); err != nil {
+			return _D3D12_CONSTANT_BUFFER_VIEW_DESC{}, err
+		}
+	}
+
+	offset := c.usedSize
+	c.usedSize += size
+
+	copy(c.mapped[offset/uint64(unsafe.Sizeof(c.mapped[0])):], uniforms)
+	return _D3D12_CONSTANT_BUFFER_VIEW_DESC{
+		BufferLocation: c.gpuAddress + _D3D12_GPU_VIRTUAL_ADDRESS(offset),
+		SizeInBytes:    uint32(size),
+	}, nil
+}
+
+// grow replaces the upload buffer with a larger one of at least minSize bytes. The replaced buffer stays alive until reset.
+func (c *constantBufferAllocator) grow(device *_ID3D12Device, minSize uint64) (err error) {
+	size := min(max(2*c.size, initialConstantBufferSize), maxConstantBufferSize)
+	size = max(size, minSize)
+	buffer, err := createBuffer(device, size, _D3D12_HEAP_TYPE_UPLOAD)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			buffer.Release()
+		}
+	}()
+
+	m, err := buffer.Map(0, &_D3D12_RANGE{Begin: 0, End: 0})
+	if err != nil {
+		return err
+	}
+
+	if c.buffer != nil {
+		c.retiredBuffers = append(c.retiredBuffers, c.buffer)
+	}
+	c.buffer = buffer
+	c.gpuAddress = buffer.GetGPUVirtualAddress()
+	c.size = size
+	c.usedSize = 0
+	c.mapped = unsafe.Slice((*uint32)(unsafe.Pointer(m)), size/uint64(unsafe.Sizeof(c.mapped[0])))
+	return nil
+}
+
+// reset makes the whole upload buffer unused, and releases the retired buffers.
+// The GPU must have finished the commands using them.
+func (c *constantBufferAllocator) reset() {
+	for i, b := range c.retiredBuffers {
+		b.Unmap(0, nil)
+		b.Release()
+		c.retiredBuffers[i] = nil
+	}
+	c.retiredBuffers = c.retiredBuffers[:0]
+	c.usedSize = 0
 }
