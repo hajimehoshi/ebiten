@@ -833,7 +833,8 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 	// The swap chain might still be nil when Begin-End is invoked not by a frame (e.g., Image.At).
 
 	// As copyCommandList and drawCommandList are exclusive, the order should not matter here.
-	if err := g.flushCommandList(g.copyCommandList); err != nil {
+	// Submit pending copies without resetting their allocator or waiting for the GPU.
+	if err := g.submitCommandList(g.copyCommandList); err != nil {
 		return err
 	}
 	if err := g.copyCommandList.Close(); err != nil {
