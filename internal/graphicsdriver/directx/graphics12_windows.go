@@ -801,6 +801,11 @@ func (g *graphics12) Begin() error {
 	}
 	g.frameStarted = true
 
+	// End has submitted all the commands, so the frame's resources can be reclaimed once the GPU finishes them.
+	if err := g.reclaimFrameResources(); err != nil {
+		return err
+	}
+
 	if g.prevBeginFrameIndex != g.frameIndex {
 		if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
 			return err
@@ -856,17 +861,13 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 	// would submit an empty command list and wait for the GPU for nothing.
 	g.needFlushDrawCommandList = false
 
-	// Release the vertex and index buffers when too many have been created.
-	// The threshold is an arbitrary number.
-	// Tests can submit command batches without completing a frame, so the descriptor tables and the constant buffers
-	// are also made reusable here.
-	if len(g.vertices[g.frameIndex]) >= 16 {
-		if err := g.waitForCommandQueue(); err != nil {
+	// The frame continues after an intermediate flush. Signal the frame's fence so that the next Begin can tell
+	// whether the GPU has finished the commands submitted so far.
+	if mode == graphicsdriver.FlushModeIntermediate {
+		g.fenceValues[g.frameIndex]++
+		if err := g.commandQueue.Signal(g.fences[g.frameIndex], g.fenceValues[g.frameIndex]); err != nil {
 			return err
 		}
-		g.releaseResources(g.frameIndex)
-		g.resetVerticesAndIndices(g.frameIndex, true)
-		g.pipelineStates.resetFrame(g.frameIndex)
 	}
 
 	if mode == graphicsdriver.FlushModePresent {
@@ -896,7 +897,7 @@ func (g *graphics12) End(mode graphicsdriver.FlushMode) error {
 		g.prevBeginFrameIndex = -1
 
 		g.releaseResources(g.frameIndex)
-		g.resetVerticesAndIndices(g.frameIndex, false)
+		g.resetVerticesAndIndices(g.frameIndex)
 		g.pipelineStates.resetFrame(g.frameIndex)
 
 		g.frameStarted = false
@@ -987,26 +988,29 @@ func (g *graphics12) releaseResources(frameIndex int) {
 	g.disposedShaders[frameIndex] = g.disposedShaders[frameIndex][:0]
 }
 
-func (g *graphics12) resetVerticesAndIndices(frameIndex int, release bool) {
-	if release {
-		// An entry can be nil when SetVertices failed to create a buffer.
-		for i, v := range g.vertices[frameIndex] {
-			if v != nil {
-				v.release()
-			}
-			g.vertices[frameIndex][i] = nil
+// reclaimFrameResources makes the current frame's resources reusable if the GPU has finished the commands submitted
+// so far. Otherwise, it waits for the GPU first if too many vertex buffers have been created.
+func (g *graphics12) reclaimFrameResources() error {
+	if g.fences[g.frameIndex].GetCompletedValue() < g.fenceValues[g.frameIndex] {
+		// Tests can submit command batches without completing a frame. Wait for the GPU when too many command
+		// batches are pending, so that the resources stay bounded. The threshold is an arbitrary number.
+		if len(g.vertices[g.frameIndex]) < 16 {
+			return nil
+		}
+		if err := g.waitForCommandQueue(); err != nil {
+			return err
 		}
 	}
-	g.vertices[frameIndex] = g.vertices[frameIndex][:0]
+	g.releaseResources(g.frameIndex)
+	g.resetVerticesAndIndices(g.frameIndex)
+	g.pipelineStates.resetFrame(g.frameIndex)
+	return nil
+}
 
-	if release {
-		for i, idx := range g.indices[frameIndex] {
-			if idx != nil {
-				idx.release()
-			}
-			g.indices[frameIndex][i] = nil
-		}
-	}
+// resetVerticesAndIndices makes the vertex and index buffers of the frame reusable.
+// The GPU must have finished the commands using them.
+func (g *graphics12) resetVerticesAndIndices(frameIndex int) {
+	g.vertices[frameIndex] = g.vertices[frameIndex][:0]
 	g.indices[frameIndex] = g.indices[frameIndex][:0]
 }
 
