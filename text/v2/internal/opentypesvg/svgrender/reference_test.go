@@ -67,12 +67,20 @@ func referencePixels(t *testing.T, source []byte, size int) []byte {
 
 func TestIndependentReference(t *testing.T) {
 	sources := map[string][]byte{
-		"joins":          svg(`<path d="M4 30L12 6L20 30" fill="none" stroke="red" stroke-width="4" stroke-linejoin="miter" stroke-miterlimit="8"/><path d="M24 30L32 6L40 30" fill="none" stroke="blue" stroke-width="4" stroke-linejoin="miter" stroke-miterlimit="1" stroke-linecap="square"/>`),
-		"curves-stroke":  svg(`<path d="M3 35C3 2 35 3 40 22Q25 38 8 12" fill="none" stroke="#40A080" stroke-width="2" transform="matrix(1 .1 .2 .75 -2 2)" stroke-linejoin="round" stroke-linecap="round"/>`),
-		"elliptical-arc": svg(`<path d="M8 8A14 8 35 1 1 40 35L30 10Z" fill="red" stroke="blue" stroke-width="1"/>`),
-		"dash":           svg(`<path d="M3 35C3 2 35 3 40 22" fill="none" stroke="blue" stroke-width="2" stroke-dasharray="3 2 1" stroke-linecap="round"/>`),
-		"focal":          svg(`<defs><radialGradient id="g" fx="15%" fy="30%"><stop stop-color="white"/><stop offset="1" stop-color="blue" stop-opacity=".3"/></radialGradient></defs><circle cx="24" cy="24" r="20" fill="url(#g)"/>`),
-		"box-clip":       svg(`<defs><clipPath id="c" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath></defs><g clip-path="url(#c)" transform="translate(2 4)"><rect x="4" y="4" width="32" height="24" fill="lime"/></g>`),
+		"isolated-stroke": svg(`<g opacity=".5"><rect x="8" y="8" width="24" height="24" fill="red" stroke="blue" stroke-width="8" opacity=".5"/><circle cx="32" cy="32" r="10" fill="lime"/></g>`),
+		"joins":           svg(`<path d="M4 30L12 6L20 30" fill="none" stroke="red" stroke-width="4" stroke-linejoin="miter" stroke-miterlimit="8"/><path d="M24 30L32 6L40 30" fill="none" stroke="blue" stroke-width="4" stroke-linejoin="miter" stroke-miterlimit="1" stroke-linecap="square"/>`),
+		"curves-stroke":   svg(`<path d="M3 35C3 2 35 3 40 22Q25 38 8 12" fill="none" stroke="#40A080" stroke-width="2" transform="matrix(1 .1 .2 .75 -2 2)" stroke-linejoin="round" stroke-linecap="round"/>`),
+		"elliptical-arc":  svg(`<path d="M8 8A14 8 35 1 1 40 35L30 10Z" fill="red" stroke="blue" stroke-width="1"/>`),
+		"dash":            svg(`<path d="M3 35C3 2 35 3 40 22" fill="none" stroke="blue" stroke-width="2" stroke-dasharray="3 2 1" stroke-linecap="round"/>`),
+		"focal":           svg(`<defs><radialGradient id="g" fx="15%" fy="30%"><stop stop-color="white"/><stop offset="1" stop-color="blue" stop-opacity=".3"/></radialGradient></defs><circle cx="24" cy="24" r="20" fill="url(#g)"/>`),
+		"box-clip":        svg(`<defs><clipPath id="c" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath></defs><g clip-path="url(#c)" transform="translate(2 4)"><rect x="4" y="4" width="32" height="24" fill="lime"/></g>`),
+	}
+	for _, name := range []string{"group-identity", "nested-groups", "embedded-jpeg"} {
+		source, err := os.ReadFile(filepath.Join("..", "testdata", "focused", name+".svg"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		sources[name] = source
 	}
 	for _, name := range []string{"noto-3330-3330", "noto-3682-3682", "twemoji-1338-1338", "twemoji-1355-1355"} {
 		source, err := os.ReadFile(filepath.Join("..", "testdata", "real", name+".svg"))
@@ -112,6 +120,7 @@ func TestIndependentReference(t *testing.T) {
 				op.Transform = [6]float64{scale, 0, 0, scale, tx, ty}
 				actual := render(t, source, op)
 				text := string(source)
+				text = text[strings.Index(text, "<svg"):]
 				body := text[strings.IndexByte(text, '>')+1 : strings.LastIndex(text, "</svg>")]
 				reference := []byte(fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="%d" height="%d"><g transform="matrix(%g 0 0 %g %g %g)">%s</g></svg>`, size, size, scale, scale, tx, ty, body))
 				expected := referencePixels(t, reference, size)

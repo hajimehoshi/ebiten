@@ -32,6 +32,8 @@ const (
 	// Bound total rasterization work independently of reusable stencil storage.
 	maxTotalStencilPixels = 64 << 20
 	maxRenderSampleWork   = 1 << 28
+	maxGroupDepth         = 16
+	maxGroupPixels        = 16 << 20
 	maxStrokeCommands     = 1 << 20
 	maxRenderCommands     = 1 << 18
 	maxRenderInstances    = 1 << 14
@@ -76,8 +78,13 @@ type RenderPaint struct {
 	Spread            int
 }
 
-// RenderDraw is a filled path or an expanded stroke, with a point-sample clip.
+// RenderDraw is a paint operation or an isolated group boundary.
 type RenderDraw struct {
+	// GroupStart and GroupEnd delimit an isolated sample surface.
+	GroupStart, GroupEnd bool
+	Opacity              float32
+	Image                *image.RGBA
+	ImageTransform       [6]float64
 	// FlushBefore finishes the preceding sample batch before this draw.
 	FlushBefore       bool
 	Commands          []RenderCommand
@@ -104,18 +111,21 @@ type RenderClip struct {
 type RenderPlan struct {
 	Width, Height, Samples int
 	Draws                  []RenderDraw
+	GroupDepth             int
 }
 
 type renderNode struct {
-	lengths    lengthContext
-	element    *element
-	style      style
-	local      matrix
-	geometry   path
-	children   []*renderNode
-	bounds     viewBox
-	hasBounds  bool
-	boundsOnly bool
+	lengths      lengthContext
+	element      *element
+	style        style
+	local        matrix
+	geometry     path
+	children     []*renderNode
+	bounds       viewBox
+	hasBounds    bool
+	boundsOnly   bool
+	image        *image.RGBA
+	imageMapping matrix
 }
 
 type nodeOptions struct {
@@ -134,6 +144,9 @@ type renderBuilder struct {
 	batchEvenOdd               bool
 	active                     map[*element]bool
 	clipActive                 map[*element]bool
+	groupDepth                 int
+	images                     map[string]*image.RGBA
+	imagePixels, imageBytes    int
 	plan                       RenderPlan
 }
 
@@ -308,7 +321,7 @@ func (b *renderBuilder) node(e *element, parent *style, lengths lengthContext, d
 		}
 	}
 	switch e.name.Local {
-	case "g", "use", "path", "rect", "circle", "ellipse", "line", "polygon", "polyline":
+	case "g", "use", "image", "path", "rect", "circle", "ellipse", "line", "polygon", "polyline":
 	case "svg":
 		if e != b.document.root {
 			return nil, fmt.Errorf("nested svg: %w", errUnsupported)
@@ -334,6 +347,12 @@ func (b *renderBuilder) node(e *element, parent *style, lengths lengthContext, d
 		style:      s,
 		local:      local,
 		geometry:   p,
+	}
+	if e.name.Local == "image" {
+		if err := b.prepareImage(n); err != nil {
+			return nil, err
+		}
+		p = n.geometry
 	}
 	n.bounds, n.hasBounds, err = geometryBounds(p, identity())
 	if err != nil {
@@ -382,12 +401,6 @@ func (b *renderBuilder) node(e *element, parent *style, lengths lengthContext, d
 			if ok {
 				n.bounds, n.hasBounds = unionBounds(n.bounds, n.hasBounds, bounds)
 			}
-		}
-	}
-	if !clip && !boundsOnly && s.Opacity != 1 {
-		// An empty subtree is harmless; opacity on containers requires isolation.
-		if len(n.children) > 0 {
-			return nil, fmt.Errorf("isolated opacity: %w", errUnsupported)
 		}
 	}
 	return n, nil
@@ -446,7 +459,27 @@ func (b *renderBuilder) emit(n *renderNode, parent matrix, inherited *RenderClip
 		return err
 	}
 	clip = intersectRenderClips(inherited, clip)
-	if n.style.Visible && len(n.geometry.segments) > 0 {
+	isolated := n.style.Opacity != 1
+	if isolated {
+		area := b.plan.Width * b.plan.Height * b.plan.Samples * b.plan.Samples
+		if b.groupDepth >= maxGroupDepth || area > maxGroupPixels/(b.groupDepth+1) || 2*area > maxRenderSampleWork-b.sampleWork {
+			return errLimit
+		}
+		// Clearing and compositing each isolated surface both visit its samples.
+		b.sampleWork += 2 * area
+		b.groupDepth++
+		b.plan.GroupDepth = max(b.plan.GroupDepth, b.groupDepth)
+		b.plan.Draws = append(b.plan.Draws, RenderDraw{
+			GroupStart: true,
+		})
+		b.batchStencilPixels = 0
+	}
+	if n.style.Visible && n.image != nil {
+		if err := b.emitImage(n, transform, clip); err != nil {
+			return err
+		}
+	}
+	if n.style.Visible && n.element.name.Local != "image" && len(n.geometry.segments) > 0 {
 		context := paintContext{
 			Lengths: n.lengths,
 			Bounds:  n.bounds,
@@ -466,14 +499,10 @@ func (b *renderBuilder) emit(n *renderNode, parent matrix, inherited *RenderClip
 		if _, ok := n.element.attribute("", "pathLength"); ok && len(ss.Dash) > 0 {
 			return fmt.Errorf("pathLength dash calibration: %w", errUnsupported)
 		}
-		if n.style.Opacity != 1 && fill.Kind != paintNone && stroke.Kind != paintNone && ss.Width > 0 {
-			return fmt.Errorf("fill and stroke opacity: %w", errUnsupported)
-		}
 		for i, p := range []paint{fill, stroke} {
 			if p.Kind == paintNone || i == 1 && ss.Width == 0 {
 				continue
 			}
-			p.Opacity *= n.style.Opacity
 			prepared, disabled, err := b.styles.preparePaint(n.style, i == 1, p, transform)
 			if err != nil {
 				return err
@@ -550,6 +579,14 @@ func (b *renderBuilder) emit(n *renderNode, parent matrix, inherited *RenderClip
 		if err := b.emit(child, transform, clip, depth+1); err != nil {
 			return err
 		}
+	}
+	if isolated {
+		b.plan.Draws = append(b.plan.Draws, RenderDraw{
+			GroupEnd: true,
+			Opacity:  float32(n.style.Opacity),
+		})
+		b.groupDepth--
+		b.batchStencilPixels = 0
 	}
 	return nil
 }

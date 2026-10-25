@@ -28,16 +28,24 @@ import (
 // Renderer owns reusable point-sample surfaces and paint shaders.
 // Its methods must be called from the Ebitengine graphics lifecycle.
 type Renderer struct {
-	// Both surfaces use the same point-sample grid. Vector applies binary
-	// path/clip coverage to the paint image; AntiAlias must remain false.
+	// Sample, paint, and group surfaces use the same point-sample grid.
+	// Vector applies binary path/clip coverage to the paint image;
+	// AntiAlias must remain false.
 	// Resolve only after all paint has been composed into samples.
 	samples, paint    *ebiten.Image
+	groups            []*ebiten.Image
 	flushSource       *ebiten.Image
 	gradient, resolve *ebiten.Shader
 }
 
 // Deallocate releases the renderer's GPU resources.
 func (r *Renderer) Deallocate() {
+	for _, group := range r.groups {
+		if group != nil {
+			group.Deallocate()
+		}
+	}
+	r.groups = nil
 	if r.samples != nil {
 		r.samples.Deallocate()
 		r.samples = nil
@@ -108,11 +116,58 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			Unmanaged: true,
 		})
 	}
+	// Release incompatible or excess surfaces before allocating this plan's pool.
+	for i, group := range r.groups {
+		if group != nil && (i >= plan.GroupDepth || group.Bounds() != r.samples.Bounds()) {
+			group.Deallocate()
+			r.groups[i] = nil
+		}
+	}
+	if len(r.groups) > plan.GroupDepth {
+		r.groups = r.groups[:plan.GroupDepth]
+	}
+	for len(r.groups) < plan.GroupDepth {
+		r.groups = append(r.groups, nil)
+	}
+	for i := range r.groups {
+		if r.groups[i] == nil {
+			// Separate textures keep the full-size group surfaces from enlarging
+			// the atlas shared with vector's stencil textures.
+			r.groups[i] = ebiten.NewImageWithOptions(r.samples.Bounds(), &ebiten.NewImageOptions{
+				Unmanaged: true,
+			})
+		}
+	}
+	uploads := map[*image.RGBA]*ebiten.Image{}
+	defer func() {
+		for _, upload := range uploads {
+			upload.Deallocate()
+		}
+	}()
+	target := r.samples
+	var parents []*ebiten.Image
 	r.samples.Clear()
 	clips := map[*opentypesvg.RenderClip]vector.Clip{}
 	for _, draw := range plan.Draws {
+		if draw.GroupStart {
+			r.flushSamples(target)
+			parents = append(parents, target)
+			target = r.groups[len(parents)-1]
+			target.Clear()
+			continue
+		}
+		if draw.GroupEnd {
+			r.flushSamples(target)
+			child := target
+			target = parents[len(parents)-1]
+			parents = parents[:len(parents)-1]
+			var op ebiten.DrawImageOptions
+			op.ColorScale.ScaleAlpha(draw.Opacity)
+			target.DrawImage(child, &op)
+			continue
+		}
 		if draw.FlushBefore {
-			r.flushSamples()
+			r.flushSamples(target)
 		}
 		path := makePath(draw.Commands)
 		var output vector.Path
@@ -150,16 +205,30 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 		if draw.EvenOdd {
 			fill.FillRule = vector.FillRuleEvenOdd
 		}
+		if draw.Image != nil {
+			source := uploads[draw.Image]
+			if source == nil {
+				source = ebiten.NewImageFromImage(draw.Image)
+				uploads[draw.Image] = source
+			}
+			op.Paint = &vector.ImagePaint{
+				Image:  source,
+				GeoM:   geom(draw.ImageTransform),
+				Filter: ebiten.FilterNearest,
+			}
+			vector.FillPath(target, &output, &fill, &op)
+			continue
+		}
 		p := draw.Paint
 		if len(p.Stops) == 0 {
 			op.ColorScale.Scale(p.Color[0], p.Color[1], p.Color[2], p.Color[3])
-			vector.FillPath(r.samples, &output, &fill, &op)
+			vector.FillPath(target, &output, &fill, &op)
 			continue
 		}
-		r.fillGradient(&output, &fill, &op, p)
+		r.fillGradient(target, &output, &fill, &op, p)
 	}
 	// This is the only resolve, averaging every sample in each output pixel.
-	// Isolated groups must use this same grid, origin, and dimensions. Their
+	// Isolated groups use this same grid, origin, and dimensions. Their
 	// clipping and opacity must be applied before compositing into the parent
 	// sample surface. Resolving a nested group here would lose shared-edge
 	// coverage needed by subsequent clips and composition.
@@ -360,21 +429,21 @@ func flushSamples(samples, paint *ebiten.Image) {
 	samples.DrawImage(paint, &options)
 }
 
-func (r *Renderer) fillGradient(path *vector.Path, fill *vector.FillOptions, draw *vector.DrawPathOptions, paint opentypesvg.RenderPaint) {
+func (r *Renderer) fillGradient(target *ebiten.Image, path *vector.Path, fill *vector.FillOptions, draw *vector.DrawPathOptions, paint opentypesvg.RenderPaint) {
 	// Finish prior draws even if this gradient path is culled, matching the
 	// preparation pass's separate stencil budget for each gradient draw.
-	r.flushSamples()
+	r.flushSamples(target)
 	bounds := path.Bounds()
 	if bounds.Empty() {
 		return
 	}
 	// Snapping during FillPath may extend the integer bounds by one pixel.
-	bounds = bounds.Inset(-1).Intersect(r.samples.Bounds())
+	bounds = bounds.Inset(-1).Intersect(target.Bounds())
 	if bounds.Empty() {
 		return
 	}
 	if r.paint == nil {
-		r.paint = ebiten.NewImageWithOptions(r.samples.Bounds(), &ebiten.NewImageOptions{
+		r.paint = ebiten.NewImageWithOptions(target.Bounds(), &ebiten.NewImageOptions{
 			Unmanaged: true,
 		})
 	}
@@ -394,12 +463,12 @@ func (r *Renderer) fillGradient(path *vector.Path, fill *vector.FillOptions, dra
 		GeoM:   transform,
 		Filter: ebiten.FilterNearest,
 	}
-	vector.FillPath(r.samples, path, fill, draw)
+	vector.FillPath(target, path, fill, draw)
 	// Complete the gradient batch before reusing its paint pixels or view.
-	r.flushSamples()
+	r.flushSamples(target)
 }
 
-func (r *Renderer) flushSamples() {
+func (r *Renderer) flushSamples(target *ebiten.Image) {
 	source := r.paint
 	if source == nil {
 		// Solid batches need only a dummy source for the zero-area draw.
@@ -408,5 +477,5 @@ func (r *Renderer) flushSamples() {
 		}
 		source = r.flushSource
 	}
-	flushSamples(r.samples, source)
+	flushSamples(target, source)
 }

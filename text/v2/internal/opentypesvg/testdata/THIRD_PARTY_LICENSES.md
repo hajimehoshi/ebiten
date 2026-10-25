@@ -4,8 +4,9 @@
 
 `focused/*`, `extract.go`, and the corpus metadata and documentation are
 Copyright 2026 The Ebitengine Authors, licensed under Apache-2.0; see the
-[repository license](../../../../../LICENSE). The embedded PNG is original
-test data. The third-party SVG extracts below retain their upstream licenses.
+[repository license](../../../../../LICENSE). The embedded PNG and JPEG are
+original test data; JPEG generation is described in README.md. The third-party
+SVG extracts below retain their upstream licenses.
 
 ## Noto Color Emoji extracts: OFL-1.1
 

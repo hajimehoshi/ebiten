@@ -1,6 +1,6 @@
 # SVG acceptance data
 
-Ten unmodified SVG table records and eleven focused SVG fixtures for the
+Ten unmodified SVG table records and twelve focused SVG fixtures for the
 [planned renderer](../README.md). License texts and attribution are in
 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
@@ -64,6 +64,7 @@ express composition invariants rather than fixed rasterization goldens.
 | shared-context | Glyph 1 occupies [0,8)×[0,8); glyph 2 [16,24)×[0,8), both with initial black fill. Render only the selected use instance and its shared path; the original ancestor transform/fill does not apply. Gzip and plain text agree; missing glyph 3 produces no artwork. |
 | stroke-transform | First line has four-unit output stroke width with round caps, centered at y=16 from x=12 to x=36. (24,16) is green; (24,20) is transparent. Curves keep their original commands until output scale is known. |
 | palette | With foreground blue and no palette, (8,8) is blue and (24,8) red. With palette entry 0 RGB(0,255,0) at alpha 0.5, (24,8) is (0,128,0,128). Palette alpha must enter paint opacity once. |
+| embedded-jpeg | Original 8×8 solid RGB(80,160,240) image encoded using Go image/jpeg at quality 100, mapped to [4,36)×[4,36). Interior RGB is within one byte of the source and alpha is 255. |
 | embedded-png | Red left half, blue right half of [4,36)×[4,20); (8,12) red and (30,12) blue, both opaque. No network access. |
 | restricted | Only the red [0,8)×[0,8) tile appears. Prohibited element subtrees do not render or execute. |
 | viewport-overflow | The entire red rectangle [-4,12)×[-8,8) survives despite root overflow=hidden. At an output origin shifted to (16,16), (13,10) is red. Root viewport is not an implicit glyph clip. |
@@ -85,6 +86,11 @@ policy are documented in [the package README](../README.md#supported-behavior).
 
 `../svgrender` exercises the focused vector fixtures and selected real-font
 records through `PrepareRender`. Tests keep a point-sample grid until the final
-GPU box resolve. Group opacity and embedded-image fixtures remain explicit
-unsupported cases for item 6. See [renderer validation](../README.md#validation)
-for test commands, independent-comparison scope and limitations.
+GPU box resolve. Group opacity and both embedded-image fixtures are supported.
+See [renderer validation](../README.md#validation) for test commands,
+independent-comparison scope and limitations.
+
+The JPEG fixture is generated original test data under Apache-2.0, with no
+third-party source. To reproduce its payload, fill an 8×8 image.RGBA with
+color.RGBA{R: 80, G: 160, B: 240, A: 255}, encode with the standard-library
+image/jpeg encoder and jpeg.Options{Quality: 100}, and base64-encode the bytes.

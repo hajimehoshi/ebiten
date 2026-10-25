@@ -670,6 +670,13 @@ func TestBatchedSampleComposition(t *testing.T) {
 	alpha := math.Round(255 * (1 - math.Pow(.5, count)))
 	checkPixel(t, pixels, 96, 48, 48, color.RGBA{R: uint8(math.Round(alpha * .5)), B: 128, A: 255})
 	checkPixel(t, pixels, 96, 0, 48, color.RGBA{R: uint8(math.Round(alpha * (3.0/8 + 5.0/16))), B: 80, A: 255})
+	isolated := bytes.Replace(source, []byte("</svg>"), []byte("</g></svg>"), 1)
+	isolated = bytes.Replace(isolated, []byte("<rect"), []byte(`<g opacity=".5"><rect`), 1)
+	got := render(t, isolated, op)
+	for i, v := range pixels {
+		pixels[i] = byte((int(v) + 1) / 2)
+	}
+	compareChannels(t, got, pixels, 1)
 }
 
 func TestFlushSamplesUsage(t *testing.T) {

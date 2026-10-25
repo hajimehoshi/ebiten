@@ -51,16 +51,8 @@ func TestRenderPreparationErrors(t *testing.T) {
 			want: opentypesvg.ErrGeometry,
 		},
 		{
-			body: `<g opacity=".5"><circle r="10"/><circle r="5"/></g>`,
-			want: opentypesvg.ErrUnsupported,
-		},
-		{
-			body: `<path d="M0 0H10V10Z" fill="red" stroke="blue" opacity=".5"/>`,
-			want: opentypesvg.ErrUnsupported,
-		},
-		{
-			body: `<image href="data:image/png;base64,AA=="/>`,
-			want: opentypesvg.ErrUnsupported,
+			body: `<image width="1" height="1" href="data:image/png;base64,AA=="/>`,
+			want: opentypesvg.ErrImage,
 		},
 		{
 			body: `<path d="M0 0H40" pathLength="10" stroke="red" stroke-dasharray="2 2"/>`,
@@ -318,24 +310,6 @@ func TestRenderFlatLinearGradient(t *testing.T) {
 	}
 }
 
-func TestDeferredRenderingFixtures(t *testing.T) {
-	for _, name := range []string{"group-identity", "nested-groups", "embedded-png"} {
-		t.Run(name, func(t *testing.T) {
-			source := read(t, "testdata/focused/"+name+".svg")
-			plan, err := opentypesvg.PrepareRender(source, opentypesvg.RenderOptions{
-				GlyphID:    1,
-				UnitsPerEm: 48,
-				Width:      48,
-				Height:     48,
-				Samples:    4,
-			})
-			if !errors.Is(err, opentypesvg.ErrUnsupported) || plan != nil {
-				t.Errorf("plan returned=%t error=%v,want unsupported", plan != nil, err)
-			}
-		})
-	}
-}
-
 func TestRenderExcessiveGradientScale(t *testing.T) {
 	for _, definition := range []string{
 		`<linearGradient id="g" gradientUnits="userSpaceOnUse" x2=".000000000001"><stop/><stop offset="1"/></linearGradient>`,
@@ -436,7 +410,7 @@ func TestZeroOpacityBoundsDemand(t *testing.T) {
 		},
 		{
 			name:    "unsupported-needed",
-			content: `<g opacity="0"><image/></g>`,
+			content: `<g opacity="0"><unknown/></g>`,
 			bounds:  true,
 			want:    opentypesvg.ErrUnsupported,
 		},
@@ -506,10 +480,6 @@ func TestRenderCorpusStencilBudget(t *testing.T) {
 					}
 					options.Transform = [6]float64{scale, 0, 0, scale, tx, ty}
 					var want error
-					switch name {
-					case "group-identity", "nested-groups", "embedded-png":
-						want = opentypesvg.ErrUnsupported
-					}
 					plan, err := opentypesvg.PrepareRender(read(t, path), options)
 					if !errors.Is(err, want) {
 						t.Errorf("error=%v,want %v", err, want)

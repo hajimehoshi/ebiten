@@ -16,6 +16,7 @@ package opentypesvg
 
 // Errors returned by document interpretation and render preparation.
 var (
+	ErrImage          = errImage
 	ErrXML            = errXML
 	ErrNamespace      = errNamespace
 	ErrLimit          = errLimit

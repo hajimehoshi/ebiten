@@ -25,7 +25,8 @@ The target is the required subset of [OpenType SVG][opentype] and SVG 1.1.
 | Paint | Named/numeric colors, currentColor, CPAL variables, local URL paints and fallbacks |
 | Gradients | Linear/radial definitions, href inheritance, stops, units, transforms, spread and focal parameters |
 | Rendering | Painter order, transformed fills/strokes, dashes, gradient sampling and nested clips |
-| Composition | Paint opacity, display/visibility and single-paint element opacity; isolated groups deferred |
+| Composition | Paint opacity, display/visibility and isolated element/group opacity |
+| Images | Embedded PNG/JPEG data URIs, viewport mapping, transforms and clips |
 
 The root viewport preserves font coordinates without introducing an implicit
 clip. Style and gradient lengths enforce the OpenType restriction on em/ex.
@@ -74,8 +75,7 @@ ignored. External paint URLs are unsupported and are never fetched. Restricted
 OpenType element subtrees and animation subtrees are ignored by the document
 parser. Static rendering never runs animations. Unknown rendered
 elements report `ErrUnsupported`. Nested SVG viewports,
-`symbol` instances, pathLength-calibrated dashes and embedded images are
-currently unsupported.
+`symbol` instances and pathLength-calibrated dashes are currently unsupported.
 
 ### Compatibility allowances
 
@@ -123,20 +123,38 @@ geometry that must be interpreted rejects the whole plan, including any valid
 prefix. Errors never return partial successful artwork;
 use `errors.Is` with the exported error identities to classify failures.
 
-Isolated element/group opacity and embedded PNG/JPEG rendering remain item 6.
 Zero opacity produces no draws and skips painting effects. Such a subtree is
 otherwise skipped unless an active ancestor needs its geometry for an
 objectBoundingBox clip. In that case its geometry, transforms, display values
 and use references contribute to the bounds; errors needed to resolve those
 bounds propagate. Filters, masks and other painting effects remain ignored.
 Opacity is ignored in clip content.
-Opacity strictly between zero and one on containers or elements with both fill
-and stroke returns `ErrUnsupported`. Single-paint leaf opacity and independent
-fill/stroke opacity are supported. Text integration, caching, external foreground/palette
-plumbing, gzip limits, production quality selection and replacement of oksvg
-remain separate work. The sample-preserving composition requirements for item 6
-are documented beside the surfaces and final resolve in
-[renderer.go](svgrender/renderer.go).
+Opacity on an element or group applies once to its completed paints and children.
+Each translucent element owns an isolated transparent surface on the same
+point-sample grid as its parent. Clips intersect at that grid before composition;
+no intermediate surface is resolved. Inherited fill/stroke opacity still applies
+independently to each paint. Group boundaries flush pending vector work without
+discarding samples.
+
+Images accept only embedded `data:image/png` and `data:image/jpeg` URIs,
+with base64 or percent-encoded bytes. External URLs and local files are never
+loaded. MIME types must match the decoded format. Malformed image data returns
+`ErrImage`, unsupported formats/locations return `ErrUnsupported`, and exhausted
+budgets return `ErrLimit`. Zero-sized, hidden and zero-opacity images do not
+decode; their viewport geometry contributes to object bounds when needed.
+Image viewports support x/y/width/height lengths, preserveAspectRatio alignment,
+meet/slice/none, transforms and clipping. Fill and stroke do not paint images.
+
+Image texels are sampled with nearest-neighbor filtering at each retained point
+sample, followed by the same final full-sample average as vector artwork. This
+preserves hard texel boundaries and premultiplied alpha; it is not a smooth
+reconstruction filter or a production minification policy. Decoding and conversion
+to premultiplied RGBA are CPU-only. Identical URI strings share decoded assets
+within a plan; each asset is uploaded once per Draw and released when Draw ends.
+No rendered-glyph cache or cross-plan GPU image cache is introduced.
+
+Text integration, caching, external foreground/palette plumbing, gzip limits,
+production quality selection and replacement of oksvg remain separate work.
 
 ## Limits
 
@@ -153,7 +171,23 @@ instances and cached values have independent budgets; expensive input can hit
 not allocator byte guarantees.
 
 Render preparation bounds geometry, instances, gradient stops, stroke expansion,
-coordinates and sample surfaces. Stencil accounting has two independent limits:
+coordinates and sample surfaces. Isolation allows at most 16 simultaneous group
+levels and 16,777,216 group sample pixels (64 MiB of requested RGBA regions).
+The renderer reuses one full-size surface per depth, releases excess surfaces on
+the next nonempty Draw, and releases all resources in Deallocate. Full-size
+surfaces conservatively preserve one origin and grid; small groups do not get
+tightly cropped allocations. Group clears and composites each charge their full
+area against the existing 268,435,456-sample cumulative work budget. Root and
+gradient scratch surfaces are separately bounded by the output sample limits.
+
+Embedded images allow at most 256 distinct URI assets, 4 MiB per encoded URI,
+16 MiB of aggregate URI bytes, 4096 pixels per axis, 4,194,304 pixels per image,
+and 8,388,608 aggregate decoded pixels (32 MiB of retained RGBA). These limits
+also bound uploads per Draw. DecodeConfig checks dimensions and pixel budgets
+before Decode. Decoder temporary storage and the RGBA conversion can coexist;
+these budgets are not exact process-memory caps. Images outside the output still
+consume decoding resources if their content must be interpreted.
+Stencil accounting has two independent limits:
 
 - Per flush: 8,388,608 pixels (33,554,432 RGBA bytes of requested regions), enough
   for one maximum-area draw and clip. A single draw and its distinct clip leaves
@@ -221,8 +255,13 @@ normalized-coordinate equivalence tests. Set `SVG_RENDER_REPORT_DIR`
 to an existing directory to retain comparison PNGs.
 
 [Composition tests](../../../../vector/clipgroup_test.go) provide the separate
-baseline for nested isolated opacity. The renderer rejects the `group-identity`,
-`nested-groups` and embedded-image fixtures until item 6. Full-font evaluation,
+baseline for nested isolated opacity. The `group-identity`,
+`nested-groups`, `embedded-png` and generated `embedded-jpeg` fixtures render.
+Composition tests compare native point-sample oracles at densities 1, 4 and 8
+and offsets 0 and 0.375. Image mapping tests compare against an inverse affine
+texel-selection oracle with binary viewport/clip membership. Independent
+comparisons also cover nested opacity, overlapping fill/stroke and the JPEG
+fixture; their existing error thresholds are regression bounds. Full-font evaluation,
 additional platforms and caching/integration acceptance remain necessary before
 replacing oksvg.
 
