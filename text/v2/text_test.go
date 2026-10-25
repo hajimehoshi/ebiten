@@ -44,6 +44,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	ebiten.SetWindowVisible(false)
 	t.MainWithRunLoop(m)
 }
 

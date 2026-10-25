@@ -232,7 +232,7 @@ type LazyGlyph struct {
 	// should be drawn, and the rectangle's Dx and Dy give the bitmap's
 	// width and height.
 	//
-	// ImageBounds is computed from font metadata without rasterizing the
+	// ImageBounds is computed without rasterizing the
 	// glyph. ImageBounds is the zero [image.Rectangle] for glyphs that
 	// produce no image (control characters or zero-area glyphs); use
 	// ImageBounds.Empty to detect that case.

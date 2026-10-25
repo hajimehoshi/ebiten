@@ -248,19 +248,12 @@ type glyphRenderDataCacheKey struct {
 	size       fixed.Int26_6
 }
 
-// glyphRenderData bundles the data needed to render one glyph. bounds
-// is computed eagerly so layout decisions (image rectangle, culling,
-// ImageBounds) don't pay for the GlyphData fetch. useBitmap is true
-// when the glyph renders from a bitmap strike; layout consults it to
-// pick the positioning convention and realize consults it to select
-// bitmap-mode glyph data.
-//
-// The actual render forms (segments, bitmap, SVG document, COLRv0
-// layers) are produced on first call to any of the accessors below,
-// which fetch glyph data via the source's glyphDataCache.
+// glyphRenderData holds a glyph's font-metric bounds and captured outline/bitmap state.
 type glyphRenderData struct {
-	bounds    fixed.Rectangle26_6
-	useBitmap bool
+	bounds           fixed.Rectangle26_6
+	useBitmap        bool
+	svgDocumentIndex int
+	hasSVG           bool
 
 	realizeOnce sync.Once
 
@@ -274,12 +267,10 @@ type glyphRenderData struct {
 	bitmapXPpem uint16
 	bitmapYPpem uint16
 
-	// Populated by realize. Accessed via segments / bitmap / svg /
-	// colrV0Layers so callers don't have to remember to drive the lazy
-	// initialization.
+	// Accessors drive lazy realization. COLRv0 layers may already be populated
+	// when format selection needs to check whether SVG is the fallback.
 	realizedSegments     []opentype.Segment
 	realizedBitmap       image.Image
-	realizedSVG          *svgGlyphData
 	realizedCOLRV0Layers []colrV0Layer
 
 	// realizedBitmapColored is true when realizedBitmap comes from a
@@ -301,27 +292,15 @@ func (r *glyphRenderData) bitmap() image.Image {
 	return r.realizedBitmap
 }
 
-// colored reports whether the glyph renders from a color form, realizing
-// the render data on first call. This doesn't rasterize the glyph image.
-// The actual image can still be grayscale when colored is true, e.g. for
-// an SVG document whose rasterization fails and falls back to the outline.
-// A COLRv0 glyph whose layers all use the text foreground color is not
-// colored.
+// colored reports whether the bitmap or COLRv0 fallback uses fixed colors.
 func (r *glyphRenderData) colored() bool {
 	r.realizeOnce.Do(r.realize)
 	if r.realizedBitmap != nil {
 		return r.realizedBitmapColored
 	}
-	return r.realizedSVG != nil || slices.ContainsFunc(r.realizedCOLRV0Layers, func(l colrV0Layer) bool {
+	return slices.ContainsFunc(r.realizedCOLRV0Layers, func(l colrV0Layer) bool {
 		return !l.foreground
 	})
-}
-
-// svg returns the OpenType SVG glyph description, realizing it on first
-// call. It returns nil when the glyph has no SVG data.
-func (r *glyphRenderData) svg() *svgGlyphData {
-	r.realizeOnce.Do(r.realize)
-	return r.realizedSVG
 }
 
 // colrV0Layers returns the COLRv0 color layers, realizing them on first
@@ -385,13 +364,7 @@ type GoTextFaceSource struct {
 	renderDataCache *cache[glyphRenderDataCacheKey, *glyphRenderData]
 	chunkPlanCache  *cache[chunkPlanKey, []chunk.Chunk]
 
-	// svgDocIndexes caches per-document indexes for OpenType SVG documents
-	// shared by multiple glyphs, keyed by the document's backing array.
-	// Uncompressed SVG documents are subslices of the font data, so the
-	// address of the first byte identifies the document; a gzipped
-	// document is decompressed into a fresh buffer per fetch and only
-	// misses the cache. Guarded by shapeMu.
-	svgDocIndexes map[*byte]*svgDocIndex
+	svgFont *svgFont
 
 	// shapeMu serializes mutations of the shared font state (g.f) during shaping
 	// and per-glyph data lookups. Lazy glyph builds happen outside of the
@@ -438,7 +411,8 @@ func toFontResource(source io.Reader) (font.Resource, error) {
 
 func newGoTextFaceSource(face *font.Face, loader *opentype.Loader) *GoTextFaceSource {
 	s := &GoTextFaceSource{
-		f: face,
+		f:       face,
+		svgFont: loadSVGFont(loader),
 	}
 	s.addr = s
 	s.metadata = metadataFromFace(face)
@@ -1056,7 +1030,22 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 		bounds = glyphExtentsToBounds(ext, scale, sideways, yOffset)
 	}
 
-	if bounds.Empty() && !useBitmap {
+	record, hasSVG := g.svgFont.documentIndex(gl.GlyphID)
+	if sideways {
+		hasSVG = false
+	}
+	var colrLayers []colrV0Layer
+	if hasSVG {
+		if d, ok := g.f.GlyphDataColor(gl.GlyphID); ok {
+			if layers, ok := d.Paint.(tables.PaintColrLayersResolved); ok {
+				colrLayers = g.appendCOLRV0Layers(nil, layers, float32(g.scale(fixed26_6ToFloat64(size))))
+				hasSVG = len(colrLayers) == 0
+			}
+		} else if _, ok := g.f.GlyphDataBitmap(gl.GlyphID); ok {
+			hasSVG = false
+		}
+	}
+	if bounds.Empty() && !useBitmap && !hasSVG {
 		return nil, false
 	}
 
@@ -1065,52 +1054,20 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 	// the slice header by value is safe because the caller never
 	// mutates the underlying array.
 	return &glyphRenderData{
-		bounds:      bounds,
-		useBitmap:   useBitmap,
-		source:      g,
-		gid:         gl.GlyphID,
-		size:        size,
-		sideways:    sideways,
-		yOffset:     gl.YOffset,
-		variations:  variations,
-		bitmapXPpem: bm.xPpem,
-		bitmapYPpem: bm.yPpem,
+		realizedCOLRV0Layers: colrLayers,
+		bounds:               bounds,
+		svgDocumentIndex:     record,
+		hasSVG:               hasSVG,
+		useBitmap:            useBitmap,
+		source:               g,
+		gid:                  gl.GlyphID,
+		size:                 size,
+		sideways:             sideways,
+		yOffset:              gl.YOffset,
+		variations:           variations,
+		bitmapXPpem:          bm.xPpem,
+		bitmapYPpem:          bm.yPpem,
 	}, true
-}
-
-// svgGlyphData returns the rasterization data for gid's OpenType SVG glyph:
-// the document reduced to the glyph's own description, plus the
-// resolved viewBox. It returns nil when the glyph cannot be extracted
-// from a document shared by multiple glyphs.
-//
-// The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) svgGlyphData(svg font.GlyphSVG, gid font.GID) *svgGlyphData {
-	if len(svg.Source) == 0 {
-		return nil
-	}
-	key := &svg.Source[0]
-	idx, ok := g.svgDocIndexes[key]
-	if !ok {
-		idx = newSVGDocIndex(svg.Source)
-		if g.svgDocIndexes == nil {
-			g.svgDocIndexes = map[*byte]*svgDocIndex{}
-		}
-		// The cache grows by one entry per document for uncompressed
-		// SVG tables. Gzipped documents miss the cache on every fetch;
-		// the reset keeps such fonts from accumulating entries forever.
-		if len(g.svgDocIndexes) >= 512 {
-			clear(g.svgDocIndexes)
-		}
-		g.svgDocIndexes[key] = idx
-	}
-	source := idx.glyphDocument(uint32(gid))
-	if source == nil {
-		return nil
-	}
-	return &svgGlyphData{
-		source:  source,
-		viewBox: svg.ViewBox,
-	}
 }
 
 // glyphExtents returns the extents of gid. A COLRv0 color glyph
@@ -1118,7 +1075,7 @@ func (g *GoTextFaceSource) svgGlyphData(svg font.GlyphSVG, gid font.GID) *svgGly
 // base glyph's own outline, are what is rendered, and they may extend
 // beyond it. A COLRv1 color glyph resolves to its clip box, if any:
 // such glyphs typically have an empty base outline, and the clip box
-// also bounds the SVG fallback used to render them.
+// is used for the fallback outline. SVG artwork has independent ink bounds.
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) glyphExtents(gid font.GID) (font.GlyphExtents, bool) {
@@ -1226,7 +1183,7 @@ func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string,
 		size:       keySize,
 	}
 	return g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
-		d := g.f.GlyphData(gid)
+		d := g.glyphDataWithoutSVG(gid)
 		if d == nil {
 			return nil, false
 		}
@@ -1239,8 +1196,6 @@ func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string,
 			switch d := d.(type) {
 			case font.GlyphOutline:
 				d.Sideways(yOffsetFontUnits)
-			case font.GlyphSVG:
-				d.Outline.Sideways(yOffsetFontUnits)
 			case font.GlyphBitmap:
 				if d.Outline != nil {
 					d.Outline.Sideways(yOffsetFontUnits)
@@ -1289,14 +1244,6 @@ func (g *GoTextFaceSource) realizeRenderData(rd *glyphRenderData) {
 	switch d := data.(type) {
 	case font.GlyphOutline:
 		rawSegs = d.Segments
-	case font.GlyphSVG:
-		rawSegs = d.Outline.Segments
-		// A sideways SVG glyph would need a rotated rasterization, which
-		// is not supported; the fallback outline, rotated by
-		// fetchGlyphData, is used instead.
-		if !rd.sideways {
-			rd.realizedSVG = g.svgGlyphData(d, rd.gid)
-		}
 	case font.GlyphBitmap:
 		if d.Outline != nil {
 			rawSegs = d.Outline.Segments
@@ -1314,18 +1261,13 @@ func (g *GoTextFaceSource) realizeRenderData(rd *glyphRenderData) {
 		// table, if any, and then to the base glyph's outline. A
 		// sideways color glyph would need a rotated rasterization,
 		// which is not supported either.
-		if layers, ok := d.Paint.(tables.PaintColrLayersResolved); ok && !rd.sideways {
+		if layers, ok := d.Paint.(tables.PaintColrLayersResolved); ok && !rd.sideways && rd.realizedCOLRV0Layers == nil {
 			scale := float32(g.scale(fixed26_6ToFloat64(rd.size)))
 			rd.realizedCOLRV0Layers = g.appendCOLRV0Layers(nil, layers, scale)
 		}
 		if len(rd.realizedCOLRV0Layers) == 0 && !rd.sideways {
-			if svg, ok := g.f.GlyphDataSVG(rd.gid); ok {
-				rd.realizedSVG = g.svgGlyphData(svg, rd.gid)
-			}
-			if rd.realizedSVG == nil {
-				if o, ok := g.f.GlyphDataOutline(rd.gid); ok {
-					rawSegs = o.Segments
-				}
+			if o, ok := g.f.GlyphDataOutline(rd.gid); ok {
+				rawSegs = o.Segments
 			}
 		}
 	}

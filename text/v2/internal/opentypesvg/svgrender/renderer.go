@@ -25,13 +25,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-// Renderer owns reusable point-sample surfaces and paint shaders.
+// Renderer owns reusable rendering surfaces and paint shaders.
 // Its methods must be called from the Ebitengine graphics lifecycle.
 type Renderer struct {
-	// Sample, paint, and group surfaces use the same point-sample grid.
-	// Vector applies binary path/clip coverage to the paint image;
-	// AntiAlias must remain false.
-	// Resolve only after all paint has been composed into samples.
+	// Paint and group surfaces share the output grid. Native antialiasing
+	// resolves each path through vector; point-sampled plans retain samples
+	// through group composition until the final resolve.
 	samples, paint    *ebiten.Image
 	groups            []*ebiten.Image
 	flushSource       *ebiten.Image
@@ -74,7 +73,7 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 		return fmt.Errorf("svgrender: nil destination or plan")
 	}
 	w, h, s := plan.Width, plan.Height, plan.Samples
-	if w <= 0 || h <= 0 || s != 1 && s != 2 && s != 4 && s != 8 || w > opentypesvg.MaxSampleDimension/s || h > opentypesvg.MaxSampleDimension/s || w*s > opentypesvg.MaxSamplePixels/(h*s) {
+	if plan.AntiAlias && s != 1 || w <= 0 || h <= 0 || s != 1 && s != 2 && s != 4 && s != 8 || w > opentypesvg.MaxSampleDimension/s || h > opentypesvg.MaxSampleDimension/s || w*s > opentypesvg.MaxSamplePixels/(h*s) {
 		return fmt.Errorf("svgrender: invalid sample surface dimensions")
 	}
 	if dst.Bounds().Dx() < w || dst.Bounds().Dy() < h {
@@ -91,7 +90,7 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 		}
 		r.gradient = shader
 	}
-	if r.resolve == nil {
+	if s > 1 && r.resolve == nil {
 		shader, err := ebiten.NewShader([]byte(resolveShader))
 		if err != nil {
 			return err
@@ -199,7 +198,8 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			})
 		}
 		op := vector.DrawPathOptions{
-			Clip: makeClip(draw.Clip, clips),
+			AntiAlias: plan.AntiAlias,
+			Clip:      makeClip(draw.Clip, clips),
 		}
 		var fill vector.FillOptions
 		if draw.EvenOdd {
@@ -226,6 +226,12 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			continue
 		}
 		r.fillGradient(target, &output, &fill, &op, p)
+	}
+	if s == 1 {
+		var op ebiten.DrawImageOptions
+		op.GeoM.Translate(float64(dst.Bounds().Min.X), float64(dst.Bounds().Min.Y))
+		dst.DrawImage(r.samples, &op)
+		return nil
 	}
 	// This is the only resolve, averaging every sample in each output pixel.
 	// Isolated groups use this same grid, origin, and dimensions. Their

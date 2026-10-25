@@ -4,7 +4,7 @@ Internal glyph interpretation and GPU rendering for
 [#3796](https://github.com/hajimehoshi/ebiten/issues/3796). Document parsing,
 glyph selection, retained geometry, viewport mapping, styles and paint
 interpretation remain CPU-only. `PrepareRender` produces a bounded render plan;
-`svgrender.Renderer` uses vector paths and `vector.ImagePaint` for gradient paints. Text integration and glyph caching are not implemented. Successful
+`svgrender.Renderer` uses vector paths and `vector.ImagePaint` for gradient paints. Normal `text/v2` drawing and glyph-image access use this renderer. Successful
 parsing alone does not establish rendering support.
 
 [Acceptance fixtures](testdata/README.md) describe the real-font records,
@@ -101,9 +101,12 @@ returned plan as immutable.
 
 Call `svgrender.Renderer.Draw` and `Deallocate` within Ebitengine's graphics
 lifecycle. Reuse a renderer for successive glyphs. Gradient paints are rasterized
-on the chosen sample grid and applied through `vector.ImagePaint`; final resolve
-still occurs only after composition. Sampling density remains an explicit
-evaluation choice; no production quality policy has been selected.
+on the chosen grid and applied through `vector.ImagePaint`. Normal text drawing
+sets `Samples: 1, AntiAlias: true`: vector antialiases each path and its clip at
+the glyph's native resolution. The completed surface is copied directly into
+the cached glyph image, with no supersampling or downsampling pass. The internal
+point-sample mode (`AntiAlias: false`) remains available for reference tests;
+its samples are averaged only after composition.
 
 Empty gradients disable paint; single-stop and degenerate linear/radial
 gradients use the final stop. Singular gradient transforms use a supplied URL
@@ -130,11 +133,18 @@ and use references contribute to the bounds; errors needed to resolve those
 bounds propagate. Filters, masks and other painting effects remain ignored.
 Opacity is ignored in clip content.
 Opacity on an element or group applies once to its completed paints and children.
-Each translucent element owns an isolated transparent surface on the same
-point-sample grid as its parent. Clips intersect at that grid before composition;
-no intermediate surface is resolved. Inherited fill/stroke opacity still applies
-independently to each paint. Group boundaries flush pending vector work without
-discarding samples.
+Each translucent element owns an isolated transparent surface at its parent's
+resolution. Inherited fill/stroke opacity still applies independently to each
+paint. Group boundaries flush pending vector work before composition.
+
+With native vector AA, a path and its clip share coverage, but separate draws
+are composited after their coverage has been resolved. Consequently, coincident
+opaque overpainting can leave a fringe of the underlying paint, and adjoining
+fills can leave a partial-coverage seam. Isolated opacity groups do not remove
+these edge artifacts. This is an explicit limitation of the native-AA baseline,
+not a claim of sample-preserving SVG composition. The reference point-sample
+mode retains coverage through composition and continues to test those stronger
+invariants. Further composition work must preserve the native-size policy.
 
 Images accept only embedded `data:image/png` and `data:image/jpeg` URIs,
 with base64 or percent-encoded bytes. External URLs and local files are never
@@ -145,16 +155,17 @@ decode; their viewport geometry contributes to object bounds when needed.
 Image viewports support x/y/width/height lengths, preserveAspectRatio alignment,
 meet/slice/none, transforms and clipping. Fill and stroke do not paint images.
 
-Image texels are sampled with nearest-neighbor filtering at each retained point
-sample, followed by the same final full-sample average as vector artwork. This
-preserves hard texel boundaries and premultiplied alpha; it is not a smooth
+Image texels are sampled with nearest-neighbor filtering. Native rendering
+uses vector AA for viewport/clip edges; point-sample reference rendering uses
+its final full-sample average. This preserves hard texel boundaries and premultiplied alpha; it is not a smooth
 reconstruction filter or a production minification policy. Decoding and conversion
 to premultiplied RGBA are CPU-only. Identical URI strings share decoded assets
 within a plan; each asset is uploaded once per Draw and released when Draw ends.
-No rendered-glyph cache or cross-plan GPU image cache is introduced.
+The text integration caches final glyph images; embedded-image GPU uploads
+are not retained across plans.
 
-Text integration, caching, external foreground/palette plumbing, gzip limits,
-production quality selection and replacement of oksvg remain separate work.
+Full-font and platform acceptance, quality/performance evaluation, and removal
+of the unused oksvg implementation and its dependencies remain separate work.
 
 ## Limits
 
@@ -212,6 +223,118 @@ the measured probes, not a universal physical bound. The rationale is beside the
 constants in [renderplan.go](renderplan.go).
 Complex but valid records can exceed these conservative internal limits.
 
+## Text integration
+
+`text.Draw`, `AppendGlyphs` and `AppendLazyGlyphs` use the same SVG path.
+No changes to existing drawing calls are required. `GoTextFace.SVGForeground`
+provides `currentColor` (nil means opaque black); `SVGPalette` supplies straight
+RGBA palette entries (nil selects the first CPAL palette, an empty non-nil
+slice supplies no entries). These inputs affect SVG only. COLRv0 and bitmap
+color behavior is unchanged. This deliberately keeps color selection on the
+face so public glyph-image access and Draw agree. RGB in Draw's ColorScale
+continues to leave fixed SVG colors unchanged. ColorScale alpha applies to the
+completed glyph once, separately from foreground/palette alpha. Palette alpha
+is applied once during SVG paint interpretation. Lazy glyphs capture colors,
+size, positioning and the small layout result before the face can change.
+
+Advances, baselines and layout measurements remain font metrics. Image bounds
+come from the supported artwork, not fallback outlines or the em square.
+Preparation measures transformed curve extrema, conservative stroke envelopes,
+clip unions/intersections and image viewports. These are conservative ink
+bounds, not a minimal occupied-pixel rectangle: curved stroke joins, overlapping
+clip envelopes and transparent image texels may leave extra space. No raster
+readback is used. Negative origins and quantized fractional glyph positions
+are included in both bounds and raster transforms. SVG candidates bypass the
+font-metric origin heuristic; Draw's final transformed image-bounds cull still
+runs before GPU allocation. `AppendVectorPath` continues to return outlines.
+
+Document parsing, stylesheet parsing, interpretation, embedded-image decoding,
+bounds and render preparation are CPU-only. A bounds pass and final surface
+pass share their decoded embedded images; each pass enforces the interpreter's
+geometry/reference/image limits, and the final pass charges the actual surface
+work. Images are created only by glyph image realization in the graphics
+lifecycle. Renderer scratch resources are released after realization. Draw's
+existing realization-then-composition ordering is preserved.
+
+The font source owns raw SVG records and a separate, mutex-protected SVG cache:
+
+- Two parsed documents, including parsed stylesheets and parse/decode failures.
+  Shared records with equal offset/length receive one document index. Parsing
+  is independent of foreground and palette. Decompression occurs on document
+  cache misses, never once per record in a shared-document cache hit.
+- 512 lightweight bounds/error results. Layout hits do not parse, interpret or
+  decode images, even when their heavy plans have been evicted. Colors remain
+  part of this key because transparent foreground/palette paint can change ink.
+- Four prepared glyph plans, including failures. Embedded-image storage belongs
+  to a plan; there is no unbounded decoded-image cache.
+- 128 final glyph images. Eviction drops references, as with other text images;
+  images already returned to an application remain valid. Engine finalization
+  releases unreachable images. No cache eviction deallocates a caller's image.
+
+All four caches evict the least recently accessed entry at their hard limit,
+even within one frame. Entries otherwise live until eviction or source release.
+Lazy glyphs retained by an application independently retain only their small
+layout result and immutable color key. A final-image cache miss obtains or
+rebuilds its heavy plan; an image hit does not need the plan.
+Document size/element budgets, per-plan command/image budgets and sample-surface
+limits bound each entry. The text integration independently caps each final
+image at 262,144 pixels, keeping image-cache retention bounded when the sampling
+policy changes. This is a temporary safety cap, not a long-term supported-size
+contract: oversized artwork falls back to its outline, which can be monochrome
+or empty. Large-glyph compatibility and a byte-budgeted eviction policy remain
+part of acceptance work. Engine allocation overhead is separate.
+
+Plan/image keys include the source-owned document index, glyph ID, fixed font
+size, quantized fractional origin and immutable foreground/palette bytes.
+SVG geometry is independent of outline variation coordinates; shaping and
+positioning still use the existing variation-aware caches. Sideways SVG remains
+unsupported and uses the rotated fallback outline. Native-size vector AA is
+the fixed rendering policy, so it is implicit in the key. Draw's final transform
+and filter apply after the cached glyph is rendered and are not part of the
+glyph key. Embedded images retain nearest filtering. Image-filter quality,
+composition-edge handling and performance tuning remain acceptance work;
+there is no size threshold or 2x/4x supersampling policy in normal text drawing.
+Shader reuse across realizations is also deferred; scratch surfaces and shaders
+are currently released together.
+Nearest-image samples exactly on texel boundaries can change with GPU
+interpolation rounding when a surface is translated/cropped. The allocation
+comparison covers fractional positions away from these ties; stable tie
+handling belongs to the remaining image-sampling evaluation.
+
+### Selection, errors and fallback
+
+The format priority remains COLRv0, bitmap, SVG and outline, with unsupported
+COLRv1 using SVG before its outline. Existing COLRv0 layer filtering is preserved.
+Malformed SVG tables are unavailable; malformed documents, unsupported rendered
+features, missing glyph IDs, invalid references/images and resource limits reject
+the entire SVG plan and use the existing outline fallback. No partial prefix is
+rendered and the old oksvg path is never called. Valid empty artwork suppresses
+fallback, including empty selection, disabled paint and empty clips. As before,
+the public text drawing API does not return glyph-rendering errors. Internal
+errors retain `errors.Is` identities (`ErrXML`, `ErrStyle`, `ErrGeometry`,
+`ErrImage`, `ErrUnsupported`, `ErrGlyphNotFound`, reference errors and `ErrLimit`).
+Shader/compiler failures after a valid plan are engine failures and panic rather
+than masquerading as font fallback. Whole-document selection is allowed only
+when there is no glyph ID anywhere; shared-document selection keeps the
+interpreter's use-instance and ancestor semantics.
+
+### Compressed loading boundary
+
+The integration reads raw SVG records through the OpenType loader. It never
+calls go-text's `GlyphData` or `GlyphDataSVG`, whose gzip decoder uses an
+unlimited `io.ReadAll`. Instead it explicitly selects color, bitmap and outline
+accessors and routes SVG through `Decode` before parsing. Font construction and
+shaping do not decompress SVG records in go-text v0.3.5. No dependency change or
+fork is needed. `UnsafeInternal` remains outside these guarantees.
+
+Raw XML is limited to 32 MiB. Gzip input is limited to 8 MiB compressed and
+32 MiB decoded, including concatenated gzip members. Standard-library gzip
+validates the stream and trailer; invalid compression has `ErrCompression`
+identity. A limiting reader permits at most one byte beyond the decoded budget
+to distinguish overflow. This accommodates the roughly 14 MB shared Noto
+document without trusting compressed length claims. These limits concern SVG
+record processing, not a general font-loader or WOFF allocation budget.
+
 ## Validation
 
 The parent package and `svgcss` tests remain CPU-only. Render preparation tests
@@ -262,8 +385,8 @@ and offsets 0 and 0.375. Image mapping tests compare against an inverse affine
 texel-selection oracle with binary viewport/clip membership. Independent
 comparisons also cover nested opacity, overlapping fill/stroke and the JPEG
 fixture; their existing error thresholds are regression bounds. Full-font evaluation,
-additional platforms and caching/integration acceptance remain necessary before
-replacing oksvg.
+additional platforms and production quality/performance acceptance remain necessary
+before removing the unused oksvg implementation and its dependencies.
 
 [opentype]: https://learn.microsoft.com/en-us/typography/opentype/spec/svg
 [svg-use]: https://www.w3.org/TR/SVG11/struct.html#UseElement

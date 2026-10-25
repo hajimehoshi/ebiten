@@ -18,6 +18,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
+	"image/color"
 	"math"
 	"slices"
 
@@ -67,6 +68,13 @@ type GoTextFace struct {
 	//
 	// Deprecated: as of v2.9. Use Language instead.
 	Script language.Script
+
+	// SVGForeground supplies currentColor for SVG glyphs. Nil means opaque black.
+	// Draw applies ColorScale alpha separately; its RGB does not tint SVG artwork.
+	SVGForeground color.Color
+
+	// SVGPalette overrides SVG palette entries. Nil uses the font's first CPAL palette.
+	SVGPalette []color.NRGBA
 
 	variations []font.Variation
 	features   []shaping.FontFeature
@@ -292,6 +300,8 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 	horizontal := g.direction().isHorizontal()
 	granularity := granularityFactor(g)
 	gs := g.Source.glyphs(line, g)
+	var colors svgColors
+	var colorsReady bool
 
 	glyphs = slices.Grow(glyphs, len(gs))
 
@@ -306,9 +316,13 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 			Y: -glyph.shapingGlyph.YOffset,
 		})
 
-		if keepGlyph == nil || keepGlyph(fixed26_6ToFloat64(o.X), fixed26_6ToFloat64(o.Y)) {
+		if (glyph.render != nil && glyph.render.hasSVG) || keepGlyph == nil || keepGlyph(fixed26_6ToFloat64(o.X), fixed26_6ToFloat64(o.Y)) {
+			if glyph.render != nil && glyph.render.hasSVG && !colorsReady {
+				colors = g.svgColors()
+				colorsReady = true
+			}
 			// The image position is integer so that the nearest filter can be used.
-			bounds, args, hasImage := goTextGlyphImageInfo(g, glyph, o, granularity)
+			bounds, args, hasImage := goTextGlyphImageInfo(g, glyph, o, granularity, colors)
 
 			var advanceX, advanceY float64
 			if horizontal {
@@ -384,6 +398,8 @@ type goTextLineImager struct {
 type goTextGlyphImageArgs struct {
 	glyph          *goTextGlyph
 	subpixelOffset fixed.Point26_6
+	svg            *svgGlyphLayout
+	svgKey         svgGlyphKey
 }
 
 // glyphImage implements glyphImager.
@@ -391,6 +407,9 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 	args := &im.args[index]
 	glyph := args.glyph
 	rd := glyph.render
+	if args.svg != nil {
+		return im.source.svgFont.image(args.svgKey, args.svg, float64(im.source.f.Upem()))
+	}
 	// A bitmap glyph is pixel-aligned and its subpixel offset is always
 	// zero (see goTextGlyphImageInfo), so one key form covers both the
 	// bitmap and the outline conventions.
@@ -406,11 +425,6 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 		if bm := rd.bitmap(); bm != nil {
 			return ebiten.NewImageFromImage(bm), true
 		}
-		if svg := rd.svg(); svg != nil {
-			if img := svgToImage(svg, fixed26_6ToFloat64(rd.size), subpixelOffset, rd.bounds); img != nil {
-				return img, true
-			}
-		}
 		if img := colrV0LayersToImage(rd.colrV0Layers(), subpixelOffset, rd.bounds); img != nil {
 			return img, true
 		}
@@ -423,6 +437,9 @@ func (im *goTextLineImager) glyphImage(index int) *ebiten.Image {
 
 // glyphColored implements glyphImager.
 func (im *goTextLineImager) glyphColored(index int) bool {
+	if im.args[index].svg != nil {
+		return true
+	}
 	return im.args[index].glyph.render.colored()
 }
 
@@ -435,11 +452,11 @@ func (im *goTextLineImager) glyphColored(index int) bool {
 // granularity is taken as a parameter rather than derived from face
 // because the caller is expected to compute it once per layout pass
 // (see granularityFactor) and share it across every glyph.
-func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Point26_6, granularity fixed.Int26_6) (bounds image.Rectangle, args goTextGlyphImageArgs, hasImage bool) {
+func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Point26_6, granularity fixed.Int26_6, colors svgColors) (bounds image.Rectangle, args goTextGlyphImageArgs, hasImage bool) {
 	if glyph.render == nil {
 		return
 	}
-	if glyph.render.useBitmap {
+	if glyph.render.useBitmap && !glyph.render.hasSVG {
 		// Bitmap glyph: dimensions come from rd.bounds (sourced from
 		// GlyphExtents via the sbix or CBDT/EBDT subtable, set during
 		// buildRenderData) so layout doesn't have to wait for the
@@ -470,6 +487,30 @@ func goTextGlyphImageInfo(face *GoTextFace, glyph *goTextGlyph, origin fixed.Poi
 		origin.Y = adjustGranularity(origin.Y, granularity)
 	}
 
+	if rd := glyph.render; rd.hasSVG {
+		key := svgGlyphKey{
+			document: rd.svgDocumentIndex,
+			gid:      uint16(rd.gid),
+			size:     rd.size,
+			xoffset:  origin.X & 63,
+			yoffset:  origin.Y & 63,
+			colors:   colors.key,
+		}
+		prepared := face.Source.svgFont.prepare(key, colors, float64(face.Source.f.Upem()))
+		if prepared.err == nil {
+			if prepared.bounds.Empty() {
+				return
+			}
+			bounds = prepared.bounds.Add(image.Pt(origin.X.Floor(), origin.Y.Floor()))
+			args = goTextGlyphImageArgs{
+				glyph:  glyph,
+				svg:    prepared,
+				svgKey: key,
+			}
+			hasImage = true
+			return
+		}
+	}
 	b := glyph.render.bounds
 	subpixelOffset := fixed.Point26_6{
 		X: (origin.X + b.Min.X) & ((1 << 6) - 1),

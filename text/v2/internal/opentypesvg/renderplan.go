@@ -50,6 +50,8 @@ type RenderOptions struct {
 	Width, Height int
 	// Samples is the number of point samples per axis (1, 2, 4, or 8).
 	Samples int
+	// AntiAlias enables vector antialiasing and requires Samples to be 1.
+	AntiAlias bool
 	// Transform is SVG matrix(a,b,c,d,e,f), mapping font coordinates to output pixels.
 	// Zero means identity.
 	Transform  [6]float64
@@ -106,10 +108,11 @@ type RenderClip struct {
 	Children     []*RenderClip
 }
 
-// RenderPlan is an owned, immutable painter-ordered glyph in a fixed sample grid.
+// RenderPlan is an owned, immutable painter-ordered glyph with a fixed output grid.
 // Callers must not modify its fields or slice contents.
 type RenderPlan struct {
 	Width, Height, Samples int
+	AntiAlias              bool
 	Draws                  []RenderDraw
 	GroupDepth             int
 }
@@ -153,12 +156,27 @@ type renderBuilder struct {
 // PrepareRender interprets a complete glyph without initializing graphics.
 // On any error it returns no plan, including for a malformed geometry prefix.
 func PrepareRender(source []byte, options RenderOptions) (*RenderPlan, error) {
-	if options.Width <= 0 || options.Height <= 0 || options.Samples != 1 && options.Samples != 2 && options.Samples != 4 && options.Samples != 8 {
+	if options.AntiAlias && options.Samples != 1 || options.Width <= 0 || options.Height <= 0 || options.Samples != 1 && options.Samples != 2 && options.Samples != 4 && options.Samples != 8 {
 		return nil, errGeometry
 	}
 	if options.Width > MaxSampleDimension/options.Samples || options.Height > MaxSampleDimension/options.Samples || options.Width*options.Samples > MaxSamplePixels/(options.Height*options.Samples) {
 		return nil, errLimit
 	}
+	d, err := ParseRenderDocument(source)
+	if err != nil {
+		return nil, err
+	}
+	return d.Prepare(options)
+}
+
+// RenderDocument is an immutable SVG document shared by glyphs and color contexts.
+type RenderDocument struct {
+	document *document
+	sheet    *stylesheet
+}
+
+// ParseRenderDocument parses an OpenType SVG document without initializing graphics.
+func ParseRenderDocument(source []byte) (*RenderDocument, error) {
 	d, err := parse(source)
 	if err != nil {
 		return nil, err
@@ -167,6 +185,22 @@ func PrepareRender(source []byte, options RenderOptions) (*RenderPlan, error) {
 	if err != nil {
 		return nil, err
 	}
+	return &RenderDocument{document: d, sheet: sheet}, nil
+}
+
+// Prepare interprets a glyph in the requested output coordinate system.
+func (doc *RenderDocument) Prepare(options RenderOptions) (*RenderPlan, error) {
+	return doc.prepare(options, nil)
+}
+
+func (doc *RenderDocument) prepare(options RenderOptions, images map[string]*image.RGBA) (*RenderPlan, error) {
+	if options.AntiAlias && options.Samples != 1 || options.Width <= 0 || options.Height <= 0 || options.Samples != 1 && options.Samples != 2 && options.Samples != 4 && options.Samples != 8 {
+		return nil, errGeometry
+	}
+	if options.Width > MaxSampleDimension/options.Samples || options.Height > MaxSampleDimension/options.Samples || options.Width*options.Samples > MaxSamplePixels/(options.Height*options.Samples) {
+		return nil, errLimit
+	}
+	d, sheet := doc.document, doc.sheet
 	if len(options.Palette) > maxPaletteEntries {
 		return nil, errLimit
 	}
@@ -188,14 +222,21 @@ func PrepareRender(source []byte, options RenderOptions) (*RenderPlan, error) {
 	}
 	b := renderBuilder{
 		document:   d,
+		images:     images,
 		styles:     r,
 		active:     map[*element]bool{},
 		clipActive: map[*element]bool{},
 		plan: RenderPlan{
-			Width:   options.Width,
-			Height:  options.Height,
-			Samples: options.Samples,
+			Width:     options.Width,
+			Height:    options.Height,
+			Samples:   options.Samples,
+			AntiAlias: options.AntiAlias,
 		},
+	}
+	// Images shared by the bounds and output passes remain charged to the plan.
+	for href, img := range images {
+		b.imageBytes += len(href)
+		b.imagePixels += img.Bounds().Dx() * img.Bounds().Dy()
 	}
 	entry := d.ids["glyph"+strconv.FormatUint(uint64(options.GlyphID), 10)]
 	if entry == nil {

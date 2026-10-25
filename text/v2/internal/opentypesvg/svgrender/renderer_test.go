@@ -833,3 +833,91 @@ func TestRendererPaintAllocationLifecycle(t *testing.T) {
 		})
 	}
 }
+
+func TestGlyphInkAllocation(t *testing.T) {
+	embedded, err := os.ReadFile("../testdata/focused/embedded-png.svg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	sources := [][]byte{embedded}
+	for _, body := range []string{
+		`<g transform="translate(-12 -10) rotate(13)"><path d="M0 0C-10 20 30 35 30 0" fill="none" stroke="red" stroke-width="3" stroke-linecap="round"/></g>`,
+		`<defs><clipPath id="c"><circle r="16"/></clipPath></defs><g clip-path="url(#c)" opacity=".5"><rect x="-20" y="-20" width="30" height="40" fill="red"/><circle cx="10" r="20" fill="blue"/></g>`,
+	} {
+		sources = append(sources, svg(body))
+	}
+	for i, source := range sources {
+		doc, err := opentypesvg.ParseRenderDocument(source)
+		if err != nil {
+			t.Fatal(err)
+		}
+		op := options()
+		op.Samples = 1
+		op.AntiAlias = true
+		op.Width, op.Height = 128, 128
+		op.Transform = [6]float64{1, 0, 0, 1, 48.375, 48.375}
+		if i == 0 {
+			// Nearest-image samples exactly on a texel boundary are sensitive to
+			// GPU interpolation rounding. Exercise viewport allocation away from ties.
+			op.Transform = [6]float64{1, 0, 0, 1, 48.3125, 48.3125}
+		}
+		expected := render(t, source, op)
+		plan, bounds, err := doc.PrepareGlyph(op)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if bounds.Empty() {
+			t.Error("nonempty artwork has empty bounds")
+			continue
+		}
+		dst := ebiten.NewImage(op.Width, op.Height)
+		defer dst.Deallocate()
+		glyph := ebiten.NewImage(bounds.Dx(), bounds.Dy())
+		defer glyph.Deallocate()
+		var renderer svgrender.Renderer
+		defer renderer.Deallocate()
+		if err := renderer.Draw(glyph, plan); err != nil {
+			t.Fatal(err)
+		}
+		drawOp := &ebiten.DrawImageOptions{}
+		drawOp.GeoM.Translate(float64(bounds.Min.X), float64(bounds.Min.Y))
+		dst.DrawImage(glyph, drawOp)
+		got := make([]byte, len(expected))
+		dst.ReadPixels(got)
+		if !bytes.Equal(got, expected) {
+			for j := 0; j < len(got); j += 4 {
+				if !bytes.Equal(got[j:j+4], expected[j:j+4]) {
+					t.Errorf("case %d bounds %v pixel %d,%d: got %v want %v", i, bounds, (j/4)%op.Width, (j/4)/op.Width, got[j:j+4], expected[j:j+4])
+					break
+				}
+			}
+		}
+	}
+}
+
+func TestNativeVectorAntialiasing(t *testing.T) {
+	op := options()
+	op.Samples = 1
+	op.AntiAlias = true
+	source := svg(`<defs><clipPath id="c"><rect x="8.25" y="8.25" width="24.5" height="24.5"/></clipPath></defs><g opacity=".5"><rect x="8.25" y="8.25" width="24.5" height="24.5" fill="blue" clip-path="url(#c)"/></g>`)
+	got := render(t, source, op)
+	expected := ebiten.NewImage(48, 48)
+	defer expected.Deallocate()
+	var path vector.Path
+	path.MoveTo(8.25, 8.25)
+	path.LineTo(32.75, 8.25)
+	path.LineTo(32.75, 32.75)
+	path.LineTo(8.25, 32.75)
+	path.Close()
+	drawOp := &vector.DrawPathOptions{
+		AntiAlias: true,
+	}
+	drawOp.ColorScale.ScaleWithColor(color.NRGBA{B: 255, A: 128})
+	vector.FillPath(expected, &path, nil, drawOp)
+	want := make([]byte, len(got))
+	expected.ReadPixels(want)
+	compareChannels(t, got, want, 1)
+	if alpha := got[4*(8*48+8)+3]; alpha == 0 || alpha >= 128 {
+		t.Errorf("fractional edge alpha = %d, want partial coverage below group opacity", alpha)
+	}
+}
