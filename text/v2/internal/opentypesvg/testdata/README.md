@@ -94,3 +94,75 @@ The JPEG fixture is generated original test data under Apache-2.0, with no
 third-party source. To reproduce its payload, fill an 8×8 image.RGBA with
 color.RGBA{R: 80, G: 160, B: 240, A: 255}, encode with the standard-library
 image/jpeg encoder and jpeg.Options{Quality: 100}, and base64-encode the bytes.
+
+## Full-font preparation inventory and bounded smoke checks
+
+This is an incomplete acceptance workflow. It does not establish full-font GPU
+compatibility, pixel correctness, performance acceptance, or platform acceptance.
+
+`TestSVGFontInventory` defaults to SVG-record preparation only. It inventories
+all unique records and glyph selections at 24 and 96 pixels, using the text
+cache and the horizontal origin quantization of normal layout. It deliberately
+prepares SVG candidates independently of color-format priority. These counts
+must not be described as successful production format selection.
+
+Use the fixed licensed font versions listed above. The report
+records the font SHA-256 and each encoded document's SHA-256, offset, length,
+decoded size, and glyph ranges. Verify the input hash when comparing runs.
+Noto 2.051 used during development had SHA-256
+`7fb39738ab18f10612d6f4595e2e8e47a0afdf34738460442d99cd0c344a4d90`.
+No font binaries or generated reports belong in the repository.
+
+From the repository root, with an existing output directory:
+
+```sh
+EBITENGINE_SVG_ACCEPTANCE_FONT=/path/font.ttf EBITENGINE_SVG_ACCEPTANCE_REPORT_DIR=/path/report \
+  go test -p 1 -count=1 -run '^TestSVGFontInventory$' -v ./text/v2
+```
+
+This test still uses text/v2's hidden graphics test lifecycle, even when it
+only prepares records; it is not a display-free parser test. On Linux prefix
+with `xvfb-run -a`. Ordinary parser/style tests remain display-free.
+
+`full-font.json` separates malformed, unsupported, resource-limited, valid-empty,
+and successfully prepared candidates. `Phase` identifies preparation;
+`Realized` identifies rows whose realization completed and was read back;
+those pixels are not validated.
+`Complete` means the inventory loop completed, not acceptance. Decode failures
+are recorded and their glyph selections are still classified. A deferred report
+write preserves progress on ordinary test failures, but cannot survive process
+termination. Use a separate output directory for each run.
+
+GPU work is off by default. `EBITENGINE_SVG_ACCEPTANCE_GPU_GLYPHS=1` through `8` enables
+only that many realizations from the inventory, skipping images larger than
+256 pixels on either axis. This is a smoke sample, not a full-font GPU sweep.
+Optionally set `EBITENGINE_SVG_ACCEPTANCE_TEXT` to text shaping into at most eight glyphs
+with images no larger than 256 pixels per axis. That checks SVG cache identity
+and colored status through public glyph access and compares `text.Draw` with
+explicit glyph composition. Choose nonempty SVG glyphs, without preferred bitmap
+or COLRv0 data; other selections fail this SVG-specific check. It is not an
+independent rasterization oracle. It does not cover every ligature.
+
+Run a single process at a time, without VMs or other acceptance runs, with
+`-p 1`. Counts and image dimensions bound submitted work, not physical GPU memory:
+engine atlases, scratch surfaces and finalizer timing still add overhead. Do not
+expand the sample into a full sweep before measuring isolated peak memory.
+
+### Benchmarks
+
+Benchmarks are separately opt-in and limited to at most 16 iterations per case:
+
+```sh
+EBITENGINE_SVG_ACCEPTANCE_BENCHMARK=1 go test -p 1 -run '^$' \
+  -bench '^BenchmarkSVGProduction/warm$' -benchtime=16x ./text/v2
+```
+
+On Linux, prefix the benchmark command with `xvfb-run -a`.
+Run one named workload per process. `cold` includes synthetic font construction
+and source loading, so it is not a pure SVG rasterization benchmark. `warm`
+is prewarmed; `layout` measures cached lazy layout. `colors` changes currentColor
+and misses the image cache. `large` uses a 512-pixel em to stay within the current
+image cap. Every drawing workload rejects monochrome outline fallback. Readback
+synchronizes each draw, so times measure latency, not asynchronous throughput.
+Shader compilation on image misses is included. These short bounded probes are
+not statistically robust performance acceptance measurements.

@@ -33,7 +33,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
 )
 
-func svgTestFont(t *testing.T, document string, compressed bool, extraTables ...opentype.Table) *text.GoTextFaceSource {
+func svgTestFont(t testing.TB, document string, compressed bool, extraTables ...opentype.Table) *text.GoTextFaceSource {
 	t.Helper()
 	loader, err := opentype.NewLoader(bytes.NewReader(goregular.TTF))
 	if err != nil {

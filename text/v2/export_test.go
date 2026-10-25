@@ -15,8 +15,14 @@
 package text
 
 import (
+	"image"
+
 	"github.com/go-text/typesetting/bidi"
+	"github.com/go-text/typesetting/font"
 	"golang.org/x/image/math/fixed"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/opentypesvg"
 )
 
 func L2VisualOrder(levels []bidi.Level) []int {
@@ -84,4 +90,31 @@ func NewCacheForTesting[Key comparable, Value any](softLimit int) *cache[Key, Va
 
 func (c *cache[Key, Value]) GetOrCreateAt(key Key, tick int64, create func() (Value, bool)) Value {
 	return c.getOrCreateAt(key, tick, create)
+}
+
+// SVGAcceptanceGlyph prepares an SVG record through the text cache, bypassing format selection.
+func SVGAcceptanceGlyph(face *GoTextFace, gid uint16, offset float64, realize bool) (*ebiten.Image, image.Rectangle, error) {
+	s := face.Source.svgFont
+	document, ok := s.documentIndex(font.GID(gid))
+	if !ok {
+		return nil, image.Rectangle{}, opentypesvg.ErrGlyphNotFound
+	}
+	colors := face.svgColors()
+	key := svgGlyphKey{
+		document: document,
+		gid:      gid,
+		size:     float64ToFixed26_6(face.Size),
+		xoffset:  adjustGranularity(float64ToFixed26_6(offset), granularityFactor(face)) & 63,
+		colors:   colors.key,
+	}
+	layout := s.prepare(key, colors, float64(face.Source.f.Upem()))
+	if layout.err != nil || layout.bounds.Empty() || !realize {
+		return nil, layout.bounds, layout.err
+	}
+	return s.image(key, layout, float64(face.Source.f.Upem())), layout.bounds, nil
+}
+
+// SVGAcceptanceOffset returns the horizontal fractional origin used by text layout.
+func SVGAcceptanceOffset(face *GoTextFace, offset float64) float64 {
+	return fixed26_6ToFloat64(adjustGranularity(float64ToFixed26_6(offset), granularityFactor(face)) & 63)
 }

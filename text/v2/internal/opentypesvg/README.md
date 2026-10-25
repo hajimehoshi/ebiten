@@ -374,7 +374,7 @@ pixel equivalence or a production sampling policy.
 
 librsvg 2.62.3/Cairo 1.18.4 disagrees on linearRGB gradients and percentage
 coordinates in bounding-box clips. Those cases use analytic color and
-normalized-coordinate equivalence tests. Set `SVG_RENDER_REPORT_DIR`
+normalized-coordinate equivalence tests. Set `EBITENGINE_SVG_RENDER_REPORT_DIR`
 to an existing directory to retain comparison PNGs.
 
 [Composition tests](../../../../vector/clipgroup_test.go) provide the separate

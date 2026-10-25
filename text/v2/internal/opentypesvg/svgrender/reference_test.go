@@ -149,7 +149,7 @@ func TestIndependentReference(t *testing.T) {
 				if mean > 5 {
 					t.Errorf("reference mean error %.3f exceeds 5", mean)
 				}
-				if dir := os.Getenv("SVG_RENDER_REPORT_DIR"); dir != "" {
+				if dir := os.Getenv("EBITENGINE_SVG_RENDER_REPORT_DIR"); dir != "" {
 					for label, pixels := range map[string][]byte{"actual": actual, "reference": expected} {
 						file, err := os.Create(filepath.Join(dir, fmt.Sprintf("%s-%d-%g-%s.png", name, size, offset, label)))
 						if err != nil {
