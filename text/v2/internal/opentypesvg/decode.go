@@ -41,7 +41,9 @@ func Decode(source []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrCompression, err)
 	}
-	defer r.Close()
+	defer func() {
+		_ = r.Close()
+	}()
 	result, err := io.ReadAll(io.LimitReader(r, maxBytes+1))
 	if len(result) > maxBytes {
 		return nil, ErrLimit
