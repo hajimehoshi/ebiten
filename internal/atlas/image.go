@@ -274,10 +274,14 @@ type imageImpl struct {
 //
 // moveTo is similar to C++'s move semantics.
 func (i *Image) moveTo(dst *Image) {
+	// Backend migration must preserve the destination image's usage history.
+	usedAsDestinationCount := dst.usedAsDestinationCount
+
 	dst.deallocateImpl()
 	dst.cleanup.Stop()
 
 	impl := *i.imageImpl
+	impl.usedAsDestinationCount = usedAsDestinationCount
 	dst.imageImpl = &impl
 	if dst.backend != nil {
 		dst.cleanup = runtime.AddCleanup(dst, (*imageImpl).cleanup, dst.imageImpl)

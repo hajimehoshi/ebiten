@@ -311,6 +311,39 @@ func TestReputOnSourceBackend(t *testing.T) {
 	runtime.GC()
 }
 
+func TestDestinationHistorySurvivesBackendChanges(t *testing.T) {
+	const size = 16
+	r := image.Rect(0, 0, size, size)
+	src := atlas.NewImage(size, size, atlas.ImageTypeRegular)
+	defer src.Deallocate()
+	src.WritePixels(make([]byte, 4*size*size), r)
+	target := atlas.NewImage(size, size, atlas.ImageTypeRegular)
+	defer target.Deallocate()
+	target.WritePixels(make([]byte, 4*size*size), r)
+	dst := atlas.NewImage(size, size, atlas.ImageTypeUnmanaged)
+	defer dst.Deallocate()
+
+	for cycle, frames := range []int{20, 40, 80} {
+		vs := quadVertices(size, size, 0, 0, 1)
+		target.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, graphics.QuadIndices(), graphicsdriver.BlendCopy, r, [graphics.ShaderSrcImageCount]image.Rectangle{r}, atlas.NearestFilterShader, nil)
+		atlas.PutImagesOnSourceBackendForTesting()
+		if target.IsOnSourceBackendForTesting() {
+			t.Errorf("cycle %d: target is on a source backend after drawing into it", cycle)
+			return
+		}
+
+		for frame := 1; frame <= frames; frame++ {
+			vs := quadVertices(size, size, 0, 0, 1)
+			dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{target}, vs, graphics.QuadIndices(), graphicsdriver.BlendCopy, r, [graphics.ShaderSrcImageCount]image.Rectangle{r}, atlas.NearestFilterShader, nil)
+			atlas.PutImagesOnSourceBackendForTesting()
+			if got, want := target.IsOnSourceBackendForTesting(), frame == frames; got != want {
+				t.Errorf("cycle %d, frame %d: source backend: got %v, want %v", cycle, frame, got, want)
+				return
+			}
+		}
+	}
+}
+
 func TestExtend(t *testing.T) {
 	const w0, h0 = 100, 100
 	img0 := atlas.NewImage(w0, h0, atlas.ImageTypeRegular)
