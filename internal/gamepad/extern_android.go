@@ -54,7 +54,7 @@ func (g *gamepads) addAndroidGamepad(androidDeviceID int, name, sdlID string, ax
 		androidDeviceID: androidDeviceID,
 		axesReady:       make([]bool, axisCount),
 		axes:            make([]float64, axisCount),
-		buttons:         make([]bool, gamepaddb.SDLControllerButtonMax+1),
+		buttons:         make([]bool, ButtonCount),
 		hats:            make([]int, hatCount),
 	}
 }
