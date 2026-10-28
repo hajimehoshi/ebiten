@@ -184,10 +184,13 @@ func (c *Clock) updateActualFPSAndTPS(now int64, count int) {
 // The game time is never advanced past the current real time, so that a long continuous resize does
 // not bank an unbounded number of future ticks and stall the game after the resize ends.
 //
-// SinkTick has no effect unless a positive TPS is set.
+// SinkTick counts the tick in ActualTPS regardless of the target TPS.
+// It advances the game time only when a positive TPS is set.
 func (c *Clock) SinkTick(now int64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	c.tpsCount++
 
 	tps := c.tps.Load()
 	if tps <= 0 {
