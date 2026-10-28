@@ -17,3 +17,5 @@
 package colormode
 
 var CheckGTKSettingsFile = checkGTKSettingsFile
+
+var CheckGSettings = checkGSettings

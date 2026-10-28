@@ -18,11 +18,60 @@ package colormode_test
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/colormode"
 )
+
+func TestCheckGSettings(t *testing.T) {
+	if _, err := exec.LookPath("sleep"); err != nil {
+		t.Fatal(err)
+	}
+
+	testCases := []struct {
+		name   string
+		script string
+		want   colormode.ColorMode
+	}{
+		{
+			name:   "normal output",
+			script: "printf \"'prefer-dark'\\n\"",
+			want:   colormode.Dark,
+		},
+		{
+			name:   "direct process timeout",
+			script: "exec sleep 5",
+			want:   colormode.Unknown,
+		},
+		{
+			name:   "inherited pipes",
+			script: "sleep 5 & wait",
+			want:   colormode.Unknown,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			if err := os.WriteFile(filepath.Join(dir, "gsettings"), []byte("#!/bin/sh\n"+tc.script+"\n"), 0755); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv("PATH", dir+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+			start := time.Now()
+			got := colormode.CheckGSettings()
+			elapsed := time.Since(start)
+			if got != tc.want {
+				t.Errorf("CheckGSettings(): got: %d, want: %d", got, tc.want)
+			}
+			if elapsed >= 4*time.Second {
+				t.Errorf("CheckGSettings took %v, want less than 4s", elapsed)
+			}
+		})
+	}
+}
 
 func TestCheckGTKSettingsFile(t *testing.T) {
 	testCases := []struct {
