@@ -46,7 +46,9 @@ func anyGamepadVirtualButtonJustPressed(i *Input) bool {
 		return false
 	}
 
-	return slices.ContainsFunc(virtualGamepadButtons, i.gamepadConfig.IsButtonJustPressed)
+	return slices.ContainsFunc(virtualGamepadButtons, func(b virtualGamepadButton) bool {
+		return i.stateForVirtualGamepadButton(b) == 1
+	})
 }
 
 func (s *TitleScene) Update(state *GameState) error {
