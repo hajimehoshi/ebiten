@@ -74,8 +74,8 @@ func (g *Game) updateInput() {
 // The touch which started dragging keeps being used as a pointing device until it is released, so that
 // pressing or releasing another touch does not disturb the dragging.
 func (g *Game) pointingDeviceTouchID() (ebiten.TouchID, bool) {
-	if g.dragging && g.draggingByTouch {
-		return g.dragTouchID, true
+	if g.dragging {
+		return g.dragTouchID, g.draggingByTouch
 	}
 	if len(g.touchIDs) > 0 {
 		return g.touchIDs[0], true
