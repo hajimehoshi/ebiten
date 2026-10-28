@@ -65,10 +65,10 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 	// reports, so it has finished reporting once this returns.
 	discarded := t.updateIMEState(bounds)
 
-	// The states queued for an abandoned composition describe a target this
-	// session knows nothing about.
+	// Drop the abandoned composition, but preserve commits delivered between
+	// sessions for the new session.
 	if discarded {
-		t.events.clearQueue()
+		t.events.dropQueuedCompositions()
 	}
 	return t.events.start()
 }
