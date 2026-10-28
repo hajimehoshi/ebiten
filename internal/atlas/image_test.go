@@ -466,6 +466,22 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 	}
 }
 
+func TestUnallocatedSourceImageType(t *testing.T) {
+	for _, srcType := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged} {
+		for _, dstType := range []atlas.ImageType{atlas.ImageTypeRegular, atlas.ImageTypeUnmanaged} {
+			src := atlas.NewImage(1, 1, srcType)
+			defer src.Deallocate()
+			dst := atlas.NewImage(1, 1, dstType)
+			defer dst.Deallocate()
+			region := image.Rect(0, 0, 1, 1)
+			dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, quadVertices(1, 1, 0, 0, 1), graphics.QuadIndices(), graphicsdriver.BlendSourceOver, region, [graphics.ShaderSrcImageCount]image.Rectangle{region}, atlas.NearestFilterShader, nil)
+			if got, want := src.IsOnSourceBackendForTesting(), srcType == atlas.ImageTypeRegular; got != want {
+				t.Errorf("source type %v, destination type %v: source backend = %v, want %v", srcType, dstType, got, want)
+			}
+		}
+	}
+}
+
 // Issue #887
 func TestSmallImages(t *testing.T) {
 	const w, h = 4, 8
