@@ -749,7 +749,7 @@ func registerGLFWClasses() error {
 					if window != nil && window.platform.markedText != 0 {
 						length := objc.Send[uintptr](window.platform.markedText, sel_length)
 						if length > 0 {
-							return nsRange{Location: 0, Length: length - 1}
+							return nsRange{Location: 0, Length: length}
 						}
 					}
 					return nsRange{Location: uintptr(math.MaxInt), Length: 0} // NSNotFound
