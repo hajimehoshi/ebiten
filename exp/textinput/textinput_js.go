@@ -139,7 +139,7 @@ func (t *textInputImpl) init() {
 		if t.imeDiscard == imeDiscarding {
 			return nil
 		}
-		t.events.end()
+		t.events.endByUser()
 		return nil
 	}))
 	t.textareaElement.Call("addEventListener", "keydown", js.FuncOf(func(this js.Value, args []js.Value) any {
