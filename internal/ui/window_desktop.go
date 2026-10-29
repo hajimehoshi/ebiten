@@ -523,6 +523,7 @@ func (w *desktopWindow) SetIcon(iconImages []image.Image) {
 	}
 	// The icons are actually set at updateIconIfNeeded.
 	w.setIconImages(iconImages)
+	w.scheduleUpdate()
 }
 
 func (w *desktopWindow) SetTitle(title string) {
