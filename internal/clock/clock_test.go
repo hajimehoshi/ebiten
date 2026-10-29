@@ -367,3 +367,27 @@ func TestActualFPSAndTPS(t *testing.T) {
 		t.Errorf("ActualTPS: got: %0.2f, want: 30", got)
 	}
 }
+
+func TestActualTPSWithForcedTicks(t *testing.T) {
+	for _, tps := range []int{0, 30} {
+		c := clock.NewClock(0)
+		c.SetTPS(tps)
+		var ticks int
+		for i := range 120 {
+			now := int64(i) * int64(time.Second) / 120
+			count := c.UpdateFrame(now)
+			if count == 0 {
+				c.SinkTick(now)
+				count = 1
+			}
+			ticks += count
+		}
+		ticks += c.UpdateFrame(int64(time.Second))
+		if got := c.ActualTPS(); got != float64(ticks) {
+			t.Errorf("TPS %d: ActualTPS: got: %v, want: %d", tps, got, ticks)
+		}
+		if got := c.ActualFPS(); got != 121 {
+			t.Errorf("TPS %d: ActualFPS: got: %v, want: 121", tps, got)
+		}
+	}
+}
