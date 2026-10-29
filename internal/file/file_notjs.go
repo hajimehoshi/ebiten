@@ -79,7 +79,7 @@ func (v *VirtualFS) Open(name string) (fs.File, error) {
 	// See https://cs.opensource.google/go/go/+/refs/tags/go1.23.0:src/os/file.go;l=695-710
 	f, err := os.Open(absPath)
 	if err != nil {
-		return nil, err
+		return nil, virtualPathError(err, name)
 	}
 	return &virtualFile{
 		File:    f,
@@ -104,7 +104,7 @@ func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
 
 	f, err := os.Open(n.join(rest))
 	if err != nil {
-		return nil, err
+		return nil, virtualPathError(err, name)
 	}
 	defer func() {
 		_ = f.Close()
@@ -113,7 +113,8 @@ func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
 		File:    f,
 		absPath: n.join(rest),
 	}
-	return vf.ReadDir(-1)
+	entries, err := vf.ReadDir(-1)
+	return entries, virtualPathError(err, name)
 }
 
 func (v *VirtualFS) ReadFile(name string) ([]byte, error) {
@@ -134,7 +135,16 @@ func (v *VirtualFS) ReadFile(name string) ([]byte, error) {
 		}
 	}
 
-	return os.ReadFile(n.join(rest))
+	data, err := os.ReadFile(n.join(rest))
+	return data, virtualPathError(err, name)
+}
+
+// virtualPathError reports names relative to the virtual file system, as required by fs.FS.
+func virtualPathError(err error, name string) error {
+	if e, ok := err.(*fs.PathError); ok {
+		return &fs.PathError{Op: e.Op, Path: name, Err: e.Err}
+	}
+	return err
 }
 
 // find returns the node for the given name, and the path elements left unresolved by the node.
