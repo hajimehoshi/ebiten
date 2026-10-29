@@ -17,10 +17,12 @@
 package colormode
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func systemColorMode() ColorMode {
@@ -44,7 +46,12 @@ func systemColorMode() ColorMode {
 }
 
 func checkGSettings() ColorMode {
-	out, err := exec.Command("gsettings", "get", "org.gnome.desktop.interface", "color-scheme").Output()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "gsettings", "get", "org.gnome.desktop.interface", "color-scheme")
+	// Bound the wait for output pipes inherited by subprocesses.
+	cmd.WaitDelay = 100 * time.Millisecond
+	out, err := cmd.Output()
 	if err != nil {
 		return Unknown
 	}
