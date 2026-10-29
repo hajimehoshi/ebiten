@@ -230,25 +230,6 @@ func (c *gamepadConfig) IsButtonPressed(b virtualGamepadButton) bool {
 	return false
 }
 
-// IsButtonJustPressed reports whether the given virtual button b started to be pressed now.
-func (c *gamepadConfig) IsButtonJustPressed(b virtualGamepadButton) bool {
-	if !c.gamepadIDInitialized {
-		panic("not reached")
-	}
-
-	if ebiten.IsStandardGamepadLayoutAvailable(c.gamepadID) {
-		return inpututil.IsStandardGamepadButtonJustPressed(c.gamepadID, b.StandardGamepadButton())
-	}
-
-	c.initializeIfNeeded()
-
-	bb, ok := c.buttons[b]
-	if ok {
-		return inpututil.IsGamepadButtonJustPressed(c.gamepadID, bb)
-	}
-	return false
-}
-
 // Name returns the physical button's name for the given virtual button.
 func (c *gamepadConfig) ButtonName(b virtualGamepadButton) string {
 	if !c.gamepadIDInitialized {
