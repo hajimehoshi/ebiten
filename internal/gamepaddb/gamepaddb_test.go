@@ -17,6 +17,7 @@ package gamepaddb_test
 import (
 	"bytes"
 	"embed"
+	"encoding/hex"
 	"runtime"
 	"slices"
 	"sync"
@@ -684,5 +685,32 @@ func TestAddAndroidDefaultMappings(t *testing.T) {
 		if got, want := gamepaddb.AddAndroidDefaultMappings(id), false; got != want {
 			t.Errorf("gamepaddb.AddAndroidDefaultMappings(%q): got: %t, want: %t", id, got, want)
 		}
+	}
+}
+
+func TestAndroidBackButtonFallback(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		buttons         uint16
+		wantB, wantBack bool
+	}{
+		{"neither B nor Back", 1 << gamepaddb.SDLControllerButtonA, false, false},
+		{"Back without B", 1<<gamepaddb.SDLControllerButtonA | 1<<gamepaddb.SDLControllerButtonBack, true, false},
+		{"B and Back", 1<<gamepaddb.SDLControllerButtonA | 1<<gamepaddb.SDLControllerButtonB | 1<<gamepaddb.SDLControllerButtonBack, true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var guid [16]byte
+			guid[12], guid[13] = byte(tc.buttons), byte(tc.buttons>>8)
+			id := hex.EncodeToString(guid[:])
+			if !gamepaddb.AddAndroidDefaultMappings(id) {
+				t.Fatal("failed to add Android mappings")
+			}
+			if got := gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonRightRight).IsMapped(); got != tc.wantB {
+				t.Errorf("B is mapped = %v, want %v", got, tc.wantB)
+			}
+			if got := gamepaddb.StandardButtonMapping(id, gamepaddb.StandardButtonCenterLeft).IsMapped(); got != tc.wantBack {
+				t.Errorf("Back is mapped = %v, want %v", got, tc.wantBack)
+			}
+		})
 	}
 }
