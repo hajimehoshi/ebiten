@@ -120,7 +120,7 @@ func xmain() error {
 	// Collect shaders statically discovered in the given packages.
 	if args := flag.Args(); len(args) > 0 {
 		pkgs, err := packages.Load(&packages.Config{
-			Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo,
+			Mode: packages.NeedName | packages.NeedImports | packages.NeedDeps | packages.NeedTypes | packages.NeedSyntax | packages.NeedTypesInfo | packages.NeedModule,
 		}, args...)
 		if err != nil {
 			return err
@@ -129,8 +129,8 @@ func xmain() error {
 		var visitErr error
 		packages.Visit(pkgs, func(pkg *packages.Package) bool {
 			path := pkg.PkgPath
-			// A standard library should not have a directive for shaders. Skip them.
-			if isStandardImportPath(path) {
+			// Skip standard libraries, but not local modules with dotless paths.
+			if pkg.Module == nil && isStandardImportPath(path) {
 				return true
 			}
 			// A semi-standard library should not have a directive for shaders. Skip them.

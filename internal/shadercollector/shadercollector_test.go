@@ -130,6 +130,44 @@ func TestEmpty(t *testing.T) {
 	}
 }
 
+func TestLocalModule(t *testing.T) {
+	if !hasGoCommand() {
+		t.Skip("go command is missing")
+	}
+
+	collector := filepath.Join(t.TempDir(), "shadercollector.exe")
+	cmd := exec.Command("go", "build", "-buildvcs=false", "-o", collector, "github.com/hajimehoshi/ebiten/v2/internal/shadercollector")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Error: %v\n%s", err, out)
+	}
+
+	cmd = exec.Command(collector, "./...")
+	cmd.Dir = filepath.Join("testdata", "localmodule")
+	out, err := cmd.Output()
+	if err != nil {
+		if err, ok := err.(*exec.ExitError); ok {
+			t.Fatalf("Error: %v\n%s", err, err.Stderr)
+		}
+		t.Fatal(err)
+	}
+	var shaders []struct {
+		Package string
+		Source  string
+	}
+	if err := json.Unmarshal(out, &shaders); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := len(shaders), 1; got != want {
+		t.Fatalf("len(shaders): got: %d, want: %d", got, want)
+	}
+	if got, want := shaders[0].Package, "localshader"; got != want {
+		t.Errorf("Package: got: %q, want: %q", got, want)
+	}
+	if got, want := shaders[0].Source, "package main"; got != want {
+		t.Errorf("Source: got: %q, want: %q", got, want)
+	}
+}
+
 func TestManifest(t *testing.T) {
 	if !hasGoCommand() {
 		t.Skip("go command is missing")
