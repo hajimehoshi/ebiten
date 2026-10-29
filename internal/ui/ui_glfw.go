@@ -353,7 +353,11 @@ func (u *glfwBackend) setWindowMonitor(monitor *Monitor) error {
 	mwInGLFWPixels := int(math.Round(dipToGLFWPixel(mw, s)))
 	mhInGLFWPixels := int(math.Round(dipToGLFWPixel(mh, s)))
 	px, py := InitialWindowPosition(mwInGLFWPixels, mhInGLFWPixels, w, h)
-	if err := u.window.SetPos(mx+px, my+py); err != nil {
+	px, py, err = u.adjustWindowPosition(mx+max(px, 0), my+max(py, 0), monitor)
+	if err != nil {
+		return err
+	}
+	if err := u.window.SetPos(px, py); err != nil {
 		return err
 	}
 
