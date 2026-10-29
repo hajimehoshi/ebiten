@@ -774,22 +774,37 @@ func TestQueuedStatesOfStartTickReachSession(t *testing.T) {
 func TestQueuedStatesWithinCarryReachNextSession(t *testing.T) {
 	for _, tc := range []struct {
 		name      string
+		endTick   int64
 		startTick int64
 		want      bool
 	}{
 		{
 			name:      "restarted within the carry window",
+			endTick:   100,
 			startTick: 100 + textinput.QueueCarryTicks,
 			want:      true,
 		},
 		{
 			name:      "restarted past the carry window",
+			endTick:   100,
 			startTick: 100 + textinput.QueueCarryTicks + 1,
+			want:      false,
+		},
+		{
+			name:      "tick zero within the carry window",
+			endTick:   0,
+			startTick: textinput.QueueCarryTicks,
+			want:      true,
+		},
+		{
+			name:      "tick zero past the carry window",
+			endTick:   0,
+			startTick: textinput.QueueCarryTicks + 1,
 			want:      false,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			var tick int64 = 100
+			tick := tc.endTick
 			ev := newEventsAtTick(&tick)
 
 			// A session takes a commit and ends at it.
@@ -798,7 +813,7 @@ func TestQueuedStatesWithinCarryReachNextSession(t *testing.T) {
 			ev.End()
 
 			// The next character arrives before the application reopens.
-			tick = 101
+			tick = tc.endTick + 1
 			ev.Send(commitState("b"))
 
 			tick = tc.startTick

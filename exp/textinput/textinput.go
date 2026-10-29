@@ -344,11 +344,11 @@ type textInputEvents struct {
 	// state belong to the next session.
 	sessionTerminated bool
 
-	// lastEndTick is the tick the last session ended at, or 0 before the first
+	// lastEndTick is the one-based tick the last session ended at, or 0 before the first
 	// one ends.
 	lastEndTick int64
 
-	// queuedTick is the tick the queued states were reported in.
+	// queuedTick is the one-based tick the queued states were reported in.
 	queuedTick int64
 
 	// endedByUser reports whether the last ending was the user ending text
@@ -395,12 +395,12 @@ func (s *textInputEvents) clearActiveSessionIf(active *session) {
 	}
 }
 
-// currentTick reports the current tick.
+// currentTick reports a one-based tick so that zero can mean no session has ended.
 func (s *textInputEvents) currentTick() int64 {
 	if s.tick != nil {
-		return s.tick()
+		return s.tick() + 1
 	}
-	return ebiten.Tick()
+	return ebiten.Tick() + 1
 }
 
 func (s *textInputEvents) start() (ch chan textInputState, endFunc func()) {
