@@ -44,12 +44,12 @@ package main
 
 {{if ne .Coverage .CoverageClipped}}
 func coverage(c {{if .AntiAlias}}vec4{{else}}float{{end}}) {{if .AntiAlias}}vec4{{else}}float{{end}} {
-	v := {{if .AntiAlias}}ivec4{{else}}int{{end}}(floor(c*255 + 0.5))
-	w := abs((v >> 4) - (v & 15))
+	// A winding number is biased by 128, which is even.
+	v := floor(c*255 + 0.5)
 {{if eq .Coverage .CoverageEvenOdd}}
-	return {{if .AntiAlias}}vec4{{else}}float{{end}}(w % 2)
+	return mod(v, 2)
 {{else}}
-	return min({{if .AntiAlias}}vec4{{else}}float{{end}}(w), 1)
+	return min(abs(v - 128), 1)
 {{end}}
 }
 {{end}}

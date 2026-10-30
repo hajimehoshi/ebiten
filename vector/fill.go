@@ -339,6 +339,105 @@ var (
 	}
 )
 
+// stencilBias is the value of a stencil buffer sample whose winding number is zero.
+const stencilBias = 0x80
+
+var stencilSubtractBlend = ebiten.Blend{
+	BlendFactorSourceRGB:        ebiten.BlendFactorOne,
+	BlendFactorSourceAlpha:      ebiten.BlendFactorOne,
+	BlendFactorDestinationRGB:   ebiten.BlendFactorOne,
+	BlendFactorDestinationAlpha: ebiten.BlendFactorOne,
+	BlendOperationRGB:           ebiten.BlendOperationReverseSubtract,
+	BlendOperationAlpha:         ebiten.BlendOperationReverseSubtract,
+}
+
+// orientation returns the sign of the signed area of the triangle (p0, p1, p2).
+func orientation(p0, p1, p2 point) int {
+	c := (p1.x-p0.x)*(p2.y-p0.y) - (p1.y-p0.y)*(p2.x-p0.x)
+	switch {
+	case c > 0:
+		return 1
+	case c < 0:
+		return -1
+	}
+	return 0
+}
+
+func stencilVertex(p point, offsetX, offsetY float64, oac *offsetAndColor, u, v float32) ebiten.Vertex {
+	return ebiten.Vertex{
+		DstX:    float32(p.x + offsetX),
+		DstY:    float32(p.y + offsetY),
+		ColorR:  oac.colorR,
+		ColorG:  oac.colorG,
+		ColorB:  oac.colorB,
+		ColorA:  oac.colorA,
+		Custom0: u,
+		Custom1: v,
+	}
+}
+
+// appendStencilVertices appends the vertices and the indices of path's triangles that change the winding numbers
+// of the samples they cover by sign, which is 1 or -1.
+// The signed coverages of the triangles for both signs sum up to the winding numbers of path.
+func appendStencilVertices(vs []ebiten.Vertex, is []uint32, path *Path, sign int, offsetX, offsetY float64, oac *offsetAndColor) ([]ebiten.Vertex, []uint32) {
+	for i := range path.subPaths {
+		subPath := &path.subPaths[i]
+		if !subPath.isValid() {
+			continue
+		}
+
+		// Add an origin point. Any position works in theory.
+		// Use the sub-path's start point. Using one of the sub-path's points can reduce triangles.
+		// Also, this point should be close to the other points and then triangle overlaps are reduced.
+		// TODO: Use a better position like the center of the sub-path.
+		origin := subPath.start
+		originIdx := -1
+		appendFanTriangle := func(p0, p1 point) {
+			if orientation(p0, origin, p1) != sign {
+				return
+			}
+			// (u, v) = (0, 1) is inside the curve for Loop-Blinn algorithm, so a fan triangle covers its entire region.
+			if originIdx < 0 {
+				originIdx = len(vs)
+				vs = append(vs, stencilVertex(origin, offsetX, offsetY, oac, 0, 1))
+			}
+			idx := uint32(len(vs))
+			vs = append(vs,
+				stencilVertex(p0, offsetX, offsetY, oac, 0, 1),
+				stencilVertex(p1, offsetX, offsetY, oac, 0, 1))
+			is = append(is, idx, uint32(originIdx), idx+1)
+		}
+
+		cur := subPath.start
+		for _, op := range subPath.ops {
+			switch op.typ {
+			case opTypeLineTo:
+				appendFanTriangle(cur, op.p1)
+				cur = op.p1
+			case opTypeQuadTo:
+				appendFanTriangle(cur, op.p2)
+				// Unlike a fan triangle, the region inside a curve contributes to the winding numbers
+				// with the sign opposite to the triangle's orientation.
+				if orientation(cur, op.p1, op.p2) == -sign {
+					// (u, v) for Loop-Blinn algorithm.
+					idx := uint32(len(vs))
+					vs = append(vs,
+						stencilVertex(cur, offsetX, offsetY, oac, 0, 0),
+						stencilVertex(op.p1, offsetX, offsetY, oac, 0.5, 0),
+						stencilVertex(op.p2, offsetX, offsetY, oac, 1, 1))
+					is = append(is, idx, idx+1, idx+2)
+				}
+				cur = op.p2
+			}
+		}
+		// If the sub-path is not closed, add a supplementary line.
+		if !subPath.closed {
+			appendFanTriangle(cur, subPath.start)
+		}
+	}
+	return vs, is
+}
+
 // theAtlas manages the atlas for stencil buffer images.
 // theAtlas is a singleton to avoid unnecessary texture allocations.
 //
@@ -468,201 +567,45 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		offsetAndColors = offsetAndColorsAA
 	}
 
-	// First, render the polygons roughly.
-	for i, path := range f.paths {
-		if path == nil {
-			continue
-		}
-
-		for _, oac := range offsetAndColors {
-			vs = vs[:0]
-			is = is[:0]
-
-			stencilBufferImage := theAtlas.stencilBufferImageAt(i, f.antialias, oac.imageIndex)
-			if stencilBufferImage == nil {
-				continue
-			}
-			pp := theAtlas.pathRenderingPositionAt(i)
-			dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X)
-			dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y)
-
-			offsetX := float64(oac.offsetX) + dstOffsetX
-			offsetY := float64(oac.offsetY) + dstOffsetY
-			for i := range path.subPaths {
-				subPath := &path.subPaths[i]
-				if !subPath.isValid() {
-					continue
-				}
-
-				// Add an origin point. Any position works in theory.
-				// Use the sub-path's start point. Using one of the sub-path's points can reduce triangles.
-				// Also, this point should be close to the other points and then triangle overlaps are reduced.
-				// TODO: Use a better position like the center of the sub-path.
-				originIdx := uint32(len(vs))
-				cur := subPath.start
-				vs = append(vs, ebiten.Vertex{
-					DstX:   float32(cur.x + offsetX),
-					DstY:   float32(cur.y + offsetY),
-					ColorR: oac.colorR,
-					ColorG: oac.colorG,
-					ColorB: oac.colorB,
-					ColorA: oac.colorA,
-				})
-
-				for _, op := range subPath.ops {
-					switch op.typ {
-					case opTypeLineTo:
-						idx := uint32(len(vs))
-						vs = append(vs,
-							ebiten.Vertex{
-								DstX:   float32(cur.x + offsetX),
-								DstY:   float32(cur.y + offsetY),
-								ColorR: oac.colorR,
-								ColorG: oac.colorG,
-								ColorB: oac.colorB,
-								ColorA: oac.colorA,
-							},
-							ebiten.Vertex{
-								DstX:   float32(op.p1.x + offsetX),
-								DstY:   float32(op.p1.y + offsetY),
-								ColorR: oac.colorR,
-								ColorG: oac.colorG,
-								ColorB: oac.colorB,
-								ColorA: oac.colorA,
-							})
-						is = append(is, idx, originIdx, idx+1)
-						cur = op.p1
-					case opTypeQuadTo:
-						idx := uint32(len(vs))
-						vs = append(vs,
-							ebiten.Vertex{
-								DstX:   float32(cur.x + offsetX),
-								DstY:   float32(cur.y + offsetY),
-								ColorR: oac.colorR,
-								ColorG: oac.colorG,
-								ColorB: oac.colorB,
-								ColorA: oac.colorA,
-							},
-							ebiten.Vertex{
-								DstX:   float32(op.p2.x + offsetX),
-								DstY:   float32(op.p2.y + offsetY),
-								ColorR: oac.colorR,
-								ColorG: oac.colorG,
-								ColorB: oac.colorB,
-								ColorA: oac.colorA,
-							})
-						is = append(is, idx, originIdx, idx+1)
-						cur = op.p2
-					}
-				}
-				// If the sub-path is not closed, add a supplementary line.
-				if !subPath.closed {
-					idx := uint32(len(vs))
-					vs = append(vs,
-						ebiten.Vertex{
-							DstX:   float32(cur.x + offsetX),
-							DstY:   float32(cur.y + offsetY),
-							ColorR: oac.colorR,
-							ColorG: oac.colorG,
-							ColorB: oac.colorB,
-							ColorA: oac.colorA,
-						},
-						ebiten.Vertex{
-							DstX:   float32(subPath.start.x + offsetX),
-							DstY:   float32(subPath.start.y + offsetY),
-							ColorR: oac.colorR,
-							ColorG: oac.colorG,
-							ColorB: oac.colorB,
-							ColorA: oac.colorA,
-						})
-					is = append(is, idx, originIdx, idx+1)
-				}
-			}
-			op := &ebiten.DrawTrianglesShaderOptions{}
-			op.Blend = ebiten.BlendLighter
-			shader, err := ensureStencilBufferShaders()
-			if err != nil {
-				panic(fmt.Sprintf("vector: failed to create stencil buffer shader: %v", err))
-			}
-			stencilBufferImage.DrawTrianglesShader32(vs, is, shader, op)
-		}
+	stencilShader, err := ensureStencilBufferShader()
+	if err != nil {
+		panic(fmt.Sprintf("vector: failed to create stencil buffer shader: %v", err))
 	}
 
-	// Second, render the bezier curves.
-	for i, path := range f.paths {
-		if path == nil {
-			continue
+	// Each channel of a stencil buffer holds a sample's winding number biased by stencilBias.
+	// Blending saturates a channel instead of wrapping it around, so the triangles that increment
+	// the winding numbers are rendered before the ones that decrement them.
+	// A sample is counted correctly as long as fewer than 128 incrementing triangles cover it
+	// and its winding number is at least -128.
+	for _, sign := range []int{1, -1} {
+		blend := ebiten.BlendLighter
+		if sign < 0 {
+			blend = stencilSubtractBlend
 		}
-
-		for _, oac := range offsetAndColors {
-			vs = vs[:0]
-			is = is[:0]
-
-			stencilBufferImage := theAtlas.stencilBufferImageAt(i, f.antialias, oac.imageIndex)
-			if stencilBufferImage == nil {
+		for i, path := range f.paths {
+			if path == nil {
 				continue
 			}
-			pp := theAtlas.pathRenderingPositionAt(i)
-			dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X)
-			dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y)
-			offsetX := float64(oac.offsetX) + dstOffsetX
-			offsetY := float64(oac.offsetY) + dstOffsetY
-			for i := range path.subPaths {
-				subPath := &path.subPaths[i]
-				if !subPath.isValid() {
+
+			for _, oac := range offsetAndColors {
+				stencilBufferImage := theAtlas.stencilBufferImageAt(i, f.antialias, oac.imageIndex)
+				if stencilBufferImage == nil {
 					continue
 				}
+				pp := theAtlas.pathRenderingPositionAt(i)
+				dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X)
+				dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y)
+				offsetX := float64(oac.offsetX) + dstOffsetX
+				offsetY := float64(oac.offsetY) + dstOffsetY
 
-				cur := subPath.start
-				for _, op := range subPath.ops {
-					switch op.typ {
-					case opTypeLineTo:
-						cur = op.p1
-					case opTypeQuadTo:
-						idx := uint32(len(vs))
-						vs = append(vs,
-							ebiten.Vertex{
-								DstX:    float32(cur.x + offsetX),
-								DstY:    float32(cur.y + offsetY),
-								ColorR:  oac.colorR,
-								ColorG:  oac.colorG,
-								ColorB:  oac.colorB,
-								ColorA:  oac.colorA,
-								Custom0: 0, // u for Loop-Blinn algorithm
-								Custom1: 0, // v for Loop-Blinn algorithm
-							},
-							ebiten.Vertex{
-								DstX:    float32(op.p1.x + offsetX),
-								DstY:    float32(op.p1.y + offsetY),
-								ColorR:  oac.colorR,
-								ColorG:  oac.colorG,
-								ColorB:  oac.colorB,
-								ColorA:  oac.colorA,
-								Custom0: 0.5,
-								Custom1: 0,
-							},
-							ebiten.Vertex{
-								DstX:    float32(op.p2.x + offsetX),
-								DstY:    float32(op.p2.y + offsetY),
-								ColorR:  oac.colorR,
-								ColorG:  oac.colorG,
-								ColorB:  oac.colorB,
-								ColorA:  oac.colorA,
-								Custom0: 1,
-								Custom1: 1,
-							})
-						is = append(is, idx, idx+1, idx+2)
-						cur = op.p2
-					}
+				vs, is = appendStencilVertices(vs[:0], is[:0], path, sign, offsetX, offsetY, &oac)
+				if len(is) == 0 {
+					continue
 				}
+				op := &ebiten.DrawTrianglesShaderOptions{}
+				op.Blend = blend
+				stencilBufferImage.DrawTrianglesShader32(vs, is, stencilShader, op)
 			}
-			op := &ebiten.DrawTrianglesShaderOptions{}
-			op.Blend = ebiten.BlendLighter
-			shader, err := ensureStencilBufferBezierShader()
-			if err != nil {
-				panic(fmt.Sprintf("vector: failed to create stencil buffer bezier shader: %v", err))
-			}
-			stencilBufferImage.DrawTrianglesShader32(vs, is, shader, op)
 		}
 	}
 

@@ -996,10 +996,9 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	if custom.x < 0 || custom.y < 0 || custom.x >= custom.z || custom.y >= custom.w {
 		return vec4(0)
 	}
-	// Each stencil byte contains two four-bit winding counts.
-	c := ivec4(floor(imageSrc0UnsafeAt(src0Pos)*255 + 0.5))
-	w := abs((c >> 4) - (c & 0x0F))
-	return min(vec4(w), 1)
+	// Each stencil byte contains a winding number biased by 128.
+	c := floor(imageSrc0UnsafeAt(src0Pos)*255 + 0.5)
+	return min(abs(c - 128), 1)
 }
 `
 
@@ -1011,10 +1010,9 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	if custom.x < 0 || custom.y < 0 || custom.x >= custom.z || custom.y >= custom.w {
 		return vec4(0)
 	}
-	// Each stencil byte contains two four-bit winding counts.
-	c := ivec4(floor(imageSrc0UnsafeAt(src0Pos)*255 + 0.5))
-	w := abs((c >> 4) - (c & 0x0F))
-	return vec4(w % 2)
+	// Each stencil byte contains a winding number biased by 128, which is even.
+	c := floor(imageSrc0UnsafeAt(src0Pos)*255 + 0.5)
+	return mod(c, 2)
 }
 `
 

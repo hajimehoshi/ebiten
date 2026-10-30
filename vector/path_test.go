@@ -15,6 +15,7 @@
 package vector_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math"
@@ -602,6 +603,139 @@ func TestFillPathFillRule(t *testing.T) {
 
 			if got, want := dst.At(8, 8), tc.expected; got != want {
 				t.Errorf("got: %v, want: %v", got, want)
+			}
+		})
+	}
+}
+
+func TestFillPathManyCrossings(t *testing.T) {
+	const teeth = 100
+	const width, height = 8*teeth - 4, 48
+
+	var comb vector.Path
+	comb.MoveTo(0, 0)
+	comb.LineTo(0, height)
+	comb.LineTo(width, height)
+	comb.LineTo(width, 0)
+	for k := teeth - 1; k >= 1; k-- {
+		comb.LineTo(float32(8*k), 0)
+		comb.LineTo(float32(8*k), 40)
+		comb.LineTo(float32(8*k-4), 40)
+		comb.LineTo(float32(8*k-4), 0)
+	}
+	comb.Close()
+
+	var rect vector.Path
+	rect.MoveTo(0, 0)
+	rect.LineTo(width, 0)
+	rect.LineTo(width, height)
+	rect.LineTo(0, height)
+	rect.Close()
+
+	paintImage := ebiten.NewImage(width, height)
+	defer paintImage.Deallocate()
+	paintImage.Fill(color.White)
+
+	for _, kind := range []string{"fill", "clip", "paint"} {
+		for _, fillRule := range []vector.FillRule{vector.FillRuleNonZero, vector.FillRuleEvenOdd} {
+			for _, antialias := range []bool{false, true} {
+				t.Run(fmt.Sprintf("%s/rule=%d/antialias=%t", kind, fillRule, antialias), func(t *testing.T) {
+					dst := ebiten.NewImage(width, height)
+					defer dst.Deallocate()
+
+					drawOp := &vector.DrawPathOptions{
+						AntiAlias: antialias,
+					}
+					switch kind {
+					case "fill":
+						vector.FillPath(dst, &comb, &vector.FillOptions{
+							FillRule: fillRule,
+						}, drawOp)
+					case "clip":
+						drawOp.Clip = &vector.PathClip{
+							Path:     &comb,
+							FillRule: fillRule,
+						}
+						vector.FillPath(dst, &rect, nil, drawOp)
+					case "paint":
+						drawOp.Paint = &vector.ImagePaint{
+							Image: paintImage,
+						}
+						vector.FillPath(dst, &comb, &vector.FillOptions{
+							FillRule: fillRule,
+						}, drawOp)
+					}
+
+					var mismatches int
+					check := func(x, y int, want color.RGBA) {
+						got := dst.At(x, y)
+						if got == want {
+							return
+						}
+						if mismatches == 0 {
+							t.Errorf("dst.At(%d, %d): got: %v, want: %v", x, y, got, want)
+						}
+						mismatches++
+					}
+					for k := range teeth {
+						for _, x := range []int{8*k + 1, 8*k + 2} {
+							for y := 1; y < height-1; y++ {
+								check(x, y, color.RGBA{0xff, 0xff, 0xff, 0xff})
+							}
+						}
+						if k == teeth-1 {
+							continue
+						}
+						for _, x := range []int{8*k + 5, 8*k + 6} {
+							for y := 1; y < 39; y++ {
+								check(x, y, color.RGBA{})
+							}
+						}
+					}
+					if mismatches > 0 {
+						t.Errorf("%d pixels mismatched", mismatches)
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestStrokePathManyCrossings(t *testing.T) {
+	const segments = 40
+
+	var p vector.Path
+	p.MoveTo(4, 48)
+	for i := 1; i <= segments; i++ {
+		y := float32(88)
+		if i%2 == 0 {
+			y = 8
+		}
+		p.LineTo(float32(8*i), y)
+	}
+
+	for _, antialias := range []bool{false, true} {
+		t.Run(fmt.Sprintf("antialias=%t", antialias), func(t *testing.T) {
+			dst := ebiten.NewImage(8*segments+8, 96)
+			defer dst.Deallocate()
+
+			vector.StrokePath(dst, &p, &vector.StrokeOptions{
+				Width: 4,
+			}, &vector.DrawPathOptions{
+				AntiAlias: antialias,
+			})
+
+			for i := 1; i < segments; i++ {
+				for _, x := range []int{8*i + 3, 8*i + 4} {
+					if got, want := dst.At(x, 48), (color.RGBA{0xff, 0xff, 0xff, 0xff}); got != want {
+						t.Errorf("dst.At(%d, 48): got: %v, want: %v", x, got, want)
+					}
+				}
+				for _, x := range []int{8*i + 7, 8*i + 8} {
+					if got, want := dst.At(x, 48), (color.RGBA{}); got != want {
+						t.Errorf("dst.At(%d, 48): got: %v, want: %v", x, got, want)
+					}
+				}
 			}
 		})
 	}

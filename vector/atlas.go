@@ -16,6 +16,7 @@ package vector
 
 import (
 	"image"
+	"image/color"
 	"math"
 	"slices"
 
@@ -162,18 +163,18 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 				a.atlasImages[i] = nil
 			}
 		}
-		if a.atlasImages[i] != nil {
-			// Every region packed into this image lies in (0, 0)-(s.X, s.Y),
-			// so pixels outside it are never read in this pass.
-			sub := a.atlasImages[i].RecyclableSubImage(image.Rect(0, 0, s.X, s.Y))
-			sub.Clear()
-			sub.Recycle()
-		} else {
+		if a.atlasImages[i] == nil {
 			// Extend the bounds a little bit by roundUpAtlasSize to avoid creating an image too often.
 			w := min(maxImageSize, max(roundUpAtlasSize(s.X), origWidth))
 			h := min(maxImageSize, max(roundUpAtlasSize(s.Y), origHeight))
 			a.atlasImages[i] = ebiten.NewImage(w, h)
 		}
+		// Every region packed into this image lies in (0, 0)-(s.X, s.Y),
+		// so pixels outside it are never read in this pass.
+		// Every sample starts with the winding number zero.
+		sub := a.atlasImages[i].RecyclableSubImage(image.Rect(0, 0, s.X, s.Y))
+		sub.Fill(color.RGBA{R: stencilBias, G: stencilBias, B: stencilBias, A: stencilBias})
+		sub.Recycle()
 	}
 }
 

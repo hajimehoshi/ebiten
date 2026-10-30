@@ -27,7 +27,6 @@ import (
 
 var (
 	stencilBufferFillShader      *ebiten.Shader
-	stencilBufferBezierShader    *ebiten.Shader
 	stencilBufferNonZeroShader   *ebiten.Shader
 	stencilBufferNonZeroAAShader *ebiten.Shader
 	stencilBufferEvenOddShader   *ebiten.Shader
@@ -36,7 +35,7 @@ var (
 	stencilBufferM sync.Mutex
 )
 
-func ensureStencilBufferShaders() (*ebiten.Shader, error) {
+func ensureStencilBufferShader() (*ebiten.Shader, error) {
 	stencilBufferM.Lock()
 	defer stencilBufferM.Unlock()
 
@@ -49,21 +48,6 @@ func ensureStencilBufferShaders() (*ebiten.Shader, error) {
 	}
 	stencilBufferFillShader = s
 	return stencilBufferFillShader, err
-}
-
-func ensureStencilBufferBezierShader() (*ebiten.Shader, error) {
-	stencilBufferM.Lock()
-	defer stencilBufferM.Unlock()
-
-	if stencilBufferBezierShader != nil {
-		return stencilBufferBezierShader, nil
-	}
-	s, err := ebiten.NewShader([]byte(stencilBufferBezierShaderSrc))
-	if err != nil {
-		return nil, err
-	}
-	stencilBufferBezierShader = s
-	return stencilBufferBezierShader, nil
 }
 
 func ensureStencilBufferNonZeroShader(antialias bool) (*ebiten.Shader, error) {
@@ -126,28 +110,11 @@ const stencilBufferFillShaderSrc = `//kage:unit pixels
 package main
 
 func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
-	v := 1.0 / 255.0
-	if frontfacing() {
-		v *= 16
-	}
-	return v * color
-}
-`
-
-//ebitengine:shadersource
-const stencilBufferBezierShaderSrc = `//kage:unit pixels
-
-package main
-
-func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	// Loop-Blinn algorithm.
 	// https://developer.nvidia.com/gpugems/gpugems3/part-iv-image-effects/chapter-25-rendering-vector-art-gpu
+	// A fan triangle has (u, v) = (0, 1) at every vertex, which is always inside the curve.
 	uv := custom.xy
 	v := clamp(-sign(uv.x * uv.x - uv.y), 0, 1) * 1.0/255.0
-	// This is opposite to the fill shader, especially for the non-zero fill rule.
-	if !frontfacing() {
-		v *= 16
-	}
 	return v * color
 }
 `
@@ -157,19 +124,13 @@ const stencilBufferNonZeroShaderSrc = `//kage:unit pixels
 
 package main
 
-func round(x float) float {
-	return floor(x + 0.5)
-}
-
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(src0Pos)
-	r := int(round(c.r*255))
-	w := abs((r >> 4) - (r & 0x0F))
-	v := min(float(w), 1)
-	if v == 0 {
+	// The winding number is biased by 128.
+	if floor(c.r*255 + 0.5) == 128 {
 		discard()
 	}
-	return v * color
+	return color
 }
 `
 
@@ -178,21 +139,14 @@ const stencilBufferNonZeroAAShaderSrc = `//kage:unit pixels
 
 package main
 
-func round(x vec4) vec4 {
-	return floor(x + 0.5)
-}
-
 func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	c0 := imageSrc0UnsafeAt(src0Pos)
 	// imageSrc1UnsafeAt uses the offset info, which would prevent batching.
 	// Use a custom offset instead.
 	c1 := imageSrc0UnsafeAt(src0Pos + custom.xy)
-	ci0 := ivec4(round(c0*255))
-	ci1 := ivec4(round(c1*255))
-	w0 := abs((ci0 >> 4) - (ci0 & 0x0F))
-	w1 := abs((ci1 >> 4) - (ci1 & 0x0F))
-	v0 := min(vec4(w0), 1)
-	v1 := min(vec4(w1), 1)
+	// The winding numbers are biased by 128.
+	v0 := min(abs(floor(c0*255 + 0.5) - 128), 1)
+	v1 := min(abs(floor(c1*255 + 0.5) - 128), 1)
 	v := dot(v0, vec4(1.0/8.0)) + dot(v1, vec4(1.0/8.0))
 	if v == 0 {
 		discard()
@@ -206,19 +160,13 @@ const stencilBufferEvenOddShaderSrc = `//kage:unit pixels
 
 package main
 
-func round(x float) float {
-	return floor(x + 0.5)
-}
-
 func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	c := imageSrc0UnsafeAt(src0Pos)
-	r := int(round(c.r*255))
-	w := abs((r >> 4) - (r & 0x0F))
-	v := float(w % 2)
-	if v == 0 {
+	// The winding number is biased by 128, which is even.
+	if mod(floor(c.r*255 + 0.5), 2) == 0 {
 		discard()
 	}
-	return v * color
+	return color
 }
 `
 
@@ -227,21 +175,14 @@ const stencilBufferEvenOddAAShaderSrc = `//kage:unit pixels
 
 package main
 
-func round(x vec4) vec4 {
-	return floor(x + 0.5)
-}
-
 func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 	c0 := imageSrc0UnsafeAt(src0Pos)
 	// imageSrc1UnsafeAt uses the offset info, which would prevent batching.
 	// Use a custom offset instead.
 	c1 := imageSrc0UnsafeAt(src0Pos + custom.xy)
-	ci0 := ivec4(round(c0*255))
-	ci1 := ivec4(round(c1*255))
-	w0 := abs((ci0 >> 4) - (ci0 & 0x0F))
-	w1 := abs((ci1 >> 4) - (ci1 & 0x0F))
-	v0 := vec4(w0 % 2)
-	v1 := vec4(w1 % 2)
+	// The winding numbers are biased by 128, which is even.
+	v0 := mod(floor(c0*255 + 0.5), 2)
+	v1 := mod(floor(c1*255 + 0.5), 2)
 	v := dot(v0, vec4(1.0/8.0)) + dot(v1, vec4(1.0/8.0))
 	if v == 0 {
 		discard()
