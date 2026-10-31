@@ -1234,3 +1234,48 @@ func TestSeekEndWithUnknownLength(t *testing.T) {
 		}
 	}
 }
+
+func TestReadWithUnknownLength(t *testing.T) {
+	for idx, src := range [][]byte{test_mono_ogg, test_stereo_ogg} {
+		src := truncateLastPage(src)
+		for _, decode := range []struct {
+			name string
+			f    func(io.Reader) (*vorbis.Stream, error)
+		}{
+			{
+				name: "Int16",
+				f:    vorbis.DecodeWithoutResampling,
+			},
+			{
+				name: "Float32",
+				f:    vorbis.DecodeF32,
+			},
+			{
+				name: "Resampled",
+				f:    func(src io.Reader) (*vorbis.Stream, error) { return vorbis.DecodeWithSampleRate(32000, src) },
+			},
+		} {
+			t.Run(fmt.Sprintf("%s/source=%d", decode.name, idx), func(t *testing.T) {
+				sequential, err := decode.f(bytes.NewBuffer(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				want, err := io.ReadAll(sequential)
+				if len(want) == 0 || !errors.Is(err, io.ErrUnexpectedEOF) {
+					t.Fatalf("sequential read: got (%d bytes, %v), want decoded data and io.ErrUnexpectedEOF", len(want), err)
+				}
+				s, err := decode.f(bytes.NewReader(src))
+				if err != nil {
+					t.Fatal(err)
+				}
+				got, err := io.ReadAll(s)
+				if !errors.Is(err, io.ErrUnexpectedEOF) {
+					t.Errorf("ReadAll: got %v, want io.ErrUnexpectedEOF", err)
+				}
+				if !bytes.Equal(got, want) {
+					t.Errorf("decoded data differs: got %d bytes, want %d bytes", len(got), len(want))
+				}
+			})
+		}
+	}
+}
