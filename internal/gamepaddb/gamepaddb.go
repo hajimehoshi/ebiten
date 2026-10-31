@@ -694,7 +694,7 @@ func addAndroidDefaultMappings(id string) bool {
 			Type:  mappingTypeButton,
 			Index: SDLControllerButtonB,
 		}
-	} else {
+	} else if buttonMask&(1<<SDLControllerButtonBack) != 0 {
 		// Use the back button as "B" for easy UI navigation with TV remotes.
 		gamepadButtonMappings[id][StandardButtonRightRight] = mapping{
 			Type:  mappingTypeButton,
