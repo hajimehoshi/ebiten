@@ -63,7 +63,8 @@ func circleVertexCount(r float64) int {
 	if r >= maxCircleVertexCount/math.Pi {
 		return maxCircleVertexCount
 	}
-	return int(math.Ceil(math.Pi * r))
+	// At least three vertices are needed to form non-degenerate triangles.
+	return max(3, int(math.Ceil(math.Pi*r)))
 }
 
 var (
