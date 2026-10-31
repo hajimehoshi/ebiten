@@ -391,3 +391,44 @@ func TestOverlappingShaderFiles(t *testing.T) {
 		})
 	}
 }
+
+func TestPackageErrors(t *testing.T) {
+	if !hasGoCommand() {
+		t.Skip("go command is missing")
+	}
+	collector := filepath.Join(t.TempDir(), "shadercollector.exe")
+	cmd := exec.Command("go", "build", "-buildvcs=false", "-o", collector, "github.com/hajimehoshi/ebiten/v2/internal/shadercollector")
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("Error: %v\n%s", err, out)
+	}
+	for _, source := range []string{
+		"package broken\nvar x = missingSymbol\n",
+		"package broken\nimport _ \"example.com/missing\"\n",
+	} {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "go.mod"), []byte("module example.com/broken\ngo 1.26\n"), 0644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "broken.go"), []byte(source), 0644); err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command(collector, "./...")
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GOWORK=off", "GOPROXY=off")
+		out, err := cmd.Output()
+		if err == nil {
+			t.Errorf("invalid package succeeded with output %q", out)
+			continue
+		}
+		exitErr, ok := err.(*exec.ExitError)
+		if !ok {
+			t.Fatal(err)
+		}
+		if len(exitErr.Stderr) == 0 {
+			t.Error("missing package error diagnostic")
+		}
+		if len(out) != 0 {
+			t.Errorf("output on package error: %q", out)
+		}
+	}
+}

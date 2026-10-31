@@ -126,6 +126,10 @@ func xmain() error {
 			return err
 		}
 
+		if packages.PrintErrors(pkgs) > 0 {
+			return errors.New("shadercollector: loading packages failed")
+		}
+
 		var visitErr error
 		packages.Visit(pkgs, func(pkg *packages.Package) bool {
 			path := pkg.PkgPath
