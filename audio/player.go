@@ -550,7 +550,7 @@ func bufferSizeInBytes(bufferSize time.Duration, bytesPerSample, sampleRate int)
 	if !ok || size > int64(math.MaxInt) {
 		return 0
 	}
-	size = size / int64(bytesPerSample) * int64(bytesPerSample)
+	size = max(1, size/int64(bytesPerSample)) * int64(bytesPerSample)
 	return int(size)
 }
 
