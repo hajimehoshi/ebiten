@@ -228,3 +228,50 @@ func TestAdvanceTicks(t *testing.T) {
 		t.Fatalf("CompositeFrame failed: %v", guest.Err())
 	}
 }
+
+// TestCompositeFrameUnderConcurrentSetOutsideScreen exercises the documented concurrent
+// screen replacement path, including under the race detector.
+func TestCompositeFrameUnderConcurrentSetOutsideScreen(t *testing.T) {
+	guest := startGuest(t, "./testdata/guest", activateByEnv, "unix")
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	screens := []*ebiten.Image{
+		ebiten.NewImage(int(64*scale), int(64*scale)),
+		ebiten.NewImage(int(64*scale), int(64*scale)),
+	}
+	if err := guest.SetOutsideScreen(screens[0]); err != nil {
+		t.Fatal(err)
+	}
+
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	t.Cleanup(func() {
+		close(stop)
+		<-done
+	})
+	go func() {
+		defer close(done)
+		for i := 0; ; i++ {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			if err := guest.SetOutsideScreen(screens[i%len(screens)]); err != nil {
+				t.Error(err)
+				return
+			}
+			runtime.Gosched()
+		}
+	}()
+
+	for range 20 {
+		guest.AdvanceTicks(1)
+		guest.AdvanceFrame()
+		if !guest.WaitFrame() {
+			t.Fatalf("WaitFrame failed: %v", guest.Err())
+		}
+		if !guest.CompositeFrame() {
+			t.Fatalf("CompositeFrame failed with equal-sized screens: %v", guest.Err())
+		}
+	}
+}
