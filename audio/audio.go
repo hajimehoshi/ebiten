@@ -541,8 +541,8 @@ func (p *Player) IsPlaying() bool {
 // Rewind rewinds the current position to the start.
 //
 // The passed source to NewPlayer must be io.Seeker, or Rewind panics.
-// Rewind does not panic before Play is called, as it needs no source access
-// to rewind a player that has not read the source yet.
+// For a non-seekable source, Rewind does not panic before Play is called,
+// as the player has not read the source yet.
 //
 // Rewind returns error when seeking the source stream returns error.
 func (p *Player) Rewind() error {
@@ -553,8 +553,8 @@ func (p *Player) Rewind() error {
 // SetPosition sets the position with the given offset.
 //
 // The passed source to NewPlayer must be io.Seeker, or SetPosition panics.
-// A zero offset does not panic before Play is called, as it needs no source
-// access to reset a player that has not read the source yet.
+// For a non-seekable source, a zero offset does not panic before Play is called,
+// as the player has not read the source yet.
 //
 // SetPosition returns error when seeking the source stream returns an error.
 // SetPosition returns an error for a negative offset.
