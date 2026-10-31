@@ -128,9 +128,11 @@ func _D3DCompile(srcData []byte, sourceName string, pDefines []_D3D_SHADER_MACRO
 	runtime.KeepAlive(sourceNameBytes)
 	runtime.KeepAlive(entryPointBytes)
 	runtime.KeepAlive(targetBytes)
+	if errorMsgs != nil {
+		defer errorMsgs.Release()
+	}
 	if uint32(r) != uint32(windows.S_OK) {
 		if errorMsgs != nil {
-			defer errorMsgs.Release()
 			return nil, fmt.Errorf("directx: D3DCompile failed: %s: %w", errorMsgs.String(), handleError(windows.Handle(uint32(r))))
 		}
 		return nil, fmt.Errorf("directx: D3DCompile failed: %w", handleError(windows.Handle(uint32(r))))

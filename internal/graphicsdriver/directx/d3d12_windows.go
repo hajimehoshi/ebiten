@@ -945,9 +945,11 @@ func _D3D12SerializeRootSignature(pRootSignature *_D3D12_ROOT_SIGNATURE_DESC, ve
 		proc = procD3D12SerializeRootSignature
 	}
 	r, _, _ := proc.Call(uintptr(unsafe.Pointer(pRootSignature)), uintptr(version), uintptr(unsafe.Pointer(&blob)), uintptr(unsafe.Pointer(&errorBlob)))
+	if errorBlob != nil {
+		defer errorBlob.Release()
+	}
 	if uint32(r) != uint32(windows.S_OK) {
 		if errorBlob != nil {
-			defer errorBlob.Release()
 			return nil, fmt.Errorf("directx: D3D12SerializeRootSignature failed: %s: %w", errorBlob.String(), handleError(windows.Handle(uint32(r))))
 		}
 		return nil, fmt.Errorf("directx: D3D12SerializeRootSignature failed: %w", handleError(windows.Handle(uint32(r))))
