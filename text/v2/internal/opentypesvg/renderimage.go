@@ -190,7 +190,18 @@ func (b *renderBuilder) emitImage(n *renderNode, transform matrix, clip *RenderC
 			return errLimit
 		}
 	}
-	commands, err := b.convertPath(n.geometry, 1)
+	geometry := n.geometry
+	if b.plan.AntiAlias {
+		// Intersect the raster footprint with its viewport before resolving coverage.
+		min := geometry.segments[0].To
+		max := geometry.segments[2].To
+		x0 := math.Max(min.X, n.imageMapping.E)
+		y0 := math.Max(min.Y, n.imageMapping.F)
+		x1 := math.Min(max.X, n.imageMapping.E+n.imageMapping.A*float64(n.image.Bounds().Dx()))
+		y1 := math.Min(max.Y, n.imageMapping.F+n.imageMapping.D*float64(n.image.Bounds().Dy()))
+		geometry = imageRectangle(x0, y0, x1-x0, y1-y0)
+	}
+	commands, err := b.convertPath(geometry, 1)
 	if err != nil {
 		return err
 	}
@@ -210,6 +221,11 @@ func (b *renderBuilder) emitImage(n *renderNode, transform matrix, clip *RenderC
 		return err
 	}
 	area := b.plan.Width * b.plan.Height * b.plan.Samples * b.plan.Samples
+	if b.plan.AntiAlias {
+		// Each source texel overlaps at most two output footprints per axis.
+		// Charge these visits even when repeated instances share an upload.
+		area = 2*area + 4*n.image.Bounds().Dx()*n.image.Bounds().Dy()
+	}
 	if area > maxRenderSampleWork-b.sampleWork {
 		return errLimit
 	}

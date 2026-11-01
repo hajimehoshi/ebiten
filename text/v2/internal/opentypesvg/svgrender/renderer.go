@@ -31,15 +31,19 @@ type Renderer struct {
 	// Paint and group surfaces share the output grid. Native antialiasing
 	// resolves each path through vector; point-sampled plans retain samples
 	// through group composition until the final resolve.
-	samples, paint    *ebiten.Image
-	groups            []*ebiten.Image
-	flushSource       *ebiten.Image
-	gradient, resolve *ebiten.Shader
+	samples, paint                 *ebiten.Image
+	groups                         []*ebiten.Image
+	flushSource                    *ebiten.Image
+	gradient, resolve, imageShader *ebiten.Shader
 }
 
 // Deallocate releases the renderer's GPU resources.
 func (r *Renderer) Deallocate() {
 	r.deallocateImages()
+	if r.imageShader != nil {
+		r.imageShader.Deallocate()
+		r.imageShader = nil
+	}
 	if r.gradient != nil {
 		r.gradient.Deallocate()
 		r.gradient = nil
@@ -101,6 +105,19 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			break
 		}
 	}
+	if plan.AntiAlias && r.imageShader == nil {
+		for _, draw := range plan.Draws {
+			if draw.Image == nil {
+				continue
+			}
+			shader, err := ebiten.NewShader([]byte(imageShader))
+			if err != nil {
+				return err
+			}
+			r.imageShader = shader
+			break
+		}
+	}
 	if s > 1 && r.resolve == nil {
 		shader, err := ebiten.NewShader([]byte(resolveShader))
 		if err != nil {
@@ -120,10 +137,14 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			Unmanaged: true,
 		})
 	}
-	uploads := map[*image.RGBA]*ebiten.Image{}
+	type upload struct {
+		image         *ebiten.Image
+		width, height int
+	}
+	uploads := map[*image.RGBA]upload{}
 	defer func() {
 		for _, upload := range uploads {
-			upload.Deallocate()
+			upload.image.Deallocate()
 		}
 	}()
 	target := r.samples
@@ -189,14 +210,49 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			fill.FillRule = vector.FillRuleEvenOdd
 		}
 		if draw.Image != nil {
-			source := uploads[draw.Image]
-			if source == nil {
-				source = ebiten.NewImageFromImage(draw.Image)
-				uploads[draw.Image] = source
+			w, h := draw.Image.Bounds().Dx(), draw.Image.Bounds().Dy()
+			mapping := geom(draw.ImageTransform)
+			size := image.Point{X: w, Y: h}
+			if plan.AntiAlias {
+				// Projected texel axes bound prefiltering without discarding detail
+				// along an enlarged axis under nonuniform transforms.
+				size.X = max(1, int(math.Ceil(float64(w)*math.Min(1, math.Hypot(draw.ImageTransform[0], draw.ImageTransform[1])))))
+				size.Y = max(1, int(math.Ceil(float64(h)*math.Min(1, math.Hypot(draw.ImageTransform[2], draw.ImageTransform[3])))))
+				var local ebiten.GeoM
+				local.Scale(float64(w)/float64(size.X), float64(h)/float64(size.Y))
+				local.Concat(mapping)
+				mapping = local
+			}
+			cached := uploads[draw.Image]
+			if cached.image == nil || cached.width != size.X || cached.height != size.Y {
+				if cached.image != nil {
+					cached.image.Deallocate()
+				}
+				pixels := draw.Image
+				if plan.AntiAlias {
+					pixels = filteredImage(pixels, size.X, size.Y)
+				}
+				cached = upload{
+					image:  ebiten.NewImageFromImage(pixels),
+					width:  size.X,
+					height: size.Y,
+				}
+				uploads[draw.Image] = cached
+			}
+			if plan.AntiAlias {
+				mapping.Invert()
+				inverse := make([]float32, 6)
+				for column := range 3 {
+					for row := range 2 {
+						inverse[2*column+row] = float32(mapping.Element(row, column))
+					}
+				}
+				r.fillPaint(target, &output, &fill, &op, r.imageShader, cached.image, map[string]any{"Inverse": inverse})
+				continue
 			}
 			op.Paint = &vector.ImagePaint{
-				Image:  source,
-				GeoM:   geom(draw.ImageTransform),
+				Image:  cached.image,
+				GeoM:   mapping,
 				Filter: ebiten.FilterNearest,
 			}
 			vector.FillPath(target, &output, &fill, &op)
@@ -208,7 +264,7 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 			vector.FillPath(target, &output, &fill, &op)
 			continue
 		}
-		r.fillGradient(target, &output, &fill, &op, p)
+		r.fillPaint(target, &output, &fill, &op, r.gradient, nil, paintUniforms(p))
 	}
 	if s == 1 {
 		var op ebiten.DrawImageOptions
@@ -228,6 +284,40 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 	op.Images[0] = r.samples
 	dst.DrawTrianglesShader32(vertices, []uint32{0, 1, 2, 1, 3, 2}, r.resolve, &op)
 	return nil
+}
+
+func filteredImage(source *image.RGBA, width, height int) *image.RGBA {
+	sourceWidth, sourceHeight := source.Bounds().Dx(), source.Bounds().Dy()
+	if sourceWidth == width && sourceHeight == height {
+		return source
+	}
+	filtered := image.NewRGBA(image.Rect(0, 0, width, height))
+	// Scale source texel coordinates by the destination dimensions so all
+	// overlap areas are integers. Each output footprint has the same area.
+	area := uint64(sourceWidth * sourceHeight)
+	for y := range height {
+		y0, y1 := y*sourceHeight, (y+1)*sourceHeight
+		for x := range width {
+			x0, x1 := x*sourceWidth, (x+1)*sourceWidth
+			var sum [4]uint64
+			for sy := y0 / height; sy*height < y1; sy++ {
+				wy := min(y1, (sy+1)*height) - max(y0, sy*height)
+				for sx := x0 / width; sx*width < x1; sx++ {
+					wx := min(x1, (sx+1)*width) - max(x0, sx*width)
+					weight := uint64(wx * wy)
+					offset := source.PixOffset(source.Bounds().Min.X+sx, source.Bounds().Min.Y+sy)
+					for channel := range 4 {
+						sum[channel] += uint64(source.Pix[offset+channel]) * weight
+					}
+				}
+			}
+			offset := filtered.PixOffset(x, y)
+			for channel := range 4 {
+				filtered.Pix[offset+channel] = byte((sum[channel] + area/2) / area)
+			}
+		}
+	}
+	return filtered
 }
 
 func geom(v [6]float64) ebiten.GeoM {
@@ -418,9 +508,9 @@ func flushSamples(samples, paint *ebiten.Image) {
 	samples.DrawImage(paint, &options)
 }
 
-func (r *Renderer) fillGradient(target *ebiten.Image, path *vector.Path, fill *vector.FillOptions, draw *vector.DrawPathOptions, paint opentypesvg.RenderPaint) {
-	// Finish prior draws even if this gradient path is culled, matching the
-	// preparation pass's separate stencil budget for each gradient draw.
+func (r *Renderer) fillPaint(target *ebiten.Image, path *vector.Path, fill *vector.FillOptions, draw *vector.DrawPathOptions, shader *ebiten.Shader, paintImage *ebiten.Image, uniforms map[string]any) {
+	// Finish prior draws even if this paint path is culled, matching the
+	// preparation pass's separate stencil budget for each paint draw.
 	r.flushSamples(target)
 	bounds := path.Bounds()
 	if bounds.Empty() {
@@ -440,20 +530,20 @@ func (r *Renderer) fillGradient(target *ebiten.Image, path *vector.Path, fill *v
 	defer source.Recycle()
 	var transform ebiten.GeoM
 	transform.Translate(float64(bounds.Min.X), float64(bounds.Min.Y))
-	uniforms := paintUniforms(paint)
 	uniforms["PaintOrigin"] = []float32{float32(bounds.Min.X), float32(bounds.Min.Y)}
-	source.DrawRectShader(bounds.Dx(), bounds.Dy(), r.gradient, &ebiten.DrawRectShaderOptions{
-		GeoM:     transform,
+	op := ebiten.DrawTrianglesShaderOptions{
 		Blend:    ebiten.BlendCopy,
 		Uniforms: uniforms,
-	})
+	}
+	op.Images[0] = paintImage
+	source.DrawTrianglesShader32(rectangleVertices(bounds.Min, bounds.Dx(), bounds.Dy()), []uint32{0, 1, 2, 1, 3, 2}, shader, &op)
 	draw.Paint = &vector.ImagePaint{
 		Image:  source,
 		GeoM:   transform,
 		Filter: ebiten.FilterNearest,
 	}
 	vector.FillPath(target, path, fill, draw)
-	// Complete the gradient batch before reusing its paint pixels or view.
+	// Complete the paint batch before reusing its paint pixels or view.
 	r.flushSamples(target)
 }
 

@@ -860,9 +860,9 @@ func (b *renderBuilder) prepareDrawBatch(draw *RenderDraw) error {
 		return errLimit
 	}
 	b.totalStencilPixels += pixels
-	gradient := len(draw.Paint.Stops) > 0
-	// Each gradient paint finishes its own batch on the color target.
-	if gradient {
+	paintSurface := len(draw.Paint.Stops) > 0 || b.plan.AntiAlias && draw.Image != nil
+	// Each paint surface finishes its own batch on the color target.
+	if paintSurface {
 		b.batchStencilPixels = 0
 	}
 	// A culled draw can skip vector's fill-rule handling. Explicitly finish
@@ -877,7 +877,7 @@ func (b *renderBuilder) prepareDrawBatch(draw *RenderDraw) error {
 	}
 	b.batchStencilPixels += pixels
 	b.batchEvenOdd = draw.EvenOdd
-	if gradient {
+	if paintSurface {
 		b.batchStencilPixels = 0
 	}
 	return nil

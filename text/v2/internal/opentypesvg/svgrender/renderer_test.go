@@ -16,9 +16,11 @@ package svgrender_test
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 	"math"
 	"os"
 	"path/filepath"
@@ -857,9 +859,7 @@ func TestGlyphInkAllocation(t *testing.T) {
 		op.Width, op.Height = 128, 128
 		op.Transform = [6]float64{1, 0, 0, 1, 48.375, 48.375}
 		if i == 0 {
-			// Nearest-image samples exactly on a texel boundary are sensitive to
-			// GPU interpolation rounding. Exercise viewport allocation away from ties.
-			op.Transform = [6]float64{1, 0, 0, 1, 48.3125, 48.3125}
+			op.Transform = [6]float64{1, 0, 0, 1, 48.5, 48.5}
 		}
 		expected := render(t, source, op)
 		plan, bounds, err := doc.PrepareGlyph(op)
@@ -920,4 +920,80 @@ func TestNativeVectorAntialiasing(t *testing.T) {
 	if alpha := got[4*(8*48+8)+3]; alpha == 0 || alpha >= 128 {
 		t.Errorf("fractional edge alpha = %d, want partial coverage below group opacity", alpha)
 	}
+}
+
+func TestNativeImageFiltering(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 64, 64))
+	for y := range 64 {
+		for x := range 64 {
+			c := color.NRGBA{B: 255, A: 255}
+			if (x+y)%2 == 0 {
+				c = color.NRGBA{R: 255}
+			}
+			img.SetNRGBA(x, y, c)
+		}
+	}
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, img); err != nil {
+		t.Fatal(err)
+	}
+	source := svg(fmt.Sprintf(`<image x="4.5" y="4.5" width="8" height="8" href="data:image/png;base64,%[1]s"/><image x="20.5" y="4.5" width="4" height="4" href="data:image/png;base64,%[1]s"/>`, base64.StdEncoding.EncodeToString(encoded.Bytes())))
+	op := options()
+	op.Samples, op.AntiAlias = 1, true
+	pixels := render(t, source, op)
+	want := color.RGBA{B: 128, A: 128}
+	checkPixel(t, pixels, op.Width, 8, 8, want)
+	checkPixel(t, pixels, op.Width, 22, 6, want)
+	// The raster edge has half coverage, independent of the sampling border.
+	checkPixel(t, pixels, op.Width, 4, 8, color.RGBA{B: 64, A: 64})
+}
+
+func TestNativeImageViewport(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 2, 1))
+	img.SetRGBA(0, 0, color.RGBA{B: 255, A: 255})
+	img.SetRGBA(1, 0, color.RGBA{B: 255, A: 255})
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, img); err != nil {
+		t.Fatal(err)
+	}
+	t.Run("subpixel-width", func(t *testing.T) {
+		op := options()
+		op.Samples, op.AntiAlias = 1, true
+		got := render(t, svg(fmt.Sprintf(`<image x="8" y="8" width=".25" height="8" preserveAspectRatio="none" href="data:image/png;base64,%s"/>`, base64.StdEncoding.EncodeToString(encoded.Bytes()))), op)
+		want := render(t, svg(`<rect x="8" y="8" width=".25" height="8" fill="blue"/>`), op)
+		compareChannels(t, got, want, 1)
+	})
+
+	for _, aspect := range []string{"xMidYMid meet", "xMaxYMax slice"} {
+		t.Run(aspect, func(t *testing.T) {
+			prefix := `<defs><clipPath id="c"><rect width="16" height="32"/></clipPath></defs><g opacity=".5" clip-path="url(#c)">`
+			body := fmt.Sprintf(`<image x="-4.5" y="4.5" width="24" height="24" preserveAspectRatio="%s" href="data:image/png;base64,%s"/>`, aspect, base64.StdEncoding.EncodeToString(encoded.Bytes()))
+			y, height := 4.5, 24.0
+			if aspect == "xMidYMid meet" {
+				y, height = 10.5, 12
+			}
+			op := options()
+			op.Samples, op.AntiAlias = 1, true
+			got := render(t, svg(prefix+body+`</g>`), op)
+			want := render(t, svg(prefix+fmt.Sprintf(`<rect x="-4.5" y="%g" width="24" height="%g" fill="blue"/></g>`, y, height)), op)
+			compareChannels(t, got, want, 1)
+		})
+	}
+}
+
+func TestNativeImageFractionalReduction(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 3, 1))
+	img.SetRGBA(0, 0, color.RGBA{R: 255, A: 255})
+	img.SetRGBA(1, 0, color.RGBA{G: 128, A: 128})
+	img.SetRGBA(2, 0, color.RGBA{B: 255, A: 255})
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, img); err != nil {
+		t.Fatal(err)
+	}
+	source := svg(fmt.Sprintf(`<image x="4" y="4" width="2" height="1" preserveAspectRatio="none" href="data:image/png;base64,%s"/>`, base64.StdEncoding.EncodeToString(encoded.Bytes())))
+	op := options()
+	op.Samples, op.AntiAlias = 1, true
+	pixels := render(t, source, op)
+	checkPixel(t, pixels, op.Width, 4, 4, color.RGBA{R: 170, G: 43, A: 213})
+	checkPixel(t, pixels, op.Width, 5, 4, color.RGBA{G: 43, B: 170, A: 213})
 }

@@ -119,3 +119,25 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	return sum / (Samples * Samples)
 }
 `
+
+//ebitengine:shadersource
+const imageShader = `//kage:unit pixels
+package main
+
+var Inverse [6]float
+var PaintOrigin vec2
+
+func sample(p vec2) vec4 {
+	p = clamp(p, vec2(0.5), imageSrc0Size()-vec2(0.5))
+	return imageSrc0At(p+imageSrc0Origin())
+}
+
+func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
+	q := dstPos.xy-imageDstOrigin()+PaintOrigin
+	p := vec2(Inverse[0]*q.x+Inverse[2]*q.y+Inverse[4], Inverse[1]*q.x+Inverse[3]*q.y+Inverse[5])
+	p = clamp(p, vec2(0.5), imageSrc0Size()-vec2(0.5))
+	base := floor(p-vec2(0.5))+vec2(0.5)
+	weight := p-base
+	return mix(mix(sample(base), sample(base+vec2(1, 0)), weight.x), mix(sample(base+vec2(0, 1)), sample(base+vec2(1, 1)), weight.x), weight.y)
+}
+`

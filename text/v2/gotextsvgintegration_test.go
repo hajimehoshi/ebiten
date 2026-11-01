@@ -17,10 +17,12 @@ package text_test
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 	"os"
 	"strings"
 	"testing"
@@ -594,5 +596,35 @@ func TestSVGLargeImage(t *testing.T) {
 	}
 	if again := text.AppendGlyphs(nil, "A", face, nil)[0].Image; again != glyph.Image {
 		t.Error("large glyph did not hit image cache")
+	}
+}
+
+func TestSVGImageMinification(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 64, 64))
+	for y := range 64 {
+		for x := range 64 {
+			c := color.RGBA{A: 255}
+			if (x+y)%2 == 0 {
+				c = color.RGBA{R: 255, G: 255, B: 255, A: 255}
+			}
+			img.SetRGBA(x, y, c)
+		}
+	}
+	var encoded bytes.Buffer
+	if err := png.Encode(&encoded, img); err != nil {
+		t.Fatal(err)
+	}
+	face := &text.GoTextFace{
+		Source: svgTestFont(t, fmt.Sprintf(`<svg viewBox="0 0 8 8"><image id="GLYPHA" width="8" height="8" href="data:image/png;base64,%s"/></svg>`, base64.StdEncoding.EncodeToString(encoded.Bytes())), false),
+		Size:   8,
+	}
+	dst := ebiten.NewImage(8, 8)
+	defer dst.Deallocate()
+	var op text.DrawOptions
+	op.GeoM.Translate(0, -face.Metrics().HAscent)
+	text.Draw(dst, "A", face, &op)
+	want := color.RGBA{R: 128, G: 128, B: 128, A: 255}
+	if got := dst.At(4, 4).(color.RGBA); colorDiff(got, want) > 1 {
+		t.Errorf("minified image: got %v, want %v", got, want)
 	}
 }

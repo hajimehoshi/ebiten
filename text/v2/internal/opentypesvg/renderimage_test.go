@@ -145,6 +145,20 @@ func TestEmbeddedImageResources(t *testing.T) {
 	prepare(t, `<defs><clipPath id="c" clipPathUnits="objectBoundingBox"><rect width="1" height="1"/></clipPath></defs><g clip-path="url(#c)"><image width="8" height="8" opacity="0" href="bad"/><rect width="4" height="4"/></g>`)
 }
 
+func TestEmbeddedImageFilterWorkLimit(t *testing.T) {
+	data := encodedImage(t, 1024, color.RGBA{A: 255})
+	plan, err := opentypesvg.PrepareRender([]byte("<svg>"+strings.Repeat(imageElement(data), 80)+"</svg>"), opentypesvg.RenderOptions{
+		UnitsPerEm: 48,
+		Width:      48,
+		Height:     48,
+		Samples:    1,
+		AntiAlias:  true,
+	})
+	if !errors.Is(err, opentypesvg.ErrLimit) || plan != nil {
+		t.Errorf("image filtering work: plan=%v error=%v, want resource limit", plan, err)
+	}
+}
+
 func TestIsolationLimits(t *testing.T) {
 	for _, tt := range []struct {
 		name                           string

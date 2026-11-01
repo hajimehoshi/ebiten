@@ -176,15 +176,81 @@ produces alpha 191 where their union should be opaque. Isolated groups do not
 restore the lost coverage correlation. These observations confirm the documented
 native-AA limitation; no wrong edge value is used as a golden expectation.
 
-Embedded-image sampling still needs improvement. A balanced opaque 64x64
-checkerboard with 1-texel cells mapped to an 8x8 image viewport produces white at an interior
-pixel with nearest sampling, instead of the area-average gray. The exact-boundary
-variant of `TestGlyphInkAllocation` also fails on both tested backends: use
-translation `(48.5, 48.5)` for `embedded-png.svg`; full-surface and ink-cropped
-rendering disagree at output pixel `(84, 62)`, yielding premultiplied
-`(0, 0, 128, 128)` and transparent respectively. The regular test avoids this
-nearest-sampling tie. Filtering/minification and cropping consistency remain
-unresolved; the passing font comparisons do not establish acceptance for them.
+Native embedded images now use premultiplied area prefiltering
+when their projected texel axes shrink, followed by clamped bilinear sampling.
+The raster footprint is intersected with its image viewport before native path
+coverage is resolved. Shader coordinates come from destination pixel centers,
+including for ink-cropped output. Point-sampled reference plans explicitly retain
+nearest sampling and their original viewport membership. Native magnification
+intentionally uses bilinear smoothing; SVG `image-rendering` modes are not
+implemented by this change.
+
+The 64x64 one-texel checkerboard mapped to 8x8 now gives interior
+premultiplied `(128,128,128,255)` through normal `text.Draw`. A transparent-red /
+opaque-blue checkerboard gives `(0,0,128,128)`, without a red fringe. The restored
+`(48.5,48.5)` translation in `TestGlyphInkAllocation` compares full and cropped
+output exactly. Additional image checks cover a subpixel-width raster, half-pixel
+edge coverage, one source reused at different reductions, meet/slice/none,
+clipping, opacity and negative origins.
+
+Only one filtered upload per decoded source is retained within a draw; replacing
+its reduction releases the old upload. Upload dimensions never exceed the decoded
+source. Filtering allocates only the reduced RGBA output and fixed-size
+per-pixel integer accumulators, with no full-image floating-point intermediate.
+The shared paint surface stays on the native output grid and is released
+with other scratch images on return. Native image draws charge both the additional
+paint pass and up to four source-texel visits per source pixel to the existing
+cumulative work budget, including
+repeated instances. Final glyph cache limits and native output dimensions are
+unchanged. The source reduction averages axis-aligned texel areas, but the complete
+transform is not an exact destination-pixel area integrator or anisotropic filter;
+strong shear and fine detail under arbitrary affine transforms still need wider
+quality evaluation.
+
+### Sampling verification (2026-11-02)
+
+- macOS ARM64, Go 1.27.0: renderer tests and SVG text integration checks passed on
+  Metal and OpenGL in small serial batches. External original-font inventory and
+  reference tests were not rerun. Those reports describe the baseline, not a new
+  full inventory of this change.
+- Linux ARM64: binaries from this checkout ran in Debian 13 under `xvfb-run`,
+  with software OpenGL (Mesa 25.0.7), in the existing Podman VM (Linux 7.1.3).
+  Renderer and SVG text batches passed. Independent librsvg and externally supplied
+  font checks were skipped when unavailable. The committed baseline reproduced
+  the checkerboard defects here, but did not reproduce the original nearest-filter
+  crop failure on this driver.
+- Windows 11 Pro ARM64 (10.0.26200), Parallels, DirectX: native image, crop,
+  gradient-paint and selected normal-text checks passed in the logged-in console
+  session. Parallels' non-interactive command session cannot run these graphics
+  tests (`GetCursorPos` needs an interactive window station). A temporary interactive
+  scheduled task was removed after testing, and the task-started VM was stopped.
+
+Representative commands, run from the repository root:
+
+```sh
+go test -run '^Test(Native|GlyphInk)' ./text/v2/internal/opentypesvg/svgrender
+go test -run '^TestSVGImageMinification$' ./text/v2
+# Linux graphics commands must be prefixed with xvfb-run -a.
+```
+
+macOS processes used a 384 MiB RSS/physical-footprint watchdog, a 60-second
+supervisor deadline, `GOMAXPROCS=2` and `GOMEMLIMIT=96MiB`. A combined OpenGL
+renderer run exceeded that watchdog; smaller serial batches completed under it.
+Linux disposable containers used a 384 MiB memory/swap cap and per-process
+55-second deadlines. Windows used a 384 MiB working-set/private-byte watchdog
+and 50-second process deadlines; sampled test peaks were below 100 MiB. These
+measurements exclude some driver/system allocations and sampling can miss peaks.
+No full-font sweep ran concurrently with a VM. The pre-existing Podman VM was left
+running; temporary containers and Windows guest test files were removed.
+
+The current-code analytic composition diagnostic still produces
+`(64,0,128,191)` for coincident and adjacent half-covered red/blue rectangles.
+Correct coincident blue is `(0,0,128,128)`; the adjoining union is
+`(128,0,128,255)`. Image filtering does not restore vector coverage correlation.
+General correction requires retaining coverage information across paint operations;
+changing source-over blending or group isolation alone cannot distinguish these
+two cases. This remains an acceptance limitation, alongside the broader
+performance/resource evaluation. Legacy SVG removal remains deferred.
 
 ## Full-font preparation inventory and bounded smoke checks
 
@@ -310,3 +376,26 @@ rejects monochrome outline fallback. Readback
 synchronizes each draw, so times measure latency, not asynchronous throughput.
 Shader compilation on image misses is included. These short bounded probes are
 not statistically robust performance acceptance measurements.
+
+On 2026-11-02, eight-iteration Metal probes on an Apple M3 Pro with Go 1.27.0
+measured synchronized latency of about 2.90 ms (`cold`), 0.80 ms (`warm`),
+1.08 microseconds (`layout`), 1.59 ms (`colors`) and 1.93 ms (`large`). Each
+workload ran alone under the 384 MiB watchdog. The allocation figures include
+engine work during synchronized rendering and should not be interpreted as
+allocations exclusively inside the glyph cache.
+
+A temporary CPU-only area-filter probe reduced an opaque 2048x2048 source to
+2047x2047, exercising the large near-unit reduction identified during review.
+Two timed iterations measured about 78.5 ms per reduction and 16,769,088 allocated
+bytes in two allocations per operation (the reduced RGBA pixel buffer and image
+object). Source creation was outside the timer. The process stayed under the
+384 MiB watchdog; this was an allocation/cost probe, not an allocator assertion in
+the permanent tests or a GPU rasterization benchmark.
+
+After the review changed the CPU prefilter, the native-image and crop tests were
+rerun on Metal, OpenGL and Linux/Xvfb, and the normal `text.Draw` minification
+check was rerun on Metal. The Windows results above precede that CPU-only filter
+change; its shader and GPU coordinate path were unchanged. The diagnostic source
+and supervisors stayed outside the repository. These small cost probes do not
+complete many-glyph frame, document/plan churn or sustained memory-pressure
+acceptance.
