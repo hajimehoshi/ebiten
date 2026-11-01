@@ -154,13 +154,15 @@ func ScrollDelta() (x, y float64) {
 // a request to shrink. To follow the gesture, multiply the scale by 1 + the returned value at each tick.
 // For example, 0.05 asks to make things 5% larger.
 //
-// On iOS, PinchDelta also reports pinching on the touch screen, and the touches of the pinch are still
-// reported by [AppendTouchIDs] and [TouchPosition]. On the other platforms, PinchDelta does not report
-// pinching on a touch screen. Use [AppendTouchIDs] and [TouchPosition] for that.
+// On iOS and Android, PinchDelta also reports pinching on the touch screen, and the touches of the
+// pinch are still reported by [AppendTouchIDs] and [TouchPosition]. On Android, only a pinch with
+// exactly two fingers is reported. On the other platforms, PinchDelta does not report pinching on
+// a touch screen. Use [AppendTouchIDs] and [TouchPosition] for that.
 //
-// PinchDelta reports gestures on macOS, on iOS, on Windows 10 and later with a precision touchpad, and
-// on Linux and other platforms with X11 when the X server supports XInput 2.4 (X.Org Server 21.1 or
-// Xwayland 22.1 and later) and libXi is 1.8 or later.
+// PinchDelta reports gestures on macOS, on iOS, on Windows 10 and later with a precision touchpad, on
+// Linux and other platforms with X11 when the X server supports XInput 2.4 (X.Org Server 21.1 or
+// Xwayland 22.1 and later) and libXi is 1.8 or later, and on Android 14 and later with a touchpad. On
+// Android, a pinch on a touchpad is not reported as touches.
 // PinchDelta always returns 0 on the other platforms so far.
 //
 // PinchDelta is concurrent-safe.
@@ -175,11 +177,11 @@ func PinchDelta() float64 {
 // to the angle at each tick.
 //
 // RotationDelta reports gestures on a touchpad on macOS, and on Linux and other platforms with X11
-// under the same conditions as [PinchDelta]. On iOS, RotationDelta also reports turning two fingers
-// on the touch screen and on a trackpad, and the fingers on the touch screen are still reported by
-// [AppendTouchIDs] and [TouchPosition].
-// RotationDelta always returns 0 on the other platforms so far, including Windows, whose touchpad
-// gestures have no rotation.
+// under the same conditions as [PinchDelta]. On iOS and Android, RotationDelta also reports turning
+// two fingers on the touch screen, and the fingers are still reported by [AppendTouchIDs] and
+// [TouchPosition]. On iOS, a rotation on a trackpad is reported as well.
+// RotationDelta always returns 0 on the other platforms so far, including Windows and Android with
+// a touchpad, whose touchpad gestures have no rotation.
 //
 // RotationDelta is concurrent-safe.
 func RotationDelta() float64 {
