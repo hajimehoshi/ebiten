@@ -652,3 +652,31 @@ func TestReadWholeSamples(t *testing.T) {
 		})
 	}
 }
+
+func TestResamplingNonSeekableSource(t *testing.T) {
+	for _, seekable := range []bool{true, false} {
+		t.Run(fmt.Sprintf("seekable=%t", seekable), func(t *testing.T) {
+			var src io.Reader = bytes.NewReader(resources.Ragtime_mp3)
+			if !seekable {
+				src = bytes.NewBuffer(resources.Ragtime_mp3)
+			}
+			// Resampling from 48000 Hz to 1 Hz skips source blocks and requires a seek.
+			s, err := mp3.DecodeWithSampleRate(1, src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var buf [4]byte
+			if _, err := io.ReadFull(s, buf[:]); err != nil {
+				t.Fatal(err)
+			}
+			n, err := s.Read(buf[:])
+			if seekable {
+				if n != len(buf) || err != nil {
+					t.Errorf("Read: got (%d, %v), want (%d, nil)", n, err, len(buf))
+				}
+			} else if n != 0 || !errors.Is(err, errors.ErrUnsupported) {
+				t.Errorf("Read: got (%d, %v), want (0, errors.ErrUnsupported)", n, err)
+			}
+		})
+	}
+}
