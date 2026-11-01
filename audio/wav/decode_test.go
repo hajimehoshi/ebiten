@@ -201,6 +201,36 @@ func TestDecodeWAVEFORMATEXTENSIBLERejectsNonPCM(t *testing.T) {
 	}
 }
 
+func TestDecodeInvalidWAVEFORMATEXTENSIBLE(t *testing.T) {
+	pcmGUID := []byte{1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xaa, 0, 0x38, 0x9b, 0x71}
+	testCases := []struct {
+		name    string
+		fmtData []byte
+	}{
+		{
+			name:    "short 'fmt ' chunk",
+			fmtData: stereoI16ExtensibleFmtChunkData(testSampleRate, pcmGUID)[:39],
+		},
+		{
+			name: "cbSize larger than chunk",
+			fmtData: func() []byte {
+				fmtData := stereoI16ExtensibleFmtChunkData(testSampleRate, pcmGUID)
+				binary.LittleEndian.PutUint16(fmtData[16:18], 100)
+				return fmtData
+			}(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			src := wavFileWithFmtData(tc.fmtData, []byte{1, 2, 3, 4})
+			if _, err := wav.DecodeWithoutResampling(bytes.NewReader(src)); err == nil {
+				t.Fatal("DecodeWithoutResampling: got no error, want an error")
+			}
+		})
+	}
+}
+
 // wavFile returns a WAV file whose 'data' chunk holds data.
 // beforeFmt and afterFmt are put before and after the 'fmt ' chunk respectively.
 func wavFile(sampleRate uint32, beforeFmt []chunk, afterFmt []chunk, data []byte) []byte {
@@ -212,6 +242,18 @@ func wavFile(sampleRate uint32, beforeFmt []chunk, afterFmt []chunk, data []byte
 	for _, c := range afterFmt {
 		body = appendChunk(body, c.id, []byte(c.data))
 	}
+	body = appendChunk(body, "data", data)
+
+	var buf []byte
+	buf = append(buf, "RIFF"...)
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(body)+4))
+	buf = append(buf, "WAVE"...)
+	return append(buf, body...)
+}
+
+func wavFileWithFmtData(fmtData, data []byte) []byte {
+	var body []byte
+	body = appendChunk(body, "fmt ", fmtData)
 	body = appendChunk(body, "data", data)
 
 	var buf []byte
