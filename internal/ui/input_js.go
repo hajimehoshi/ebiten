@@ -19,6 +19,8 @@ import (
 	"regexp"
 	"syscall/js"
 	"unicode"
+
+	"golang.org/x/text/unicode/norm"
 )
 
 var (
@@ -312,7 +314,7 @@ func isKeyString(str string) bool {
 			}
 			continue
 		}
-		if !unicode.Is(unicode.Mc, r) {
+		if !unicode.Is(unicode.Mc, r) && norm.NFC.PropertiesString(str[i:]).CCC() == 0 {
 			return false
 		}
 	}

@@ -1293,7 +1293,7 @@ func (g *graphics12) NewScreenFramebufferImage(width, height int) (graphicsdrive
 		width:    width,
 		height:   height,
 		screen:   true,
-		states:   [frameCount]_D3D12_RESOURCE_STATES{0, 0},
+		states:   [frameCount]_D3D12_RESOURCE_STATES{_D3D12_RESOURCE_STATE_PRESENT(), _D3D12_RESOURCE_STATE_PRESENT()},
 	}
 	g.addImage(i)
 	g.screenImage = i
