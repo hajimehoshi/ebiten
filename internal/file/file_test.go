@@ -340,3 +340,37 @@ func TestFSDirectoryReadError(t *testing.T) {
 		}
 	}
 }
+
+func TestFSPathErrors(t *testing.T) {
+	vfs := newVirtualFS(t, []string{filepath.Join("testdata", "dir")})
+	const name = "dir/missing"
+	for _, op := range []string{"open", "readfile", "readdir"} {
+		t.Run(op, func(t *testing.T) {
+			var err error
+			switch op {
+			case "open":
+				var f fs.File
+				f, err = vfs.Open(name)
+				if f != nil {
+					defer func() {
+						_ = f.Close()
+					}()
+				}
+			case "readfile":
+				_, err = fs.ReadFile(vfs, name)
+			case "readdir":
+				_, err = fs.ReadDir(vfs, name)
+			}
+			var pathErr *fs.PathError
+			if !errors.As(err, &pathErr) {
+				t.Fatalf("error = %v, want *fs.PathError", err)
+			}
+			if pathErr.Path != name {
+				t.Errorf("Path = %q, want %q", pathErr.Path, name)
+			}
+			if !errors.Is(err, fs.ErrNotExist) {
+				t.Errorf("error = %v, want fs.ErrNotExist", err)
+			}
+		})
+	}
+}
