@@ -21,3 +21,11 @@ func IsShortcutChordForTest(ctrl, alt, meta, altGraph, isApple bool) bool {
 func IsKeyStringForTest(str string) bool {
 	return isKeyString(str)
 }
+
+func IsWheelPinchForTest(ctrlKey, controlKeyDown bool) bool {
+	return isWheelPinch(ctrlKey, controlKeyDown)
+}
+
+func WheelPinchDeltaForTest(scrollDeltaY float64) float64 {
+	return wheelPinchDelta(scrollDeltaY)
+}

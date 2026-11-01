@@ -161,8 +161,10 @@ func ScrollDelta() (x, y float64) {
 //
 // PinchDelta reports gestures on macOS, on iOS, on Windows 10 and later with a precision touchpad, on
 // Linux and other platforms with X11 when the X server supports XInput 2.4 (X.Org Server 21.1 or
-// Xwayland 22.1 and later) and libXi is 1.8 or later, and on Android 14 and later with a touchpad. On
-// Android, a pinch on a touchpad is not reported as touches.
+// Xwayland 22.1 and later) and libXi is 1.8 or later, on Android 14 and later with a touchpad, and in
+// browsers with a touchpad. On Android, a pinch on a touchpad is not reported as touches. In browsers
+// other than Safari, a pinch on a touchpad is reported as a wheel event with the Control key, which
+// PinchDelta reports instead of [Wheel] and [ScrollDelta] unless the Control key is actually pressed.
 // PinchDelta always returns 0 on the other platforms so far.
 //
 // PinchDelta is concurrent-safe.
@@ -179,9 +181,10 @@ func PinchDelta() float64 {
 // RotationDelta reports gestures on a touchpad on macOS, and on Linux and other platforms with X11
 // under the same conditions as [PinchDelta]. On iOS and Android, RotationDelta also reports turning
 // two fingers on the touch screen, and the fingers are still reported by [AppendTouchIDs] and
-// [TouchPosition]. On iOS, a rotation on a trackpad is reported as well.
-// RotationDelta always returns 0 on the other platforms so far, including Windows and Android with
-// a touchpad, whose touchpad gestures have no rotation.
+// [TouchPosition]. On iOS, a rotation on a trackpad is reported as well. In browsers, RotationDelta
+// reports gestures on a touchpad in Safari.
+// RotationDelta always returns 0 on the other platforms so far, including Windows, Android, and
+// browsers other than Safari with a touchpad, whose touchpad gestures have no rotation.
 //
 // RotationDelta is concurrent-safe.
 func RotationDelta() float64 {

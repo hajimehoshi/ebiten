@@ -114,6 +114,13 @@ type userInterfaceImpl struct {
 	touchesInClient     []touchInClient
 	touchIDs            touchIDAllocator
 
+	// inGesture reports whether a gesture that Safari reports with gesture events is in progress.
+	// gestureScale and gestureRotation are the scale and the angle in degrees the gesture has reached,
+	// as the events report them as totals from the start of the gesture.
+	inGesture       bool
+	gestureScale    float64
+	gestureRotation float64
+
 	savedCursorX              float64
 	savedCursorY              float64
 	savedOutsideWidth         float64
@@ -823,6 +830,20 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 		return nil
 	}))
 
+	// Gestures on a touchpad in Safari
+	for _, name := range []string{"gesturestart", "gesturechange", "gestureend"} {
+		v.Call("addEventListener", name, js.FuncOf(func(this js.Value, args []js.Value) any {
+			e := args[0]
+			// Prevent the page from being zoomed.
+			e.Call("preventDefault")
+			if err := u.updateInputFromEvent(e); err != nil {
+				u.setError(err)
+				return nil
+			}
+			return nil
+		}))
+	}
+
 	// Context menu
 	v.Call("addEventListener", "contextmenu", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
@@ -860,6 +881,7 @@ func (u *UserInterface) setCanvasEventHandlers(v js.Value) {
 	v.Call("addEventListener", "blur", js.FuncOf(func(this js.Value, args []js.Value) any {
 		// The browser might not dispatch touchend or touchcancel for the touches that are down.
 		u.releaseAllInputs()
+		u.inGesture = false
 		return nil
 	}))
 }
