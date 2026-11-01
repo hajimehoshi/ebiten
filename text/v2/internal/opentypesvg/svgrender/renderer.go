@@ -151,6 +151,8 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 	var parents []*ebiten.Image
 	r.samples.Clear()
 	clips := map[*opentypesvg.RenderClip]vector.Clip{}
+	// TODO: Preserve coverage across native-AA paints to avoid shared-edge
+	// fringes and seams without increasing draw calls.
 	for _, draw := range plan.Draws {
 		if draw.GroupStart {
 			r.flushSamples(target)
