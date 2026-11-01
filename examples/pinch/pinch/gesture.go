@@ -114,6 +114,10 @@ const (
 	gestureGapTicks = 10
 )
 
+// ctrlScrollLogScalePerPixel is the logarithm of the ratio scrolling with the Control key scales the view by per pixel
+// of scrolling, when it is reported as a pinch. One notch of a mouse wheel, about 100 pixels, scales the view by 20%.
+var ctrlScrollLogScalePerPixel = math.Log(1.2) / 100
+
 type lockState int
 
 const (
@@ -194,6 +198,18 @@ type GestureTracker struct {
 	// intended and hard to control.
 	Separate Gesture
 
+	// CtrlScrollAsPinch reports scrolling with the Control key held as a pinch around the cursor instead of a
+	// move. Scrolling up magnifies the view, and horizontal scrolling with the Control key is dropped.
+	//
+	// This is a fallback for touchpads whose pinches PinchDelta does not report, such as touchpads that are not
+	// precision touchpads on Windows: their drivers report a pinch as scrolling with the Control key, as many
+	// applications zoom with it. It works with a mouse wheel as well. Browsers report a pinch on a touchpad
+	// with PinchDelta, so this is needed there only for drivers that press the Control key themselves.
+	//
+	// CtrlScrollAsPinch is false by default, as scrolling with the Control key can no longer be used for
+	// anything else, such as moving the view faster.
+	CtrlScrollAsPinch bool
+
 	touchIDs []ebiten.TouchID
 	prev     map[ebiten.TouchID]touchPosition
 
@@ -240,6 +256,10 @@ func (t *GestureTracker) Update() ViewGesture {
 		Rotation: ebiten.RotationDelta(),
 	}
 	v.PanX, v.PanY = ebiten.ScrollDelta()
+	if t.CtrlScrollAsPinch && ebiten.IsKeyPressed(ebiten.KeyControl) {
+		v.Scale *= math.Exp(v.PanY * ctrlScrollLogScalePerPixel)
+		v.PanX, v.PanY = 0, 0
+	}
 	v.CenterX, v.CenterY = inpututil.PinchCenter()
 
 	// A pinch and a rotation on a touch screen are already in PinchDelta and RotationDelta on the platforms

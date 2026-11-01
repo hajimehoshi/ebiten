@@ -88,10 +88,10 @@ func NewGame() *Game {
 		{"S or R", &g.gestures.Separate, GestureScale | GestureRotate, true},
 	}
 	const (
-		w   = 84
+		w   = 74
 		h   = 32
 		gap = 4
-		n   = 7
+		n   = 8
 		x0  = (ScreenWidth - n*w - (n-1)*gap) / 2
 		y0  = ScreenHeight - h - 16
 	)
@@ -103,7 +103,15 @@ func NewGame() *Game {
 		on, press := toggle(s.set, s.gesture, s.lit)
 		g.buttons = append(g.buttons, &button{label: s.label, rect: rect(i), on: on, press: press})
 	}
-	g.buttons = append(g.buttons, &button{label: "Reset", rect: rect(len(specs)), press: g.reset})
+	// Scrolling with the Control key is reported as a pinch only when it is asked for, as it can no longer be used
+	// for anything else.
+	g.buttons = append(g.buttons, &button{
+		label: "Ctrl+Scroll",
+		rect:  rect(len(specs)),
+		on:    func() bool { return g.gestures.CtrlScrollAsPinch },
+		press: func() { g.gestures.CtrlScrollAsPinch = !g.gestures.CtrlScrollAsPinch },
+	})
+	g.buttons = append(g.buttons, &button{label: "Reset", rect: rect(len(specs) + 1), press: g.reset})
 	return g
 }
 
@@ -179,10 +187,11 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf(`Pinch to scale, rotate with two fingers to turn, and scroll or drag to move
 on a touchpad or a touch screen. The buttons choose the gestures to report and to separate.
-Ignore: %s, Separate: %s
+Ctrl+Scroll scales with scrolling with the Control key, for touchpads whose pinches are not reported.
+Ignore: %s, Separate: %s, Ctrl+Scroll as pinch: %t
 Scale: %0.3f, Angle: %0.1f deg
 Scale change: %+0.4f, Turn: %+0.4f rad`,
-		g.gestures.Ignore, g.gestures.Separate, g.scale(), g.angle()*180/math.Pi, g.gesture.Scale-1, g.gesture.Rotation))
+		g.gestures.Ignore, g.gestures.Separate, g.gestures.CtrlScrollAsPinch, g.scale(), g.angle()*180/math.Pi, g.gesture.Scale-1, g.gesture.Rotation))
 
 	for _, b := range g.buttons {
 		b.draw(screen)
