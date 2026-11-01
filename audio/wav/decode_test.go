@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
@@ -1492,6 +1493,67 @@ func TestReadWholeSamples(t *testing.T) {
 					})
 				}
 			}
+		}
+	}
+}
+
+func TestResampledUnknownLength(t *testing.T) {
+	for _, dataSize := range []uint32{0, 0xffffffff} {
+		for _, sampleRate := range []int{testSampleRate / 2, testSampleRate * 2} {
+			t.Run(fmt.Sprintf("dataSize=%d/sampleRate=%d", dataSize, sampleRate), func(t *testing.T) {
+				file := pcmWavFile(2, 16, make([]byte, 8000))
+				setDataChunkSize(file, dataSize)
+				s, err := wav.DecodeWithSampleRate(sampleRate, bytes.NewBuffer(file))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if got := s.Length(); got != -1 {
+					t.Errorf("Length before reading: got %d, want -1", got)
+				}
+				b, err := io.ReadAll(s)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := int64(8000 * sampleRate / testSampleRate)
+				if got := int64(len(b)); got != want {
+					t.Errorf("read length: got %d, want %d", got, want)
+				}
+				if got := s.Length(); got != want {
+					t.Errorf("Length after reading: got %d, want %d", got, want)
+				}
+				if got, err := s.Seek(0, io.SeekEnd); got != want || err != nil {
+					t.Errorf("Seek(0, io.SeekEnd): got (%d, %v), want (%d, nil)", got, err, want)
+				}
+			})
+		}
+	}
+}
+
+func TestResampledConcurrentLength(t *testing.T) {
+	file := pcmWavFile(2, 16, make([]byte, 8000))
+	setDataChunkSize(file, 0)
+	s, err := wav.DecodeWithSampleRate(testSampleRate*2, bytes.NewBuffer(file))
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := io.Copy(io.Discard, s)
+		done <- err
+	}()
+	for {
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := s.Length(); got != 16000 {
+				t.Errorf("Length after reading: got %d, want 16000", got)
+			}
+			return
+		default:
+			_ = s.Length()
+			runtime.Gosched()
 		}
 	}
 }

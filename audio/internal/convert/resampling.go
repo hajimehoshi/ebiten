@@ -20,6 +20,7 @@ import (
 	"io"
 	"math"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
@@ -89,7 +90,7 @@ type Resampling struct {
 
 	// derivedSrcLength is the length in bytes determined when the source reaches its end.
 	// derivedSrcLength is used only when declaredSrcLength is -1. -1 indicates the length is not determined yet.
-	derivedSrcLength int64
+	derivedSrcLength atomic.Int64
 
 	// srcReadEnd is the offset in bytes just past the last byte the source has delivered so far.
 	srcReadEnd int64
@@ -124,7 +125,6 @@ func NewResampling(source io.Reader, length int64, from, to int, bitDepthInBytes
 	r := &Resampling{
 		source:                source,
 		declaredSrcLength:     length,
-		derivedSrcLength:      -1,
 		from:                  from,
 		bitDepthInBytes:       bitDepthInBytes,
 		to:                    to,
@@ -134,6 +134,7 @@ func NewResampling(source io.Reader, length int64, from, to int, bitDepthInBytes
 		srcBufL:               map[int64][]float64{},
 		srcBufR:               map[int64][]float64{},
 	}
+	r.derivedSrcLength.Store(-1)
 	return r
 }
 
@@ -156,7 +157,7 @@ func (r *Resampling) srcLength() int64 {
 	if r.declaredSrcLength >= 0 {
 		return r.declaredSrcLength
 	}
-	return r.derivedSrcLength
+	return r.derivedSrcLength.Load()
 }
 
 // resampledLength returns the length of the resampled stream in bytes for a source stream of the given length.
@@ -202,8 +203,8 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 					// Determine the source length the first time the source reaches its end.
 					// A block beyond the bytes delivered so far is reached only by seeking, and its end
 					// without any byte tells only that the source ends at or before the block.
-					if r.declaredSrcLength < 0 && r.derivedSrcLength < 0 && (c > 0 || blockStart <= r.srcReadEnd) {
-						r.derivedSrcLength = blockStart + int64(c)
+					if r.declaredSrcLength < 0 && r.derivedSrcLength.Load() < 0 && (c > 0 || blockStart <= r.srcReadEnd) {
+						r.derivedSrcLength.Store(blockStart + int64(c))
 					}
 					r.lastReadSrcBlock = nextPos
 					r.lastReadSrcBlockValid = true
