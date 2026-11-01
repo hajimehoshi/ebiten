@@ -11,6 +11,13 @@ Ten unmodified SVG table records and twelve focused SVG fixtures for the
 - [Twitter Color Emoji SVGinOT 15.1.0](https://github.com/13rac1/twemoji-color-font/releases/download/v15.1.0/TwitterColorEmoji-SVGinOT-15.1.0.zip):
   extract `TwitterColorEmoji-SVGinOT-15.1.0/TwitterColorEmoji-SVGinOT.ttf`.
 
+The expected SHA-256 values of the TTF files are:
+
+| Font | SHA-256 |
+| --- | --- |
+| Noto Color Emoji 2.051 | `7fb39738ab18f10612d6f4595e2e8e47a0afdf34738460442d99cd0c344a4d90` |
+| Twitter Color Emoji SVGinOT 15.1.0 | `42d4b2a827c9ed557dff88c2f4723cb93985003a81dee76797324d66d04a57b8` |
+
 The tool generates `inventory.json` with UPEM, glyph ranges and complete-font
 construct counts for inspection; this file is not checked in. Counts are per
 unique SVG document; attributes use local names (`href` includes `xlink:href`).
@@ -99,7 +106,8 @@ image/jpeg encoder and jpeg.Options{Quality: 100}, and base64-encode the bytes.
 
 `TestSVGProductionReference` compares public glyph images and `text.Draw` with
 librsvg (`rsvg-convert`), using the Noto gradient numeral and Twemoji even-odd
-sunglasses records above in a synthetic font. It rejects outline fallback.
+sunglasses records above in a synthetic font with 2048 units per em. It rejects
+outline fallback.
 The four cases cover 24- and 96-pixel em sizes; the small cases use a preceding
 space to exercise fractional layout. Font origins follow text quantization;
 reference placement does not use the renderer's computed ink bounds.
@@ -121,10 +129,62 @@ go test -p 1 -count=1 -run '^TestSVGProductionReference/noto-3330-3330/24$' -v .
 
 On Linux prefix with `xvfb-run -a`. The test skips if `rsvg-convert` is absent.
 Set `EBITENGINE_SVG_RENDER_REPORT_DIR` to an existing directory to retain native
-production and averaged reference PNGs. Each comparison uses two 128x128 GPU
-destinations and one small glyph image; the reference is at most 1024x1024.
+production and averaged reference PNGs. Each comparison uses two 160x160 GPU
+destinations and one small glyph image; the reference is at most 1280x1280.
 Run sequentially and measure process memory before adding cases. Resource counts
 do not bound physical GPU memory or engine allocation overhead.
+
+### Original-font reference checks
+
+`TestSVGRealFontReference` loads one of the pinned original fonts selected by
+`EBITENGINE_SVG_ACCEPTANCE_FONT`, verifies its SHA-256, and renders Noto's flame
+or Twemoji's window through normal `text.Draw`. Public glyph-image identity is
+checked against the SVG cache so another color format or outline fallback cannot
+count as SVG coverage. The checked-in, unmodified standalone SVG record supplies
+the independent reference. Noto uses 1024 units per em; Twemoji uses 2048.
+
+```sh
+EBITENGINE_SVG_ACCEPTANCE_FONT=/path/font.ttf \
+  go test -p 1 -count=1 -run '^TestSVGRealFontReference$' -v ./text/v2
+```
+
+Use the anchored `-run` shown above: this environment variable also enables
+`TestSVGFontInventory`. Do not export it for an unfiltered package test run.
+
+The two cases per font cover 24-pixel fractional layout and 96-pixel layout.
+They use the same occupied-channel mean bound of 8, with a maximum channel error
+bound of 96 for these layered records. These bounds permit native coverage and
+composition-edge differences; they are not golden pixels or full SVG quality
+acceptance. Better composition can reduce the errors without changing the tests.
+On macOS 27.2, Metal and OpenGL produced the same comparison metrics against
+librsvg 2.62.3/Cairo 1.18.4:
+
+| Original font / glyph | Em size | Mean channel error | Maximum channel error |
+| --- | ---: | ---: | ---: |
+| Noto 2.051 / flame | 24 | 2.213 | 38 |
+| Noto 2.051 / flame | 96 | 0.675 | 47 |
+| Twemoji 15.1.0 / window | 24 | 4.592 | 66 |
+| Twemoji 15.1.0 / window | 96 | 0.736 | 69 |
+
+### Observed native limitations
+
+Native-size and magnified inspection of the window exposes coincident-edge
+overpainting: an edge has production alpha 191 versus reference alpha about 128.
+Two half-covered opaque paints composed after coverage resolution yield
+three-quarter alpha. An analytic pair of adjoining half-covered rectangles also
+produces alpha 191 where their union should be opaque. Isolated groups do not
+restore the lost coverage correlation. These observations confirm the documented
+native-AA limitation; no wrong edge value is used as a golden expectation.
+
+Embedded-image sampling still needs improvement. A balanced opaque 64x64
+checkerboard with 1-texel cells mapped to an 8x8 image viewport produces white at an interior
+pixel with nearest sampling, instead of the area-average gray. The exact-boundary
+variant of `TestGlyphInkAllocation` also fails on both tested backends: use
+translation `(48.5, 48.5)` for `embedded-png.svg`; full-surface and ink-cropped
+rendering disagree at output pixel `(84, 62)`, yielding premultiplied
+`(0, 0, 128, 128)` and transparent respectively. The regular test avoids this
+nearest-sampling tie. Filtering/minification and cropping consistency remain
+unresolved; the passing font comparisons do not establish acceptance for them.
 
 ## Full-font preparation inventory and bounded smoke checks
 
@@ -140,8 +200,6 @@ must not be described as successful production format selection.
 Use the fixed licensed font versions listed above. The report
 records the font SHA-256 and each encoded document's SHA-256, offset, length,
 decoded size, and glyph ranges. Verify the input hash when comparing runs.
-Noto 2.051 used during development had SHA-256
-`7fb39738ab18f10612d6f4595e2e8e47a0afdf34738460442d99cd0c344a4d90`.
 No font binaries or generated reports belong in the repository.
 
 From the repository root, with an existing output directory:
