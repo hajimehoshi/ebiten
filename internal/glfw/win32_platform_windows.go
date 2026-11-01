@@ -40,6 +40,10 @@ type platformWindowState struct {
 
 	// The last received high surrogate when decoding pairs of UTF-16 messages
 	highSurrogate uint16
+
+	// directManipulation receives gestures on a precision touchpad. This is nil when Direct
+	// Manipulation is not available.
+	directManipulation *directManipulation
 }
 
 type platformMonitorState struct {

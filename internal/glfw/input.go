@@ -532,7 +532,7 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (ScrollCallback, error)
 }
 
 // SetPinchCallback sets the callback for a pinch gesture on a touchpad.
-// The callback is called only on macOS so far.
+// The callback is called only on macOS and on Windows with a precision touchpad so far.
 func (w *Window) SetPinchCallback(cbfun PinchCallback) (PinchCallback, error) {
 	if !_glfw.initialized {
 		return nil, NotInitialized

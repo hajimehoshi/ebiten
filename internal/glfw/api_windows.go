@@ -65,6 +65,7 @@ const (
 	_DM_PELSWIDTH                                              = 0x00080000
 	_DM_PELSHEIGHT                                             = 0x00100000
 	_DM_DISPLAYFREQUENCY                                       = 0x00400000
+	_DM_POINTERHITTEST                                         = 0x0250
 	_DWM_BB_BLURREGION                                         = 0x00000002
 	_DWM_BB_ENABLE                                             = 0x00000001
 	_EDS_ROTATEDMODE                                           = 0x00000004
@@ -122,6 +123,7 @@ const (
 	_PFD_STEREO                                                = 0x00000002
 	_PFD_SUPPORT_OPENGL                                        = 0x00000020
 	_PFD_TYPE_RGBA                                             = 0
+	_PT_TOUCHPAD                                               = 5
 	_QS_ALLEVENTS                                              = _QS_INPUT | _QS_POSTMESSAGE | _QS_TIMER | _QS_PAINT | _QS_HOTKEY
 	_QS_ALLINPUT                                               = _QS_INPUT | _QS_POSTMESSAGE | _QS_TIMER | _QS_PAINT | _QS_HOTKEY | _QS_SENDMESSAGE
 	_QS_HOTKEY                                                 = 0x0080
@@ -741,6 +743,7 @@ var (
 	dwmapi   = windows.NewLazySystemDLL("dwmapi.dll")
 	gdi32    = windows.NewLazySystemDLL("gdi32.dll")
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
+	ole32    = windows.NewLazySystemDLL("ole32.dll")
 	opengl32 = windows.NewLazySystemDLL("opengl32.dll")
 	shcore   = windows.NewLazySystemDLL("shcore.dll")
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
@@ -763,6 +766,8 @@ var (
 
 	procGetModuleHandleExW      = kernel32.NewProc("GetModuleHandleExW")
 	procSetThreadExecutionState = kernel32.NewProc("SetThreadExecutionState")
+
+	procCoCreateInstance = ole32.NewProc("CoCreateInstance")
 
 	procWGLCreateContext     = opengl32.NewProc("wglCreateContext")
 	procWGLDeleteContext     = opengl32.NewProc("wglDeleteContext")
@@ -819,6 +824,7 @@ var (
 	procGetLayeredWindowAttributes    = user32.NewProc("GetLayeredWindowAttributes")
 	procGetMessageTime                = user32.NewProc("GetMessageTime")
 	procGetMonitorInfoW               = user32.NewProc("GetMonitorInfoW")
+	procGetPointerType                = user32.NewProc("GetPointerType")
 	procGetRawInputData               = user32.NewProc("GetRawInputData")
 	procGetSystemMetrics              = user32.NewProc("GetSystemMetrics")
 	procGetSystemMetricsForDpi        = user32.NewProc("GetSystemMetricsForDpi")
@@ -993,6 +999,17 @@ func _CreateDIBSection(hdc _HDC, pbmi *_BITMAPV5HEADER, usage uint32, hSection w
 		return 0, nil, fmt.Errorf("glfw: CreateDIBSection failed: %w", e)
 	}
 	return _HBITMAP(r), bits, nil
+}
+
+func _CoCreateInstance(rclsid *windows.GUID, pUnkOuter unsafe.Pointer, dwClsContext uint32, riid *windows.GUID) (unsafe.Pointer, error) {
+	var ptr unsafe.Pointer
+	r, _, _ := procCoCreateInstance.Call(uintptr(unsafe.Pointer(rclsid)), uintptr(pUnkOuter), uintptr(dwClsContext), uintptr(unsafe.Pointer(riid)), uintptr(unsafe.Pointer(&ptr)))
+	runtime.KeepAlive(rclsid)
+	runtime.KeepAlive(riid)
+	if uint32(r) != uint32(windows.S_OK) {
+		return nil, fmt.Errorf("glfw: CoCreateInstance failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return ptr, nil
 }
 
 func _CreateRectRgn(x1, y1, x2, y2 int32) (_HRGN, error) {
@@ -1380,6 +1397,15 @@ func _GetDpiForMonitor(hmonitor _HMONITOR, dpiType _MONITOR_DPI_TYPE) (dpiX, dpi
 		return 0, 0, fmt.Errorf("glfw: GetDpiForMonitor failed: %w", handleError(windows.Handle(uint32(r))))
 	}
 	return dpiX, dpiY, nil
+}
+
+func _GetPointerType(pointerId uint32) (uint32, error) {
+	var pointerType uint32
+	r, _, e := procGetPointerType.Call(uintptr(pointerId), uintptr(unsafe.Pointer(&pointerType)))
+	if int32(r) == 0 {
+		return 0, fmt.Errorf("glfw: GetPointerType failed: %w", e)
+	}
+	return pointerType, nil
 }
 
 func _GetRawInputData(hRawInput _HRAWINPUT, uiCommand uint32, pData unsafe.Pointer, pcbSize *uint32) (uint32, error) {

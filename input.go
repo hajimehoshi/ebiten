@@ -157,7 +157,7 @@ func ScrollDelta() (x, y float64) {
 // PinchDelta does not report pinching on a touch screen. Use [AppendTouchIDs] and [TouchPosition]
 // for that.
 //
-// PinchDelta reports gestures on macOS.
+// PinchDelta reports gestures on macOS, and on Windows 10 and later with a precision touchpad.
 // PinchDelta always returns 0 on the other platforms so far.
 //
 // PinchDelta is concurrent-safe.
@@ -172,7 +172,8 @@ func PinchDelta() float64 {
 // to the angle at each tick.
 //
 // RotationDelta reports gestures on a touchpad on macOS.
-// RotationDelta always returns 0 on the other platforms so far.
+// RotationDelta always returns 0 on the other platforms so far, including Windows, whose touchpad
+// gestures have no rotation.
 //
 // RotationDelta is concurrent-safe.
 func RotationDelta() float64 {

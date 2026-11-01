@@ -1014,6 +1014,18 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		window.inputCursorEnter(false)
 		return 0
 
+	case _DM_POINTERHITTEST:
+		// Hand a contact on a precision touchpad to Direct Manipulation to receive pans and pinches.
+		// Other pointers, including mice, are not affected.
+		if dm := window.platform.directManipulation; dm != nil {
+			id := uint32(_LOWORD(uint32(wParam)))
+			if t, err := _GetPointerType(id); err == nil && t == _PT_TOUCHPAD {
+				if err := dm.viewport.SetContact(id); err != nil {
+					_glfw.errors = append(_glfw.errors, err)
+				}
+			}
+		}
+
 	case _WM_MOUSEWHEEL:
 		notches := float64(int16(_HIWORD(uint32(wParam)))) / _WHEEL_DELTA
 		amount, unit := wheelScrollAmount(notches, wheelScrollSetting(_SPI_GETWHEELSCROLLLINES))
@@ -1550,6 +1562,14 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		return err
 	}
 
+	if !microsoftgdk.IsXbox() {
+		// Direct Manipulation is optional. Without it, gestures on a touchpad are reported as mouse
+		// wheel messages and no pinch is reported.
+		if dm, err := newDirectManipulation(w.platform.handle); err == nil {
+			w.platform.directManipulation = dm
+		}
+	}
+
 	if ctxconfig.client != NoAPI {
 		if ctxconfig.source == NativeContextAPI {
 			if err := initWGL(); err != nil {
@@ -1623,6 +1643,11 @@ func (w *Window) platformDestroyWindow() error {
 		if err := releaseCursor(); err != nil {
 			return err
 		}
+	}
+
+	if w.platform.directManipulation != nil {
+		w.platform.directManipulation.release(w.platform.handle)
+		w.platform.directManipulation = nil
 	}
 
 	if w.platform.handle != 0 {
@@ -2307,6 +2332,14 @@ func platformPollEvents() error {
 		} else {
 			_TranslateMessage(&msg)
 			_DispatchMessageW(&msg)
+		}
+	}
+
+	for _, window := range _glfw.windows {
+		if dm := window.platform.directManipulation; dm != nil {
+			if err := dm.update(window); err != nil {
+				return err
+			}
 		}
 	}
 

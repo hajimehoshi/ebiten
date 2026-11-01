@@ -256,11 +256,14 @@ func (u *glfwBackend) initializeWindowAfterCreation(w *glfw.Window) error {
 
 func (u *glfwBackend) skipTaskbar() error {
 	// S_FALSE is returned when CoInitializeEx is nested. This is a successful case.
-	if err := windows.CoInitializeEx(0, windows.COINIT_MULTITHREADED); err != nil && !errors.Is(err, syscall.Errno(windows.S_FALSE)) {
+	// RPC_E_CHANGED_MODE is returned when COM has already been initialized in a single-threaded
+	// apartment on this thread, e.g. for Direct Manipulation. COM can be used as it is.
+	if err := windows.CoInitializeEx(0, windows.COINIT_MULTITHREADED); err == nil || errors.Is(err, syscall.Errno(windows.S_FALSE)) {
+		// CoUninitialize should be called even when CoInitializeEx returns S_FALSE.
+		defer windows.CoUninitialize()
+	} else if !errors.Is(err, syscall.Errno(windows.RPC_E_CHANGED_MODE)) {
 		return err
 	}
-	// CoUninitialize should be called even when CoInitializeEx returns S_FALSE.
-	defer windows.CoUninitialize()
 
 	ptr, err := _CoCreateInstance(&_CLSID_TaskbarList, nil, _CLSCTX_SERVER, &_IID_ITaskbarList)
 	if err != nil {
