@@ -157,7 +157,8 @@ func ScrollDelta() (x, y float64) {
 // PinchDelta does not report pinching on a touch screen. Use [AppendTouchIDs] and [TouchPosition]
 // for that.
 //
-// PinchDelta always returns 0 on all the platforms so far.
+// PinchDelta reports gestures on macOS.
+// PinchDelta always returns 0 on the other platforms so far.
 //
 // PinchDelta is concurrent-safe.
 func PinchDelta() float64 {
@@ -170,7 +171,8 @@ func PinchDelta() float64 {
 // A positive value is clockwise, as with [GeoM.Rotate]. To follow the gesture, add the returned value
 // to the angle at each tick.
 //
-// RotationDelta always returns 0 on all the platforms so far.
+// RotationDelta reports gestures on a touchpad on macOS.
+// RotationDelta always returns 0 on the other platforms so far.
 //
 // RotationDelta is concurrent-safe.
 func RotationDelta() float64 {

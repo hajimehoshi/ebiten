@@ -356,6 +356,8 @@ var (
 	sel_locationInWindow                                                                             = objc.RegisterName("locationInWindow")
 	sel_scrollingDeltaX                                                                              = objc.RegisterName("scrollingDeltaX")
 	sel_scrollingDeltaY                                                                              = objc.RegisterName("scrollingDeltaY")
+	sel_magnification                                                                                = objc.RegisterName("magnification")
+	sel_rotation                                                                                     = objc.RegisterName("rotation")
 	sel_hasPreciseScrollingDeltas                                                                    = objc.RegisterName("hasPreciseScrollingDeltas")
 	sel_buttonNumber                                                                                 = objc.RegisterName("buttonNumber")
 	sel_deltaX                                                                                       = objc.RegisterName("deltaX")
