@@ -135,9 +135,7 @@ jobs:
           go test -race -shuffle=on -v -p=1 ./...
 
       - name: go test (Linux 386)
-        # Temporarily disabled: PureGo calls C functions with a misaligned stack on linux/386, which crashes Mesa on Ubuntu 26.04.
-        # Re-enable this after ebitengine/purego#458 is fixed.
-        if: false && runner.os == 'Linux'
+        if: runner.os == 'Linux'
         run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
