@@ -151,6 +151,56 @@ func stereoI16FmtChunkData(sampleRate uint32) []byte {
 	return buf
 }
 
+func stereoI16ExtensibleFmtChunkData(sampleRate uint32, subFormat []byte) []byte {
+	var buf []byte
+	buf = binary.LittleEndian.AppendUint16(buf, 0xfffe)         // Format tag (WAVEFORMATEXTENSIBLE)
+	buf = binary.LittleEndian.AppendUint16(buf, 2)              // Channel count
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate)     // Sample rate
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate*2*2) // Byte rate
+	buf = binary.LittleEndian.AppendUint16(buf, 4)              // Block align
+	buf = binary.LittleEndian.AppendUint16(buf, 16)             // Bits per sample
+	buf = binary.LittleEndian.AppendUint16(buf, 22)             // Extension size
+	buf = binary.LittleEndian.AppendUint16(buf, 16)             // Valid bits per sample
+	buf = binary.LittleEndian.AppendUint32(buf, 3)              // Channel mask
+	buf = append(buf, subFormat...)
+	return buf
+}
+
+func TestDecodeWAVEFORMATEXTENSIBLE(t *testing.T) {
+	data := []byte{1, 2, 3, 4}
+	pcmGUID := []byte{1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xaa, 0, 0x38, 0x9b, 0x71}
+	src := wavFile(testSampleRate, nil, nil, data)
+	fmtData := stereoI16ExtensibleFmtChunkData(testSampleRate, pcmGUID)
+	// The extensible format is 24 bytes larger than the ordinary format.
+	tail := append([]byte(nil), src[36:]...)
+	src = append(append(append([]byte(nil), src[:20]...), fmtData...), tail...)
+	binary.LittleEndian.PutUint32(src[16:20], uint32(len(fmtData)))
+	binary.LittleEndian.PutUint32(src[4:8], uint32(len(src)-8))
+
+	s, err := wav.DecodeWithoutResampling(bytes.NewReader(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := s.SampleRate(), testSampleRate; got != want {
+		t.Errorf("SampleRate(): got %d, want %d", got, want)
+	}
+}
+
+func TestDecodeWAVEFORMATEXTENSIBLERejectsNonPCM(t *testing.T) {
+	data := []byte{1, 2, 3, 4}
+	nonPCMGUID := make([]byte, 16)
+	src := wavFile(testSampleRate, nil, nil, data)
+	fmtData := stereoI16ExtensibleFmtChunkData(testSampleRate, nonPCMGUID)
+	tail := append([]byte(nil), src[36:]...)
+	src = append(append(append([]byte(nil), src[:20]...), fmtData...), tail...)
+	binary.LittleEndian.PutUint32(src[16:20], uint32(len(fmtData)))
+	binary.LittleEndian.PutUint32(src[4:8], uint32(len(src)-8))
+
+	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(src)); err == nil {
+		t.Fatal("DecodeWithoutResampling: got no error, want an error")
+	}
+}
+
 // wavFile returns a WAV file whose 'data' chunk holds data.
 // beforeFmt and afterFmt are put before and after the 'fmt ' chunk respectively.
 func wavFile(sampleRate uint32, beforeFmt []chunk, afterFmt []chunk, data []byte) []byte {

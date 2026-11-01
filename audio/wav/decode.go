@@ -30,7 +30,14 @@ const (
 	channelCount           = 2
 	bitDepthInBytesInt16   = 2
 	bitDepthInBytesFloat32 = 4
+
+	// WAVEFORMATEX format tags.
+	waveFormatPCM        = 1
+	waveFormatExtensible = 0xfffe
 )
+
+// pcmSubFormatGUID is the subformat GUID for PCM in WAVEFORMATEXTENSIBLE.
+var pcmSubFormatGUID = [16]byte{1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xaa, 0, 0x38, 0x9b, 0x71}
 
 // Stream is a decoded audio stream.
 //
@@ -233,9 +240,28 @@ chunks:
 				return nil, err
 			}
 			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8
-			// 1 is PCM, 0xfffe is WAVEFORMATEXTENSIBLE
-			// Accept WAVEFORMATEXTENSIBLE as PCM
-			if format != 1 && format != 0xfffe {
+			extensionSize := int64(0)
+			switch format {
+			case waveFormatPCM:
+			case waveFormatExtensible:
+				// WAVEFORMATEXTENSIBLE consists of the 16-byte WAVEFORMATEX
+				// header followed by a 22-byte extension.
+				if size < 40 {
+					return nil, fmt.Errorf("wav: invalid WAVEFORMATEXTENSIBLE header")
+				}
+				var extension [24]byte
+				if err := readHeaderPart(src, extension[:], "WAVEFORMATEXTENSIBLE extension"); err != nil {
+					return nil, err
+				}
+				cbSize := int64(extension[0]) | int64(extension[1])<<8
+				if cbSize < 22 || 18+cbSize > size {
+					return nil, fmt.Errorf("wav: invalid WAVEFORMATEXTENSIBLE extension size")
+				}
+				if !bytes.Equal(extension[8:], pcmSubFormatGUID[:]) {
+					return nil, fmt.Errorf("wav: WAVEFORMATEXTENSIBLE subformat must be linear PCM")
+				}
+				extensionSize = int64(len(extension))
+			default:
 				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
 			channelCount := int(fmtBuf[2]) | int(fmtBuf[3])<<8
@@ -255,7 +281,7 @@ chunks:
 			if sampleRate <= 0 {
 				return nil, fmt.Errorf("wav: sample rate must be positive but was %d", sampleRate)
 			}
-			if _, err := io.CopyN(io.Discard, src, paddedSize-16); err != nil {
+			if _, err := io.CopyN(io.Discard, src, paddedSize-16-extensionSize); err != nil {
 				return nil, fmt.Errorf("wav: invalid header: failed to skip 'fmt ' chunk: %w", err)
 			}
 			headerSize += paddedSize
