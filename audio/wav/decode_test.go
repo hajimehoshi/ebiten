@@ -197,7 +197,7 @@ func TestDecodeWAVEFORMATEXTENSIBLERejectsNonPCM(t *testing.T) {
 	binary.LittleEndian.PutUint32(src[4:8], uint32(len(src)-8))
 
 	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(src)); err == nil {
-		t.Fatal("DecodeWithoutResampling: got no error, want an error")
+		t.Fatalf("DecodeWithoutResampling: got no error, want an error")
 	}
 }
 
