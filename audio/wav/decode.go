@@ -240,7 +240,7 @@ chunks:
 				return nil, err
 			}
 			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8
-			extensionSize := int64(0)
+			var extensionSize int64
 			switch format {
 			case waveFormatPCM:
 			case waveFormatExtensible:
