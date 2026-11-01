@@ -481,8 +481,8 @@ func (p *playerImpl) SetPosition(offset time.Duration) error {
 	// The audio device is not created yet. Record the position by seeking the stream so that
 	// the underlying player starts from this position once it is created.
 
-	// Seeking to the start before the stream is created needs no source access.
-	if offset == 0 && p.stream == nil {
+	// A non-seekable source has not been read before the stream is created.
+	if offset == 0 && p.stream == nil && !p.seekable {
 		p.adjustedPosition = 0
 		return nil
 	}

@@ -1014,3 +1014,35 @@ func TestTimeStreamSeekCurrentOverInfiniteLoop(t *testing.T) {
 		t.Errorf("Seek(0, io.SeekCurrent): got %d, want %d", pos, want)
 	}
 }
+
+func TestRewindSeekableBeforeDeviceCreation(t *testing.T) {
+	setup()
+	defer teardown()
+
+	src := bytes.NewReader(make([]byte, 64))
+	if _, err := src.Seek(32, io.SeekStart); err != nil {
+		t.Fatal(err)
+	}
+	p, err := context.NewPlayerF32(src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		if err := p.Close(); err != nil {
+			t.Error(err)
+		}
+	}()
+
+	if err := p.Rewind(); err != nil {
+		t.Fatal(err)
+	}
+	if got, err := src.Seek(0, io.SeekCurrent); got != 0 || err != nil {
+		t.Errorf("source position after Rewind: got (%d, %v), want (0, nil)", got, err)
+	}
+	if got := p.Position(); got != 0 {
+		t.Errorf("Position: got %v, want 0", got)
+	}
+	if audio.DriverCreatedForTesting() {
+		t.Error("Rewind must not create the audio device")
+	}
+}
