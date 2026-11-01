@@ -227,8 +227,8 @@ func TestSVGEmptyAndFallback(t *testing.T) {
 			body: `<g id="GLYPHA" filter="url(#effect)"><rect width="10" height="10"/></g>`,
 		},
 		{
-			name: "image cache budget",
-			body: `<g id="GLYPHA"><rect width="30000" height="30000"/></g>`,
+			name: "surface area limit",
+			body: `<g id="GLYPHA"><rect width="110000" height="110000"/></g>`,
 		},
 		{
 			name: "limit",
@@ -502,5 +502,97 @@ func TestSVGGradientImagesSurviveRendererReuse(t *testing.T) {
 	i := 4 * ((green.Image.Bounds().Dy()/2)*green.Image.Bounds().Dx() + green.Image.Bounds().Dx()/2)
 	if before[i] == 0 || before[i+1] != 0 || got[i] != 0 || got[i+1] == 0 {
 		t.Errorf("gradient foreground did not update: red %v, green %v", before[i:i+4], got[i:i+4])
+	}
+}
+
+func TestSVGMemoByteBudgetAndImageLifetime(t *testing.T) {
+	memo := text.NewSVGMemoForTesting[int, *ebiten.Image]()
+	get := func(key, pixels int) *ebiten.Image {
+		return memo.GetSized(key, 3, 32, 4*pixels, func() *ebiten.Image {
+			img := ebiten.NewImage(pixels, 1)
+			img.Fill(color.NRGBA{R: uint8(key), A: 255})
+			t.Cleanup(img.Deallocate)
+			return img
+		})
+	}
+	a, b := get(1, 4), get(2, 4)
+	if get(1, 4) != a {
+		t.Error("cache hit changed image identity")
+	}
+	get(3, 4)
+	if get(1, 4) != a {
+		t.Error("byte eviction discarded most recently used image")
+	}
+	b2 := get(2, 4)
+	if b2 == b {
+		t.Error("byte budget did not evict least recently used image")
+	}
+	if got := b.At(0, 0); got != (color.RGBA{R: 2, A: 255}) {
+		t.Errorf("eviction invalidated caller-owned image: %v", got)
+	}
+	// The full-budget entry must evict multiple smaller entries.
+	d := get(4, 8)
+	if get(4, 8) != d {
+		t.Error("exact-budget image was not retained")
+	}
+	if get(2, 4) == b2 {
+		t.Error("full-budget insertion did not evict the second smaller entry")
+	}
+	if get(1, 4) == a {
+		t.Error("full-budget insertion did not evict older entries")
+	}
+	a = get(1, 4)
+	oversized := get(5, 9)
+	if get(5, 9) == oversized {
+		t.Error("oversized entry was retained")
+	}
+	if get(1, 4) != a {
+		t.Error("uncached oversized result evicted a retained image")
+	}
+}
+
+func TestSVGMemoEntryLimit(t *testing.T) {
+	memo := text.NewSVGMemoForTesting[int, *int]()
+	get := func(key int) *int {
+		return memo.GetSized(key, 2, 32, 0, func() *int {
+			value := key
+			return &value
+		})
+	}
+	a, b := get(1), get(2)
+	if get(1) != a {
+		t.Error("cache miss for retained entry")
+	}
+	get(3)
+	if get(1) != a {
+		t.Error("entry eviction discarded most recently used entry")
+	}
+	if get(2) == b {
+		t.Error("zero-byte entries exceeded the entry limit")
+	}
+}
+
+func TestSVGLargeImage(t *testing.T) {
+	face := &text.GoTextFace{
+		Source: svgTestFont(t, `<svg viewBox="0 0 100 100"><rect width="100" height="100" fill="red"/></svg>`, false),
+		Size:   520,
+	}
+	glyphs := text.AppendGlyphs(nil, "A", face, nil)
+	if len(glyphs) != 1 || glyphs[0].Image == nil {
+		t.Fatal("missing large glyph image")
+	}
+	glyph := glyphs[0]
+	if !glyph.Colored {
+		t.Error("large valid SVG fell back to an outline")
+		return
+	}
+	if b := glyph.Image.Bounds(); b.Dx()*b.Dy() <= 1<<18 {
+		t.Errorf("large SVG image %v did not exceed the former pixel cutoff", b)
+	}
+	if got := glyph.Image.At(260, 260); got != (color.RGBA{R: 255, A: 255}) {
+		t.Errorf("large SVG center: got %v, want red", got)
+	}
+	if again := text.AppendGlyphs(nil, "A", face, nil)[0].Image; again != glyph.Image {
+		t.Error("large glyph did not hit image cache")
 	}
 }

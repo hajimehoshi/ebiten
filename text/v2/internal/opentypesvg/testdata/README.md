@@ -192,8 +192,8 @@ On Linux, prefix the benchmark command with `xvfb-run -a`.
 Run one named workload per process. `cold` includes synthetic font construction
 and source loading, so it is not a pure SVG rasterization benchmark. `warm`
 is prewarmed; `layout` measures cached lazy layout. `colors` changes currentColor
-and misses the image cache. `large` uses a 512-pixel em to stay within the current
-image cap. Every drawing workload rejects monochrome outline fallback. Readback
+and misses the image cache. `large` uses a 512-pixel em. Every drawing workload
+rejects monochrome outline fallback. Readback
 synchronizes each draw, so times measure latency, not asynchronous throughput.
 Shader compilation on image misses is included. These short bounded probes are
 not statistically robust performance acceptance measurements.
