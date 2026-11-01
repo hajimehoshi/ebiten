@@ -37,6 +37,8 @@ import (
 )
 
 type svgAcceptanceOutcome struct {
+	Index                        int
+	Realization                  string
 	Glyph                        uint16
 	Size                         float64
 	Offset                       float64
@@ -48,6 +50,7 @@ type svgAcceptanceOutcome struct {
 }
 
 type svgAcceptanceDocument struct {
+	Index          int
 	Offset, Length uint32
 	DecodedBytes   int
 	SHA256         string
@@ -85,6 +88,25 @@ func TestSVGFontInventory(t *testing.T) {
 			t.Fatal("EBITENGINE_SVG_ACCEPTANCE_GPU_GLYPHS must be 0..8; run alone, without VMs, with -p 1")
 		}
 	}
+	var batchStart, batchCount int
+	if value := os.Getenv("EBITENGINE_SVG_ACCEPTANCE_BATCH_COUNT"); value != "" {
+		var err error
+		batchCount, err = strconv.Atoi(value)
+		if err != nil || batchCount < 1 || batchCount > 8 {
+			t.Fatal("batch count must be 1..8")
+		}
+		if value := os.Getenv("EBITENGINE_SVG_ACCEPTANCE_BATCH_START"); value != "" {
+			batchStart, err = strconv.Atoi(value)
+			if err != nil || batchStart < 0 {
+				t.Fatal("batch start must be nonnegative")
+			}
+		}
+	} else if os.Getenv("EBITENGINE_SVG_ACCEPTANCE_BATCH_START") != "" {
+		t.Fatal("batch start requires batch count")
+	}
+	if batchCount > 0 && os.Getenv("EBITENGINE_SVG_ACCEPTANCE_TEXT") != "" {
+		t.Fatal("public text sample must run separately from inventory batches")
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -109,6 +131,9 @@ func TestSVGFontInventory(t *testing.T) {
 		Source: src,
 	}
 	report := struct {
+		Protocol                  int
+		Start, Limit, Next, Total int
+		Backend                   string
 		FontSHA256                string
 		Documents                 []svgAcceptanceDocument
 		Outcomes                  []svgAcceptanceOutcome
@@ -118,6 +143,10 @@ func TestSVGFontInventory(t *testing.T) {
 		GPURequested, GPURealized int
 		Complete                  bool
 	}{
+		Protocol:     1,
+		Start:        batchStart,
+		Limit:        batchCount,
+		Next:         batchStart,
 		FontSHA256:   fmt.Sprintf("%x", sha256.Sum256(data)),
 		Counts:       make(map[string]int),
 		Phase:        "svg-record-preparation",
@@ -135,44 +164,79 @@ func TestSVGFontInventory(t *testing.T) {
 			}
 		}
 	}()
+	var info ebiten.DebugInfo
+	ebiten.ReadDebugInfo(&info)
+	report.Backend = fmt.Sprint(info.GraphicsLibrary)
+	var documents []svgAcceptanceDocument
 	documentIndices := make(map[[2]uint32]int)
-	for _, record := range table.SVGDocumentList.DocumentRecords {
+	var previous uint16
+	for i, record := range table.SVGDocumentList.DocumentRecords {
+		if record.StartGlyphID > record.EndGlyphID || i > 0 && uint16(record.StartGlyphID) <= previous {
+			t.Fatal("SVG glyph ranges must be ordered and non-overlapping")
+		}
+		previous = uint16(record.EndGlyphID)
 		key := [2]uint32{uint32(record.SvgDocOffset), record.SvgDocLength}
+		if uint64(key[0])+uint64(key[1]) > uint64(len(table.SVGDocumentList.SVGRawData)) {
+			t.Fatal("SVG record outside table")
+		}
 		index, ok := documentIndices[key]
 		if !ok {
-			index = len(report.Documents)
+			index = len(documents)
 			documentIndices[key] = index
-			start, end := uint64(key[0]), uint64(key[0])+uint64(key[1])
-			if end > uint64(len(table.SVGDocumentList.SVGRawData)) {
-				t.Fatal("SVG record outside table")
-			}
-			source := table.SVGDocumentList.SVGRawData[start:end]
-			decoded, err := opentypesvg.Decode(source)
-			var detail string
-			if err != nil {
-				detail = err.Error()
-			}
-			report.Documents = append(report.Documents, svgAcceptanceDocument{
-				Offset:        key[0],
-				Length:        key[1],
-				DecodedBytes:  len(decoded),
-				SHA256:        fmt.Sprintf("%x", sha256.Sum256(source)),
-				DecodeOutcome: svgOutcome(err, false),
-				Detail:        detail,
+			documents = append(documents, svgAcceptanceDocument{
+				Index:  index,
+				Offset: key[0],
+				Length: key[1],
 			})
 		}
-		report.Documents[index].Ranges = append(report.Documents[index].Ranges, [2]uint16{uint16(record.StartGlyphID), uint16(record.EndGlyphID)})
+		documents[index].Ranges = append(documents[index].Ranges, [2]uint16{uint16(record.StartGlyphID), uint16(record.EndGlyphID)})
+		report.Total += 2 * (int(record.EndGlyphID) - int(record.StartGlyphID) + 1)
 	}
+	if report.Total == 0 {
+		t.Fatal("no SVG glyph records")
+	}
+	if batchStart >= report.Total {
+		t.Fatal("batch start outside SVG inventory")
+	}
+	end := report.Total
+	if batchCount > 0 {
+		end = batchStart + min(batchCount, report.Total-batchStart)
+	}
+	var index int
 	// Traverse by document to exercise shared records without artificial cache churn.
-	for _, document := range report.Documents {
+	for _, document := range documents {
+		var count int
+		for _, glyphRange := range document.Ranges {
+			count += 2 * (int(glyphRange[1]) - int(glyphRange[0]) + 1)
+		}
+		if index+count <= batchStart || index >= end {
+			index += count
+			continue
+		}
+		source := table.SVGDocumentList.SVGRawData[uint64(document.Offset) : uint64(document.Offset)+uint64(document.Length)]
+		decoded, err := opentypesvg.Decode(source)
+		document.DecodedBytes = len(decoded)
+		document.SHA256 = fmt.Sprintf("%x", sha256.Sum256(source))
+		document.DecodeOutcome = svgOutcome(err, false)
+		if err != nil {
+			document.Detail = err.Error()
+		}
+		report.Documents = append(report.Documents, document)
 		for _, size := range []float64{24, 96} {
 			face.Size = size
 			for _, glyphRange := range document.Ranges {
 				for gid := int(glyphRange[0]); gid <= int(glyphRange[1]); gid++ {
+					current := index
+					index++
+					if current < batchStart || current >= end {
+						continue
+					}
 					offset := text.SVGAcceptanceOffset(face, .375)
 					start := time.Now()
 					_, bounds, err := text.SVGAcceptanceGlyph(face, uint16(gid), offset, false)
 					outcome := svgAcceptanceOutcome{
+						Index:         current,
+						Realization:   "not-requested",
 						Glyph:         uint16(gid),
 						Size:          size,
 						Offset:        offset,
@@ -184,22 +248,39 @@ func TestSVGFontInventory(t *testing.T) {
 					if err != nil {
 						outcome.Detail = err.Error()
 					}
-					if err == nil && !bounds.Empty() && report.GPURealized < gpuLimit && bounds.Dx() <= 256 && bounds.Dy() <= 256 {
+					if gpuLimit > 0 {
+						switch {
+						case err != nil:
+							outcome.Realization = "preparation-failed"
+						case bounds.Empty():
+							outcome.Realization = "valid-empty"
+						case bounds.Dx() > 256 || bounds.Dy() > 256:
+							outcome.Realization = "dimension-limit"
+						case report.GPURealized >= gpuLimit:
+							outcome.Realization = "sample-limit"
+						default:
+							outcome.Realization = "pending"
+						}
+					}
+					if outcome.Realization == "pending" {
 						start = time.Now()
 						img, _, err := text.SVGAcceptanceGlyph(face, uint16(gid), offset, true)
 						if err != nil || img == nil {
 							t.Errorf("glyph %d: realization: %v", gid, err)
 							outcome.Outcome = "realization-failed"
+							outcome.Realization = "failed"
 						}
-						if img != nil {
+						if err == nil && img != nil {
 							pixels := make([]byte, 4*bounds.Dx()*bounds.Dy())
 							img.ReadPixels(pixels)
 							outcome.RealizationNS = time.Since(start).Nanoseconds()
 							outcome.Realized = true
+							outcome.Realization = "readback"
 							report.GPURealized++
 						}
 					}
 					report.Outcomes = append(report.Outcomes, outcome)
+					report.Next = current + 1
 					report.Counts[outcome.Outcome]++
 				}
 			}
@@ -246,7 +327,7 @@ func TestSVGFontInventory(t *testing.T) {
 			t.Error("Draw differs from public SVG glyph composition")
 		}
 	}
-	report.Complete = true
+	report.Complete = report.Next == end
 	t.Logf("sha256=%s documents=%d outcomes=%v public=%d", report.FontSHA256, len(report.Documents), report.Counts, report.PublicGlyphs)
 	if report.Counts["malformed"]+report.Counts["unsupported"]+report.Counts["resource-limited"]+report.Counts["realization-failed"] > 0 {
 		t.Error("SVG preparation or sampled realization failed; inspect report")

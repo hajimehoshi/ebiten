@@ -159,8 +159,8 @@ with `xvfb-run -a`. Ordinary parser/style tests remain display-free.
 and successfully prepared candidates. `Phase` identifies preparation;
 `Realized` identifies rows whose realization completed and was read back;
 those pixels are not validated.
-`Complete` means the inventory loop completed, not acceptance. Decode failures
-are recorded and their glyph selections are still classified. A deferred report
+`Complete` means the requested inventory slice completed, not acceptance.
+Decode failures are recorded and their glyph selections are still classified. A deferred report
 write preserves progress on ordinary test failures, but cannot survive process
 termination. Use a separate output directory for each run.
 
@@ -178,6 +178,61 @@ Run a single process at a time, without VMs or other acceptance runs, with
 `-p 1`. Counts and image dimensions bound submitted work, not physical GPU memory:
 engine atlases, scratch surfaces and finalizer timing still add overhead. Do not
 expand the sample into a full sweep before measuring isolated peak memory.
+
+### Bounded batch protocol
+
+`EBITENGINE_SVG_ACCEPTANCE_BATCH_COUNT` selects 1..8 (glyph, size) cases.
+`EBITENGINE_SVG_ACCEPTANCE_BATCH_START` is their zero-based starting index
+(default 0) and requires a batch count. Indices follow document, size, range,
+glyph order at sizes 24 and 96. Only the selected cases are prepared and only
+their documents are decoded for inventory metadata. Omit both variables for
+the existing full preparation inventory. The public text sample must run
+separately from a batch.
+
+Compile once from the repository root, keeping the binary unchanged during a
+run:
+
+```sh
+GOMAXPROCS=2 go test -p 1 -c -o /tmp/svg-text.test ./text/v2
+```
+
+Run each batch in a fresh process, from `text/v2`, with an existing, distinct
+report directory. For example, the child command for four GPU cases is:
+
+```sh
+GOMAXPROCS=2 \
+EBITENGINE_SVG_ACCEPTANCE_FONT=/path/font.ttf \
+EBITENGINE_SVG_ACCEPTANCE_REPORT_DIR=/path/batch-0 \
+EBITENGINE_SVG_ACCEPTANCE_BATCH_START=0 \
+EBITENGINE_SVG_ACCEPTANCE_BATCH_COUNT=4 \
+EBITENGINE_SVG_ACCEPTANCE_GPU_GLYPHS=4 \
+  /tmp/svg-text.test -test.run '^TestSVGFontInventory$' -test.timeout=60s
+```
+
+Use an external supervisor to monitor memory and stop the child on excessive
+use; the Go harness has no memory watchdog or persistent checkpoint manager.
+Run one child at a time, without concurrent validation or VMs. On Linux prefix
+the child command with `xvfb-run -a`. A Go heap limit alone does not constrain
+GPU/driver memory, and sampled process monitoring can miss short peaks.
+
+The JSON report includes `Protocol`, `Start`, `Limit`, `Next`, `Total`, `Backend`,
+and each case's `Index`. `Complete` means only that the requested slice finished.
+To resume, retain a complete report with contiguous indices and an understood
+exit status, then use its `Next` as the next starting index. Stop at `Next ==
+Total`. Interrupted children, missing/truncated reports and incomplete slices
+must be retried, not skipped. Preserve font and binary hashes, backend, limits
+and environment alongside checkpoints so incompatible runs are not combined.
+Classified preparation/rejection outcomes are completed observations even when
+the test exits with failure; preserve them separately from successful cases.
+
+GPU states distinguish `readback`, `valid-empty`, `preparation-failed`,
+`dimension-limit`, `sample-limit`, and `failed`; preparation-only cases say
+`not-requested`. Set the GPU count equal to the batch count to request every
+case. Images over 256 pixels per axis remain explicitly unvalidated. Readback
+is not a pixel oracle, and the inventory still bypasses format priority.
+Completed batches do not establish full-font production or visual acceptance.
+Keep fonts, binaries, reports, and external supervision tools outside the
+repository.
 
 ### Benchmarks
 
