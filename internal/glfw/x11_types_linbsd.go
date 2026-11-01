@@ -787,6 +787,36 @@ type _XIModifierState struct {
 
 type _XIGroupState = _XIModifierState
 
+type _XIGesturePinchEvent struct {
+	_             structs.HostLayout
+	Type          int32
+	Serial        _Culong
+	SendEvent     int32
+	Display       uintptr
+	Extension     int32
+	Evtype        int32
+	Time          _Time
+	Deviceid      int32
+	Sourceid      int32
+	Detail        int32
+	Root          _XID
+	Event         _XID
+	Child         _XID
+	RootX         float64
+	RootY         float64
+	EventX        float64
+	EventY        float64
+	DeltaX        float64
+	DeltaY        float64
+	DeltaUnaccelX float64
+	DeltaUnaccelY float64
+	Scale         float64
+	DeltaAngle    float64
+	Flags         int32
+	Mods          _XIModifierState
+	Group         _XIGroupState
+}
+
 type _XIDeviceEvent struct {
 	_         structs.HostLayout
 	Type      int32

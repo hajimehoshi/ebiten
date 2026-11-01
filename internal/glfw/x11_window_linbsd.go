@@ -553,7 +553,7 @@ type xiScrollAxis struct {
 // selectXIEvents routes the window's pointer button and motion events through XInput2, and selects
 // raw motion, whose scroll axis deltas are the scrolling amounts: they are reported as posted by the
 // device, so scrolling needs no counter baseline. The device motion event of the same input report
-// decides the window they scroll.
+// decides the window they scroll. With XI 2.4, it also selects the window's touchpad pinch gestures.
 func selectXIEvents(window *Window) {
 	if !_glfw.platformWindow.xi.scrollAvailable {
 		return
@@ -561,10 +561,15 @@ func selectXIEvents(window *Window) {
 
 	enableRawMouseMotion(window)
 
-	pointerMask := make([]byte, xiMaskLen(_XI_Motion))
+	pointerMask := make([]byte, xiMaskLen(_XI_GesturePinchEnd))
 	xiSetMask(pointerMask, _XI_ButtonPress)
 	xiSetMask(pointerMask, _XI_ButtonRelease)
 	xiSetMask(pointerMask, _XI_Motion)
+	if _glfw.platformWindow.xi.gestureAvailable {
+		xiSetMask(pointerMask, _XI_GesturePinchBegin)
+		xiSetMask(pointerMask, _XI_GesturePinchUpdate)
+		xiSetMask(pointerMask, _XI_GesturePinchEnd)
+	}
 
 	deviceMask := make([]byte, xiMaskLen(_XI_DeviceChanged))
 	xiSetMask(deviceMask, _XI_DeviceChanged)
@@ -587,6 +592,64 @@ func selectXIEvents(window *Window) {
 		},
 	}
 	_glfw.platformWindow.xi.SelectEvents(_glfw.platformWindow.display, window.platform.handle, &em[0], int32(len(em)))
+}
+
+// xiPinch turns the scales of a pinch gesture into the changes between consecutive events. XInput
+// reports the scale relative to the beginning of the gesture, as libinput does: the distance between
+// the fingers divided by the distance when the gesture began.
+type xiPinch struct {
+	// scale is the scale of the previous event of the gesture in progress.
+	scale float64
+}
+
+// delta returns the change of the scale an event of a pinch gesture asks for: the scale is to be
+// multiplied by 1 + the returned value.
+func (p *xiPinch) delta(evtype int32, scale float64) float64 {
+	switch evtype {
+	case _XI_GesturePinchBegin:
+		p.scale = 1
+		return 0
+	case _XI_GesturePinchEnd:
+		// The end event repeats the scale of the last update (libinput's contract), so it adds
+		// nothing. A cancelled gesture also ends here: what it scaled is not undone.
+		p.scale = 1
+		return 0
+	}
+	prev := p.scale
+	if !(scale > 0) || !(prev > 0) {
+		// A broken value, including NaN, would spoil every later delta of the gesture.
+		return 0
+	}
+	p.scale = scale
+	return scale/prev - 1
+}
+
+// xiRotation returns the angle an event of a pinch gesture turns by, in radians. XInput reports the angle
+// since the previous event in degrees, clockwise, as libinput does. Only update events turn.
+func xiRotation(evtype int32, deltaAngle float64) float64 {
+	if evtype != _XI_GesturePinchUpdate || math.IsNaN(deltaAngle) || math.IsInf(deltaAngle, 0) {
+		return 0
+	}
+	return deltaAngle * math.Pi / 180
+}
+
+// xiGesturePinchEvent reports a touchpad pinch gesture, with its rotation, to the window it happens on.
+func xiGesturePinchEvent(e *_XIGesturePinchEvent) {
+	delta := _glfw.platformWindow.xi.pinch.delta(e.Evtype, e.Scale)
+	angle := xiRotation(e.Evtype, e.DeltaAngle)
+	if delta == 0 && angle == 0 {
+		return
+	}
+	window := _glfw.platformWindow.windowsByXID[e.Event]
+	if window == nil {
+		return
+	}
+	if delta != 0 {
+		window.inputPinch(delta)
+	}
+	if angle != 0 {
+		window.inputRotate(angle)
+	}
 }
 
 // xiScrollAxesFromClasses reads the scroll axes out of a device class list (from XIQueryDevice or an
@@ -1548,6 +1611,9 @@ func processEvent(event *_XEvent) error {
 
 				case _XI_ButtonRelease:
 					xiButtonEvent((*_XIDeviceEvent)(unsafe.Pointer(cookie.Data)), Release)
+
+				case _XI_GesturePinchBegin, _XI_GesturePinchUpdate, _XI_GesturePinchEnd:
+					xiGesturePinchEvent((*_XIGesturePinchEvent)(unsafe.Pointer(cookie.Data)))
 
 				case _XI_DeviceChanged:
 					// The event carries the changed device's new classes; rebuild its scroll axes

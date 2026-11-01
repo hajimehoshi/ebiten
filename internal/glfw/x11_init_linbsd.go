@@ -691,11 +691,20 @@ func initExtensions() error {
 		purego.RegisterLibFunc(&xi.QueryDevice, handle, "XIQueryDevice")
 		purego.RegisterLibFunc(&xi.FreeDeviceInfo, handle, "XIFreeDeviceInfo")
 
+		// libXi decodes the touchpad gesture events of XI 2.4 from version 1.8, which also added
+		// XIGrabPinchGestureBegin. An older libXi would leave the events undecoded, so 2.4 is
+		// requested only with a libXi that has the function.
+		_, err := purego.Dlsym(handle, "XIGrabPinchGestureBegin")
+		libXiHasGestures := err == nil
+
 		if xQueryExtension(display, "XInputExtension", &xi.majorOpcode, &xi.eventBase, &xi.errorBase) {
-			// The server clamps the version down to what it supports, so requesting 2.1 keeps
+			// The server clamps the version down to what it supports, so requesting 2.1 or 2.4 keeps
 			// working on servers that only offer the 2.0 features (raw motion).
 			xi.major = 2
 			xi.minor = 1
+			if libXiHasGestures {
+				xi.minor = 4
+			}
 			if xi.QueryVersion(display, &xi.major, &xi.minor) == _Success {
 				xi.available = true
 				if xi.major > 2 || xi.minor >= 1 {
@@ -703,6 +712,9 @@ func initExtensions() error {
 					xi.scrollAxes = map[int32][]xiScrollAxis{}
 					xi.pendingScroll = map[int32]xiPendingScroll{}
 					refreshXIScrollAxes()
+				}
+				if libXiHasGestures && (xi.major > 2 || xi.minor >= 4) {
+					xi.gestureAvailable = true
 				}
 			}
 		}

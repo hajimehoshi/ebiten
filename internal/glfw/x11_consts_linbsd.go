@@ -239,6 +239,10 @@ const (
 	_XI_Motion        = 6
 	_XI_RawMotion     = 17
 
+	_XI_GesturePinchBegin  = 27
+	_XI_GesturePinchUpdate = 28
+	_XI_GesturePinchEnd    = 29
+
 	_XIValuatorClass = 2
 	_XIScrollClass   = 3
 

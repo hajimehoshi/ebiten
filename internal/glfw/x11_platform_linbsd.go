@@ -275,6 +275,11 @@ type platformLibraryWindowState struct {
 		// the source device ID, until the device motion event of the same input report takes them.
 		pendingScroll map[int32]xiPendingScroll
 
+		// gestureAvailable reports XI 2.4 touchpad gestures, both on the server and in libXi.
+		gestureAvailable bool
+		// pinch tracks the pinch gesture in progress.
+		pinch xiPinch
+
 		QueryVersion   func(display uintptr, majorVersionInOut, minorVersionInOut *int32) int32
 		SelectEvents   func(display uintptr, window _XID, masks *_XIEventMask, numMasks int32) int32
 		QueryDevice    func(display uintptr, deviceid int32, ndevicesReturn *int32) uintptr
