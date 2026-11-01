@@ -233,8 +233,8 @@ chunks:
 				return nil, err
 			}
 			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8
-			// 1 is PCM, 0xfffe is WAVE_FORMAT_EXTENSIBLE
-			//TODO: Add proper support for WAVE_FORMAT_EXTENSIBLE, which is used for 24-bit WAV files. For now, just accept it as PCM.
+			// 1 is PCM, 0xfffe is WAVEFORMATEXTENSIBLE
+			// Accept WAVEFORMATEXTENSIBLE as PCM
 			if format != 1 && format != 0xfffe {
 				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
