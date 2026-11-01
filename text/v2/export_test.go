@@ -118,3 +118,11 @@ func SVGAcceptanceGlyph(face *GoTextFace, gid uint16, offset float64, realize bo
 func SVGAcceptanceOffset(face *GoTextFace, offset float64) float64 {
 	return fixed26_6ToFloat64(adjustGranularity(float64ToFixed26_6(offset), granularityFactor(face)) & 63)
 }
+
+func NewSVGMemoForTesting[K comparable, V any]() *svgMemo[K, V] {
+	return &svgMemo[K, V]{}
+}
+
+func (m *svgMemo[K, V]) GetSized(key K, entryLimit, byteLimit, sizeBytes int, create func() V) V {
+	return m.getSized(key, entryLimit, byteLimit, sizeBytes, create)
+}
