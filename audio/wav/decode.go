@@ -108,7 +108,7 @@ func (s *Stream) SampleRate() int {
 
 // DecodeF32 decodes WAV (RIFF) data to playable stream in 32bit float, little endian, 2 channels (stereo) format.
 //
-// The src format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The src format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The src format is converted into 2 channels and 32bit float.
 //
 // DecodeF32 returns error when decoding fails or IO error happens.
@@ -127,7 +127,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 
 // DecodeWithoutResampling decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// The src format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The src format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The src format is converted into 2 channels and 16bit.
 //
 // DecodeWithoutResampling returns error when decoding fails or IO error happens.
@@ -146,7 +146,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 
 // DecodeWithSampleRate decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens, or when sampleRate is not positive.
@@ -233,7 +233,9 @@ chunks:
 				return nil, err
 			}
 			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8
-			if format != 1 {
+			// 1 is PCM, 0xfffe is WAVE_FORMAT_EXTENSIBLE
+			//TODO: Add proper support for WAVE_FORMAT_EXTENSIBLE, which is used for 24-bit WAV files. For now, just accept it as PCM.
+			if format != 1 && format != 0xfffe {
 				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
 			channelCount := int(fmtBuf[2]) | int(fmtBuf[3])<<8
@@ -246,9 +248,8 @@ chunks:
 				return nil, fmt.Errorf("wav: number of channels must be 1 or 2 but was %d", channelCount)
 			}
 			bitsPerSample = int(fmtBuf[14]) | int(fmtBuf[15])<<8
-			// TODO: Support signed 24bit integer format (#2215).
-			if bitsPerSample != 8 && bitsPerSample != 16 {
-				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
+			if bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 24 {
+				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 or 24 but was %d", bitsPerSample)
 			}
 			sampleRate = int(fmtBuf[4]) | int(fmtBuf[5])<<8 | int(fmtBuf[6])<<16 | int(fmtBuf[7])<<24
 			if sampleRate <= 0 {
@@ -309,31 +310,27 @@ chunks:
 		format = convert.FormatU8
 	case 16:
 		format = convert.FormatS16
+	case 24:
+		format = convert.FormatS24
 	default:
-		// TODO: Support signed 24bit integer format (#2215).
 		return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
 	}
 	// A source already in stereo 16bit is converted too, so that a read returns whole samples.
 	s = convert.NewStereoI16ReadSeeker(s, mono, format)
 
-	// sizeScale is the ratio of the decoded size to the 'data' chunk size.
-	sizeScale := int64(1)
-	if mono {
-		sizeScale *= 2
-	}
-	if bitsPerSample != 16 {
-		sizeScale *= 2
-	}
-
 	if bitDepthInBytes == bitDepthInBytesFloat32 {
 		s = convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(s)
-		sizeScale *= 2
 	}
 
 	// An unknown size stays -1 (see Stream.Length).
 	size := int64(-1)
 	if dataSize >= 0 {
-		size = dataSize * sizeScale
+		// The converter emits 4 bytes per frame (or 8 bytes for float32), regardless of
+		// the source bit depth and channel count.
+		size = dataSize / bytesPerFrame * 4
+		if bitDepthInBytes == bitDepthInBytesFloat32 {
+			size *= 2
+		}
 	}
 	return &Stream{
 		inner:          s,
@@ -378,7 +375,7 @@ func (unseekableReader) Seek(offset int64, whence int) (int64, error) {
 
 // Decode decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
 // Decode returns error when decoding fails or IO error happens.

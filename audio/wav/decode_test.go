@@ -525,6 +525,12 @@ func TestDecodePartialFrame(t *testing.T) {
 			wantFrames:    32,
 		},
 		{
+			name:          "MonoS24",
+			channelCount:  1,
+			bitsPerSample: 24,
+			wantFrames:    21,
+		},
+		{
 			name:          "StereoU8",
 			channelCount:  2,
 			bitsPerSample: 8,
@@ -535,6 +541,12 @@ func TestDecodePartialFrame(t *testing.T) {
 			channelCount:  2,
 			bitsPerSample: 16,
 			wantFrames:    16,
+		},
+		{
+			name:          "StereoS24",
+			channelCount:  2,
+			bitsPerSample: 24,
+			wantFrames:    10,
 		},
 	}
 	for _, tc := range testCases {
@@ -713,22 +725,26 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 	}
 
 	decoders := []struct {
-		name   string
-		decode func(src io.Reader) (*wav.Stream, error)
+		name          string
+		decode        func(src io.Reader) (*wav.Stream, error)
+		bytesPerFrame int64
 	}{
 		{
-			name:   "DecodeWithoutResampling",
-			decode: wav.DecodeWithoutResampling,
+			name:          "DecodeWithoutResampling",
+			decode:        wav.DecodeWithoutResampling,
+			bytesPerFrame: 4,
 		},
 		{
-			name:   "DecodeF32",
-			decode: wav.DecodeF32,
+			name:          "DecodeF32",
+			decode:        wav.DecodeF32,
+			bytesPerFrame: 8,
 		},
 		{
 			name: "DecodeWithSampleRate",
 			decode: func(src io.Reader) (*wav.Stream, error) {
 				return wav.DecodeWithSampleRate(testSampleRate*2, src)
 			},
+			bytesPerFrame: 4,
 		},
 	}
 
@@ -738,6 +754,12 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 		channelCount  int
 		bitsPerSample int
 	}{
+		{
+			name:          "ZeroStereoS24",
+			declaredSize:  0,
+			channelCount:  2,
+			bitsPerSample: 24,
+		},
 		{
 			name:          "ZeroStereoS16",
 			declaredSize:  0,
@@ -749,6 +771,12 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 			declaredSize:  0,
 			channelCount:  1,
 			bitsPerSample: 8,
+		},
+		{
+			name:          "MaxStereoS24",
+			declaredSize:  0xffffffff,
+			channelCount:  2,
+			bitsPerSample: 24,
 		},
 		{
 			name:          "MaxStereoS16",
@@ -809,7 +837,7 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 							t.Errorf("after Seek(0, io.SeekStart): decoded %d bytes, want %d bytes", len(got), len(wantBytes))
 						}
 
-						mid := want.Length() / 2
+						mid := want.Length() / 2 / d.bytesPerFrame * d.bytesPerFrame
 						if _, err := s.Seek(mid, io.SeekStart); err != nil {
 							t.Fatal(err)
 						}
@@ -960,7 +988,7 @@ func TestDecodePlaceholderDataChunkSizeSeekUnsupported(t *testing.T) {
 
 func TestSeekOverflow(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range []struct {
 				name string
 				f    func(io.Reader) (*wav.Stream, error)
@@ -1086,7 +1114,7 @@ var wavDecoders = []struct {
 
 func TestSeekRounding(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range wavDecoders {
 				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
 					data := make([]byte, 8000)
@@ -1174,7 +1202,7 @@ func TestSeekRounding(t *testing.T) {
 
 func TestSeekCurrentAfterUnalignedRead(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range wavDecoders {
 				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
 					data := make([]byte, 8000)
@@ -1237,7 +1265,7 @@ func (s *seekCountingReader) Seek(offset int64, whence int) (int64, error) {
 
 func TestSeekCurrentDoesNotSeekSource(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range wavDecoders {
 				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
 					data := make([]byte, 8000)
@@ -1464,7 +1492,7 @@ func TestReadWholeSamples(t *testing.T) {
 		data[i] = byte(i*7 + 1)
 	}
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, placeholderSize := range []bool{false, true} {
 				for _, decode := range decoders {
 					t.Run(fmt.Sprintf("%s/channels=%d/bits=%d/placeholderSize=%t", decode.name, channels, bits, placeholderSize), func(t *testing.T) {
