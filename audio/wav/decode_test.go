@@ -1527,3 +1527,31 @@ func TestResampledUnknownLength(t *testing.T) {
 		}
 	}
 }
+
+func TestResampledConcurrentLength(t *testing.T) {
+	file := pcmWavFile(2, 16, make([]byte, 8000))
+	setDataChunkSize(file, 0)
+	s, err := wav.DecodeWithSampleRate(testSampleRate*2, bytes.NewBuffer(file))
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := io.Copy(io.Discard, s)
+		done <- err
+	}()
+	for {
+		select {
+		case err := <-done:
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := s.Length(); got != 16000 {
+				t.Errorf("Length after reading: got %d, want 16000", got)
+			}
+			return
+		default:
+			_ = s.Length()
+		}
+	}
+}
