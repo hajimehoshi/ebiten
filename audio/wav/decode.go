@@ -246,7 +246,7 @@ chunks:
 			case waveFormatExtensible:
 				// WAVEFORMATEXTENSIBLE consists of the 16-byte WAVEFORMATEX
 				// header followed by a 22-byte extension.
-				if size < 40 {
+				if size < 38 {
 					return nil, fmt.Errorf("wav: invalid WAVEFORMATEXTENSIBLE header")
 				}
 				var extension [24]byte
