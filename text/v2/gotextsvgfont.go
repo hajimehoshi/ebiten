@@ -60,26 +60,38 @@ type svgPreparedGlyph struct {
 // svgMemo has a hard entry limit even when ticks do not advance. Values held
 // by a caller remain live independently of cache membership.
 type svgMemo[K comparable, V any] struct {
-	entries map[K]svgMemoEntry[V]
-	clock   uint64
+	entries    map[K]svgMemoEntry[V]
+	clock      uint64
+	totalBytes int
 }
 
 type svgMemoEntry[V any] struct {
-	value V
-	used  uint64
+	value     V
+	used      uint64
+	sizeBytes int
 }
 
 func (m *svgMemo[K, V]) get(key K, limit int, create func() V) V {
+	return m.getSized(key, limit, 0, 0, create)
+}
+
+// A zero byte limit disables the byte bound. The caller supplies positive
+// entry limits and a nonnegative size that is fixed for each key.
+func (m *svgMemo[K, V]) getSized(key K, entryLimit, byteLimit, sizeBytes int, create func() V) V {
 	m.clock++
 	if e, ok := m.entries[key]; ok {
 		e.used = m.clock
 		m.entries[key] = e
 		return e.value
 	}
+	if byteLimit > 0 && sizeBytes > byteLimit {
+		// An oversized result must not displace entries that can be retained.
+		return create()
+	}
 	if m.entries == nil {
 		m.entries = make(map[K]svgMemoEntry[V])
 	}
-	if len(m.entries) >= limit {
+	for len(m.entries) >= entryLimit || byteLimit > 0 && m.totalBytes > byteLimit-sizeBytes {
 		var oldest K
 		age := m.clock
 		for k, e := range m.entries {
@@ -87,13 +99,16 @@ func (m *svgMemo[K, V]) get(key K, limit int, create func() V) V {
 				oldest, age = k, e.used
 			}
 		}
+		m.totalBytes -= m.entries[oldest].sizeBytes
 		delete(m.entries, oldest)
 	}
 	value := create()
 	m.entries[key] = svgMemoEntry[V]{
-		value: value,
-		used:  m.clock,
+		value:     value,
+		used:      m.clock,
+		sizeBytes: sizeBytes,
 	}
+	m.totalBytes += sizeBytes
 	return value
 }
 
@@ -108,7 +123,10 @@ type svgFont struct {
 	layouts   svgMemo[svgGlyphKey, *svgGlyphLayout]
 	plans     svgMemo[svgGlyphKey, *svgPreparedGlyph]
 	images    svgMemo[svgGlyphKey, *ebiten.Image]
-	mu        sync.Mutex
+	// Shader lifetime follows the source; scratch images are released after each
+	// realization. Access uses mu and occurs only in the graphics lifecycle.
+	renderer svgrender.Renderer
+	mu       sync.Mutex
 }
 
 func loadSVGFont(loader *opentype.Loader) *svgFont {
@@ -257,11 +275,6 @@ func (s *svgFont) preparePlan(key svgGlyphKey, colors svgColors, upem float64) *
 			Foreground: colors.foreground,
 			Palette:    colors.palette,
 		})
-		// Bound cached image storage independently of the render grid density.
-		const maxGlyphPixels = 1 << 18
-		if err == nil && !bounds.Empty() && bounds.Dx() > maxGlyphPixels/bounds.Dy() {
-			plan, bounds, err = nil, image.Rectangle{}, opentypesvg.ErrLimit
-		}
 		return &svgPreparedGlyph{
 			plan: plan,
 			layout: svgGlyphLayout{
@@ -275,7 +288,12 @@ func (s *svgFont) preparePlan(key svgGlyphKey, colors svgColors, upem float64) *
 func (s *svgFont) image(key svgGlyphKey, glyph *svgGlyphLayout, upem float64) *ebiten.Image {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.images.get(key, 128, func() *ebiten.Image {
+	// Keep at most 32 MiB of requested RGBA regions per source. This admits
+	// the renderer's largest native surface (16 MiB) without multiplying that
+	// size by all 128 entries. Atlas pages and driver storage are additional.
+	const imageCacheBytes = 32 << 20
+	sizeBytes := 4 * glyph.bounds.Dx() * glyph.bounds.Dy()
+	return s.images.getSized(key, 128, imageCacheBytes, sizeBytes, func() *ebiten.Image {
 		if glyph.bounds.Empty() {
 			return nil
 		}
@@ -291,9 +309,7 @@ func (s *svgFont) image(key svgGlyphKey, glyph *svgGlyphLayout, upem float64) *e
 			panic(prepared.layout.err)
 		}
 		img := ebiten.NewImage(glyph.bounds.Dx(), glyph.bounds.Dy())
-		var renderer svgrender.Renderer
-		defer renderer.Deallocate()
-		if err := renderer.Draw(img, prepared.plan); err != nil {
+		if err := s.renderer.Draw(img, prepared.plan); err != nil {
 			img.Deallocate()
 			// Prepared plans satisfy the renderer contract. Shader compilation errors
 			// are engine failures, not a reason to disguise a glyph with an outline.

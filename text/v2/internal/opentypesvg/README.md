@@ -184,8 +184,8 @@ not allocator byte guarantees.
 Render preparation bounds geometry, instances, gradient stops, stroke expansion,
 coordinates and sample surfaces. Isolation allows at most 16 simultaneous group
 levels and 16,777,216 group sample pixels (64 MiB of requested RGBA regions).
-The renderer reuses one full-size surface per depth, releases excess surfaces on
-the next nonempty Draw, and releases all resources in Deallocate. Full-size
+The renderer reuses one full-size surface per depth within a Draw and releases
+all scratch images when Draw returns. Deallocate releases the retained shaders. Full-size
 surfaces conservatively preserve one origin and grid; small groups do not get
 tightly cropped allocations. Group clears and composites each charge their full
 area against the existing 268,435,456-sample cumulative work budget. Root and
@@ -253,8 +253,9 @@ bounds and render preparation are CPU-only. A bounds pass and final surface
 pass share their decoded embedded images; each pass enforces the interpreter's
 geometry/reference/image limits, and the final pass charges the actual surface
 work. Images are created only by glyph image realization in the graphics
-lifecycle. Renderer scratch resources are released after realization. Draw's
-existing realization-then-composition ordering is preserved.
+lifecycle. Renderer scratch images are released after realization; shaders
+belong to the font source and remain available across glyph image misses.
+Draw's existing realization-then-composition ordering is preserved.
 
 The font source owns raw SVG records and a separate, mutex-protected SVG cache:
 
@@ -267,7 +268,8 @@ The font source owns raw SVG records and a separate, mutex-protected SVG cache:
   part of this key because transparent foreground/palette paint can change ink.
 - Four prepared glyph plans, including failures. Embedded-image storage belongs
   to a plan; there is no unbounded decoded-image cache.
-- 128 final glyph images. Eviction drops references, as with other text images;
+- Up to 128 final glyph images and 32 MiB of requested RGBA pixel data per
+  source. Eviction drops references, as with other text images;
   images already returned to an application remain valid. Engine finalization
   releases unreachable images. No cache eviction deallocates a caller's image.
 
@@ -276,13 +278,21 @@ even within one frame. Entries otherwise live until eviction or source release.
 Lazy glyphs retained by an application independently retain only their small
 layout result and immutable color key. A final-image cache miss obtains or
 rebuilds its heavy plan; an image hit does not need the plan.
-Document size/element budgets, per-plan command/image budgets and sample-surface
-limits bound each entry. The text integration independently caps each final
-image at 262,144 pixels, keeping image-cache retention bounded when the sampling
-policy changes. This is a temporary safety cap, not a long-term supported-size
-contract: oversized artwork falls back to its outline, which can be monochrome
-or empty. Large-glyph compatibility and a byte-budgeted eviction policy remain
-part of acceptance work. Engine allocation overhead is separate.
+Document size/element budgets and per-plan command/image budgets bound the
+other cache entries. Image insertion evicts least-recently-used entries until
+both the entry and byte budgets fit. The 32 MiB byte budget accommodates two
+maximum-area native surfaces while preventing 128 large entries from retaining
+that size each. It counts width × height × 4, excluding atlas rounding, driver
+storage, scratch surfaces, and application-held images. Eviction does not force
+immediate GPU reclamation; this is a retained-pixel budget, not a process-memory
+ceiling.
+
+The renderer's dimension, area and work limits also apply to each glyph. Native
+surfaces allow at most 4096 pixels per axis and 4,194,304 pixels total (16 MiB of
+requested RGBA data); other interpreter/stencil/group limits can reject a glyph
+earlier. The former 262,144-pixel integration cutoff is removed. Valid larger
+artwork can remain colored while over-limit artwork still falls back to its
+outline. Large-glyph and full-font runtime acceptance remain incomplete.
 
 Plan/image keys include the source-owned document index, glyph ID, fixed font
 size, quantized fractional origin and immutable foreground/palette bytes.
@@ -294,8 +304,18 @@ and filter apply after the cached glyph is rendered and are not part of the
 glyph key. Embedded images retain nearest filtering. Image-filter quality,
 composition-edge handling and performance tuning remain acceptance work;
 there is no size threshold or 2x/4x supersampling policy in normal text drawing.
-Shader reuse across realizations is also deferred; scratch surfaces and shaders
-are currently released together.
+
+Each font source retains one renderer under its SVG cache mutex. The native
+path retains at most one gradient shader, compiled only when a gradient is
+needed. Scratch images are released after each realization, including on panic;
+no scratch texture pool accumulates across sources. Unreachable shaders use
+Ebitengine's ordinary resource cleanup. `Draw` owns scratch-image cleanup;
+callers use `Deallocate` to release retained shaders.
+The point-sample reference path additionally retains a resolve shader when
+needed. Final-image eviction still drops references without deallocating
+images returned to callers. Shader reuse does not bound driver caches or
+establish a physical-memory ceiling for a long full-font sweep.
+
 Nearest-image samples exactly on texel boundaries can change with GPU
 interpolation rounding when a surface is translated/cropped. The allocation
 comparison covers fractional positions away from these ties; stable tie
