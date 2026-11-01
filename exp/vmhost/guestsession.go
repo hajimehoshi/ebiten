@@ -1140,13 +1140,19 @@ func (g *GuestSession) CompositeFrame() bool {
 	// The frame is taken; free the mirror for the next render whether it is presented or dropped.
 	defer g.markComposited()
 
+	// SetOutsideScreen can replace the screen from another goroutine. Use one snapshot
+	// for both the size check and the draw destination.
+	g.mu.Lock()
+	outsideScreen := g.outsideScreen
+	g.mu.Unlock()
+
 	// Drop the frame if its size no longer matches the outside screen (a resize happened after it was
 	// rendered).
-	b := g.outsideScreen.Bounds()
+	b := outsideScreen.Bounds()
 	if frame.width != b.Dx() || frame.height != b.Dy() {
 		return false
 	}
-	dst, dstRegion := ui.ImageFromEbitenImage(g.outsideScreen)
+	dst, dstRegion := ui.ImageFromEbitenImage(outsideScreen)
 	if dst == nil {
 		// A disposed outside screen draws nothing.
 		return false
