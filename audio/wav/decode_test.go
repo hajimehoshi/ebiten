@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"runtime"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
@@ -1552,6 +1553,7 @@ func TestResampledConcurrentLength(t *testing.T) {
 			return
 		default:
 			_ = s.Length()
+			runtime.Gosched()
 		}
 	}
 }
