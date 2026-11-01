@@ -155,14 +155,16 @@ decode; their viewport geometry contributes to object bounds when needed.
 Image viewports support x/y/width/height lengths, preserveAspectRatio alignment,
 meet/slice/none, transforms and clipping. Fill and stroke do not paint images.
 
-Image texels are sampled with nearest-neighbor filtering. Native rendering
-uses vector AA for viewport/clip edges; point-sample reference rendering uses
-its final full-sample average. This preserves hard texel boundaries and premultiplied alpha; it is not a smooth
-reconstruction filter or a production minification policy. Decoding and conversion
-to premultiplied RGBA are CPU-only. Identical URI strings share decoded assets
-within a plan; each asset is uploaded once per Draw and released when Draw ends.
-The text integration caches final glyph images; embedded-image GPU uploads
-are not retained across plans.
+Native images use premultiplied area prefiltering for minification and clamped
+bilinear sampling. Raster footprints intersect their viewports before vector AA
+resolves edge coverage. Point-sample reference plans retain nearest sampling.
+SVG `image-rendering` modes are unsupported; general affine sampling is not an
+exact pixel-area or anisotropic filter.
+
+Decoding and RGBA conversion are CPU-only. Identical URI strings share decoded
+assets within a plan. Each asset retains one filtered upload at a time within
+Draw; changing its reduction replaces the upload. Uploads and scratch images
+are released on return, while text integration caches the final glyph image.
 
 Full-font and platform acceptance, quality/performance evaluation, and removal
 of the unused oksvg implementation and its dependencies remain separate work.
@@ -189,13 +191,16 @@ all scratch images when Draw returns. Deallocate releases the retained shaders. 
 surfaces conservatively preserve one origin and grid; small groups do not get
 tightly cropped allocations. Group clears and composites each charge their full
 area against the existing 268,435,456-sample cumulative work budget. Root and
-gradient scratch surfaces are separately bounded by the output sample limits.
+paint scratch surfaces are separately bounded by the output sample limits.
 
 Embedded images allow at most 256 distinct URI assets, 4 MiB per encoded URI,
 16 MiB of aggregate URI bytes, 4096 pixels per axis, 4,194,304 pixels per image,
-and 8,388,608 aggregate decoded pixels (32 MiB of retained RGBA). These limits
-also bound uploads per Draw. DecodeConfig checks dimensions and pixel budgets
-before Decode. Decoder temporary storage and the RGBA conversion can coexist;
+and 8,388,608 aggregate decoded pixels (32 MiB of retained RGBA). Retained uploads
+never exceed decoded source dimensions. Filtering allocates only its RGBA output
+and fixed-size pixel accumulators; preparation charges the paint pass and up to
+four source-texel visits per source pixel to the cumulative work budget.
+DecodeConfig checks dimensions and pixel budgets before Decode. Decoder temporary
+storage and the RGBA conversion can coexist;
 these budgets are not exact process-memory caps. Images outside the output still
 consume decoding resources if their content must be interpreted.
 Stencil accounting has two independent limits:
@@ -208,8 +213,8 @@ Stencil accounting has two independent limits:
 
 Preparation marks batch boundaries on draws. The renderer flushes pending vector
 fills there without clearing, resolving or resampling the color surface. Gradient
-painting is explicitly finished as its own batch. Fill-rule transitions explicitly end pending
-batches, including when the new draw is culled. Bounds are conservative,
+and native image painting each finish their own batch. Fill-rule transitions
+explicitly end pending batches, including when the new draw is culled. Bounds are conservative,
 intersected with draw/surface bounds and rounded to 16 pixels per axis. Clip
 commands remain charged per submission.
 
@@ -301,14 +306,14 @@ positioning still use the existing variation-aware caches. Sideways SVG remains
 unsupported and uses the rotated fallback outline. Native-size vector AA is
 the fixed rendering policy, so it is implicit in the key. Draw's final transform
 and filter apply after the cached glyph is rendered and are not part of the
-glyph key. Embedded images retain nearest filtering. Image-filter quality,
-composition-edge handling and performance tuning remain acceptance work;
+glyph key. General affine image sampling, composition-edge handling and
+performance tuning remain acceptance work;
 there is no size threshold or 2x/4x supersampling policy in normal text drawing.
 
 Each font source retains one renderer under its SVG cache mutex. The native
-path retains at most one gradient shader, compiled only when a gradient is
-needed. Scratch images are released after each realization, including on panic;
-no scratch texture pool accumulates across sources. Unreachable shaders use
+path retains gradient and image-paint shaders, compiled lazily. Scratch images
+are released after each realization, including on panic; no scratch texture pool
+accumulates across sources. Unreachable shaders use
 Ebitengine's ordinary resource cleanup. `Draw` owns scratch-image cleanup;
 callers use `Deallocate` to release retained shaders.
 The point-sample reference path additionally retains a resolve shader when
@@ -316,10 +321,8 @@ needed. Final-image eviction still drops references without deallocating
 images returned to callers. Shader reuse does not bound driver caches or
 establish a physical-memory ceiling for a long full-font sweep.
 
-Nearest-image samples exactly on texel boundaries can change with GPU
-interpolation rounding when a surface is translated/cropped. The allocation
-comparison covers fractional positions away from these ties; stable tie
-handling belongs to the remaining image-sampling evaluation.
+Native image paint coordinates come from destination pixel centers so full-surface
+and ink-cropped rendering agree at texel boundaries.
 
 ### Selection, errors and fallback
 
