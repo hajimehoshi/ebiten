@@ -667,3 +667,20 @@ func TouchPositionFInPreviousTick(id ebiten.TouchID) (float64, float64) {
 	state := theInputState.prevTouchStates[id]
 	return state.x, state.y
 }
+
+// PinchCenter returns the point that a pinch gesture and a rotation gesture are done around:
+// the point to scale things around by [ebiten.PinchDelta] and to turn things around by [ebiten.RotationDelta].
+//
+// PinchCenter returns the middle of the two fingers when exactly two fingers touch the screen,
+// and the cursor position otherwise, such as for a gesture on a touchpad.
+//
+// PinchCenter is concurrent safe.
+func PinchCenter() (float64, float64) {
+	var touchIDs [3]ebiten.TouchID
+	if ids := ebiten.AppendTouchIDs(touchIDs[:0]); len(ids) == 2 {
+		x0, y0 := ebiten.TouchPositionF(ids[0])
+		x1, y1 := ebiten.TouchPositionF(ids[1])
+		return (x0 + x1) / 2, (y0 + y1) / 2
+	}
+	return ebiten.CursorPositionF()
+}

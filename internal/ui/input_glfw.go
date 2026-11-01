@@ -172,6 +172,22 @@ func (i *glfwInput) handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY floa
 	i.scrollPagesY += pagesY
 }
 
+// handlePinch records the amount of a pinch gesture reported by GLFW.
+func (i *glfwInput) handlePinch(delta float64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	i.state.PinchDelta += delta
+}
+
+// handleRotate records the angle of a rotation gesture reported by GLFW.
+func (i *glfwInput) handleRotate(delta float64) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
+	i.state.RotationDelta += delta
+}
+
 // setContentSize records the window's content size in device-independent pixels.
 func (i *glfwInput) setContentSize(width, height float64) {
 	i.mu.Lock()
@@ -334,6 +350,18 @@ func (u *glfwBackend) registerInputCallbacks() error {
 
 	if _, err := u.window.SetScrollCallback(func(w *glfw.Window, wheelX float64, wheelY float64, scrollDeltaX float64, scrollDeltaY float64, unit glfw.ScrollUnit) {
 		u.input.handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY, unit)
+	}); err != nil {
+		return err
+	}
+
+	if _, err := u.window.SetPinchCallback(func(w *glfw.Window, delta float64) {
+		u.input.handlePinch(delta)
+	}); err != nil {
+		return err
+	}
+
+	if _, err := u.window.SetRotateCallback(func(w *glfw.Window, delta float64) {
+		u.input.handleRotate(delta)
 	}); err != nil {
 		return err
 	}

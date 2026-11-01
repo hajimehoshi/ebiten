@@ -352,6 +352,22 @@ func (u *UserInterface) Monitor() *Monitor {
 
 func (u *UserInterface) UpdateInput(keys []KeyEvent, runes []rune, touches []TouchForInput, capsLock, numLock LockKeyState) {
 	u.updateInputStateFromOutside(keys, runes, touches, capsLock, numLock)
+	u.requestRenderForInput()
+}
+
+// UpdatePinch records the amount of a pinch gesture, as the change of the scale it asks for.
+func (u *UserInterface) UpdatePinch(delta float64) {
+	u.updatePinchFromOutside(delta)
+	u.requestRenderForInput()
+}
+
+// UpdateRotation records the angle of a rotation gesture, in radians. A positive value is clockwise.
+func (u *UserInterface) UpdateRotation(delta float64) {
+	u.updateRotationFromOutside(delta)
+	u.requestRenderForInput()
+}
+
+func (u *UserInterface) requestRenderForInput() {
 	if FPSModeType(u.fpsMode.Load()) == FPSModeVsyncOffMinimum {
 		// The renderer might not be set yet. In this case, the rendering request can be dropped
 		// as the first rendering happens when the renderer is set.

@@ -136,7 +136,12 @@ type (
 	CursorEnterCallback     func(w *Window, entered bool)
 	// wheelX and wheelY are the raw wheel offsets in the platform's unit; scrollDeltaX and scrollDeltaY
 	// are the scroll amounts in unit.
-	ScrollCallback   func(w *Window, wheelX float64, wheelY float64, scrollDeltaX float64, scrollDeltaY float64, unit ScrollUnit)
+	ScrollCallback func(w *Window, wheelX float64, wheelY float64, scrollDeltaX float64, scrollDeltaY float64, unit ScrollUnit)
+	// delta is the change of the scale a pinch gesture on a touchpad asks for: the scale is to be
+	// multiplied by 1 + delta.
+	PinchCallback func(w *Window, delta float64)
+	// delta is the angle a rotation gesture on a touchpad turns by, in radians. A positive value is clockwise.
+	RotateCallback   func(w *Window, delta float64)
 	KeyCallback      func(w *Window, key Key, scancode int, action Action, mods ModifierKey)
 	CharCallback     func(w *Window, char rune)
 	CharModsCallback func(w *Window, char rune, mods ModifierKey)
@@ -197,6 +202,8 @@ type Window struct {
 		cursorPos   CursorPosCallback
 		cursorEnter CursorEnterCallback
 		scroll      ScrollCallback
+		pinch       PinchCallback
+		rotate      RotateCallback
 		key         KeyCallback
 		character   CharCallback
 		charmods    CharModsCallback
