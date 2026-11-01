@@ -106,3 +106,26 @@ func TestIsShortcutChord(t *testing.T) {
 		})
 	}
 }
+
+func TestIsKeyString(t *testing.T) {
+	for _, tc := range []struct {
+		key  string
+		want bool
+	}{
+		{"a", true},
+		{"é", true},
+		{"ḍ̇", true}, // NFC example from the UI Events key specification.
+		{"क़", true},
+		{"का", true}, // Spacing combining mark (Mc).
+		{"ArrowLeft", false},
+		{"Dead", false},
+		{"a\n", false},
+		{"\t", false},
+		{"a\u034f", false}, // Mn with combining class zero.
+		{"a\ufe0f", false}, // A variation selector has combining class zero.
+	} {
+		if got := ui.IsKeyStringForTest(tc.key); got != tc.want {
+			t.Errorf("IsKeyString(%q) = %v, want %v", tc.key, got, tc.want)
+		}
+	}
+}

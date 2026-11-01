@@ -441,7 +441,8 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 		if entry.Get("isFile").Bool() {
 			v, err := getFile(entry)
 			if err != nil {
-				return nil, err
+				d.offset += i
+				return ents[:i], err
 			}
 			fi.file = v
 		}

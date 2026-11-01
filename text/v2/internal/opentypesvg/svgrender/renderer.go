@@ -25,7 +25,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-// Renderer owns reusable rendering surfaces and paint shaders.
+// Renderer draws glyphs with reusable paint shaders.
 // Its methods must be called from the Ebitengine graphics lifecycle.
 type Renderer struct {
 	// Paint and group surfaces share the output grid. Native antialiasing
@@ -39,6 +39,18 @@ type Renderer struct {
 
 // Deallocate releases the renderer's GPU resources.
 func (r *Renderer) Deallocate() {
+	r.deallocateImages()
+	if r.gradient != nil {
+		r.gradient.Deallocate()
+		r.gradient = nil
+	}
+	if r.resolve != nil {
+		r.resolve.Deallocate()
+		r.resolve = nil
+	}
+}
+
+func (r *Renderer) deallocateImages() {
 	for _, group := range r.groups {
 		if group != nil {
 			group.Deallocate()
@@ -57,18 +69,11 @@ func (r *Renderer) Deallocate() {
 		r.flushSource.Deallocate()
 		r.flushSource = nil
 	}
-	if r.gradient != nil {
-		r.gradient.Deallocate()
-		r.gradient = nil
-	}
-	if r.resolve != nil {
-		r.resolve.Deallocate()
-		r.resolve = nil
-	}
 }
 
 // Draw composites a prepared glyph into dst at its bounds' origin.
 func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
+	defer r.deallocateImages()
 	if plan == nil || dst == nil {
 		return fmt.Errorf("svgrender: nil destination or plan")
 	}
@@ -84,11 +89,17 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 	}
 	// Compile before changing the destination or allocating scratch images.
 	if r.gradient == nil {
-		shader, err := ebiten.NewShader([]byte(gradientShader))
-		if err != nil {
-			return err
+		for _, draw := range plan.Draws {
+			if len(draw.Paint.Stops) == 0 {
+				continue
+			}
+			shader, err := ebiten.NewShader([]byte(gradientShader))
+			if err != nil {
+				return err
+			}
+			r.gradient = shader
+			break
 		}
-		r.gradient = shader
 	}
 	if s > 1 && r.resolve == nil {
 		shader, err := ebiten.NewShader([]byte(resolveShader))
@@ -98,44 +109,16 @@ func (r *Renderer) Draw(dst *ebiten.Image, plan *opentypesvg.RenderPlan) error {
 		r.resolve = shader
 	}
 	width, height := w*s, h*s
-	if r.samples == nil || r.samples.Bounds().Dx() != width || r.samples.Bounds().Dy() != height {
-		if r.samples != nil {
-			r.samples.Deallocate()
-		}
-		if r.paint != nil {
-			r.paint.Deallocate()
-			r.paint = nil
-		}
-		bounds := image.Rect(0, 0, width, height)
-		// The samples and paint scratch surfaces stay off vector's stencil atlas
-		// to limit page growth and retained texture storage for large glyphs.
-		// Their dependent render passes do not benefit from sharing an atlas
-		// for draw batching.
-		r.samples = ebiten.NewImageWithOptions(bounds, &ebiten.NewImageOptions{
+	// Separate scratch textures limit growth of the atlas shared with vector's
+	// stencil textures. Surfaces are reused within this draw and released on return.
+	r.samples = ebiten.NewImageWithOptions(image.Rect(0, 0, width, height), &ebiten.NewImageOptions{
+		Unmanaged: true,
+	})
+	r.groups = make([]*ebiten.Image, plan.GroupDepth)
+	for i := range r.groups {
+		r.groups[i] = ebiten.NewImageWithOptions(r.samples.Bounds(), &ebiten.NewImageOptions{
 			Unmanaged: true,
 		})
-	}
-	// Release incompatible or excess surfaces before allocating this plan's pool.
-	for i, group := range r.groups {
-		if group != nil && (i >= plan.GroupDepth || group.Bounds() != r.samples.Bounds()) {
-			group.Deallocate()
-			r.groups[i] = nil
-		}
-	}
-	if len(r.groups) > plan.GroupDepth {
-		r.groups = r.groups[:plan.GroupDepth]
-	}
-	for len(r.groups) < plan.GroupDepth {
-		r.groups = append(r.groups, nil)
-	}
-	for i := range r.groups {
-		if r.groups[i] == nil {
-			// Separate textures keep the full-size group surfaces from enlarging
-			// the atlas shared with vector's stencil textures.
-			r.groups[i] = ebiten.NewImageWithOptions(r.samples.Bounds(), &ebiten.NewImageOptions{
-				Unmanaged: true,
-			})
-		}
 	}
 	uploads := map[*image.RGBA]*ebiten.Image{}
 	defer func() {
