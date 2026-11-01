@@ -151,31 +151,27 @@ func stereoI16FmtChunkData(sampleRate uint32) []byte {
 	return buf
 }
 
-func stereoI16ExtensibleFmtChunkData(sampleRate uint32, subFormat []byte) []byte {
+func stereoExtensibleFmtChunkData(sampleRate uint32, bitsPerSample int, subFormat []byte) []byte {
+	blockAlign := 2 * bitsPerSample / 8
 	var buf []byte
-	buf = binary.LittleEndian.AppendUint16(buf, 0xfffe)         // Format tag (WAVEFORMATEXTENSIBLE)
-	buf = binary.LittleEndian.AppendUint16(buf, 2)              // Channel count
-	buf = binary.LittleEndian.AppendUint32(buf, sampleRate)     // Sample rate
-	buf = binary.LittleEndian.AppendUint32(buf, sampleRate*2*2) // Byte rate
-	buf = binary.LittleEndian.AppendUint16(buf, 4)              // Block align
-	buf = binary.LittleEndian.AppendUint16(buf, 16)             // Bits per sample
-	buf = binary.LittleEndian.AppendUint16(buf, 22)             // Extension size
-	buf = binary.LittleEndian.AppendUint16(buf, 16)             // Valid bits per sample
-	buf = binary.LittleEndian.AppendUint32(buf, 3)              // Channel mask
+	buf = binary.LittleEndian.AppendUint16(buf, 0xfffe)                        // Format tag (WAVEFORMATEXTENSIBLE)
+	buf = binary.LittleEndian.AppendUint16(buf, 2)                             // Channel count
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate)                    // Sample rate
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate*uint32(blockAlign)) // Byte rate
+	buf = binary.LittleEndian.AppendUint16(buf, uint16(blockAlign))            // Block align
+	buf = binary.LittleEndian.AppendUint16(buf, uint16(bitsPerSample))         // Bits per sample
+	buf = binary.LittleEndian.AppendUint16(buf, 22)                            // Extension size
+	buf = binary.LittleEndian.AppendUint16(buf, 16)                            // Valid bits per sample
+	buf = binary.LittleEndian.AppendUint32(buf, 3)                             // Channel mask
 	buf = append(buf, subFormat...)
 	return buf
 }
 
 func TestDecodeWAVEFORMATEXTENSIBLE(t *testing.T) {
-	data := []byte{1, 2, 3, 4}
+	data := []byte{0, 0, 0, 0xff, 0xff, 0x7f}
 	pcmGUID := []byte{1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xaa, 0, 0x38, 0x9b, 0x71}
-	src := wavFile(testSampleRate, nil, nil, data)
-	fmtData := stereoI16ExtensibleFmtChunkData(testSampleRate, pcmGUID)
-	// The extensible format is 24 bytes larger than the ordinary format.
-	tail := append([]byte(nil), src[36:]...)
-	src = append(append(append([]byte(nil), src[:20]...), fmtData...), tail...)
-	binary.LittleEndian.PutUint32(src[16:20], uint32(len(fmtData)))
-	binary.LittleEndian.PutUint32(src[4:8], uint32(len(src)-8))
+	fmtData := stereoExtensibleFmtChunkData(testSampleRate, 24, pcmGUID)
+	src := wavFileWithFmtData(fmtData, data)
 
 	s, err := wav.DecodeWithoutResampling(bytes.NewReader(src))
 	if err != nil {
@@ -184,17 +180,23 @@ func TestDecodeWAVEFORMATEXTENSIBLE(t *testing.T) {
 	if got, want := s.SampleRate(), testSampleRate; got != want {
 		t.Errorf("SampleRate(): got %d, want %d", got, want)
 	}
+	if got, want := s.Length(), int64(4); got != want {
+		t.Errorf("Length(): got %d, want %d", got, want)
+	}
+	got, err := io.ReadAll(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []byte{0, 0, 0xFF, 0x7F}; !bytes.Equal(got, want) {
+		t.Errorf("data: got %v, want %v", got, want)
+	}
 }
 
 func TestDecodeWAVEFORMATEXTENSIBLERejectsNonPCM(t *testing.T) {
 	data := []byte{1, 2, 3, 4}
-	nonPCMGUID := make([]byte, 16)
-	src := wavFile(testSampleRate, nil, nil, data)
-	fmtData := stereoI16ExtensibleFmtChunkData(testSampleRate, nonPCMGUID)
-	tail := append([]byte(nil), src[36:]...)
-	src = append(append(append([]byte(nil), src[:20]...), fmtData...), tail...)
-	binary.LittleEndian.PutUint32(src[16:20], uint32(len(fmtData)))
-	binary.LittleEndian.PutUint32(src[4:8], uint32(len(src)-8))
+	guid := make([]byte, 16) // empty GUID, non-PCM
+	fmtData := stereoExtensibleFmtChunkData(testSampleRate, 24, guid)
+	src := wavFileWithFmtData(fmtData, data)
 
 	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(src)); err == nil {
 		t.Fatalf("DecodeWithoutResampling: got no error, want an error")
@@ -209,12 +211,12 @@ func TestDecodeInvalidWAVEFORMATEXTENSIBLE(t *testing.T) {
 	}{
 		{
 			name:    "short 'fmt ' chunk",
-			fmtData: stereoI16ExtensibleFmtChunkData(testSampleRate, pcmGUID)[:39],
+			fmtData: stereoExtensibleFmtChunkData(testSampleRate, 24, pcmGUID)[:39],
 		},
 		{
 			name: "cbSize larger than chunk",
 			fmtData: func() []byte {
-				fmtData := stereoI16ExtensibleFmtChunkData(testSampleRate, pcmGUID)
+				fmtData := stereoExtensibleFmtChunkData(testSampleRate, 24, pcmGUID)
 				binary.LittleEndian.PutUint16(fmtData[16:18], 100)
 				return fmtData
 			}(),
