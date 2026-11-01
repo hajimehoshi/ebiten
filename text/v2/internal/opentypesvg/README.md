@@ -184,8 +184,8 @@ not allocator byte guarantees.
 Render preparation bounds geometry, instances, gradient stops, stroke expansion,
 coordinates and sample surfaces. Isolation allows at most 16 simultaneous group
 levels and 16,777,216 group sample pixels (64 MiB of requested RGBA regions).
-The renderer reuses one full-size surface per depth, releases excess surfaces on
-the next nonempty Draw, and releases all resources in Deallocate. Full-size
+The renderer reuses one full-size surface per depth within a Draw and releases
+all scratch images when Draw returns. Deallocate releases the retained shaders. Full-size
 surfaces conservatively preserve one origin and grid; small groups do not get
 tightly cropped allocations. Group clears and composites each charge their full
 area against the existing 268,435,456-sample cumulative work budget. Root and
@@ -253,8 +253,9 @@ bounds and render preparation are CPU-only. A bounds pass and final surface
 pass share their decoded embedded images; each pass enforces the interpreter's
 geometry/reference/image limits, and the final pass charges the actual surface
 work. Images are created only by glyph image realization in the graphics
-lifecycle. Renderer scratch resources are released after realization. Draw's
-existing realization-then-composition ordering is preserved.
+lifecycle. Renderer scratch images are released after realization; shaders
+belong to the font source and remain available across glyph image misses.
+Draw's existing realization-then-composition ordering is preserved.
 
 The font source owns raw SVG records and a separate, mutex-protected SVG cache:
 
@@ -294,8 +295,18 @@ and filter apply after the cached glyph is rendered and are not part of the
 glyph key. Embedded images retain nearest filtering. Image-filter quality,
 composition-edge handling and performance tuning remain acceptance work;
 there is no size threshold or 2x/4x supersampling policy in normal text drawing.
-Shader reuse across realizations is also deferred; scratch surfaces and shaders
-are currently released together.
+
+Each font source retains one renderer under its SVG cache mutex. The native
+path retains at most one gradient shader, compiled only when a gradient is
+needed. Scratch images are released after each realization, including on panic;
+no scratch texture pool accumulates across sources. Unreachable shaders use
+Ebitengine's ordinary resource cleanup. `Draw` owns scratch-image cleanup;
+callers use `Deallocate` to release retained shaders.
+The point-sample reference path additionally retains a resolve shader when
+needed. Final-image eviction still drops references without deallocating
+images returned to callers. Shader reuse does not bound driver caches or
+establish a physical-memory ceiling for a long full-font sweep.
+
 Nearest-image samples exactly on texel boundaries can change with GPU
 interpolation rounding when a surface is translated/cropped. The allocation
 comparison covers fractional positions away from these ties; stable tie

@@ -108,7 +108,10 @@ type svgFont struct {
 	layouts   svgMemo[svgGlyphKey, *svgGlyphLayout]
 	plans     svgMemo[svgGlyphKey, *svgPreparedGlyph]
 	images    svgMemo[svgGlyphKey, *ebiten.Image]
-	mu        sync.Mutex
+	// Shader lifetime follows the source; scratch images are released after each
+	// realization. Access uses mu and occurs only in the graphics lifecycle.
+	renderer svgrender.Renderer
+	mu       sync.Mutex
 }
 
 func loadSVGFont(loader *opentype.Loader) *svgFont {
@@ -291,9 +294,7 @@ func (s *svgFont) image(key svgGlyphKey, glyph *svgGlyphLayout, upem float64) *e
 			panic(prepared.layout.err)
 		}
 		img := ebiten.NewImage(glyph.bounds.Dx(), glyph.bounds.Dy())
-		var renderer svgrender.Renderer
-		defer renderer.Deallocate()
-		if err := renderer.Draw(img, prepared.plan); err != nil {
+		if err := s.renderer.Draw(img, prepared.plan); err != nil {
 			img.Deallocate()
 			// Prepared plans satisfy the renderer contract. Shader compilation errors
 			// are engine failures, not a reason to disguise a glyph with an outline.

@@ -471,3 +471,36 @@ func TestSVGColorFormatPriority(t *testing.T) {
 		})
 	}
 }
+
+func TestSVGGradientImagesSurviveRendererReuse(t *testing.T) {
+	face := &text.GoTextFace{
+		Source:        svgTestFont(t, `<svg viewBox="0 0 100 100"><defs><linearGradient id="g"><stop stop-color="currentColor"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g opacity=".5"><rect x="10" y="10" width="80" height="80" fill="url(#g)"/></g></svg>`, false),
+		Size:          48,
+		SVGForeground: color.NRGBA{R: 255, A: 255},
+	}
+	red := text.AppendGlyphs(nil, "A", face, nil)[0]
+	if red.Image == nil || !red.Colored {
+		t.Fatal("missing initial SVG image")
+	}
+	before := make([]byte, 4*red.Image.Bounds().Dx()*red.Image.Bounds().Dy())
+	red.Image.ReadPixels(before)
+	face.SVGForeground = color.NRGBA{G: 255, A: 255}
+	green := text.AppendGlyphs(nil, "A", face, nil)[0]
+	if green.Image == nil || !green.Colored {
+		t.Fatal("missing recolored SVG image")
+	}
+	got := make([]byte, len(before))
+	red.Image.ReadPixels(got)
+	if !bytes.Equal(got, before) {
+		t.Error("retained glyph image changed after renderer reuse")
+	}
+	if green.Image.Bounds() != red.Image.Bounds() {
+		t.Error("opaque foreground change altered image bounds")
+		return
+	}
+	green.Image.ReadPixels(got)
+	i := 4 * ((green.Image.Bounds().Dy()/2)*green.Image.Bounds().Dx() + green.Image.Bounds().Dx()/2)
+	if before[i] == 0 || before[i+1] != 0 || got[i] != 0 || got[i+1] == 0 {
+		t.Errorf("gradient foreground did not update: red %v, green %v", before[i:i+4], got[i:i+4])
+	}
+}
