@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"math/bits"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/opentypesvg"
@@ -297,25 +298,44 @@ func filteredImage(source *image.RGBA, width, height int) *image.RGBA {
 	// Scale source texel coordinates by the destination dimensions so all
 	// overlap areas are integers. Each output footprint has the same area.
 	area := uint64(sourceWidth * sourceHeight)
+	// Actual reductions have area > 1. Source images contain at most 2^22
+	// pixels, so rounded channel sums are below 2^30. Multiplication by
+	// ceil(2^64/area) gives exact floor division throughout this range.
+	multiplier := ^uint64(0)/area + 1
+	xStep, xRemainderStep := sourceWidth/width, sourceWidth%width
 	for y := range height {
 		y0, y1 := y*sourceHeight, (y+1)*sourceHeight
+		firstSourceY := y0 / height
+		var firstSourceX, xRemainder int
 		for x := range width {
 			x0, x1 := x*sourceWidth, (x+1)*sourceWidth
-			var sum [4]uint64
-			for sy := y0 / height; sy*height < y1; sy++ {
+			var r, g, b, a uint64
+			for sy := firstSourceY; sy*height < y1; sy++ {
 				wy := min(y1, (sy+1)*height) - max(y0, sy*height)
-				for sx := x0 / width; sx*width < x1; sx++ {
+				for sx := firstSourceX; sx*width < x1; sx++ {
 					wx := min(x1, (sx+1)*width) - max(x0, sx*width)
 					weight := uint64(wx * wy)
-					offset := source.PixOffset(source.Bounds().Min.X+sx, source.Bounds().Min.Y+sy)
-					for channel := range 4 {
-						sum[channel] += uint64(source.Pix[offset+channel]) * weight
-					}
+					offset := sy*source.Stride + sx*4
+					pixel := source.Pix[offset : offset+4]
+					r += uint64(pixel[0]) * weight
+					g += uint64(pixel[1]) * weight
+					b += uint64(pixel[2]) * weight
+					a += uint64(pixel[3]) * weight
 				}
 			}
-			offset := filtered.PixOffset(x, y)
-			for channel := range 4 {
-				filtered.Pix[offset+channel] = byte((sum[channel] + area/2) / area)
+			r, _ = bits.Mul64(r+area/2, multiplier)
+			g, _ = bits.Mul64(g+area/2, multiplier)
+			b, _ = bits.Mul64(b+area/2, multiplier)
+			a, _ = bits.Mul64(a+area/2, multiplier)
+			offset := y*filtered.Stride + x*4
+			pixel := filtered.Pix[offset : offset+4]
+			pixel[0], pixel[1], pixel[2], pixel[3] = byte(r), byte(g), byte(b), byte(a)
+			// Carry the remainder into the next output pixel's source interval.
+			firstSourceX += xStep
+			xRemainder += xRemainderStep
+			if xRemainder >= width {
+				firstSourceX++
+				xRemainder -= width
 			}
 		}
 	}

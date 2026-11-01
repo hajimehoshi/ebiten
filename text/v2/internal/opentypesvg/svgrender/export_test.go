@@ -15,3 +15,5 @@
 package svgrender
 
 var FlushSamples = flushSamples
+
+var FilteredImage = filteredImage

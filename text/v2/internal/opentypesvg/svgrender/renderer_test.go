@@ -982,18 +982,21 @@ func TestNativeImageViewport(t *testing.T) {
 }
 
 func TestNativeImageFractionalReduction(t *testing.T) {
-	img := image.NewRGBA(image.Rect(0, 0, 3, 1))
+	img := image.NewRGBA(image.Rect(0, 0, 5, 1))
 	img.SetRGBA(0, 0, color.RGBA{R: 255, A: 255})
 	img.SetRGBA(1, 0, color.RGBA{G: 128, A: 128})
 	img.SetRGBA(2, 0, color.RGBA{B: 255, A: 255})
+	img.SetRGBA(3, 0, color.RGBA{R: 255, A: 255})
+	img.SetRGBA(4, 0, color.RGBA{B: 255, A: 255})
 	var encoded bytes.Buffer
 	if err := png.Encode(&encoded, img); err != nil {
 		t.Fatal(err)
 	}
-	source := svg(fmt.Sprintf(`<image x="4" y="4" width="2" height="1" preserveAspectRatio="none" href="data:image/png;base64,%s"/>`, base64.StdEncoding.EncodeToString(encoded.Bytes())))
+	source := svg(fmt.Sprintf(`<image x="4" y="4" width="3" height="1" preserveAspectRatio="none" href="data:image/png;base64,%s"/>`, base64.StdEncoding.EncodeToString(encoded.Bytes())))
 	op := options()
 	op.Samples, op.AntiAlias = 1, true
 	pixels := render(t, source, op)
-	checkPixel(t, pixels, op.Width, 4, 4, color.RGBA{R: 170, G: 43, A: 213})
-	checkPixel(t, pixels, op.Width, 5, 4, color.RGBA{G: 43, B: 170, A: 213})
+	checkPixel(t, pixels, op.Width, 4, 4, color.RGBA{R: 153, G: 51, A: 204})
+	checkPixel(t, pixels, op.Width, 5, 4, color.RGBA{R: 51, G: 26, B: 153, A: 230})
+	checkPixel(t, pixels, op.Width, 6, 4, color.RGBA{R: 102, B: 153, A: 255})
 }
