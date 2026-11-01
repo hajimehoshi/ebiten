@@ -275,7 +275,7 @@ chunks:
 			}
 			bitsPerSample = int(fmtBuf[14]) | int(fmtBuf[15])<<8
 			if bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 24 {
-				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 or 24 but was %d", bitsPerSample)
+				return nil, fmt.Errorf("wav: bits per sample must be 8, 16, or 24 but was %d", bitsPerSample)
 			}
 			sampleRate = int(fmtBuf[4]) | int(fmtBuf[5])<<8 | int(fmtBuf[6])<<16 | int(fmtBuf[7])<<24
 			if sampleRate <= 0 {
