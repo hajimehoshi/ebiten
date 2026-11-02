@@ -590,7 +590,6 @@ func (p *playerImpl) updatePosition() {
 		return
 	}
 	if !p.context.IsReady() {
-		p.adjustedPosition = 0
 		return
 	}
 
