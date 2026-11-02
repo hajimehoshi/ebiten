@@ -114,6 +114,9 @@ func (v *VirtualFS) ReadDir(name string) ([]fs.DirEntry, error) {
 		absPath: n.join(rest),
 	}
 	entries, err := vf.ReadDir(-1)
+	slices.SortFunc(entries, func(a, b fs.DirEntry) int {
+		return strings.Compare(a.Name(), b.Name())
+	})
 	return entries, virtualPathError(err, name)
 }
 

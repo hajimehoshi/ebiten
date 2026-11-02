@@ -20,6 +20,7 @@ import (
 	"errors"
 	"io"
 	"io/fs"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -372,5 +373,26 @@ func TestFSPathErrors(t *testing.T) {
 				t.Errorf("error = %v, want fs.ErrNotExist", err)
 			}
 		})
+	}
+}
+
+func TestFSReadDirSorted(t *testing.T) {
+	dir := t.TempDir()
+	for _, name := range []string{"a", "Z", "b", "Y"} {
+		if err := os.WriteFile(filepath.Join(dir, name), nil, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	vfs := newVirtualFS(t, []string{dir})
+	entries, err := fs.ReadDir(vfs, filepath.Base(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := make([]string, len(entries))
+	for i, entry := range entries {
+		names[i] = entry.Name()
+	}
+	if want := []string{"Y", "Z", "a", "b"}; !slices.Equal(names, want) {
+		t.Errorf("ReadDir names: got %v, want %v", names, want)
 	}
 }
