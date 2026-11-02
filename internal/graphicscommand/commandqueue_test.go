@@ -18,12 +18,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
+	"slices"
 	"sync/atomic"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 type frameDriver struct {
@@ -230,5 +234,119 @@ func TestCompleteFramesAfterIntermediateFlushes(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+type capturedDraw struct {
+	indexOffset int
+	indexCount  int
+	blend       graphicsdriver.Blend
+}
+
+type vertexCaptureDriver struct {
+	frameDriver
+	vertices []float32
+	indices  []uint32
+	uploads  int
+	draws    []capturedDraw
+}
+
+func (g *vertexCaptureDriver) SetVertices(vertices []float32, indices []uint32) error {
+	g.uploads++
+	g.vertices = append(g.vertices, vertices...)
+	g.indices = append(g.indices, indices...)
+	return nil
+}
+
+func (g *vertexCaptureDriver) DrawTriangles(_ graphicsdriver.ImageID, _ [graphics.ShaderSrcImageCount]graphicsdriver.ImageID, _ graphicsdriver.ShaderID, regions []graphicsdriver.DstRegion, indexOffset int, blend graphicsdriver.Blend, _ []uint32) error {
+	var indexCount int
+	for _, region := range regions {
+		indexCount += region.IndexCount
+	}
+	g.draws = append(g.draws, capturedDraw{
+		indexOffset: indexOffset,
+		indexCount:  indexCount,
+		blend:       blend,
+	})
+	return nil
+}
+
+func TestDrawBatchVertexData(t *testing.T) {
+	// Presentation flushes must finish before the captured data is inspected.
+	graphicscommand.SetVsyncEnabled(true)
+	dst := graphicscommand.NewImage(16, 16, false, "")
+	defer dst.Dispose()
+	src := graphicscommand.NewImage(16, 16, false, "")
+	defer src.Dispose()
+	if err := graphicscommand.FlushCommands(ui.Get().GraphicsDriverForTesting(), graphicsdriver.FlushModeIntermediate); err != nil {
+		t.Fatal(err)
+	}
+
+	var manager graphicscommand.CommandQueueManagerForTesting
+	var driver vertexCaptureDriver
+	enqueue := func(vertices []float32, indices []uint32, blend graphicsdriver.Blend) {
+		graphicscommand.EnqueueDrawTrianglesForTesting(&manager, dst, [graphics.ShaderSrcImageCount]*graphicscommand.Image{src}, vertices, indices, blend, image.Rect(0, 0, 16, 16), [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, 16, 16)}, nearestFilterShader, nil)
+	}
+	// Return a large and a small queue to the pool through normal flushes.
+	warmVertices := make([]float32, 8192*graphics.VertexFloatCount)
+	for i := range warmVertices {
+		warmVertices[i] = -float32(i + 1)
+	}
+	enqueue(warmVertices, []uint32{0, 1, 2}, graphicsdriver.BlendSourceOver)
+	if err := manager.FlushForTesting(&driver, graphicsdriver.FlushModeIntermediate); err != nil {
+		t.Fatal(err)
+	}
+	enqueue(warmVertices[:12*graphics.VertexFloatCount], []uint32{0, 1, 2}, graphicsdriver.BlendSourceOver)
+	if err := manager.FlushForTesting(&driver, graphicsdriver.FlushModePresent); err != nil {
+		t.Fatal(err)
+	}
+	driver.vertices = driver.vertices[:0]
+	driver.indices = driver.indices[:0]
+	driver.draws = driver.draws[:0]
+	driver.uploads = 0
+	var wantVertices []float32
+	for i, vertexCount := range []int{3, 6, 4096} {
+		vertices := make([]float32, vertexCount*graphics.VertexFloatCount)
+		for j := range vertices {
+			vertices[j] = float32(len(wantVertices) + j)
+		}
+		wantVertices = append(wantVertices, vertices...)
+		indices := []uint32{0, 1, 2}
+		if i == 1 {
+			indices = []uint32{0, 1, 2, 3, 4, 5}
+		}
+		blend := graphicsdriver.BlendSourceOver
+		if i == 2 {
+			// Grow the vertex buffer after a merged command, then start a new batch.
+			indices = []uint32{0, 2047, 4095}
+			blend = graphicsdriver.BlendCopy
+		}
+		enqueue(vertices, indices, blend)
+	}
+	if err := manager.FlushForTesting(&driver, graphicsdriver.FlushModePresent); err != nil {
+		t.Fatal(err)
+	}
+	if driver.uploads != 1 {
+		t.Errorf("vertex uploads = %d, want 1", driver.uploads)
+	}
+	if !slices.Equal(driver.vertices, wantVertices) {
+		t.Error("uploaded vertices differ from queued data")
+	}
+	if want := []uint32{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 2056, 4104}; !slices.Equal(driver.indices, want) {
+		t.Errorf("uploaded indices = %v, want %v", driver.indices, want)
+	}
+	wantDraws := []capturedDraw{
+		{
+			indexCount: 9,
+			blend:      graphicsdriver.BlendSourceOver,
+		},
+		{
+			indexOffset: 9,
+			indexCount:  3,
+			blend:       graphicsdriver.BlendCopy,
+		},
+	}
+	if !slices.Equal(driver.draws, wantDraws) {
+		t.Errorf("draws = %v, want %v", driver.draws, wantDraws)
 	}
 }

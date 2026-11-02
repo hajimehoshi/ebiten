@@ -106,7 +106,7 @@ type commandQueue struct {
 	// commands is a queue of drawing commands.
 	commands []command
 
-	// vertices represents the vertex data in OpenGL's array buffer.
+	// vertices owns the queued vertex data. Commands retain only float counts.
 	vertices []float32
 	indices  []uint32
 
@@ -164,8 +164,8 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	// TODO: If dst is the screen, reorder the command to be the last.
 	if !split && 0 < len(q.commands) {
 		if last, ok := q.commands[len(q.commands)-1].(*drawTrianglesCommand); ok {
-			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, vertices, blend, shader, uniforms) {
-				last.setVertices(q.lastVertices(len(vertices) + last.numVertices()))
+			if last.CanMergeWithDrawTrianglesCommand(dst, srcs, blend, shader, uniforms) {
+				last.vertexFloatCount += len(vertices)
 				if last.dstRegions[len(last.dstRegions)-1].Region == dstRegion {
 					last.dstRegions[len(last.dstRegions)-1].IndexCount += len(indices)
 				} else {
@@ -182,7 +182,7 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 	c := theDrawTrianglesCommandPool.Get().(*drawTrianglesCommand)
 	c.dst = dst
 	c.srcs = srcs
-	c.vertices = q.lastVertices(len(vertices))
+	c.vertexFloatCount = len(vertices)
 	c.blend = blend
 	c.dstRegions = append(c.dstRegions[:0], graphicsdriver.DstRegion{
 		Region:     dstRegion,
@@ -201,10 +201,6 @@ func (q *commandQueue) EnqueueDrawTrianglesCommand(dst *Image, srcs [graphics.Sh
 		}
 	}
 	q.commands = append(q.commands, c)
-}
-
-func (q *commandQueue) lastVertices(n int) []float32 {
-	return q.vertices[len(q.vertices)-n : len(q.vertices)]
 }
 
 // Enqueue enqueues a drawing command other than a draw-triangles command.
@@ -317,7 +313,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 		for i, c := range q.commands {
 			if c, ok := c.(*drawTrianglesCommand); ok {
 				// Only dstRegions owns its backing array and retains its capacity for reuse.
-				// The vertices and uniforms slices reference buffers owned by the command queue.
+				// Uniform slices reference buffers owned by the command queue.
 				*c = drawTrianglesCommand{
 					dstRegions: c.dstRegions[:0],
 				}
@@ -347,10 +343,10 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 		var nc int
 		for _, c := range cs {
 			if dtc, ok := c.(*drawTrianglesCommand); ok {
-				if nc > 0 && mustUseDifferentVertexBuffer(nv+dtc.numVertices()) {
+				if nc > 0 && mustUseDifferentVertexBuffer(nv+dtc.vertexFloatCount) {
 					break
 				}
-				nv += dtc.numVertices()
+				nv += dtc.vertexFloatCount
 				ne += dtc.numIndices()
 			}
 			nc++
@@ -550,6 +546,31 @@ func (c *commandQueuePool) put(queue *commandQueue) {
 	c.cache = append(c.cache, queue)
 }
 
+func (c *commandQueuePool) reuseVertexBuffer(vertices []float32, additional int) []float32 {
+	required := len(vertices) + additional
+	if required <= cap(vertices) {
+		return vertices
+	}
+	c.m.Lock()
+	defer c.m.Unlock()
+	var candidate *commandQueue
+	for _, q := range c.cache {
+		if cap(q.vertices) < required {
+			continue
+		}
+		if candidate == nil || cap(q.vertices) < cap(candidate.vertices) {
+			candidate = q
+		}
+	}
+	if candidate != nil {
+		buffer := candidate.vertices[:len(vertices)]
+		copy(buffer, vertices)
+		candidate.vertices = vertices[:0]
+		return buffer
+	}
+	return vertices
+}
+
 type commandQueueManager struct {
 	pool    commandQueuePool
 	current *commandQueue
@@ -619,6 +640,7 @@ func (c *commandQueueManager) enqueueDrawTrianglesCommand(dst *Image, srcs [grap
 	if c.current == nil {
 		c.current = c.pool.get()
 	}
+	c.current.vertices = c.pool.reuseVertexBuffer(c.current.vertices, len(vertices))
 	c.current.EnqueueDrawTrianglesCommand(dst, srcs, vertices, indices, blend, dstRegion, srcRegions, shader, uniforms)
 }
 

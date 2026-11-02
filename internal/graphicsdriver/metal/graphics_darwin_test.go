@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver/metal/mtl"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
 )
 
@@ -110,6 +111,32 @@ func TestAppendUniformVariablesStructSize(t *testing.T) {
 	for _, layout := range layouts {
 		if got := metal.AppendUniformVariables(nil, layout.types, layout.input); !slices.Equal(got, layout.want) {
 			t.Errorf("AppendUniformVariables(nil, %v, %#x) = %#x, want %#x", layout.types, layout.input, got, layout.want)
+		}
+	}
+}
+
+func TestTakeUnusedBuffer(t *testing.T) {
+	device, err := mtl.CreateSystemDefaultDevice()
+	if err != nil {
+		t.Skipf("Metal device unavailable: %v", err)
+	}
+	buffers := make(map[mtl.Buffer]struct{})
+	for _, length := range []uintptr{256, 1024, 4096} {
+		buffer, err := device.NewBufferWithLength(length, mtl.ResourceStorageModeShared)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer buffer.Release()
+		buffers[buffer] = struct{}{}
+	}
+	for _, want := range []uintptr{1024, 4096, 0} {
+		buffer := metal.TakeUnusedBuffer(buffers, 512)
+		var got uintptr
+		if buffer != (mtl.Buffer{}) {
+			got = buffer.Length()
+		}
+		if got != want {
+			t.Errorf("selected length = %d, want %d", got, want)
 		}
 	}
 }

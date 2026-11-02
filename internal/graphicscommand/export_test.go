@@ -68,3 +68,5 @@ func SetRenderThreadForTesting(t thread.Thread) func() {
 	theRenderThread = t
 	return func() { theRenderThread = previous }
 }
+
+var EnqueueDrawTrianglesForTesting = (*commandQueueManager).enqueueDrawTrianglesCommand

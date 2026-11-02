@@ -15,3 +15,5 @@
 package metal
 
 var AppendUniformVariables = appendUniformVariables
+
+var TakeUnusedBuffer = takeUnusedBuffer
