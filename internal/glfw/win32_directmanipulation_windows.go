@@ -38,9 +38,8 @@ import (
 // touchpads are not affected and keep sending the same messages as before.
 //
 // Once a contact is handed to Direct Manipulation, Windows no longer sends WM_MOUSEWHEEL for it, so
-// both a pan and a pinch are reported from the content transform of a viewport. The transform is
-// polled after each round of message processing instead of registering an
-// IDirectManipulationViewportEventHandler, so that no COM object has to be implemented in Go.
+// both a pan and a pinch are reported from the content transform of a viewport, which is polled after
+// each round of message processing.
 //
 // For the interfaces, see directmanipulation.idl in https://github.com/wine-mirror/wine.
 

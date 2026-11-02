@@ -25,8 +25,8 @@ import (
 )
 
 var (
-	buttonColor   = color.RGBA{0x30, 0x30, 0x30, 0xe0}
-	buttonOnColor = color.RGBA{0x20, 0x60, 0xc0, 0xe0}
+	buttonColor   = color.RGBA{R: 0x30, G: 0x30, B: 0x30, A: 0xe0}
+	buttonOnColor = color.RGBA{R: 0x20, G: 0x60, B: 0xc0, A: 0xe0}
 )
 
 // button is a button on the screen, which works with a mouse and a touch screen alike.

@@ -74,10 +74,22 @@ func (g Gesture) String() string {
 		g    Gesture
 		name string
 	}{
-		{GesturePanX, "PanX"},
-		{GesturePanY, "PanY"},
-		{GestureScale, "Scale"},
-		{GestureRotate, "Rotate"},
+		{
+			g:    GesturePanX,
+			name: "PanX",
+		},
+		{
+			g:    GesturePanY,
+			name: "PanY",
+		},
+		{
+			g:    GestureScale,
+			name: "Scale",
+		},
+		{
+			g:    GestureRotate,
+			name: "Rotate",
+		},
 	} {
 		if g&n.g != 0 {
 			names = append(names, n.name)

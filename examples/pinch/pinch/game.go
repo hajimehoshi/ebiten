@@ -42,9 +42,9 @@ const (
 )
 
 var (
-	gridColor   = color.RGBA{0x40, 0x40, 0x40, 0xff}
-	axisColor   = color.RGBA{0x80, 0x80, 0x80, 0xff}
-	squareColor = color.RGBA{0xff, 0, 0, 0xff}
+	gridColor   = color.RGBA{R: 0x40, G: 0x40, B: 0x40, A: 0xff}
+	axisColor   = color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0xff}
+	squareColor = color.RGBA{R: 0xff, G: 0, B: 0, A: 0xff}
 )
 
 // Game is a game that moves, scales, and turns a square with gestures.
@@ -80,12 +80,42 @@ func NewGame() *Game {
 		lit     bool
 	}
 	specs := []spec{
-		{"PanX", &g.gestures.Ignore, GesturePanX, false},
-		{"PanY", &g.gestures.Ignore, GesturePanY, false},
-		{"Scale", &g.gestures.Ignore, GestureScale, false},
-		{"Rotate", &g.gestures.Ignore, GestureRotate, false},
-		{"X or Y", &g.gestures.Separate, GesturePanX | GesturePanY, true},
-		{"S or R", &g.gestures.Separate, GestureScale | GestureRotate, true},
+		{
+			label:   "PanX",
+			set:     &g.gestures.Ignore,
+			gesture: GesturePanX,
+			lit:     false,
+		},
+		{
+			label:   "PanY",
+			set:     &g.gestures.Ignore,
+			gesture: GesturePanY,
+			lit:     false,
+		},
+		{
+			label:   "Scale",
+			set:     &g.gestures.Ignore,
+			gesture: GestureScale,
+			lit:     false,
+		},
+		{
+			label:   "Rotate",
+			set:     &g.gestures.Ignore,
+			gesture: GestureRotate,
+			lit:     false,
+		},
+		{
+			label:   "X or Y",
+			set:     &g.gestures.Separate,
+			gesture: GesturePanX | GesturePanY,
+			lit:     true,
+		},
+		{
+			label:   "S or R",
+			set:     &g.gestures.Separate,
+			gesture: GestureScale | GestureRotate,
+			lit:     true,
+		},
 	}
 	const (
 		w   = 74
@@ -101,7 +131,12 @@ func NewGame() *Game {
 	}
 	for i, s := range specs {
 		on, press := toggle(s.set, s.gesture, s.lit)
-		g.buttons = append(g.buttons, &button{label: s.label, rect: rect(i), on: on, press: press})
+		g.buttons = append(g.buttons, &button{
+			label: s.label,
+			rect:  rect(i),
+			on:    on,
+			press: press,
+		})
 	}
 	// Scrolling with the Control key is reported as a pinch only when it is asked for, as it can no longer be used
 	// for anything else.
@@ -111,7 +146,11 @@ func NewGame() *Game {
 		on:    func() bool { return g.gestures.CtrlScrollAsPinch },
 		press: func() { g.gestures.CtrlScrollAsPinch = !g.gestures.CtrlScrollAsPinch },
 	})
-	g.buttons = append(g.buttons, &button{label: "Reset", rect: rect(len(specs) + 1), press: g.reset})
+	g.buttons = append(g.buttons, &button{
+		label: "Reset",
+		rect:  rect(len(specs) + 1),
+		press: g.reset,
+	})
 	return g
 }
 

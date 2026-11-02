@@ -75,12 +75,36 @@ func TestXIRotation(t *testing.T) {
 		deltaAngle float64
 		want       float64
 	}{
-		{glfw.XIGesturePinchBeginForTest, 10, 0},
-		{glfw.XIGesturePinchUpdateForTest, 90, math.Pi / 2},
-		{glfw.XIGesturePinchUpdateForTest, -45, -math.Pi / 4},
-		{glfw.XIGesturePinchUpdateForTest, math.NaN(), 0},
-		{glfw.XIGesturePinchUpdateForTest, math.Inf(1), 0},
-		{glfw.XIGesturePinchEndForTest, 10, 0},
+		{
+			evtype:     glfw.XIGesturePinchBeginForTest,
+			deltaAngle: 10,
+			want:       0,
+		},
+		{
+			evtype:     glfw.XIGesturePinchUpdateForTest,
+			deltaAngle: 90,
+			want:       math.Pi / 2,
+		},
+		{
+			evtype:     glfw.XIGesturePinchUpdateForTest,
+			deltaAngle: -45,
+			want:       -math.Pi / 4,
+		},
+		{
+			evtype:     glfw.XIGesturePinchUpdateForTest,
+			deltaAngle: math.NaN(),
+			want:       0,
+		},
+		{
+			evtype:     glfw.XIGesturePinchUpdateForTest,
+			deltaAngle: math.Inf(1),
+			want:       0,
+		},
+		{
+			evtype:     glfw.XIGesturePinchEndForTest,
+			deltaAngle: 10,
+			want:       0,
+		},
 	} {
 		if got := glfw.XIRotationForTest(tt.evtype, tt.deltaAngle); math.Abs(got-tt.want) > 1e-12 {
 			t.Errorf("XIRotationForTest(%d, %v): got %v, want %v", tt.evtype, tt.deltaAngle, got, tt.want)

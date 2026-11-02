@@ -112,9 +112,13 @@ func TestDirectManipulationZoomToRect(t *testing.T) {
 		t.Skip("Direct Manipulation is not available")
 	}
 	want := [6]float32{2, 0, 0, 2, -200, -400}
+	near := true
 	for i := range m {
 		if math.Abs(float64(m[i]-want[i])) > 1e-3 {
-			t.Fatalf("got %v, want %v", *m, want)
+			near = false
 		}
+	}
+	if !near {
+		t.Errorf("got %v, want %v", *m, want)
 	}
 }
