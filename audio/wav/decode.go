@@ -248,7 +248,7 @@ chunks:
 				// header followed by 2 bytes for cbSize and a 22-byte extension.
 				// So 40 bytes in total.
 				if size < 40 {
-					return nil, fmt.Errorf("wav: invalid header: WAVEFORMATEXTENSIBLE must be at least 38 bytes")
+					return nil, fmt.Errorf("wav: invalid header: WAVEFORMATEXTENSIBLE must be at least 40 bytes")
 				}
 				var extension [24]byte
 				if err := readHeaderPart(src, extension[:], "WAVEFORMATEXTENSIBLE extension"); err != nil {
