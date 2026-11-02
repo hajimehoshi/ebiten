@@ -147,25 +147,20 @@ func ScrollDelta() (x, y float64) {
 	return inputstate.Get().ScrollDelta()
 }
 
-// PinchDelta returns the amount of a pinch gesture on a touchpad, as the change of the scale it asks for.
+// PinchDelta returns the amount of a pinch gesture at the current tick, as the change of the scale it asks for.
 // It returns 0 if no pinch gesture is being done.
 //
 // A positive value is a request to magnify, as when two fingers move apart, and a negative value is
 // a request to shrink. To follow the gesture, multiply the scale by 1 + the returned value at each tick.
 // For example, 0.05 asks to make things 5% larger.
 //
-// On iOS and Android, PinchDelta also reports pinching on the touch screen, and the touches of the
-// pinch are still reported by [AppendTouchIDs] and [TouchPosition]. On Android, only a pinch with
-// exactly two fingers is reported. On the other platforms, PinchDelta does not report pinching on
-// a touch screen. Use [AppendTouchIDs] and [TouchPosition] for that.
+// PinchDelta reports a pinch on a touchpad. On mobile platforms, PinchDelta also reports a pinch on
+// the touch screen, whose touches are still reported by [AppendTouchIDs] and [TouchPosition]. On the
+// other platforms, a pinch on a touch screen is reported only as touches.
 //
-// PinchDelta reports gestures on macOS, on iOS, on Windows 10 and later with a precision touchpad, on
-// Linux and other platforms with X11 when the X server supports XInput 2.4 (X.Org Server 21.1 or
-// Xwayland 22.1 and later) and libXi is 1.8 or later, on Android 14 and later with a touchpad, and in
-// browsers with a touchpad. On Android, a pinch on a touchpad is not reported as touches. In browsers
-// other than Safari, a pinch on a touchpad is reported as a wheel event with the Control key, which
-// PinchDelta reports instead of [Wheel] and [ScrollDelta] unless the Control key is actually pressed.
-// PinchDelta always returns 0 on the other platforms so far.
+// A pinch reported by PinchDelta is not reported by [Wheel] or [ScrollDelta].
+//
+// Some platforms and devices do not report pinches, and then PinchDelta returns 0.
 //
 // PinchDelta is concurrent-safe.
 func PinchDelta() float64 {
@@ -178,13 +173,12 @@ func PinchDelta() float64 {
 // A positive value is clockwise, as with [GeoM.Rotate]. To follow the gesture, add the returned value
 // to the angle at each tick.
 //
-// RotationDelta reports gestures on a touchpad on macOS, and on Linux and other platforms with X11
-// under the same conditions as [PinchDelta]. On iOS and Android, RotationDelta also reports turning
-// two fingers on the touch screen, and the fingers are still reported by [AppendTouchIDs] and
-// [TouchPosition]. On iOS, a rotation on a trackpad is reported as well. In browsers, RotationDelta
-// reports gestures on a touchpad in Safari.
-// RotationDelta always returns 0 on the other platforms so far, including Windows, Android, and
-// browsers other than Safari with a touchpad, whose touchpad gestures have no rotation.
+// RotationDelta reports a rotation on a touchpad. On mobile platforms, RotationDelta also reports a
+// rotation on the touch screen, whose touches are still reported by [AppendTouchIDs] and [TouchPosition].
+// On the other platforms, a rotation on a touch screen is reported only as touches.
+//
+// Some platforms and devices do not report rotations, even when they report pinches, and then
+// RotationDelta returns 0.
 //
 // RotationDelta is concurrent-safe.
 func RotationDelta() float64 {
