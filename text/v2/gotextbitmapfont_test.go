@@ -164,3 +164,33 @@ func TestBitmapFontSideways(t *testing.T) {
 		t.Errorf("the sideways glyph of a bitmap font is not the rotated outline:\ngot:\n%swant:\n%s", got, want)
 	}
 }
+
+func TestBitmapFontNearbySizes(t *testing.T) {
+	newSource := func() *text.GoTextFaceSource {
+		t.Helper()
+		source, err := text.NewGoTextFaceSource(bytes.NewReader(fonts.TerminusTTF_ttf))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return source
+	}
+	// Both sizes round to the same 26.6 size, but only 16 matches a bitmap strike.
+	for _, sizes := range [][2]float64{{16, 16.005}, {16.005, 16}} {
+		shared := newSource()
+		for _, size := range sizes {
+			face := &text.GoTextFace{Source: shared, Size: size}
+			fresh := &text.GoTextFace{Source: newSource(), Size: size}
+			got := text.AppendLazyGlyphs(nil, "F", face, nil)
+			want := text.AppendLazyGlyphs(nil, "F", fresh, nil)
+			if len(got) != 1 || len(want) != 1 {
+				t.Fatal("expected one glyph")
+			}
+			if got[0].ImageBounds != want[0].ImageBounds {
+				t.Errorf("order %v, size %v: bounds got %v, want %v", sizes, size, got[0].ImageBounds, want[0].ImageBounds)
+			}
+			if got, want := glyphInk(t, "F", face), glyphInk(t, "F", fresh); got != want {
+				t.Errorf("order %v, size %v: ink differs from a fresh source\ngot:\n%s\nwant:\n%s", sizes, size, got, want)
+			}
+		}
+	}
+}
