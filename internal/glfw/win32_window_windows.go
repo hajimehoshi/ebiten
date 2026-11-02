@@ -1021,7 +1021,7 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 			id := uint32(_LOWORD(uint32(wParam)))
 			if t, err := _GetPointerType(id); err == nil && t == _PT_TOUCHPAD {
 				if err := dm.viewport.SetContact(id); err != nil {
-					_glfw.errors = append(_glfw.errors, err)
+					window.disableDirectManipulation()
 				}
 			}
 		}
@@ -1645,10 +1645,7 @@ func (w *Window) platformDestroyWindow() error {
 		}
 	}
 
-	if w.platform.directManipulation != nil {
-		w.platform.directManipulation.release(w.platform.handle)
-		w.platform.directManipulation = nil
-	}
+	w.disableDirectManipulation()
 
 	if w.platform.handle != 0 {
 		if !microsoftgdk.IsXbox() {
@@ -2338,7 +2335,7 @@ func platformPollEvents() error {
 	for _, window := range _glfw.windows {
 		if dm := window.platform.directManipulation; dm != nil {
 			if err := dm.update(window); err != nil {
-				return err
+				window.disableDirectManipulation()
 			}
 		}
 	}

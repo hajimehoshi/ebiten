@@ -484,6 +484,18 @@ func (d *directManipulation) release(hwnd windows.HWND) {
 	}
 }
 
+// disableDirectManipulation stops Direct Manipulation for the window, if it is used.
+//
+// Direct Manipulation is optional, so a failure of it falls back to the messages without it instead of
+// being an error: gestures on a touchpad are reported as WM_MOUSEWHEEL again, and no pinch is reported.
+func (w *Window) disableDirectManipulation() {
+	if w.platform.directManipulation == nil {
+		return
+	}
+	w.platform.directManipulation.release(w.platform.handle)
+	w.platform.directManipulation = nil
+}
+
 // update reports the changes of the viewport since the last call as scroll and pinch input.
 func (d *directManipulation) update(w *Window) error {
 	if err := d.updateManager.Update(); err != nil {
