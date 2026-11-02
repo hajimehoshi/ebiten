@@ -176,7 +176,11 @@ func DecodeWithSampleRate(sampleRate int, src io.Reader) (*Stream, error) {
 		return s, nil
 	}
 
-	r := convert.NewResampling(s.inner, s.size, s.sampleRate, sampleRate, bitDepthInBytesInt16)
+	var source io.Reader = s.inner
+	if _, ok := src.(io.Seeker); !ok {
+		source = struct{ io.Reader }{source}
+	}
+	r := convert.NewResampling(source, s.size, s.sampleRate, sampleRate, bitDepthInBytesInt16)
 	return &Stream{
 		inner:          r,
 		size:           r.Length(),
