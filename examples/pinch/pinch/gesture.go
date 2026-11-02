@@ -262,44 +262,35 @@ func (t *GestureTracker) Update() ViewGesture {
 	}
 	v.CenterX, v.CenterY = inpututil.PinchCenter()
 
-	// A pinch and a rotation on a touch screen are already in PinchDelta and RotationDelta on the platforms
-	// that report them, around the middle point of the two fingers. The touches add the move: one finger
-	// moves the view, and two fingers move it with their middle point.
+	// Fingers touching or leaving the screen start a new gesture.
 	t.touchIDs = ebiten.AppendTouchIDs(t.touchIDs[:0])
-	if n := len(t.touchIDs); n == 1 || n == 2 {
-		var x, y, prevX, prevY float64
-		// The fingers move the view only when the same fingers touched the screen at the previous tick.
-		same := len(t.prev) == n
-		for _, id := range t.touchIDs {
-			tx, ty := ebiten.TouchPositionF(id)
-			x += tx
-			y += ty
-			p, ok := t.prev[id]
-			if !ok {
-				same = false
-			}
-			prevX += p.x
-			prevY += p.y
-		}
-		x /= float64(n)
-		y /= float64(n)
-		if same {
-			v.PanX += x - prevX/float64(n)
-			v.PanY += y - prevY/float64(n)
-		}
-	}
-
 	touchesChanged := len(t.prev) != len(t.touchIDs)
 	for _, id := range t.touchIDs {
 		if _, ok := t.prev[id]; !ok {
 			touchesChanged = true
+			break
 		}
 	}
+	if touchesChanged {
+		clear(t.prev)
+	}
 
-	clear(t.prev)
+	// A pinch and a rotation on a touch screen are already in PinchDelta and RotationDelta on the platforms
+	// that report them, around the middle point of the two fingers. The touches add the move: one finger
+	// moves the view, and two fingers move it with their middle point, which moves by the average of how far
+	// the fingers move. The fingers move the view only when the same fingers touched the screen at the
+	// previous tick.
+	var dx, dy float64
 	for _, id := range t.touchIDs {
 		x, y := ebiten.TouchPositionF(id)
+		p := t.prev[id]
+		dx += x - p.x
+		dy += y - p.y
 		t.prev[id] = touchPosition{x: x, y: y}
+	}
+	if n := len(t.touchIDs); !touchesChanged && (n == 1 || n == 2) {
+		v.PanX += dx / float64(n)
+		v.PanY += dy / float64(n)
 	}
 
 	t.restrict(&v, len(t.touchIDs), touchesChanged)
