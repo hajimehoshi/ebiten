@@ -55,12 +55,6 @@ func (rtb *RuneToBoolMap) Get(rune rune) (bool, bool) {
 	return rtb.get(rune)
 }
 
-// SVGGlyphDocument extracts the SVG document describing only the glyph
-// gid from an OpenType SVG document.
-func SVGGlyphDocument(source []byte, gid uint32) []byte {
-	return newSVGDocIndex(source).glyphDocument(gid)
-}
-
 // GlyphImageCacheCount returns the number of the glyph image caches of the source, one per face size.
 func GlyphImageCacheCount(source *GoTextFaceSource) int {
 	c := &source.glyphImageCache

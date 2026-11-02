@@ -8,10 +8,7 @@ interpretation remain CPU-only. `PrepareRender` produces a bounded render plan;
 parsing alone does not establish rendering support.
 
 [Acceptance fixtures](testdata/README.md) describe the real-font records,
-focused cases, licenses and intended rendering results. Existing
-[oksvg tests](../oksvg/oksvg_test.go) and
-[glyph-document tests](../../gotextsvgdoc_test.go) are compatibility inputs,
-not specifications for new behavior.
+focused cases, licenses and intended rendering results.
 
 ## Supported behavior
 
@@ -85,9 +82,9 @@ Variable fallbacks are evaluated only when needed; invalid results fall back
 to inherited/initial values at computed-value time. Palette alpha is applied
 once without altering the opacity inherited by children.
 
-HSL and mixed numeric/percentage RGB preserve oksvg compatibility. RGBA, HSLA,
-transparent and percentage opacity are additional allowances. Other allowances
-include empty SVG namespaces, unprefixed href, adjacent transform functions,
+HSL, mixed numeric/percentage RGB, RGBA, HSLA, transparent and percentage
+opacity are additional allowances. Other allowances include empty SVG namespaces,
+unprefixed href, adjacent transform functions,
 repeated transform separators, and a zero gradient focal radius. These do not
 imply general CSS, SVG 2 or browser rendering support.
 
@@ -165,9 +162,6 @@ Decoding and RGBA conversion are CPU-only. Identical URI strings share decoded
 assets within a plan. Each asset retains one filtered upload at a time within
 Draw; changing its reduction replaces the upload. Uploads and scratch images
 are released on return, while text integration caches the final glyph image.
-
-Full-font and platform acceptance, quality/performance evaluation, and removal
-of the unused oksvg implementation and its dependencies remain separate work.
 
 ## Limits
 
@@ -331,8 +325,8 @@ COLRv1 using SVG before its outline. Existing COLRv0 layer filtering is preserve
 Malformed SVG tables are unavailable; malformed documents, unsupported rendered
 features, missing glyph IDs, invalid references/images and resource limits reject
 the entire SVG plan and use the existing outline fallback. No partial prefix is
-rendered and the old oksvg path is never called. Valid empty artwork suppresses
-fallback, including empty selection, disabled paint and empty clips. As before,
+rendered. Valid empty artwork suppresses fallback, including empty selection,
+disabled paint and empty clips. As before,
 the public text drawing API does not return glyph-rendering errors. Internal
 errors retain `errors.Is` identities (`ErrXML`, `ErrStyle`, `ErrGeometry`,
 `ErrImage`, `ErrUnsupported`, `ErrGlyphNotFound`, reference errors and `ErrLimit`).
@@ -407,9 +401,9 @@ Composition tests compare native point-sample oracles at densities 1, 4 and 8
 and offsets 0 and 0.375. Image mapping tests compare against an inverse affine
 texel-selection oracle with binary viewport/clip membership. Independent
 comparisons also cover nested opacity, overlapping fill/stroke and the JPEG
-fixture; their existing error thresholds are regression bounds. Full-font evaluation,
-additional platforms and production quality/performance acceptance remain necessary
-before removing the unused oksvg implementation and its dependencies.
+fixture; their existing error thresholds are regression bounds. Selected real-font
+cases have been compared on macOS Metal and OpenGL, Linux OpenGL, and Windows
+DirectX 11. These checks do not establish full-font visual or performance acceptance.
 
 [opentype]: https://learn.microsoft.com/en-us/typography/opentype/spec/svg
 [svg-use]: https://www.w3.org/TR/SVG11/struct.html#UseElement
