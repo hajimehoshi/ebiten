@@ -1337,6 +1337,15 @@ func (g *GuestSession) PinchBy(delta float64) {
 	g.postMessage(msg)
 }
 
+// RotateBy injects a rotation gesture on a touchpad that turns by angle radians. A positive value is
+// clockwise. RotateBy feeds the guest's [ebiten.RotationDelta] value.
+func (g *GuestSession) RotateBy(angle float64) {
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindRotate
+	msg.X = angle
+	g.postMessage(msg)
+}
+
 // TypeRune injects a typed character.
 func (g *GuestSession) TypeRune(r rune) {
 	msg := g.takeMessage()

@@ -14,8 +14,8 @@
 
 //go:build ebitenginevmguest
 
-// This is a guest that verifies the pinch gestures the host forwards. The host injects a fixed
-// sequence of gestures; during each tick this reads the amount through the public ebiten API and
+// This is a guest that verifies the pinch and rotation gestures the host forwards. The host injects a
+// fixed sequence of gestures; during each tick this reads the amounts through the public ebiten API and
 // compares it against the expectation for that tick, filling the screen green when it matches and
 // red otherwise (logging each mismatch), so the outcome is observable in the rendered screen.
 //
@@ -30,10 +30,30 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-// wantByTick is the expected pinch amount per tick; keep it in sync with the host's injected gestures.
-// Tick 0: two gestures, whose ratios are composed (1.1 * 1.15 = 1.265). Tick 1: none, so the amount of
-// tick 0 must be gone. Tick 2: a gesture that shrinks.
-var wantByTick = []float64{0.265, 0, -0.125}
+// want is the expected amounts of a tick.
+type want struct {
+	pinch    float64
+	rotation float64
+}
+
+// wantByTick is the expected amounts per tick; keep it in sync with the host's injected gestures.
+// Tick 0: two pinches, whose ratios are composed (1.1 * 1.15 = 1.265), and two rotations, whose angles
+// add up. Tick 1: none, so the amounts of tick 0 must be gone. Tick 2: a pinch that shrinks and a
+// counterclockwise rotation.
+var wantByTick = []want{
+	{
+		pinch:    0.265,
+		rotation: 0.375,
+	},
+	{
+		pinch:    0,
+		rotation: 0,
+	},
+	{
+		pinch:    -0.125,
+		rotation: -0.5,
+	},
+}
 
 // eps is the tolerance for an amount that is composed of several injected ones.
 const eps = 1e-9
@@ -54,11 +74,16 @@ func (g *game) check() bool {
 		// The host runs exactly len(wantByTick) ticks; keep the last result for any extra tick.
 		return g.ok
 	}
-	if got, want := ebiten.PinchDelta(), wantByTick[g.tick]; math.Abs(got-want) > eps {
+	ok := true
+	if got, want := ebiten.PinchDelta(), wantByTick[g.tick].pinch; math.Abs(got-want) > eps {
 		log.Printf("tick %d: PinchDelta() = %v; want %v", g.tick, got, want)
-		return false
+		ok = false
 	}
-	return true
+	if got, want := ebiten.RotationDelta(), wantByTick[g.tick].rotation; math.Abs(got-want) > eps {
+		log.Printf("tick %d: RotationDelta() = %v; want %v", g.tick, got, want)
+		ok = false
+	}
+	return ok
 }
 
 func (g *game) Draw(screen *ebiten.Image) {

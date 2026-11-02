@@ -479,6 +479,9 @@ func (g *Game) forwardInput(state debugui.InputCapturingState) {
 		if d := ebiten.PinchDelta(); d != 0 {
 			s.PinchBy(d)
 		}
+		if a := ebiten.RotationDelta(); a != 0 {
+			s.RotateBy(a)
+		}
 	}
 
 	// Mouse button releases are forwarded regardless of hover, like the key releases above: a drag
