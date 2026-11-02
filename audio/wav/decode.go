@@ -30,7 +30,14 @@ const (
 	channelCount           = 2
 	bitDepthInBytesInt16   = 2
 	bitDepthInBytesFloat32 = 4
+
+	// WAVEFORMATEX format tags.
+	waveFormatPCM        = 1
+	waveFormatExtensible = 0xfffe
 )
+
+// pcmSubFormatGUID is the subformat GUID for PCM in WAVEFORMATEXTENSIBLE.
+var pcmSubFormatGUID = [16]byte{1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xaa, 0, 0x38, 0x9b, 0x71}
 
 // Stream is a decoded audio stream.
 //
@@ -111,7 +118,7 @@ func (s *Stream) SampleRate() int {
 
 // DecodeF32 decodes WAV (RIFF) data to playable stream in 32bit float, little endian, 2 channels (stereo) format.
 //
-// The src format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The src format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The src format is converted into 2 channels and 32bit float.
 //
 // DecodeF32 returns error when decoding fails or IO error happens.
@@ -130,7 +137,7 @@ func DecodeF32(src io.Reader) (*Stream, error) {
 
 // DecodeWithoutResampling decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// The src format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The src format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The src format is converted into 2 channels and 16bit.
 //
 // DecodeWithoutResampling returns error when decoding fails or IO error happens.
@@ -149,7 +156,7 @@ func DecodeWithoutResampling(src io.Reader) (*Stream, error) {
 
 // DecodeWithSampleRate decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
 // DecodeWithSampleRate returns error when decoding fails or IO error happens, or when sampleRate is not positive.
@@ -236,7 +243,29 @@ chunks:
 				return nil, err
 			}
 			format := int(fmtBuf[0]) | int(fmtBuf[1])<<8
-			if format != 1 {
+			var extensionSize int64
+			switch format {
+			case waveFormatPCM:
+			case waveFormatExtensible:
+				// WAVEFORMATEXTENSIBLE consists of the 16-byte WAVEFORMATEX
+				// header followed by 2 bytes for cbSize and a 22-byte extension.
+				// So 40 bytes in total.
+				if size < 40 {
+					return nil, fmt.Errorf("wav: invalid header: WAVEFORMATEXTENSIBLE must be at least 40 bytes")
+				}
+				var extension [24]byte
+				if err := readHeaderPart(src, extension[:], "WAVEFORMATEXTENSIBLE extension"); err != nil {
+					return nil, err
+				}
+				cbSize := int64(extension[0]) | int64(extension[1])<<8
+				if cbSize < 22 || 18+cbSize > size {
+					return nil, fmt.Errorf("wav: invalid header: invalid WAVEFORMATEXTENSIBLE extension size")
+				}
+				if !bytes.Equal(extension[8:], pcmSubFormatGUID[:]) {
+					return nil, fmt.Errorf("wav: WAVEFORMATEXTENSIBLE subformat must be linear PCM")
+				}
+				extensionSize = int64(len(extension))
+			default:
 				return nil, fmt.Errorf("wav: format must be linear PCM")
 			}
 			channelCount := int(fmtBuf[2]) | int(fmtBuf[3])<<8
@@ -249,15 +278,14 @@ chunks:
 				return nil, fmt.Errorf("wav: number of channels must be 1 or 2 but was %d", channelCount)
 			}
 			bitsPerSample = int(fmtBuf[14]) | int(fmtBuf[15])<<8
-			// TODO: Support signed 24bit integer format (#2215).
-			if bitsPerSample != 8 && bitsPerSample != 16 {
-				return nil, fmt.Errorf("wav: bits per sample must be 8 or 16 but was %d", bitsPerSample)
+			if bitsPerSample != 8 && bitsPerSample != 16 && bitsPerSample != 24 {
+				return nil, fmt.Errorf("wav: bits per sample must be 8, 16, or 24 but was %d", bitsPerSample)
 			}
 			sampleRate = int(fmtBuf[4]) | int(fmtBuf[5])<<8 | int(fmtBuf[6])<<16 | int(fmtBuf[7])<<24
 			if sampleRate <= 0 {
 				return nil, fmt.Errorf("wav: sample rate must be positive but was %d", sampleRate)
 			}
-			if _, err := io.CopyN(io.Discard, src, paddedSize-16); err != nil {
+			if _, err := io.CopyN(io.Discard, src, paddedSize-16-extensionSize); err != nil {
 				return nil, fmt.Errorf("wav: invalid header: failed to skip 'fmt ' chunk: %w", err)
 			}
 			headerSize += paddedSize
@@ -312,31 +340,27 @@ chunks:
 		format = convert.FormatU8
 	case 16:
 		format = convert.FormatS16
+	case 24:
+		format = convert.FormatS24
 	default:
-		// TODO: Support signed 24bit integer format (#2215).
 		return nil, fmt.Errorf("wav: unsupported bits per sample: %d", bitsPerSample)
 	}
 	// A source already in stereo 16bit is converted too, so that a read returns whole samples.
 	s = convert.NewStereoI16ReadSeeker(s, mono, format)
 
-	// sizeScale is the ratio of the decoded size to the 'data' chunk size.
-	sizeScale := int64(1)
-	if mono {
-		sizeScale *= 2
-	}
-	if bitsPerSample != 16 {
-		sizeScale *= 2
-	}
-
 	if bitDepthInBytes == bitDepthInBytesFloat32 {
 		s = convert.NewFloat32BytesReadSeekerFromInt16BytesReadSeeker(s)
-		sizeScale *= 2
 	}
 
 	// An unknown size stays -1 (see Stream.Length).
 	size := int64(-1)
 	if dataSize >= 0 {
-		size = dataSize * sizeScale
+		// The converter emits 4 bytes per frame (or 8 bytes for float32), regardless of
+		// the source bit depth and channel count.
+		size = dataSize / bytesPerFrame * 4
+		if bitDepthInBytes == bitDepthInBytesFloat32 {
+			size *= 2
+		}
 	}
 	return &Stream{
 		inner:          s,
@@ -381,7 +405,7 @@ func (unseekableReader) Seek(offset int64, whence int) (int64, error) {
 
 // Decode decodes WAV (RIFF) data to playable stream in signed 16bit integer, little endian, 2 channels (stereo) format.
 //
-// The format must be 1 or 2 channels, 8bit or 16bit little endian PCM.
+// The format must be 1 or 2 channels, 8bit, 16bit, or 24bit little endian PCM.
 // The format is converted into 2 channels and 16bit.
 //
 // Decode returns error when decoding fails or IO error happens.
