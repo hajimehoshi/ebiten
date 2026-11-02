@@ -31,11 +31,11 @@ import (
 )
 
 // wantByTick is the expected pinch amount per tick; keep it in sync with the host's injected gestures.
-// Tick 0: two gestures, whose amounts add up. Tick 1: none, so the amount of tick 0 must be gone.
-// Tick 2: a gesture that shrinks.
-var wantByTick = []float64{0.25, 0, -0.125}
+// Tick 0: two gestures, whose ratios are composed (1.1 * 1.15 = 1.265). Tick 1: none, so the amount of
+// tick 0 must be gone. Tick 2: a gesture that shrinks.
+var wantByTick = []float64{0.265, 0, -0.125}
 
-// eps is the tolerance for an amount that is the sum of several injected ones.
+// eps is the tolerance for an amount that is composed of several injected ones.
 const eps = 1e-9
 
 type game struct {

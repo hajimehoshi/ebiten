@@ -572,7 +572,7 @@ func (r *remoteBackend) scroll(x, y float64) {
 func (r *remoteBackend) pinch(delta float64) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	r.inputState.PinchDelta += delta
+	r.inputState.addPinch(delta)
 }
 
 // typeRune injects a typed character.

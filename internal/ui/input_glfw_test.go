@@ -70,8 +70,8 @@ func TestGLFWInputScrollUnits(t *testing.T) {
 	}
 }
 
-// TestGLFWInputPinch tests that the pinch amounts reported within a tick add up, and that a tick
-// without a gesture reads 0.
+// TestGLFWInputPinch tests that the pinch amounts reported within a tick are composed as ratios, and
+// that a tick without a gesture reads 0.
 func TestGLFWInputPinch(t *testing.T) {
 	i := ui.NewGLFWInputForTest()
 	i.HandlePinchForTest(0.25)
@@ -79,7 +79,8 @@ func TestGLFWInputPinch(t *testing.T) {
 
 	var s ui.InputState
 	i.ReadForTest(&s)
-	if got, want := s.PinchDelta, 0.125; got != want {
+	// 1.25 times 0.875 is 1.09375.
+	if got, want := s.PinchDelta, 0.09375; got != want {
 		t.Errorf("pinch: got %v, want %v", got, want)
 	}
 

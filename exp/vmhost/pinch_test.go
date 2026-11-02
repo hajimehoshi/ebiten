@@ -49,7 +49,7 @@ func TestPinchForwarding(t *testing.T) {
 
 	// The injected gestures mirror the fixture's per-tick expectation; keep the two in sync.
 
-	// Tick 0: two gestures within one tick add up.
+	// Tick 0: two gestures within one tick are composed.
 	guest.PinchBy(0.1)
 	guest.PinchBy(0.15)
 	tickAndFrame(t, guest)

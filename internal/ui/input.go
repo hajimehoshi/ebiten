@@ -413,6 +413,13 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	i.inputTime = NewInputTimeFromTick(i.inputTime.Tick() + 1)
 }
 
+// addPinch adds the amount of a pinch gesture, as the change of the scale it asks for, to PinchDelta.
+// The amounts are composed as the ratios they are, so that two pinches that ask for 1+a and 1+b times
+// ask for (1+a)(1+b) times in total.
+func (i *InputState) addPinch(delta float64) {
+	i.PinchDelta = (1+i.PinchDelta)*(1+delta) - 1
+}
+
 func (i *InputState) appendRune(r rune) {
 	if !unicode.IsPrint(r) {
 		return

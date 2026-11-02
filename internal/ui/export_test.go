@@ -29,6 +29,10 @@ func (i *InputState) SetKeyReleased(key Key, t InputTime) {
 	i.setKeyReleased(key, t)
 }
 
+func (i *InputState) AddPinch(delta float64) {
+	i.addPinch(delta)
+}
+
 func (i *InputState) SetMouseButtonPressed(button MouseButton, t InputTime) {
 	i.setMouseButtonPressed(button, t)
 }

@@ -177,7 +177,7 @@ func (i *glfwInput) handlePinch(delta float64) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
-	i.state.PinchDelta += delta
+	i.state.addPinch(delta)
 }
 
 // handleRotate records the angle of a rotation gesture reported by GLFW.

@@ -70,7 +70,7 @@ func (u *UserInterface) updatePinchFromOutside(delta float64) {
 		return
 	}
 
-	u.inputState.PinchDelta += delta
+	u.inputState.addPinch(delta)
 }
 
 func (u *UserInterface) updateRotationFromOutside(delta float64) {

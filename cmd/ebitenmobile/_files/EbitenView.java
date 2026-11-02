@@ -244,14 +244,15 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         // instead of touches, as the other platforms do.
         if (Build.VERSION.SDK_INT >= 34 && e.getClassification() == CLASSIFICATION_PINCH) {
             if (e.getActionMasked() == MotionEvent.ACTION_MOVE) {
-                // The scale factor of each sample is relative to the previous sample, including the batched ones.
-                double delta = 0;
+                // The scale factor of each sample is relative to the previous sample, including the batched ones,
+                // so the factors are multiplied.
+                double scale = 1;
                 for (int h = 0; h < e.getHistorySize(); h++) {
-                    delta += e.getHistoricalAxisValue(AXIS_GESTURE_PINCH_SCALE_FACTOR, 0, h) - 1.0;
+                    scale *= e.getHistoricalAxisValue(AXIS_GESTURE_PINCH_SCALE_FACTOR, 0, h);
                 }
-                delta += e.getAxisValue(AXIS_GESTURE_PINCH_SCALE_FACTOR, 0) - 1.0;
-                if (delta != 0) {
-                    Ebitenmobileview.updatePinch(delta);
+                scale *= e.getAxisValue(AXIS_GESTURE_PINCH_SCALE_FACTOR, 0);
+                if (scale != 1) {
+                    Ebitenmobileview.updatePinch(scale - 1.0);
                 }
             }
             return true;
@@ -311,7 +312,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
 
         // Each sample, including the batched ones, adds the changes of the distance and the angle relative to
         // the previous sample.
-        double pinch = 0;
+        double scale = 1;
         double rotation = 0;
         for (int h = 0; h <= e.getHistorySize(); h++) {
             float dx, dy;
@@ -329,7 +330,7 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             // As the Y axis points down, an increasing angle is clockwise.
             double a = Math.atan2(dy, dx);
             if (touchScreenGestureDistance > 0) {
-                pinch += d / touchScreenGestureDistance - 1.0;
+                scale *= d / touchScreenGestureDistance;
                 double da = a - touchScreenGestureAngle;
                 // Take the shorter way around, as the angle wraps at ±pi.
                 if (da > Math.PI) {
@@ -342,8 +343,8 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             touchScreenGestureDistance = d;
             touchScreenGestureAngle = a;
         }
-        if (pinch != 0) {
-            Ebitenmobileview.updatePinch(pinch);
+        if (scale != 1) {
+            Ebitenmobileview.updatePinch(scale - 1.0);
         }
         if (rotation != 0) {
             Ebitenmobileview.updateRotation(rotation);

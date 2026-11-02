@@ -214,7 +214,7 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 			// Safari reports a pinch with gesture events instead. Do not count it twice in case it
 			// reports both.
 			if !u.inGesture {
-				u.inputState.PinchDelta += wheelPinchDelta(scrollDeltaY)
+				u.inputState.addPinch(wheelPinchDelta(scrollDeltaY))
 			}
 			break
 		}
@@ -235,7 +235,7 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 		rotation := e.Get("rotation").Float()
 		// On a touch screen, a pinch is reported by touches, like the other platforms.
 		if len(u.touchesInClient) == 0 && u.gestureScale > 0 {
-			u.inputState.PinchDelta += scale/u.gestureScale - 1
+			u.inputState.addPinch(scale/u.gestureScale - 1)
 			// rotation is in degrees, and a positive value is clockwise.
 			u.inputState.RotationDelta += (rotation - u.gestureRotation) * math.Pi / 180
 		}
