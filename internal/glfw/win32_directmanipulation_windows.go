@@ -266,23 +266,37 @@ func (i *_IDirectManipulationViewport) SetViewportRect(viewport *_RECT) error {
 	return nil
 }
 
-func (i *_IDirectManipulationViewport) ZoomToRect(left, top, right, bottom float32, animate bool) error {
+// zoomToRectFunc is the type of IDirectManipulationViewport::ZoomToRect called through purego.
+type zoomToRectFunc func(this unsafe.Pointer, left, top, right, bottom float32, animate int32) int32
+
+// newZoomToRectFunc returns a function that calls IDirectManipulationViewport::ZoomToRect of i, or nil
+// when the system call can call it.
+//
+// On 386 and amd64, the system call passes the float arguments where the callee reads them from: on the
+// stack on 386, and in both the integer and the float registers on amd64. On arm64, float arguments are
+// passed in the float registers, numbered independently of the integer registers, which the system call
+// never sets. purego sets them.
+func (i *_IDirectManipulationViewport) newZoomToRectFunc() zoomToRectFunc {
+	switch runtime.GOARCH {
+	case "386", "amd64":
+		return nil
+	}
+	var f zoomToRectFunc
+	purego.RegisterFunc(&f, i.vtbl.ZoomToRect)
+	return f
+}
+
+// ZoomToRect calls IDirectManipulationViewport::ZoomToRect. f is the function newZoomToRectFunc returns.
+func (i *_IDirectManipulationViewport) ZoomToRect(f zoomToRectFunc, left, top, right, bottom float32, animate bool) error {
 	var a int32
 	if animate {
 		a = 1
 	}
 	var r uintptr
-	switch runtime.GOARCH {
-	case "386", "amd64":
-		// The system call passes the float arguments where the callee reads them from: on the stack on 386,
-		// and in both the integer and the float registers on amd64.
+	if f != nil {
+		r = uintptr(uint32(f(unsafe.Pointer(i), left, top, right, bottom, a)))
+	} else {
 		r, _, _ = syscall.SyscallN(i.vtbl.ZoomToRect, uintptr(unsafe.Pointer(i)), uintptr(math.Float32bits(left)), uintptr(math.Float32bits(top)), uintptr(math.Float32bits(right)), uintptr(math.Float32bits(bottom)), uintptr(a))
-	default:
-		// On arm64, float arguments are passed in the float registers, numbered independently of the
-		// integer registers, which the system call never sets. purego sets them.
-		var zoomToRect func(this unsafe.Pointer, left, top, right, bottom float32, animate int32) int32
-		purego.RegisterFunc(&zoomToRect, i.vtbl.ZoomToRect)
-		r = uintptr(uint32(zoomToRect(unsafe.Pointer(i), left, top, right, bottom, a)))
 	}
 	if hresultFailed(r) {
 		return hresultError("IDirectManipulationViewport::ZoomToRect", r)
@@ -369,6 +383,10 @@ type directManipulation struct {
 	viewport      *_IDirectManipulationViewport
 	content       *_IDirectManipulationContent
 
+	// zoomToRect is the function to call ZoomToRect of the viewport with. It is registered once, as the
+	// method of the viewport does not change.
+	zoomToRect zoomToRectFunc
+
 	activated       bool
 	uninitializeCOM bool
 
@@ -417,6 +435,7 @@ func newDirectManipulation(hwnd windows.HWND) (dm *directManipulation, err error
 	if dm.viewport, err = dm.manager.CreateViewport(hwnd); err != nil {
 		return nil, err
 	}
+	dm.zoomToRect = dm.viewport.newZoomToRectFunc()
 	if err := dm.viewport.ActivateConfiguration(_DIRECTMANIPULATION_CONFIGURATION_INTERACTION |
 		_DIRECTMANIPULATION_CONFIGURATION_TRANSLATION_X |
 		_DIRECTMANIPULATION_CONFIGURATION_TRANSLATION_Y |
@@ -530,7 +549,7 @@ func (d *directManipulation) update(w *Window) error {
 	// transform and never reaches the zoom boundaries.
 	if d.gesture.active() && status != _DIRECTMANIPULATION_RUNNING && status != _DIRECTMANIPULATION_INERTIA {
 		d.gesture = newDirectManipulationGesture()
-		if err := d.viewport.ZoomToRect(0, 0, directManipulationViewportSize, directManipulationViewportSize, false); err != nil {
+		if err := d.viewport.ZoomToRect(d.zoomToRect, 0, 0, directManipulationViewportSize, directManipulationViewportSize, false); err != nil {
 			return err
 		}
 	}
