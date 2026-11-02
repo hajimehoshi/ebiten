@@ -17,11 +17,15 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"image"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/ebitengine/debugui"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
@@ -43,6 +47,10 @@ const fontURL = "https://res.ebitengine.org/examples/NotoColorEmoji-Regular.ttf"
 const sampleText = "😀🍤🍣🍵😅\n🖐🏻🖐🏼🖐🏽🖐🏾🖐🏿"
 
 type Game struct {
+	debugui        debugui.DebugUI
+	highResolution bool
+	scale          float64
+
 	faceSourceCh chan *text.GoTextFaceSource
 	faces        []*text.GoTextFace
 	fontPath     string
@@ -59,6 +67,24 @@ func (g *Game) loadingMessage() string {
 }
 
 func (g *Game) Update() error {
+	highResolutionAvailable := ebiten.Monitor().DeviceScaleFactor() > 1
+	if !highResolutionAvailable {
+		g.highResolution = false
+	}
+	if _, err := g.debugui.Update(func(ctx *debugui.Context) error {
+		ctx.SetScale(max(1, int(math.Round(g.scale))))
+		ctx.Window("Emoji", image.Rect(420, 10, 630, 80), func(layout debugui.ContainerLayout) {
+			if highResolutionAvailable {
+				ctx.Checkbox(&g.highResolution, "High resolution")
+			} else {
+				ctx.Text("High resolution unavailable")
+			}
+		})
+		return nil
+	}); err != nil {
+		return err
+	}
+
 	if len(g.faces) == 0 {
 		// Use select and 'default' clause for non-blocking receiving.
 		select {
@@ -78,22 +104,35 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	if len(g.faces) == 0 {
 		ebitenutil.DebugPrint(screen, g.loadingMessage())
+		g.debugui.Draw(screen)
 		return
 	}
 
-	y := 8.0
-	for _, face := range g.faces {
+	y := 8 * g.scale
+	for _, baseFace := range g.faces {
+		face := *baseFace
+		face.Size *= g.scale
 		op := &text.DrawOptions{}
-		op.GeoM.Translate(8, y)
+		op.GeoM.Translate(8*g.scale, y)
 		op.LineSpacing = face.Size * 1.25
 		// Do not set a color scale: a color scale would also scale the colors of emojis.
-		text.Draw(screen, sampleText, face, op)
+		text.Draw(screen, sampleText, &face, op)
 		y += op.LineSpacing * 2
 	}
+	g.debugui.Draw(screen)
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return screenWidth, screenHeight
+	panic("emoji: Layout must not be called")
+}
+
+func (g *Game) LayoutF(outsideWidth, outsideHeight float64) (float64, float64) {
+	g.scale = 1
+	if g.highResolution {
+		g.scale = ebiten.Monitor().DeviceScaleFactor()
+		g.scale *= outsideWidth / screenWidth
+	}
+	return screenWidth * g.scale, screenHeight * g.scale
 }
 
 // loadFaceSource loads a font from the file at path.
