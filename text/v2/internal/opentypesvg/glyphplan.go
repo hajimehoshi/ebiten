@@ -27,7 +27,10 @@ func (doc *RenderDocument) PrepareGlyph(options RenderOptions) (*RenderPlan, ima
 	// budgets still apply. The final pass charges the actual output surface.
 	options.Width, options.Height = 1, 1
 	images := make(map[string]*image.RGBA)
-	probe, err := doc.prepare(options, images)
+	// Path coordinates are independent of the output grid and can be shared
+	// by the bounds and output passes.
+	paths := make(map[*element]path)
+	probe, err := doc.prepare(options, images, paths)
 	if err != nil {
 		return nil, image.Rectangle{}, err
 	}
@@ -60,7 +63,7 @@ func (doc *RenderDocument) PrepareGlyph(options RenderOptions) (*RenderPlan, ima
 	transform.E -= float64(bounds.Min.X)
 	transform.F -= float64(bounds.Min.Y)
 	options.Transform = transform.values()
-	plan, err := doc.prepare(options, images)
+	plan, err := doc.prepare(options, images, paths)
 	if err != nil {
 		return nil, image.Rectangle{}, err
 	}
