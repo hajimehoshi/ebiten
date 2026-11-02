@@ -252,7 +252,16 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
                 }
                 scale *= e.getAxisValue(AXIS_GESTURE_PINCH_SCALE_FACTOR, 0);
                 if (scale != 1) {
-                    Ebitenmobileview.updatePinch(scale - 1.0);
+                    // The pinch is done around the middle of the pointers of the event.
+                    double x = 0;
+                    double y = 0;
+                    for (int i = 0; i < e.getPointerCount(); i++) {
+                        x += e.getX(i);
+                        y += e.getY(i);
+                    }
+                    x /= e.getPointerCount();
+                    y /= e.getPointerCount();
+                    Ebitenmobileview.updatePinch(scale - 1.0, pxToDp(x), pxToDp(y));
                 }
             }
             return true;
@@ -343,11 +352,14 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             touchScreenGestureDistance = d;
             touchScreenGestureAngle = a;
         }
+        // The gesture is done around the middle of the two fingers.
+        double centerX = pxToDp((e.getX(0) + e.getX(1)) / 2);
+        double centerY = pxToDp((e.getY(0) + e.getY(1)) / 2);
         if (scale != 1) {
-            Ebitenmobileview.updatePinch(scale - 1.0);
+            Ebitenmobileview.updatePinch(scale - 1.0, centerX, centerY);
         }
         if (rotation != 0) {
-            Ebitenmobileview.updateRotation(rotation);
+            Ebitenmobileview.updateRotation(rotation, centerX, centerY);
         }
     }
 

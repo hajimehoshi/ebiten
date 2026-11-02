@@ -37,8 +37,8 @@ type ViewGesture struct {
 	// Rotation is the angle the view turns by around the center, in radians. A positive value is clockwise.
 	Rotation float64
 
-	// CenterX and CenterY are the point the view scales and turns around: the middle of the fingers when
-	// two fingers touch the screen, and the cursor otherwise.
+	// CenterX and CenterY are the point the view scales and turns around, which inpututil.PinchCenter
+	// returns.
 	CenterX, CenterY float64
 }
 

@@ -180,6 +180,14 @@ func (i *inputState) RotationDelta() float64 {
 	return i.state.RotationDelta
 }
 
+// PinchCenter returns the point that a pinch and a rotation at the current tick are done around, and
+// whether the platform reports it.
+func (i *inputState) PinchCenter() (x, y float64, ok bool) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.state.PinchCenterX, i.state.PinchCenterY, i.state.PinchCenterReported
+}
+
 func AppendTouchIDs[T ~int](touches []T) []T {
 	theInputState.m.Lock()
 	defer theInputState.m.Unlock()

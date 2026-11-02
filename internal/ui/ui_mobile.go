@@ -111,6 +111,13 @@ type userInterfaceImpl struct {
 	touches    []touchInClient
 	touchIDs   touchIDAllocator
 
+	// gestureCenterXInClient and gestureCenterYInClient are the point the platform reported a pinch or a
+	// rotation is done around, in device-independent pixels. gestureCenterReported reports whether a
+	// point is reported since the last frame.
+	gestureCenterXInClient float64
+	gestureCenterYInClient float64
+	gestureCenterReported  bool
+
 	fpsMode  atomic.Int32
 	renderer atomic.Pointer[rendererHolder]
 
@@ -355,15 +362,17 @@ func (u *UserInterface) UpdateInput(keys []KeyEvent, runes []rune, touches []Tou
 	u.requestRenderForInput()
 }
 
-// UpdatePinch records the amount of a pinch gesture, as the change of the scale it asks for.
-func (u *UserInterface) UpdatePinch(delta float64) {
-	u.updatePinchFromOutside(delta)
+// UpdatePinch records the amount of a pinch gesture, as the change of the scale it asks for, and the point
+// it is done around in device-independent pixels.
+func (u *UserInterface) UpdatePinch(delta float64, centerX, centerY float64) {
+	u.updatePinchFromOutside(delta, centerX, centerY)
 	u.requestRenderForInput()
 }
 
-// UpdateRotation records the angle of a rotation gesture, in radians. A positive value is clockwise.
-func (u *UserInterface) UpdateRotation(delta float64) {
-	u.updateRotationFromOutside(delta)
+// UpdateRotation records the angle of a rotation gesture, in radians, and the point it is done around in
+// device-independent pixels. A positive value is clockwise.
+func (u *UserInterface) UpdateRotation(delta float64, centerX, centerY float64) {
+	u.updateRotationFromOutside(delta, centerX, centerY)
 	u.requestRenderForInput()
 }
 

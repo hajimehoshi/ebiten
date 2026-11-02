@@ -349,7 +349,9 @@
   // since the last call.
   CGFloat scale = recognizer.scale;
   recognizer.scale = 1;
-  $Placeholder_Prefix$EbitenmobileviewUpdatePinch(scale - 1);
+  // The gesture is done around the centroid of the touches, or the pointer on a trackpad.
+  CGPoint center = [recognizer locationInView:recognizer.view];
+  $Placeholder_Prefix$EbitenmobileviewUpdatePinch(scale - 1, center.x, center.y);
 }
 
 - (void)handleRotation:(UIRotationGestureRecognizer*)recognizer {
@@ -365,7 +367,8 @@
   // down. Reset it so that each call reports the change since the last call.
   CGFloat rotation = recognizer.rotation;
   recognizer.rotation = 0;
-  $Placeholder_Prefix$EbitenmobileviewUpdateRotation(rotation);
+  CGPoint center = [recognizer locationInView:recognizer.view];
+  $Placeholder_Prefix$EbitenmobileviewUpdateRotation(rotation, center.x, center.y);
 }
 
 - (BOOL)gestureRecognizer:(UIGestureRecognizer*)gestureRecognizer
