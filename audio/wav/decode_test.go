@@ -40,7 +40,7 @@ func TestDecodeInvalidHugeChunkSize(t *testing.T) {
 	buf = binary.LittleEndian.AppendUint16(buf, 16)
 
 	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(buf)); err == nil {
-		t.Errorf("DecodeWithoutResampling: got no error, want an error")
+		t.Fatal("DecodeWithoutResampling: got no error, want an error")
 	}
 }
 
@@ -53,7 +53,7 @@ func TestDecodeInvalidHugeUnknownChunkSize(t *testing.T) {
 	buf = append(buf, 0, 0)
 
 	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(buf)); err == nil {
-		t.Errorf("DecodeWithoutResampling: got no error, want an error")
+		t.Fatal("DecodeWithoutResampling: got no error, want an error")
 	}
 }
 
@@ -199,7 +199,7 @@ func TestDecodeWAVEFORMATEXTENSIBLERejectsNonPCM(t *testing.T) {
 	src := wavFileWithFmtData(fmtData, data)
 
 	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(src)); err == nil {
-		t.Fatalf("DecodeWithoutResampling: got no error, want an error")
+		t.Fatal("DecodeWithoutResampling: got no error, want an error")
 	}
 }
 
