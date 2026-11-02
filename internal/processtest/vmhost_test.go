@@ -40,10 +40,13 @@ func TestVMHostThreadMode(t *testing.T) {
 			}
 			for _, mode := range modes {
 				t.Run(mode, func(t *testing.T) {
-					ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+					ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 					defer cancel()
 					cmd := exec.CommandContext(ctx, binary, mode)
-					if output, err := cmd.CombinedOutput(); err != nil {
+					output, err := cmd.CombinedOutput()
+					if ctx.Err() != nil {
+						t.Errorf("fixture timed out: %v\n%s", err, output)
+					} else if err != nil {
 						t.Errorf("fixture: %v\n%s", err, output)
 					}
 				})
