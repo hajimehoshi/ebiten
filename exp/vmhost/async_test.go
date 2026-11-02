@@ -229,6 +229,18 @@ func TestAdvanceTicks(t *testing.T) {
 	}
 }
 
+func TestAdvanceTicksOnEndedSession(t *testing.T) {
+	guest := newFakeGuestSession(t, func(fg *fakeGuest) {})
+	guest.AdvanceTicks(1)
+	guest.AdvanceTicks(1)
+	if guest.WaitTicks() {
+		t.Errorf("WaitTicks after AdvanceTicks on a session ended by the missing outside screen = true; want false (Err: %v)", guest.Err())
+	}
+	if n := guest.PendingTicks(); n != 2 {
+		t.Errorf("PendingTicks = %d; want 2", n)
+	}
+}
+
 // TestCompositeFrameUnderConcurrentSetOutsideScreen exercises the documented concurrent
 // screen replacement path, including under the race detector.
 func TestCompositeFrameUnderConcurrentSetOutsideScreen(t *testing.T) {
