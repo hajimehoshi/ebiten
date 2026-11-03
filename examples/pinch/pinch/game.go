@@ -65,92 +65,73 @@ type Game struct {
 // NewGame returns a new game.
 func NewGame() *Game {
 	g := &Game{}
-	g.gestures.Separate = GestureScale | GestureRotate
+	g.gestures.Separate = PairScaleRotate
 	g.reset()
 
 	// The buttons for a gesture are lit when the gesture is reported, and the buttons to separate gestures are lit
 	// when the gestures are separated.
-	toggle := func(set *Gesture, gesture Gesture, lit bool) (func() bool, func()) {
-		return func() bool { return (*set&gesture != 0) == lit }, func() { *set ^= gesture }
-	}
 	type spec struct {
-		label   string
-		set     *Gesture
-		gesture Gesture
-		lit     bool
+		label string
+		on    func() bool
+		press func()
 	}
-	specs := []spec{
+	ignore := func(label string, gesture Gesture) spec {
+		return spec{
+			label: label,
+			on:    func() bool { return g.gestures.Ignore&gesture == 0 },
+			press: func() { g.gestures.Ignore ^= gesture },
+		}
+	}
+	separate := func(label string, pair GesturePairs) spec {
+		return spec{
+			label: label,
+			on:    func() bool { return g.gestures.Separate&pair != 0 },
+			press: func() { g.gestures.Separate ^= pair },
+		}
+	}
+	rows := [][]spec{
 		{
-			label:   "PanX",
-			set:     &g.gestures.Ignore,
-			gesture: GesturePanX,
-			lit:     false,
+			ignore("PanX", GesturePanX),
+			ignore("PanY", GesturePanY),
+			ignore("Scale", GestureScale),
+			ignore("Rotate", GestureRotate),
+			// Scrolling with the Control key is reported as a pinch only when it is asked for, as it can no longer
+			// be used for anything else.
+			{
+				label: "Ctrl+Scroll",
+				on:    func() bool { return g.gestures.CtrlScrollAsPinch },
+				press: func() { g.gestures.CtrlScrollAsPinch = !g.gestures.CtrlScrollAsPinch },
+			},
+			{
+				label: "Reset",
+				press: g.reset,
+			},
 		},
 		{
-			label:   "PanY",
-			set:     &g.gestures.Ignore,
-			gesture: GesturePanY,
-			lit:     false,
-		},
-		{
-			label:   "Scale",
-			set:     &g.gestures.Ignore,
-			gesture: GestureScale,
-			lit:     false,
-		},
-		{
-			label:   "Rotate",
-			set:     &g.gestures.Ignore,
-			gesture: GestureRotate,
-			lit:     false,
-		},
-		{
-			label:   "X or Y",
-			set:     &g.gestures.Separate,
-			gesture: GesturePanX | GesturePanY,
-			lit:     true,
-		},
-		{
-			label:   "S or R",
-			set:     &g.gestures.Separate,
-			gesture: GestureScale | GestureRotate,
-			lit:     true,
+			separate("X or Y", PairPanXPanY),
+			separate("P or S", PairPanScale),
+			separate("P or R", PairPanRotate),
+			separate("S or R", PairScaleRotate),
 		},
 	}
 	const (
 		w   = 74
 		h   = 32
 		gap = 4
-		n   = 8
-		x0  = (ScreenWidth - n*w - (n-1)*gap) / 2
-		y0  = ScreenHeight - h - 16
 	)
-	rect := func(i int) image.Rectangle {
-		x := x0 + i*(w+gap)
-		return image.Rect(x, y0, x+w, y0+h)
+	for i, row := range rows {
+		x0 := (ScreenWidth - len(row)*w - (len(row)-1)*gap) / 2
+		y := ScreenHeight - 16 - (len(rows)-i)*h - (len(rows)-i-1)*gap
+		for j, s := range row {
+			x := x0 + j*(w+gap)
+			g.buttons = append(g.buttons, &button{
+				label: s.label,
+				rect:  image.Rect(x, y, x+w, y+h),
+				on:    s.on,
+				press: s.press,
+			})
+		}
 	}
-	for i, s := range specs {
-		on, press := toggle(s.set, s.gesture, s.lit)
-		g.buttons = append(g.buttons, &button{
-			label: s.label,
-			rect:  rect(i),
-			on:    on,
-			press: press,
-		})
-	}
-	// Scrolling with the Control key is reported as a pinch only when it is asked for, as it can no longer be used
-	// for anything else.
-	g.buttons = append(g.buttons, &button{
-		label: "Ctrl+Scroll",
-		rect:  rect(len(specs)),
-		on:    func() bool { return g.gestures.CtrlScrollAsPinch },
-		press: func() { g.gestures.CtrlScrollAsPinch = !g.gestures.CtrlScrollAsPinch },
-	})
-	g.buttons = append(g.buttons, &button{
-		label: "Reset",
-		rect:  rect(len(specs) + 1),
-		press: g.reset,
-	})
 	return g
 }
 
@@ -225,7 +206,8 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	ebitenutil.DebugPrint(screen, fmt.Sprintf(`Pinch to scale, rotate with two fingers to turn, and scroll or drag to move
-on a touchpad or a touch screen. The buttons choose the gestures to report and to separate.
+on a touchpad or a touch screen. The buttons choose the gestures to report and to separate:
+P is moving in any direction, S is scaling, and R is turning.
 Ctrl+Scroll scales with scrolling with the Control key, for touchpads whose pinches are not reported.
 Ignore: %s, Separate: %s, Ctrl+Scroll as pinch: %t
 Scale: %0.3f, Angle: %0.1f deg

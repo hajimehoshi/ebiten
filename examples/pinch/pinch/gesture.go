@@ -101,6 +101,107 @@ func (g Gesture) String() string {
 	return strings.Join(names, "|")
 }
 
+// GesturePairs is a set of pairs of the ways a gesture changes a view, which Separate keeps a gesture from doing both of.
+type GesturePairs int
+
+const (
+	// PairPanXPanY is moving horizontally and moving vertically.
+	PairPanXPanY GesturePairs = 1 << iota
+
+	// PairPanScale is moving, in any direction, and scaling.
+	PairPanScale
+
+	// PairPanRotate is moving, in any direction, and turning.
+	PairPanRotate
+
+	// PairScaleRotate is scaling and turning.
+	PairScaleRotate
+)
+
+func (p GesturePairs) String() string {
+	var names []string
+	for _, n := range []struct {
+		p    GesturePairs
+		name string
+	}{
+		{
+			p:    PairPanXPanY,
+			name: "PanX/PanY",
+		},
+		{
+			p:    PairPanScale,
+			name: "Pan/Scale",
+		},
+		{
+			p:    PairPanRotate,
+			name: "Pan/Rotate",
+		},
+		{
+			p:    PairScaleRotate,
+			name: "Scale/Rotate",
+		},
+	} {
+		if p&n.p != 0 {
+			names = append(names, n.name)
+		}
+	}
+	if len(names) == 0 {
+		return "None"
+	}
+	return strings.Join(names, "|")
+}
+
+// gestureKind is a kind of the ways a gesture changes a view. Moving horizontally and moving vertically are one kind.
+type gestureKind int
+
+const (
+	kindPan gestureKind = iota
+	kindScale
+	kindRotate
+	kindCount
+)
+
+// kindPairs is the pairs of the kinds that GesturePairs keeps a gesture from doing both of.
+var kindPairs = []struct {
+	pair GesturePairs
+	a, b gestureKind
+}{
+	{
+		pair: PairPanScale,
+		a:    kindPan,
+		b:    kindScale,
+	},
+	{
+		pair: PairPanRotate,
+		a:    kindPan,
+		b:    kindRotate,
+	},
+	{
+		pair: PairScaleRotate,
+		a:    kindScale,
+		b:    kindRotate,
+	},
+}
+
+// The amounts of a gesture at a tick, in the units that kindLock uses.
+const (
+	amountPanX = iota
+	amountPanY
+	// amountScale is the logarithm of the ratio the view scales by.
+	amountScale
+	// amountRotate is the angle the view turns by, in radians.
+	amountRotate
+	amountCount
+)
+
+// amountKinds is the kind of each amount.
+var amountKinds = [amountCount]gestureKind{
+	amountPanX:   kindPan,
+	amountPanY:   kindPan,
+	amountScale:  kindScale,
+	amountRotate: kindRotate,
+}
+
 type touchPosition struct {
 	x, y float64
 }
@@ -113,13 +214,11 @@ const (
 	// A gesture that moves less than this along both axes moves in any direction.
 	panLockRatio = 2
 
-	// transformLockThreshold is how far a gesture scales or turns before it is decided which it does. Scaling is
-	// measured as the logarithm of the ratio, and turning in radians, so that both are as far as the fingers move
-	// relative to the distance between them.
+	// transformLockThreshold is how far a gesture scales or turns before it is decided whether it does. Scaling
+	// is measured as the logarithm of the ratio, and turning in radians, so that both are as far as the fingers
+	// move relative to the distance between them. For fingers 160 pixels apart, this is as far as
+	// panLockThreshold.
 	transformLockThreshold = 0.05
-
-	// transformLockRatio is 1 so that a gesture always either scales or turns, whichever it does more.
-	transformLockRatio = 1
 
 	// gestureGapTicks is the number of ticks without changes that ends a gesture without touches, such as one on
 	// a touchpad.
@@ -139,6 +238,101 @@ const (
 	lockB
 	lockBoth
 )
+
+// kindLock keeps a gesture from doing both kinds of a pair: it does whichever it does first.
+type kindLock struct {
+	// allowed and blocked are the kinds that the gesture is decided to do and not to do.
+	allowed [kindCount]bool
+	blocked [kindCount]bool
+	// pending is what the gesture has done so far of the kinds that are not decided yet.
+	pending   [amountCount]float64
+	idleTicks int
+}
+
+// magnitude returns how far the gesture has done kind k so far, relative to the threshold to decide it.
+func (l *kindLock) magnitude(k gestureKind) float64 {
+	switch k {
+	case kindPan:
+		return math.Hypot(l.pending[amountPanX], l.pending[amountPanY]) / panLockThreshold
+	case kindScale:
+		return math.Abs(l.pending[amountScale]) / transformLockThreshold
+	case kindRotate:
+		return math.Abs(l.pending[amountRotate]) / transformLockThreshold
+	}
+	return 0
+}
+
+// restrict restricts amounts, what a gesture does at the current tick. excludes reports whether a gesture must
+// not do both of two kinds. touchesChanged reports whether fingers touched or left the screen, which starts a
+// new gesture.
+func (l *kindLock) restrict(amounts *[amountCount]float64, excludes func(a, b gestureKind) bool, touches int, touchesChanged bool) {
+	if *amounts == [amountCount]float64{} {
+		l.idleTicks++
+	} else {
+		l.idleTicks = 0
+	}
+	// A gesture on a touch screen lasts while the same fingers touch it, even when they stop moving.
+	if touchesChanged || (touches == 0 && l.idleTicks >= gestureGapTicks) {
+		*l = kindLock{}
+	}
+
+	// Hold what the gesture does of the kinds that are not decided yet.
+	for i, a := range amounts {
+		k := amountKinds[i]
+		switch {
+		case l.blocked[k]:
+			amounts[i] = 0
+		case !l.allowed[k]:
+			l.pending[i] += a
+			amounts[i] = 0
+		}
+	}
+
+	// Decide the kinds one by one, the one the gesture has done the most first. A kind that no undecided kind
+	// excludes is allowed at once.
+	for {
+		best := gestureKind(-1)
+		var bestMagnitude float64
+		for k := range kindCount {
+			if l.allowed[k] || l.blocked[k] {
+				continue
+			}
+			m := l.magnitude(k)
+			if l.free(k, excludes) {
+				m = math.Inf(1)
+			}
+			if m >= 1 && m > bestMagnitude {
+				best, bestMagnitude = k, m
+			}
+		}
+		if best < 0 {
+			return
+		}
+		l.allowed[best] = true
+		for k := range kindCount {
+			if k != best && excludes(best, k) {
+				l.blocked[k] = true
+			}
+		}
+		// Apply what the gesture has done so far, so that the start of it is not lost.
+		for i, k := range amountKinds {
+			if k == best {
+				amounts[i] += l.pending[i]
+				l.pending[i] = 0
+			}
+		}
+	}
+}
+
+// free reports whether no kind that is not blocked excludes k.
+func (l *kindLock) free(k gestureKind, excludes func(a, b gestureKind) bool) bool {
+	for o := range kindCount {
+		if o != k && !l.blocked[o] && excludes(k, o) {
+			return false
+		}
+	}
+	return true
+}
 
 // exclusiveLock keeps a gesture doing only one of two things, a and b: whichever it does first.
 type exclusiveLock struct {
@@ -200,15 +394,18 @@ type GestureTracker struct {
 	// list.
 	Ignore Gesture
 
-	// Separate is the gestures a gesture does only one of: whichever it does first. It applies between
-	// GesturePanX and GesturePanY, and between GestureScale and GestureRotate, when both of a pair are in it.
+	// Separate is the pairs of gestures a gesture does only one of: whichever it does first. The pairs combine.
+	// For example, PairPanScale|PairPanRotate|PairScaleRotate keeps a gesture either moving, scaling, or
+	// turning, and PairPanScale|PairPanRotate keeps it either moving, or scaling and turning.
 	//
-	// GesturePanX|GesturePanY keeps a gesture moving along the axis it starts along, as in a document. A
-	// gesture that starts diagonally moves the view in any direction.
+	// PairPanXPanY keeps a gesture moving along the axis it starts along, as in a document. A gesture that starts
+	// diagonally moves the view in any direction. It applies after the other pairs, which take moving in any
+	// direction as one.
 	//
-	// GestureScale|GestureRotate keeps a gesture either scaling or turning, as doing both at once is rarely
-	// intended and hard to control.
-	Separate Gesture
+	// PairScaleRotate keeps a gesture either scaling or turning, as doing both at once is rarely intended and hard
+	// to control. PairPanScale keeps the view from moving with the middle point of the fingers while they pinch,
+	// as in a map.
+	Separate GesturePairs
 
 	// CtrlScrollAsPinch reports scrolling with the Control key held as a pinch around the cursor instead of a
 	// move. Scrolling up magnifies the view, and horizontal scrolling with the Control key is dropped.
@@ -225,8 +422,8 @@ type GestureTracker struct {
 	touchIDs []ebiten.TouchID
 	prev     map[ebiten.TouchID]touchPosition
 
-	panLock       exclusiveLock
-	transformLock exclusiveLock
+	kindLock kindLock
+	panLock  exclusiveLock
 }
 
 // restrict restricts v to t.Ignore and t.Separate.
@@ -244,16 +441,41 @@ func (t *GestureTracker) restrict(v *ViewGesture, touches int, touchesChanged bo
 		v.Rotation = 0
 	}
 
-	if s := GesturePanX | GesturePanY; t.Separate&s == s {
-		t.panLock.restrict(&v.PanX, &v.PanY, panLockThreshold, panLockRatio, touches, touchesChanged)
+	// An ignored kind never excludes another.
+	ignored := [kindCount]bool{
+		kindPan:    t.Ignore&(GesturePanX|GesturePanY) == GesturePanX|GesturePanY,
+		kindScale:  t.Ignore&GestureScale != 0,
+		kindRotate: t.Ignore&GestureRotate != 0,
 	}
-	if s := GestureScale | GestureRotate; t.Separate&s == s {
-		var scale float64
-		if v.Scale > 0 {
-			scale = math.Log(v.Scale)
+	excludes := func(a, b gestureKind) bool {
+		if ignored[a] || ignored[b] {
+			return false
 		}
-		t.transformLock.restrict(&scale, &v.Rotation, transformLockThreshold, transformLockRatio, touches, touchesChanged)
-		v.Scale = math.Exp(scale)
+		for _, p := range kindPairs {
+			if t.Separate&p.pair != 0 && (p.a == a && p.b == b || p.a == b && p.b == a) {
+				return true
+			}
+		}
+		return false
+	}
+	var scale float64
+	if v.Scale > 0 {
+		scale = math.Log(v.Scale)
+	}
+	amounts := [amountCount]float64{
+		amountPanX:   v.PanX,
+		amountPanY:   v.PanY,
+		amountScale:  scale,
+		amountRotate: v.Rotation,
+	}
+	t.kindLock.restrict(&amounts, excludes, touches, touchesChanged)
+	v.PanX, v.PanY, v.Rotation = amounts[amountPanX], amounts[amountPanY], amounts[amountRotate]
+	if v.Scale > 0 {
+		v.Scale = math.Exp(amounts[amountScale])
+	}
+
+	if t.Separate&PairPanXPanY != 0 {
+		t.panLock.restrict(&v.PanX, &v.PanY, panLockThreshold, panLockRatio, touches, touchesChanged)
 	}
 }
 
