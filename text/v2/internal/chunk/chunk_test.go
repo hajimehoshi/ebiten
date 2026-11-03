@@ -385,3 +385,29 @@ func TestChunks_FallbackAbsorbsExtend(t *testing.T) {
 		t.Errorf("first chunk ends at %d, want %d", got[0].End, want)
 	}
 }
+
+// Chunks must preserve text after bidi paragraph separators
+// (https://github.com/hajimehoshi/ebiten/issues/3833): the bidi pass
+// stops at class-B controls like U+001C-U+001E, but the returned byte
+// ranges must still cover the whole first line.
+func TestChunks_PreservesTextAfterSeparators(t *testing.T) {
+	for _, text := range []string{"abc\x1cdef", "abc\x1ddef", "abc\x1edef"} {
+		got := chunk.AppendChunks(nil, text, 0)
+		covered := 0
+		for _, ch := range got {
+			covered += ch.End - ch.Start
+		}
+		if covered != len(text) {
+			t.Errorf("%q: chunks %v cover %d of %d bytes", text, got, covered, len(text))
+		}
+	}
+	// Bidi-aware path (Hebrew forces the non-fast path).
+	got := chunk.AppendChunks(nil, "אbc\x1cdef", 0)
+	covered := 0
+	for _, ch := range got {
+		covered += ch.End - ch.Start
+	}
+	if covered != len("אbc\x1cdef") {
+		t.Errorf("rtl: chunks %v cover %d of %d bytes", got, covered, len("אbc\x1cdef"))
+	}
+}

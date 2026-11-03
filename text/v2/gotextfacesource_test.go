@@ -431,3 +431,26 @@ func TestGlyphImageCacheAfterVariationChange(t *testing.T) {
 		t.Error("glyph pixels differ from a fresh face with the same variation")
 	}
 }
+
+// Advances must preserve text after bidi paragraph separators
+// (https://github.com/hajimehoshi/ebiten/issues/3833): shaping used
+// to stop at class-B controls like U+001C-U+001E, silently dropping
+// the tail from the measured width.
+func TestAdvance_PreservesTextAfterSeparators(t *testing.T) {
+	src, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	face := &text.GoTextFace{Source: src, Size: 24}
+	for _, tc := range []struct{ name, s string }{
+		{"FS", "abc\x1cdef"},
+		{"GS", "abc\x1ddef"},
+		{"RS", "abc\x1edef"},
+	} {
+		got := text.Advance(tc.s, face)
+		want := text.Advance("abc", face) + text.Advance("\x1c", face) + text.Advance("def", face)
+		if got != want {
+			t.Errorf("%s: got %.4f, want %.4f (text after separator lost)", tc.name, got, want)
+		}
+	}
+}
