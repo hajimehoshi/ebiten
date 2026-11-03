@@ -83,8 +83,7 @@ func sinc01(x float64) float64 {
 }
 
 type Resampling struct {
-	source         io.Reader
-	sourceSeekable bool
+	source io.Reader
 
 	// declaredSrcLength is the length in bytes given by the caller. -1 indicates the length is unknown.
 	declaredSrcLength int64
@@ -416,20 +415,11 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-// Seek sets the stream position and returns an error wrapping [errors.ErrUnsupported] if the source does not support seeking
+// Seek sets the stream position and returns an error wrapping [errors.ErrUnsupported] if the source is not an [io.Seeker]
 // or whence is [io.SeekEnd] and the length is unknown.
 func (r *Resampling) Seek(offset int64, whence int) (int64, error) {
-	if !r.sourceSeekable {
-		seeker, ok := r.source.(io.Seeker)
-		if !ok {
-			return 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
-		}
-		// Decoder and resampler wrappers can implement io.Seeker while rejecting seeks.
-		// Check without moving the source before changing the logical position, even within cached data.
-		if _, err := seeker.Seek(0, io.SeekCurrent); err != nil {
-			return 0, err
-		}
-		r.sourceSeekable = true
+	if _, ok := r.source.(io.Seeker); !ok {
+		return 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
 
 	var base int64
