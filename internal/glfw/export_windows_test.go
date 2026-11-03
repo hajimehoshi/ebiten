@@ -16,6 +16,7 @@ package glfw
 
 import (
 	"runtime"
+	"time"
 	"unsafe"
 )
 
@@ -43,6 +44,29 @@ func NewDirectManipulationGesture() *DirectManipulationGesture {
 
 func (d *DirectManipulationGesture) Transform(m [6]float32) (panX, panY, pinch float64) {
 	return d.g.transform(m)
+}
+
+const (
+	DirectManipulationBuilding = _DIRECTMANIPULATION_BUILDING
+	DirectManipulationRunning  = _DIRECTMANIPULATION_RUNNING
+	DirectManipulationInertia  = _DIRECTMANIPULATION_INERTIA
+	DirectManipulationReady    = _DIRECTMANIPULATION_READY
+
+	DirectManipulationContactPollingDuration = directManipulationContactPollingDuration
+)
+
+// DirectManipulationPolling reports whether a viewport has to be polled soon after its status changed as
+// statuses. If contact is true, a contact was handed to the viewport sinceContact ago, before the statuses.
+func DirectManipulationPolling(contact bool, sinceContact time.Duration, statuses ...uint32) bool {
+	now := time.Now()
+	d := &directManipulation{}
+	if contact {
+		d.contactTime = now.Add(-sinceContact)
+	}
+	for _, s := range statuses {
+		d.setStatus(s)
+	}
+	return d.polling(now)
 }
 
 // DirectManipulationVtblSlots returns the number of methods in each vtable, which must match

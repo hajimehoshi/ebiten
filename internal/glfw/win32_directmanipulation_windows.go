@@ -21,6 +21,7 @@ import (
 	"runtime"
 	"structs"
 	"syscall"
+	"time"
 	"unsafe"
 
 	"github.com/ebitengine/purego"
@@ -39,7 +40,8 @@ import (
 //
 // Once a contact is handed to Direct Manipulation, Windows no longer sends WM_MOUSEWHEEL for it, so
 // both a pan and a pinch are reported from the content transform of a viewport, which is polled after
-// each round of message processing.
+// each round of message processing. While a gesture is going on, waiting for messages returns
+// periodically so that the viewport is polled without messages.
 //
 // For the interfaces, see directmanipulation.idl in https://github.com/wine-mirror/wine.
 
@@ -54,8 +56,10 @@ const (
 
 	_DIRECTMANIPULATION_VIEWPORT_OPTIONS_MANUALUPDATE = 0x00000002
 
-	_DIRECTMANIPULATION_RUNNING = 3
-	_DIRECTMANIPULATION_INERTIA = 4
+	_DIRECTMANIPULATION_BUILDING = 0
+	_DIRECTMANIPULATION_RUNNING  = 3
+	_DIRECTMANIPULATION_INERTIA  = 4
+	_DIRECTMANIPULATION_READY    = 5
 )
 
 var (
@@ -390,6 +394,12 @@ type directManipulation struct {
 	uninitializeCOM bool
 
 	gesture directManipulationGesture
+
+	// status is the status of the viewport at the last call of update.
+	status uint32
+
+	// contactTime is when a contact was handed to the viewport last, until the viewport starts running.
+	contactTime time.Time
 }
 
 // newDirectManipulation starts Direct Manipulation for the window. It returns nil without an error
@@ -514,6 +524,49 @@ func (w *Window) disableDirectManipulation() {
 	w.platform.directManipulation = nil
 }
 
+const (
+	// directManipulationPollingInterval is how often the viewports are polled while a gesture is going on.
+	directManipulationPollingInterval = time.Second / 60
+
+	// directManipulationContactPollingDuration is how long the viewports are polled after a contact is
+	// handed to Direct Manipulation, before the viewport starts running.
+	directManipulationContactPollingDuration = time.Second
+)
+
+// setStatus records the status of the viewport.
+func (d *directManipulation) setStatus(status uint32) {
+	d.status = status
+	// Once the viewport runs, its status keeps it polled, and polling stops when the gesture ends.
+	if status == _DIRECTMANIPULATION_RUNNING || status == _DIRECTMANIPULATION_INERTIA {
+		d.contactTime = time.Time{}
+	}
+}
+
+// polling reports whether the viewport has to be polled soon.
+//
+// The viewport keeps running while the fingers rest on the touchpad without moving, so it is polled until
+// they are lifted.
+func (d *directManipulation) polling(now time.Time) bool {
+	if d.status == _DIRECTMANIPULATION_RUNNING || d.status == _DIRECTMANIPULATION_INERTIA {
+		return true
+	}
+	return now.Sub(d.contactTime) < directManipulationContactPollingDuration
+}
+
+// directManipulationPolling reports whether any window has to poll its viewport soon.
+//
+// Windows sends no message for a contact handed to Direct Manipulation, so waiting for a message would
+// not report a gesture until another message arrives.
+func directManipulationPolling() bool {
+	now := time.Now()
+	for _, w := range _glfw.windows {
+		if dm := w.platform.directManipulation; dm != nil && dm.polling(now) {
+			return true
+		}
+	}
+	return false
+}
+
 // update reports the changes of the viewport since the last call as scroll and pinch input.
 func (d *directManipulation) update(w *Window) error {
 	if err := d.updateManager.Update(); err != nil {
@@ -523,6 +576,7 @@ func (d *directManipulation) update(w *Window) error {
 	if err != nil {
 		return err
 	}
+	d.setStatus(status)
 	m, err := d.content.GetContentTransform()
 	if err != nil {
 		return err

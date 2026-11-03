@@ -13,6 +13,7 @@ import (
 	"math"
 	"math/bits"
 	"runtime"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -1022,6 +1023,8 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 			if t, err := _GetPointerType(id); err == nil && t == _PT_TOUCHPAD {
 				if err := dm.viewport.SetContact(id); err != nil {
 					window.disableDirectManipulation()
+				} else {
+					dm.contactTime = time.Now()
 				}
 			}
 		}
@@ -2402,6 +2405,9 @@ func platformPollEvents() error {
 }
 
 func platformWaitEvents() error {
+	if directManipulationPolling() {
+		return platformWaitEventsTimeout(directManipulationPollingInterval.Seconds())
+	}
 	if err := _WaitMessage(); err != nil {
 		return err
 	}
@@ -2412,6 +2418,9 @@ func platformWaitEvents() error {
 }
 
 func platformWaitEventsTimeout(timeout float64) error {
+	if directManipulationPolling() {
+		timeout = min(timeout, directManipulationPollingInterval.Seconds())
+	}
 	if _, err := _MsgWaitForMultipleObjects(0, nil, false, uint32(timeout*1e3), _QS_ALLINPUT); err != nil {
 		return err
 	}
