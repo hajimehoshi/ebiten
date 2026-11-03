@@ -304,6 +304,43 @@ func TestTickCountIsStable(t *testing.T) {
 	}
 }
 
+func TestTickCountIsStableAfterLongFirstFrame(t *testing.T) {
+	tests := []struct {
+		fps    float64
+		tps    int
+		jitter time.Duration
+		window int
+	}{
+		{
+			fps:    120,
+			tps:    60,
+			jitter: 2 * time.Millisecond,
+			window: 2,
+		},
+		{
+			fps:    240,
+			tps:    60,
+			jitter: time.Millisecond,
+			window: 4,
+		},
+	}
+
+	for _, tc := range tests {
+		c := clock.NewClock(0)
+		c.SetTPS(tc.tps)
+		ts := frameTimes(tc.fps, tc.jitter, int(tc.fps*2))
+		for i := range ts {
+			ts[i] += int64(time.Second)
+		}
+		counts := countTicks(c, ts)[1:]
+		for i, got := range windowSums(counts, tc.window) {
+			if got != 1 {
+				t.Errorf("fps: %v, tps: %d: frames %d-%d after the first frame 1s after the clock starts: got: %d ticks (%v), want: 1", tc.fps, tc.tps, i+1, i+tc.window, got, counts[i:i+tc.window])
+			}
+		}
+	}
+}
+
 // TestSlowFrameRateDegradesGradually tests that a lower frame rate never results in a higher TPS.
 func TestSlowFrameRateDegradesGradually(t *testing.T) {
 	var lastTPS float64

@@ -47,8 +47,14 @@ type Clock struct {
 	// lastNow is the time given to the last UpdateFrame call.
 	lastNow int64
 
+	// frameUpdated reports whether UpdateFrame has been called.
+	frameUpdated bool
+
 	// smoothedFrameInterval is the real time between recent frames.
 	smoothedFrameInterval int64
+
+	// frameIntervals is the number of frame intervals that smoothedFrameInterval is based on, up to 8.
+	frameIntervals int64
 
 	// framesSinceTick is the number of frames since the last frame that ran a tick.
 	framesSinceTick int64
@@ -115,7 +121,11 @@ func (c *Clock) UpdateFrame(now int64) int {
 	}
 	delta := now - c.lastNow
 	c.lastNow = now
-	c.smoothedFrameInterval += (delta - c.smoothedFrameInterval) / 8
+	// The first delta is the time since NewClock, which is not a frame interval.
+	if c.frameUpdated {
+		c.updateSmoothedFrameInterval(delta)
+	}
+	c.frameUpdated = true
 
 	var count int
 	switch tps := c.tps.Load(); {
@@ -137,6 +147,22 @@ func (c *Clock) UpdateFrame(now int64) int {
 	c.updateActualFPSAndTPS(now, count)
 
 	return count
+}
+
+// updateSmoothedFrameInterval updates the smoothed frame interval with the real time between the last
+// two frames.
+func (c *Clock) updateSmoothedFrameInterval(interval int64) {
+	// The first frame intervals can be irregular, for example while frames don't wait for the display
+	// until its queue is full, or while the first frames do heavy work. Until the average is based on
+	// enough intervals, start it over at an interval far from it, so that the irregular intervals don't
+	// keep the average off for long.
+	if c.frameIntervals < 8 && (interval > 2*c.smoothedFrameInterval || 2*interval < c.smoothedFrameInterval) {
+		c.frameIntervals = 0
+	}
+
+	// Average the intervals so far, and then the recent intervals with exponentially decreasing weights.
+	c.frameIntervals = min(c.frameIntervals+1, 8)
+	c.smoothedFrameInterval += (interval - c.smoothedFrameInterval) / c.frameIntervals
 }
 
 // consumeTicks returns how many ticks the elapsed real time affords, and subtracts them from the
@@ -162,10 +188,13 @@ func (c *Clock) consumeTicks(tps int64, delta int64) int {
 	// brings it back to around the middle of the range, far from both ends.
 	//
 	// Whether frames keep coming at the multiple is judged by the smoothed frame interval, as a single
-	// frame interval is as noisy as the jitter. The judgement has a tight tolerance, as switching
-	// between this and the rounding below back and forth with a jitter also makes the count unstable.
+	// frame interval is as noisy as the jitter. For the same reason, the judgement waits until the
+	// smoothed frame interval is based on a few frame intervals. The judgement has a tight tolerance, as
+	// switching between this and the rounding below back and forth with a jitter also makes the count
+	// unstable.
+	judgeable := c.frameIntervals >= 3
 	n := (delta + tick/2) / tick
-	if n > 0 && n*tick <= limit && abs(c.smoothedFrameInterval-n*tick) < tick/16 && abs(c.unconsumedTime-n*tick) < tick {
+	if judgeable && n > 0 && n*tick <= limit && abs(c.smoothedFrameInterval-n*tick) < tick/16 && abs(c.unconsumedTime-n*tick) < tick {
 		c.unconsumedTime -= n * tick
 		return int(n)
 	}
@@ -179,7 +208,7 @@ func (c *Clock) consumeTicks(tps int64, delta int64) int {
 	//
 	// The ratio is judged in the same way as above, but only up to 4 frames per tick, as the error of
 	// the smoothed frame interval is multiplied by k.
-	if s := c.smoothedFrameInterval; s > 0 {
+	if s := c.smoothedFrameInterval; judgeable && s > 0 {
 		k := (tick + s/2) / s
 		if k >= 2 && k <= 4 && abs(k*s-tick) < tick/16 {
 			var count int64
