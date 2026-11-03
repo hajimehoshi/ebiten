@@ -70,7 +70,7 @@ func (u *UserInterface) updatePinchFromOutside(delta float64, centerX, centerY f
 		return
 	}
 
-	u.inputState.addPinch(delta)
+	u.pinchDelta = composePinches(u.pinchDelta, delta)
 	u.setGestureCenter(centerX, centerY)
 }
 
@@ -82,12 +82,12 @@ func (u *UserInterface) updateRotationFromOutside(delta float64, centerX, center
 		return
 	}
 
-	u.inputState.RotationDelta += delta
+	u.rotationDelta += delta
 	u.setGestureCenter(centerX, centerY)
 }
 
-// setGestureCenter records the point a gesture is done around, which is translated to logical
-// coordinates at the next frame. setGestureCenter must be called with u.mu held.
+// setGestureCenter records the point a gesture is done around. setGestureCenter must be called with u.mu
+// held.
 func (u *UserInterface) setGestureCenter(x, y float64) {
 	u.gestureCenterXInClient = x
 	u.gestureCenterYInClient = y
@@ -100,6 +100,10 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 
 	s := deviceScaleFactor
 
+	u.inputState.addPinch(u.pinchDelta)
+	u.inputState.RotationDelta += u.rotationDelta
+	u.pinchDelta = 0
+	u.rotationDelta = 0
 	if u.gestureCenterReported {
 		u.inputState.PinchCenterX, u.inputState.PinchCenterY = u.context.clientPositionToLogicalPosition(u.gestureCenterXInClient, u.gestureCenterYInClient, s)
 		u.inputState.PinchCenterReported = true

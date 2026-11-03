@@ -111,9 +111,13 @@ type userInterfaceImpl struct {
 	touches    []touchInClient
 	touchIDs   touchIDAllocator
 
-	// gestureCenterXInClient and gestureCenterYInClient are the point the platform reported a pinch or a
-	// rotation is done around, in device-independent pixels. gestureCenterReported reports whether a
-	// point is reported since the last frame.
+	// pinchDelta and rotationDelta are the amounts of the gestures the platform reported since the last
+	// frame. gestureCenterXInClient and gestureCenterYInClient are the point the platform reported they are
+	// done around, in device-independent pixels. gestureCenterReported reports whether a point is reported
+	// since the last frame. They are moved into inputState together at the next frame, so that a tick gets
+	// the amounts of the gestures with the point.
+	pinchDelta             float64
+	rotationDelta          float64
 	gestureCenterXInClient float64
 	gestureCenterYInClient float64
 	gestureCenterReported  bool
