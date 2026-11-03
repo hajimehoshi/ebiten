@@ -1273,3 +1273,63 @@ func TestResamplingFloat32Headroom(t *testing.T) {
 		}
 	}
 }
+
+// seekErrorReader can fail position queries without changing the source position.
+type seekErrorReader struct {
+	*bytes.Reader
+	err   error
+	seeks int
+}
+
+func (r *seekErrorReader) Seek(offset int64, whence int) (int64, error) {
+	r.seeks++
+	if r.err != nil {
+		return 0, r.err
+	}
+	return r.Reader.Seek(offset, whence)
+}
+
+func TestResamplingSeekErrorRetry(t *testing.T) {
+	for _, depth := range []int{2, 4} {
+		t.Run(fmt.Sprintf("depth%d", depth), func(t *testing.T) {
+			data := newSoundBytesForFrames(44100, 1000, depth)
+			want := make([]byte, 64)
+			if _, err := io.ReadFull(convert.NewResampling(bytes.NewReader(data), int64(len(data)), 44100, 48000, depth), want); err != nil {
+				t.Fatal(err)
+			}
+			seekErr := errors.New("temporary seek error")
+			src := &seekErrorReader{Reader: bytes.NewReader(data), err: seekErr}
+			r := convert.NewResampling(src, int64(len(data)), 44100, 48000, depth)
+			got := make([]byte, 64)
+			if _, err := io.ReadFull(r, got[:16]); err != nil {
+				t.Fatal(err)
+			}
+			if src.seeks != 0 {
+				t.Fatal("construction or sequential reading sought the source")
+			}
+			if _, err := r.Seek(0, io.SeekStart); !errors.Is(err, seekErr) {
+				t.Errorf("Seek: got %v, want %v", err, seekErr)
+			}
+			if _, err := io.ReadFull(r, got[16:]); err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, want) {
+				t.Error("failed seek changed subsequent output")
+			}
+			src.err = nil
+			if pos, err := r.Seek(0, io.SeekCurrent); pos != 64 || err != nil {
+				t.Fatalf("Seek retry: got (%d, %v), want (64, nil)", pos, err)
+			}
+			if src.seeks != 2 {
+				t.Fatalf("source seeks: got %d, want 2 (failed check and successful retry)", src.seeks)
+			}
+			seeks := src.seeks
+			if pos, err := r.Seek(0, io.SeekCurrent); pos != 64 || err != nil {
+				t.Fatalf("Seek query: got (%d, %v), want (64, nil)", pos, err)
+			}
+			if src.seeks != seeks {
+				t.Error("repeated position query sought the source again")
+			}
+		})
+	}
+}
