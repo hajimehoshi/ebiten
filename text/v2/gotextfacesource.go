@@ -809,11 +809,11 @@ func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) faceBitmapState {
 }
 
 // buildOutputs runs HarfBuzz shaping on text and returns the per-segment
-// outputs, including per-glyph extents.
+// outputs, including per-glyph extents when required for layout.
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping.Output {
-	_ = g.applyFaceState(face)
+	bm := g.applyFaceState(face)
 
 	g.runes = g.runes[:0]
 	for _, r := range text {
@@ -869,8 +869,14 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 
 	outputs := make([]shaping.Output, len(inputs))
 	for i, input := range inputs {
-		out := g.shaper.Shape(input)
-		outputs[i] = out
+		// Bitmap placement needs glyph bearings, and vertical baseline
+		// adjustment needs glyph bounds. Horizontal outlines get their
+		// bounds separately when building render data.
+		if bm.useBitmap || input.Direction.IsVertical() {
+			outputs[i] = g.shaper.Shape(input)
+		} else {
+			outputs[i] = g.shaper.ShapeNoExtents(input)
+		}
 	}
 	// Baselines must shift a whole line at once; per-output calls drift
 	// sideways runs apart in vertical writing.
