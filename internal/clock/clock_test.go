@@ -582,6 +582,29 @@ func TestActualFPSAndTPS(t *testing.T) {
 	}
 }
 
+func TestActualFPSAndTPSAfterStartup(t *testing.T) {
+	for _, startup := range []time.Duration{500 * time.Millisecond, 2 * time.Second} {
+		c := clock.NewClock(0)
+		var fps, tps float64
+		for i := range 121 {
+			now := int64(startup) + int64(i)*int64(time.Second)/60
+			c.UpdateFrame(now)
+			if fps == 0 {
+				fps = c.ActualFPS()
+			}
+			if tps == 0 {
+				tps = c.ActualTPS()
+			}
+		}
+		if math.Abs(fps-60) > 1 {
+			t.Errorf("startup: %v: first ActualFPS: got: %0.2f, want: 60", startup, fps)
+		}
+		if math.Abs(tps-60) > 1 {
+			t.Errorf("startup: %v: first ActualTPS: got: %0.2f, want: 60", startup, tps)
+		}
+	}
+}
+
 func TestActualTPSWithForcedTicks(t *testing.T) {
 	for _, tps := range []int{0, 30} {
 		c := clock.NewClock(0)
@@ -600,8 +623,8 @@ func TestActualTPSWithForcedTicks(t *testing.T) {
 		if got := c.ActualTPS(); got != float64(ticks) {
 			t.Errorf("TPS %d: ActualTPS: got: %v, want: %d", tps, got, ticks)
 		}
-		if got := c.ActualFPS(); got != 121 {
-			t.Errorf("TPS %d: ActualFPS: got: %v, want: 121", tps, got)
+		if got := c.ActualFPS(); got != 120 {
+			t.Errorf("TPS %d: ActualFPS: got: %v, want: 120", tps, got)
 		}
 	}
 }

@@ -81,8 +81,7 @@ type Clock struct {
 // NewClock returns a new Clock. now is the current time, in the same time base as UpdateFrame's argument.
 func NewClock(now int64) *Clock {
 	c := &Clock{
-		lastNow:     now,
-		lastUpdated: now,
+		lastNow: now,
 	}
 	c.tps.Store(DefaultTPS)
 	c.duration.SetTPS(DefaultTPS)
@@ -137,6 +136,7 @@ func (c *Clock) UpdateFrame(now int64) int {
 	}
 	delta := now - c.lastNow
 	c.lastNow = now
+	firstFrame := !c.frameUpdated
 	// The first delta is the time since NewClock, which is neither a frame interval nor the game's time.
 	if c.frameUpdated {
 		c.updateSmoothedFrameInterval(delta)
@@ -162,7 +162,12 @@ func (c *Clock) UpdateFrame(now int64) int {
 		c.framesSinceTick++
 	}
 
-	c.updateActualFPSAndTPS(now, count)
+	// Like the ticks, the actual FPS and TPS don't count the time before the first frame.
+	if firstFrame {
+		c.lastUpdated = now
+	} else {
+		c.updateActualFPSAndTPS(now, count)
+	}
 
 	return count
 }
