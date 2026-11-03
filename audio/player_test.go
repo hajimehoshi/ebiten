@@ -12,20 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package audio
+package audio_test
 
 import (
 	"bytes"
 	"testing"
 	"time"
+
+	"github.com/hajimehoshi/ebiten/v2/audio"
 )
 
 func TestPositionBeforeContextReady(t *testing.T) {
 	// A device can exist before it is ready, e.g. while Web Audio waits for a user gesture.
-	context := &Context{}
-	factory := newPlayerFactory(44100)
-	factory.driver = &dummyDriver{}
-	p, err := factory.newPlayer(context, bytes.NewReader(make([]byte, 44100*8)), true, nil, 4)
+	p, err := audio.NewPlayerF32WithUnreadyContextForTesting(bytes.NewReader(make([]byte, 44100*8)), 44100)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,20 +32,17 @@ func TestPositionBeforeContextReady(t *testing.T) {
 	if err := p.SetPosition(position); err != nil {
 		t.Fatal(err)
 	}
-	if err := p.ensurePlayer(); err != nil {
+	if err := audio.EnsurePlayerForTesting(p); err != nil {
 		t.Fatal(err)
 	}
-	if p.player == nil {
-		t.Fatal("device player was not created")
-	}
 	for range 2 {
-		p.updatePosition()
+		audio.UpdatePositionForTesting(p)
 		if got := p.Position(); got != position {
 			t.Errorf("Position before readiness: got %v, want %v", got, position)
 		}
 	}
-	context.setReady()
-	p.updatePosition()
+	audio.SetContextReadyForTesting(p)
+	audio.UpdatePositionForTesting(p)
 	if got := p.Position(); got != position {
 		t.Errorf("Position after readiness: got %v, want %v", got, position)
 	}
