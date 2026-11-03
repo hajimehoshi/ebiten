@@ -432,3 +432,35 @@ func TestPackageErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestTargetWithoutShaders(t *testing.T) {
+	if !hasGoCommand() {
+		t.Skip("go command is missing")
+	}
+	binary := filepath.Join(t.TempDir(), "shadercollector.exe")
+	if out, err := exec.Command("go", "build", "-buildvcs=false", "-o", binary, "github.com/hajimehoshi/ebiten/v2/internal/shadercollector").CombinedOutput(); err != nil {
+		t.Fatalf("build: %v\n%s", err, out)
+	}
+	for _, target := range []string{"hls", "glsl,hls", "glsl,"} {
+		t.Run(target, func(t *testing.T) {
+			cmd := exec.Command(binary, "-target="+target)
+			out, err := cmd.Output()
+			exitErr, ok := err.(*exec.ExitError)
+			if !ok {
+				t.Fatalf("got output %q and error %v, want unsupported-target failure", out, err)
+			}
+			if len(out) != 0 || len(exitErr.Stderr) == 0 {
+				t.Errorf("stdout: %q, stderr: %q", out, exitErr.Stderr)
+			}
+		})
+	}
+	for _, target := range []string{"", " ", "glsl,hlsl,msl,pssl"} {
+		out, err := exec.Command(binary, "-target="+target).Output()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := strings.TrimSpace(string(out)); got != "[]" {
+			t.Errorf("target %q: got %q, want []", target, got)
+		}
+	}
+}
