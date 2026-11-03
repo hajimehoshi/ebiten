@@ -488,13 +488,11 @@ func TestSinkTick(t *testing.T) {
 		t.Errorf("got: %d, want: %d", got, want)
 	}
 
-	// Sinking ticks never banks future ticks, so that the game doesn't stall after a lot of
-	// forced ticks.
 	for range 10 {
 		c.SinkTick(tick + tick/4)
 	}
-	if got, want := c.UpdateFrame(tick+tick/4+tick), 1; got != want {
-		t.Errorf("got: %d, want: %d", got, want)
+	if got, want := c.UpdateFrame(tick+tick/4+5*tick/2), 1; got != want {
+		t.Errorf("two and a half ticks after many sunk ticks: got: %d, want: %d", got, want)
 	}
 }
 
@@ -522,6 +520,52 @@ func TestSinkTickWithoutUpdateFrame(t *testing.T) {
 	}
 	if got, want := c.UpdateFrame(now), 0; got != want {
 		t.Errorf("got: %d, want: %d", got, want)
+	}
+}
+
+func TestSinkTickKeepsTPS(t *testing.T) {
+	tests := []struct {
+		fps        float64
+		forceEvery int
+	}{
+		{
+			fps:        120,
+			forceEvery: 3,
+		},
+		{
+			fps:        144,
+			forceEvery: 3,
+		},
+		{
+			fps:        144,
+			forceEvery: 4,
+		},
+		{
+			fps:        240,
+			forceEvery: 4,
+		},
+		{
+			fps:        240,
+			forceEvery: 7,
+		},
+	}
+
+	for _, tc := range tests {
+		c := clock.NewClock(0)
+		c.SetTPS(60)
+		c.UpdateFrame(0)
+		ts := frameTimes(tc.fps, time.Millisecond, int(tc.fps*10))
+		counts := make([]int, len(ts))
+		for i, now := range ts {
+			counts[i] = c.UpdateFrame(now)
+			if counts[i] == 0 && i%tc.forceEvery == 0 {
+				c.SinkTick(now)
+				counts[i] = 1
+			}
+		}
+		if got, want := tps(counts, ts), 60.0; math.Abs(got-want) > 1 {
+			t.Errorf("fps: %v, forced every %d frames: got: %0.2f TPS, want: %0.2f TPS", tc.fps, tc.forceEvery, got, want)
+		}
 	}
 }
 

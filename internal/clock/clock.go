@@ -280,8 +280,8 @@ func (c *Clock) updateActualFPSAndTPS(now int64, count int) {
 
 // SinkTick advances the game time by one tick run outside of UpdateFrame, such as one forced on window
 // resize, so that the following UpdateFrame calls return correspondingly fewer ticks. The game time is
-// never advanced past the real time. now is the current time, in the same time base as UpdateFrame's
-// argument.
+// never advanced more than one and a half ticks past the real time. now is the current time, in the same
+// time base as UpdateFrame's argument.
 //
 // SinkTick counts the tick in ActualTPS regardless of the target TPS. It advances the game time only when
 // a positive TPS is set.
@@ -298,7 +298,12 @@ func (c *Clock) SinkTick(now int64) {
 	}
 
 	// Consume the real time since the last frame too, as UpdateFrame might not be called in between.
-	c.unconsumedTime = max(c.unconsumedTime+(now-c.lastNow)-int64(time.Second)/tps, 0)
+	// Keep the game time up to a tick and a half ahead of the real time, so that a tick forced between the
+	// clock's ticks replaces the next one instead of adding to it. Half a tick is for the ticks run a little
+	// early, which consumeTicks allows. The bound keeps a lot of forced ticks from stalling the game
+	// afterwards.
+	tick := int64(time.Second) / tps
+	c.unconsumedTime = max(c.unconsumedTime+(now-c.lastNow)-tick, -3*tick/2)
 	c.lastNow = now
 }
 
