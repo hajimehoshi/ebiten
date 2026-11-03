@@ -47,6 +47,9 @@ type Clock struct {
 	// lastNow is the time given to the last UpdateFrame call.
 	lastNow int64
 
+	// smoothedFrameInterval is the real time between recent frames.
+	smoothedFrameInterval int64
+
 	actualFPS   float64
 	actualTPS   float64
 	lastUpdated int64
@@ -109,6 +112,7 @@ func (c *Clock) UpdateFrame(now int64) int {
 	}
 	delta := now - c.lastNow
 	c.lastNow = now
+	c.smoothedFrameInterval += (delta - c.smoothedFrameInterval) / 8
 
 	var count int
 	switch tps := c.tps.Load(); {
@@ -138,14 +142,26 @@ func (c *Clock) consumeTicks(tps int64, delta int64) int {
 	// that the next frame gets even slower, and the frame rate would never recover. With this limit,
 	// the game time gets behind the real time instead: the game runs in slow motion, which is
 	// recoverable, rather than spiraling down.
-	c.unconsumedTime = min(c.unconsumedTime, max(maxCatchUpTicks*tick, int64(minCatchUpTime)))
+	limit := max(maxCatchUpTicks*tick, int64(minCatchUpTime))
+	c.unconsumedTime = min(c.unconsumedTime, limit)
 
-	// Round the count to the nearest tick rather than truncating it. With truncation, a small jitter in
-	// the frame timing crosses a tick boundary back and forth, and the count becomes unstable like
-	// 0, 2, 0, 2, ... whenever the frame interval is close to a multiple of a tick.
+	// When frames keep coming at a multiple of a tick, every frame sees the ticks at almost the same
+	// phase. If the phase is around a boundary of the rounding below, a jitter in the frame timing
+	// flips the count back and forth like 0, 2, 0, 2, ... until the phase drifts away from the boundary,
+	// which can take seconds. To avoid this, run the multiple of ticks as long as the game time stays
+	// within a tick of the real time. Once the game time goes out of this range, the rounding below
+	// brings it back to around the middle of the range, far from both ends.
 	//
-	// The rounded-up part is kept as a negative unconsumed time, so that rounding never accumulates
-	// into a drift from the real time.
+	// Whether frames keep coming at the multiple is judged by the smoothed frame interval, as a single
+	// frame interval is as noisy as the jitter.
+	n := (delta + tick/2) / tick
+	if n > 0 && n*tick <= limit && abs(c.smoothedFrameInterval-n*tick) < tick/8 && abs(c.unconsumedTime-n*tick) < tick {
+		c.unconsumedTime -= n * tick
+		return int(n)
+	}
+
+	// Round the count to the nearest tick. The rounded-up part is kept as a negative unconsumed time,
+	// so that rounding never accumulates into a drift from the real time.
 	t := c.unconsumedTime + tick/2
 	if t <= 0 {
 		return 0
@@ -153,6 +169,13 @@ func (c *Clock) consumeTicks(tps int64, delta int64) int {
 	count := t / tick
 	c.unconsumedTime -= count * tick
 	return int(count)
+}
+
+func abs(x int64) int64 {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
 
 func (c *Clock) updateActualFPSAndTPS(now int64, count int) {

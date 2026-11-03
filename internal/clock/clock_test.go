@@ -177,14 +177,28 @@ func TestTickCountIsStable(t *testing.T) {
 			jitter: 2 * time.Millisecond,
 			want:   []int{0, 1},
 		},
-		// A jitter bigger than a half of a tick inevitably changes the count, as a tick is not
-		// divisible. Use a smaller jitter for a frame rate close to the TPS and for a big TPS.
+		// A frame rate slightly off from a multiple of the TPS moves the phase between frames and
+		// ticks across a boundary of rounding the elapsed time to ticks.
 		{
 			fps:    59.94,
 			tps:    60,
-			jitter: 200 * time.Microsecond,
+			jitter: 2 * time.Millisecond,
 			want:   []int{1},
 		},
+		{
+			fps:    60.1,
+			tps:    60,
+			jitter: 2 * time.Millisecond,
+			want:   []int{1},
+		},
+		{
+			fps:    29.97,
+			tps:    60,
+			jitter: 2 * time.Millisecond,
+			want:   []int{2},
+		},
+		// A jitter bigger than a half of a tick inevitably changes the count, as a tick is not
+		// divisible. Use a smaller jitter for a big TPS.
 		{
 			fps:    60,
 			tps:    300,
