@@ -118,6 +118,7 @@ func (c *Clock) TPS() int {
 //
 // If TPS is SyncWithFPS, UpdateFrame always returns 1.
 // If TPS is 0, UpdateFrame always returns 0.
+// The real time before the first call doesn't count toward ticks.
 //
 // UpdateFrame is expected to be called once per frame with a monotonic now.
 func (c *Clock) UpdateFrame(now int64) int {
@@ -130,9 +131,11 @@ func (c *Clock) UpdateFrame(now int64) int {
 	}
 	delta := now - c.lastNow
 	c.lastNow = now
-	// The first delta is the time since NewClock, which is not a frame interval.
+	// The first delta is the time since NewClock, which is neither a frame interval nor the game's time.
 	if c.frameUpdated {
 		c.updateSmoothedFrameInterval(delta)
+	} else {
+		delta = 0
 	}
 	c.frameUpdated = true
 

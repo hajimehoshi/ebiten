@@ -130,6 +130,7 @@ func TestTickRate(t *testing.T) {
 	for _, tc := range tests {
 		c := clock.NewClock(0)
 		c.SetTPS(tc.tps)
+		c.UpdateFrame(0)
 		ts := frameTimes(tc.fps, time.Millisecond, int(tc.fps*10))
 		got := tps(countTicks(c, ts), ts)
 
@@ -281,6 +282,7 @@ func TestTickCountIsStable(t *testing.T) {
 	for _, tc := range tests {
 		c := clock.NewClock(0)
 		c.SetTPS(tc.tps)
+		c.UpdateFrame(0)
 		sums := windowSums(countTicks(c, frameTimes(tc.fps, tc.jitter, int(tc.fps*10))), tc.window)
 		counts := distinctCounts(sums)
 
@@ -332,7 +334,11 @@ func TestTickCountIsStableAfterLongFirstFrame(t *testing.T) {
 		for i := range ts {
 			ts[i] += int64(time.Second)
 		}
-		counts := countTicks(c, ts)[1:]
+		counts := countTicks(c, ts)
+		if got, want := counts[0], 0; got != want {
+			t.Errorf("fps: %v, tps: %d: the first frame 1s after the clock starts: got: %d ticks, want: %d", tc.fps, tc.tps, got, want)
+		}
+		counts = counts[1:]
 		for i, got := range windowSums(counts, tc.window) {
 			if got != 1 {
 				t.Errorf("fps: %v, tps: %d: frames %d-%d after the first frame 1s after the clock starts: got: %d ticks (%v), want: 1", tc.fps, tc.tps, i+1, i+tc.window, got, counts[i:i+tc.window])
@@ -368,6 +374,7 @@ func TestTickCountIsStableAfterLongFrame(t *testing.T) {
 	for _, tc := range tests {
 		c := clock.NewClock(0)
 		c.SetTPS(tc.tps)
+		c.UpdateFrame(0)
 		ts := frameTimes(tc.fps, tc.jitter, int(tc.fps*4))
 		long := len(ts) / 2
 		for i := long; i < len(ts); i++ {
