@@ -114,6 +114,10 @@ type userInterfaceImpl struct {
 	touchesInClient     []touchInClient
 	touchIDs            touchIDAllocator
 
+	// controlKeyInMouseEvent is ctrlKey of the last mouse event. Mouse events reach the canvas under the
+	// pointer even when it does not have the focus, unlike keyboard events.
+	controlKeyInMouseEvent bool
+
 	// inGesture reports whether a gesture that Safari reports with gesture events is in progress.
 	// gestureScale and gestureRotation are the scale and the angle in degrees the gesture has reached,
 	// as the events report them as totals from the start of the gesture.

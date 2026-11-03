@@ -132,6 +132,10 @@ func (u *UserInterface) keyDown(event js.Value) {
 func (u *UserInterface) keyUp(event js.Value) {
 	now := u.inputState.nextInputTime()
 	key0, key1 := eventToKeys(event)
+	if key0 == KeyControlLeft || key0 == KeyControlRight {
+		// The last mouse event might be before the Control key is released.
+		u.controlKeyInMouseEvent = false
+	}
 	if key0 >= 0 {
 		u.inputState.setKeyReleased(key0, now)
 	}
@@ -260,7 +264,10 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	return nil
 }
 
+// setMouseCursorFromEvent records the cursor position and whether the Control key is down from a mouse event.
 func (u *UserInterface) setMouseCursorFromEvent(e js.Value) {
+	u.controlKeyInMouseEvent = e.Get("ctrlKey").Bool()
+
 	if u.context == nil {
 		return
 	}
@@ -283,8 +290,13 @@ func (u *UserInterface) recoverCursorPosition() {
 	u.cursorYInClient = u.origCursorYInClient
 }
 
-// isControlKeyDown reports whether the Control key is down according to the keyboard events so far.
+// isControlKeyDown reports whether the Control key is down according to the keyboard and mouse events so
+// far. The keyboard events reach the canvas only while it has the focus, and the mouse events report
+// the Control key without the focus, such as in an iframe or while a text field has the focus.
 func (u *UserInterface) isControlKeyDown() bool {
+	if u.controlKeyInMouseEvent {
+		return true
+	}
 	for _, k := range []Key{KeyControlLeft, KeyControlRight} {
 		if u.inputState.KeyReleasedTimes[k] < u.inputState.KeyPressedTimes[k] {
 			return true
