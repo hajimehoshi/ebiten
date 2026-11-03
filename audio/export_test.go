@@ -306,6 +306,26 @@ func EnsurePlayerForTesting(p *Player) error {
 	return p.p.ensurePlayer()
 }
 
+// NewPlayerF32WithUnreadyContextForTesting creates a player whose device exists but is not ready.
+func NewPlayerF32WithUnreadyContextForTesting(src io.ReadSeeker, sampleRate int) (*Player, error) {
+	factory := newPlayerFactory(sampleRate)
+	factory.driver = &dummyDriver{}
+	context := &Context{playerFactory: factory}
+	p, err := factory.newPlayer(context, src, true, nil, bitDepthInBytesFloat32)
+	if err != nil {
+		return nil, err
+	}
+	return &Player{p: p}, nil
+}
+
+func SetContextReadyForTesting(p *Player) {
+	p.p.context.setReady()
+}
+
+func UpdatePositionForTesting(p *Player) {
+	p.p.updatePosition()
+}
+
 func BufferSizeForTesting(p *Player) int {
 	// initBufferSize is protected by the player mutex and can change when the underlying player is created.
 	p.p.m.Lock()

@@ -249,6 +249,32 @@ func TestSetPositionBeforeDeviceCreation(t *testing.T) {
 	}
 }
 
+func TestPositionBeforeContextReady(t *testing.T) {
+	// A device can exist before it is ready, e.g. while Web Audio waits for a user gesture.
+	p, err := audio.NewPlayerF32WithUnreadyContextForTesting(bytes.NewReader(make([]byte, 44100*8)), 44100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const position = 500 * time.Millisecond
+	if err := p.SetPosition(position); err != nil {
+		t.Fatal(err)
+	}
+	if err := audio.EnsurePlayerForTesting(p); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		audio.UpdatePositionForTesting(p)
+		if got := p.Position(); got != position {
+			t.Errorf("Position before readiness: got %v, want %v", got, position)
+		}
+	}
+	audio.SetContextReadyForTesting(p)
+	audio.UpdatePositionForTesting(p)
+	if got := p.Position(); got != position {
+		t.Errorf("Position after readiness: got %v, want %v", got, position)
+	}
+}
+
 func TestSetPositionLongDuration(t *testing.T) {
 	setup()
 	defer teardown()
