@@ -1643,8 +1643,8 @@ func TestResampledUnknownLength(t *testing.T) {
 				if got := s.Length(); got != want {
 					t.Errorf("Length after reading: got %d, want %d", got, want)
 				}
-				if got, err := s.Seek(0, io.SeekEnd); got != want || err != nil {
-					t.Errorf("Seek(0, io.SeekEnd): got (%d, %v), want (%d, nil)", got, err, want)
+				if _, err := s.Seek(0, io.SeekEnd); !errors.Is(err, errors.ErrUnsupported) {
+					t.Errorf("Seek(0, io.SeekEnd): got %v, want errors.ErrUnsupported", err)
 				}
 			})
 		}
@@ -1677,5 +1677,39 @@ func TestResampledConcurrentLength(t *testing.T) {
 			_ = s.Length()
 			runtime.Gosched()
 		}
+	}
+}
+
+func TestResampledNonSeeker(t *testing.T) {
+	data := pcmWavFile(2, 16, bytes.Repeat([]byte{1, 2, 3, 4}, 1000))
+	decode := func() *wav.Stream {
+		t.Helper()
+		s, err := wav.DecodeWithSampleRate(testSampleRate*2, bytes.NewBuffer(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	control := decode()
+	want, err := io.ReadAll(control)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := decode()
+	prefix := make([]byte, 4)
+	if _, err := io.ReadFull(s, prefix); err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+		if _, err := s.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
+			t.Errorf("Seek(0, %d): got %v, want errors.ErrUnsupported", whence, err)
+		}
+	}
+	rest, err := io.ReadAll(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(append(prefix, rest...), want) {
+		t.Error("failed seeks changed the decoded stream")
 	}
 }
