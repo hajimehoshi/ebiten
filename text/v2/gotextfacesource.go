@@ -831,7 +831,21 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 		Language:     language.Language(face.Language.String()),
 	}
 
-	inputs := g.seg.Split(input, &singleFontmap{face: g.f})
+	inputs := append([]shaping.Input(nil), g.seg.Split(input, &singleFontmap{face: g.f})...)
+	// The shaper's bidi segmentation stops at class-B paragraph
+	// separators (U+001C-U+001E et al.), dropping the tail. Shape
+	// each uncovered tail piece separately so no text is lost; a
+	// paragraph separator breaks shaping context anyway.
+	for coverage := maxInputRunEnd(inputs); coverage < len(g.runes); {
+		tail := input
+		tail.RunStart = coverage
+		inputs = append(inputs, g.seg.Split(tail, &singleFontmap{face: g.f})...)
+		next := maxInputRunEnd(inputs)
+		if next <= coverage {
+			break
+		}
+		coverage = next
+	}
 
 	// Reorder inputs into visual (left-to-right) order by running the
 	// Unicode Bidirectional Algorithm to obtain per-run levels and
@@ -882,6 +896,17 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 	// sideways runs apart in vertical writing.
 	(shaping.Line(outputs)).AdjustBaselines()
 	return outputs
+}
+
+// maxInputRunEnd returns the furthest rune index covered by inputs.
+func maxInputRunEnd(inputs []shaping.Input) int {
+	m := 0
+	for _, in := range inputs {
+		if in.RunEnd > m {
+			m = in.RunEnd
+		}
+	}
+	return m
 }
 
 // appendL2VisualOrder appends to dst[:0] a permutation of

@@ -97,31 +97,62 @@ func AppendChunks(dst []Chunk, text string, paragraphLevel bidi.Level) []Chunk {
 		defaultDir = bidi.RightToLeft
 	}
 	var p bidi.Paragraph
-	runs := p.SegmentString(firstLine, defaultDir)
-	if runs.NumRuns() == 0 {
-		return append(dst, Chunk{0, len(firstLine), paragraphLevel})
-	}
 
-	var byteIdx int
-	var runeIdx int
-	for ri := range runs.NumRuns() {
-		run := runs.Run(ri)
-		// Walk runes in firstLine until reaching the rune-indexed
-		// run boundary. The bidi package returns rune-indexed runs;
-		// chunker output is byte-indexed.
-		for runeIdx < run.Start {
-			_, w := utf8.DecodeRuneInString(firstLine[byteIdx:])
-			byteIdx += w
-			runeIdx++
+	var byteBase int
+	rest := firstLine
+	for len(rest) > 0 {
+		runs := p.SegmentString(rest, defaultDir)
+		if runs.NumRuns() == 0 {
+			// The remainder starts with (or is only) a class-B
+			// paragraph separator: keep it whole so no bytes
+			// are lost.
+			dst = appendChunksForRun(dst, rest, paragraphLevel, paragraphLevel, byteBase)
+			break
 		}
-		runStart := byteIdx
-		for runeIdx < run.End {
-			_, w := utf8.DecodeRuneInString(firstLine[byteIdx:])
-			byteIdx += w
-			runeIdx++
+
+		var byteIdx int
+		var runeIdx int
+		for ri := range runs.NumRuns() {
+			run := runs.Run(ri)
+			rs, re, rl := run.Start, run.End, run.Level
+			// Walk runes in rest until reaching the rune-indexed
+			// run boundary. The bidi package returns rune-indexed runs;
+			// chunker output is byte-indexed.
+			for runeIdx < rs {
+				_, w := utf8.DecodeRuneInString(rest[byteIdx:])
+				byteIdx += w
+				runeIdx++
+			}
+			runStart := byteIdx
+			for runeIdx < re {
+				_, w := utf8.DecodeRuneInString(rest[byteIdx:])
+				byteIdx += w
+				runeIdx++
+			}
+			runEnd := byteIdx
+			dst = appendChunksForRun(dst, rest[runStart:runEnd], rl, paragraphLevel, byteBase+runStart)
 		}
-		runEnd := byteIdx
-		dst = appendChunksForRun(dst, firstLine[runStart:runEnd], run.Level, paragraphLevel, runStart)
+		if byteIdx == 0 {
+			// No progress (shouldn't happen): keep the rest
+			// whole rather than looping forever.
+			dst = appendChunksForRun(dst, rest, paragraphLevel, paragraphLevel, byteBase)
+			break
+		}
+		if byteIdx < len(rest) {
+			// The bidi pass stops at class-B paragraph
+			// separators (U+001C-U+001E et al.), so an
+			// unconsumed tail starts with one. Fold it into
+			// the last chunk to keep byte coverage
+			// contiguous, then shape the tail as a new
+			// paragraph.
+			_, w := utf8.DecodeRuneInString(rest[byteIdx:])
+			if len(dst) > 0 {
+				dst[len(dst)-1].End += w
+			}
+			byteIdx += w
+		}
+		byteBase += byteIdx
+		rest = rest[byteIdx:]
 	}
 	return dst
 }
