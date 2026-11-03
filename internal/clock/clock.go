@@ -35,6 +35,22 @@ const (
 	minCatchUpTime = 5 * time.Second / 60
 )
 
+const (
+	// shortFrameIntervals is the number of frame intervals that smoothedFrameInterval is based on.
+	shortFrameIntervals = 8
+
+	// longFrameIntervals is the number of frame intervals that longSmoothedFrameInterval is based on.
+	longFrameIntervals = 64
+
+	// maxShortFramesPerTick is the maximum number of frames per tick that smoothedFrameInterval judges.
+	// longSmoothedFrameInterval judges more frames per tick.
+	maxShortFramesPerTick = 4
+
+	// longFramesPerTickPrecision is the reciprocal of how far, in frames, the number of frames per tick by
+	// longSmoothedFrameInterval can be from a whole number to be judged as the whole number.
+	longFramesPerTickPrecision = 8
+)
+
 // Clock determines how many ticks should run in each frame, so that ticks run at the specified TPS
 // as closely as the frame rate allows.
 type Clock struct {
@@ -54,7 +70,11 @@ type Clock struct {
 	// smoothedFrameInterval is the real time between recent frames.
 	smoothedFrameInterval int64
 
-	// frameIntervals is the number of frame intervals that smoothedFrameInterval is based on, up to 8.
+	// longSmoothedFrameInterval is the real time between frames, smoothed over more frames than
+	// smoothedFrameInterval.
+	longSmoothedFrameInterval int64
+
+	// frameIntervals is the number of frame intervals averaged so far, up to longFrameIntervals.
 	frameIntervals int64
 
 	// smoothedFrameIntervalDeviation is the smoothed deviation of frame intervals from smoothedFrameInterval.
@@ -187,7 +207,7 @@ func (c *Clock) updateSmoothedFrameInterval(interval int64) bool {
 	s := c.smoothedFrameInterval
 	deviation := abs(interval - s)
 
-	if c.frameIntervals < 8 {
+	if c.frameIntervals < shortFrameIntervals {
 		// The first frame intervals can be irregular, such as while the display queue fills up. Until the
 		// average is based on enough of them, start it over at an interval far from it.
 		if interval > 2*s || 2*interval < s {
@@ -209,10 +229,12 @@ func (c *Clock) updateSmoothedFrameInterval(interval int64) bool {
 		}
 	}
 
-	// Average the intervals so far, and then take an exponential moving average.
-	c.frameIntervals = min(c.frameIntervals+1, 8)
-	c.smoothedFrameInterval += (interval - s) / c.frameIntervals
-	c.smoothedFrameIntervalDeviation += (deviation - c.smoothedFrameIntervalDeviation) / c.frameIntervals
+	// Average the intervals so far, and then take exponential moving averages.
+	c.frameIntervals = min(c.frameIntervals+1, longFrameIntervals)
+	n := min(c.frameIntervals, shortFrameIntervals)
+	c.smoothedFrameInterval += (interval - s) / n
+	c.smoothedFrameIntervalDeviation += (deviation - c.smoothedFrameIntervalDeviation) / n
+	c.longSmoothedFrameInterval += (interval - c.longSmoothedFrameInterval) / c.frameIntervals
 	return false
 }
 
@@ -246,10 +268,18 @@ func (c *Clock) consumeTicks(tps int64, delta int64, skipped bool) int {
 
 	// Likewise, when frames come k times per tick, a jitter moves the tick between adjacent frames like
 	// 1, 0, 0, 1, 1, 0. Run a tick every k-th frame while the game time stays within half a tick and half a
-	// frame of the real time. k is up to 4, as the error of the smoothed frame interval is multiplied by k.
+	// frame of the real time. As the error of the smoothed frame interval is multiplied by k, a k above
+	// maxShortFramesPerTick is judged by the frame interval smoothed over more frames once smoothedFrameInterval
+	// is based on all of its frame intervals, and only within a fraction of a frame per tick, beyond which the
+	// phase drifts too fast for this to keep the ticks regular.
 	if s := c.smoothedFrameInterval; judgeable && s > 0 {
 		k := (tick + s/2) / s
-		if k >= 2 && k <= 4 && abs(k*s-tick) < tick/16 {
+		lockable := k >= 2 && k <= maxShortFramesPerTick && abs(k*s-tick) < tick/16
+		if ls := c.longSmoothedFrameInterval; !lockable && c.frameIntervals >= shortFrameIntervals && ls > 0 {
+			k = (tick + ls/2) / ls
+			lockable = k > maxShortFramesPerTick && abs(k*ls-tick) < ls/longFramesPerTickPrecision
+		}
+		if lockable {
 			// A skipped frame interval, such as a dropped frame, shifts the phase between frames and ticks.
 			// Count the frame as so many frames that the phase comes back to the middle. The phase is
 			// smoothed over frames, as a jitter moves it in each frame. The ticks beyond the catch-up limit

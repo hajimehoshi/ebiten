@@ -268,6 +268,13 @@ func TestTickCountIsStable(t *testing.T) {
 			window: 2,
 			want:   []int{1},
 		},
+		{
+			fps:    300.1,
+			tps:    60,
+			jitter: time.Millisecond,
+			window: 5,
+			want:   []int{1},
+		},
 		// A jitter bigger than a half of a tick inevitably changes the count, as a tick is not
 		// divisible. Use a smaller jitter for a big TPS.
 		{
