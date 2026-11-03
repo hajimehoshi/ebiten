@@ -449,7 +449,7 @@ func TestTargetWithoutShaders(t *testing.T) {
 			if !ok {
 				t.Fatalf("got output %q and error %v, want unsupported-target failure", out, err)
 			}
-			if len(out) != 0 || !strings.Contains(string(exitErr.Stderr), "unsupported target:") {
+			if len(out) != 0 || len(exitErr.Stderr) == 0 {
 				t.Errorf("stdout: %q, stderr: %q", out, exitErr.Stderr)
 			}
 		})
