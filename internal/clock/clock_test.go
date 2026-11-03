@@ -349,41 +349,42 @@ func TestTickCountIsStableAfterLongFirstFrame(t *testing.T) {
 
 func TestTickCountIsStableAfterLongFrame(t *testing.T) {
 	tests := []struct {
-		fps           float64
-		tps           int
-		jitter        time.Duration
-		droppedFrames int
-		window        int
+		fps    float64
+		tps    int
+		jitter time.Duration
+		window int
 	}{
 		{
-			fps:           120,
-			tps:           60,
-			jitter:        2 * time.Millisecond,
-			droppedFrames: 23,
-			window:        2,
+			fps:    120,
+			tps:    60,
+			jitter: 2 * time.Millisecond,
+			window: 2,
 		},
 		{
-			fps:           240,
-			tps:           60,
-			jitter:        time.Millisecond,
-			droppedFrames: 9,
-			window:        4,
+			fps:    240,
+			tps:    60,
+			jitter: time.Millisecond,
+			window: 4,
 		},
 	}
 
 	for _, tc := range tests {
-		c := clock.NewClock(0)
-		c.SetTPS(tc.tps)
-		c.UpdateFrame(0)
-		ts := frameTimes(tc.fps, tc.jitter, int(tc.fps*4))
-		long := len(ts) / 2
-		for i := long; i < len(ts); i++ {
-			ts[i] += int64(tc.droppedFrames) * int64(float64(time.Second)/tc.fps)
-		}
-		counts := countTicks(c, ts)[long+1:]
-		for i, got := range windowSums(counts, tc.window) {
-			if got != 1 {
-				t.Errorf("fps: %v, tps: %d: frames %d-%d after a frame dropping %d frames: got: %d ticks (%v), want: 1", tc.fps, tc.tps, i+1, i+tc.window, tc.droppedFrames, got, counts[i:i+tc.window])
+		for offset := range int(tc.fps / 4) {
+			for _, droppedFrames := range []int{2, 9, 23} {
+				c := clock.NewClock(0)
+				c.SetTPS(tc.tps)
+				ts := frameTimes(tc.fps, tc.jitter, int(tc.fps*4))
+				long := len(ts)/2 + offset
+				for i := long; i < len(ts); i++ {
+					ts[i] += int64(droppedFrames) * int64(float64(time.Second)/tc.fps)
+				}
+				counts := countTicks(c, ts)[long+1:]
+				for i, got := range windowSums(counts, tc.window) {
+					if got != 1 {
+						t.Errorf("fps: %v, tps: %d: frames %d-%d after frame %d dropping %d frames: got: %d ticks (%v), want: 1", tc.fps, tc.tps, i+1, i+tc.window, long, droppedFrames, got, counts[i:i+tc.window])
+						break
+					}
+				}
 			}
 		}
 	}
