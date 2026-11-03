@@ -32,7 +32,12 @@ const (
 
 	// minCatchUpTime is the lower limit of the real time that one frame can catch up with.
 	// This limit matters when TPS is so big that maxCatchUpTicks ticks are shorter than one frame (#1444).
-	minCatchUpTime = 5 * time.Second / 60
+	minCatchUpTime = maxCatchUpTicks * time.Second / DefaultTPS
+
+	// maxSinkTickLeadHalfTicks is how far, in half ticks, SinkTick can advance the game time past the real
+	// time. Besides a tick for a forced tick to replace the next one, half a tick is for the ticks run a little
+	// early, which consumeTicks allows.
+	maxSinkTickLeadHalfTicks = 3
 )
 
 const (
@@ -42,6 +47,16 @@ const (
 	// longFrameIntervals is the number of frame intervals that longSmoothedFrameInterval is based on.
 	longFrameIntervals = 64
 
+	// minJudgedFrameIntervals is the number of frame intervals that smoothedFrameInterval must be based on to
+	// judge the ratio between frames and ticks. Fewer, such as two short frame intervals that non-blocking
+	// presents make at start, can look like a ratio.
+	minJudgedFrameIntervals = 3
+
+	// ratioPrecision is the reciprocal of how far, in ticks, smoothedFrameInterval or its multiple can be from
+	// a whole number of ticks to be judged as the whole number. A looser one lets a jitter switch the judgement
+	// on and off near its edge, which makes the tick count less stable than the rounding alone.
+	ratioPrecision = 16
+
 	// maxShortFramesPerTick is the maximum number of frames per tick that smoothedFrameInterval judges.
 	// longSmoothedFrameInterval judges more frames per tick.
 	maxShortFramesPerTick = 4
@@ -49,6 +64,31 @@ const (
 	// longFramesPerTickPrecision is the reciprocal of how far, in frames, the number of frames per tick by
 	// longSmoothedFrameInterval can be from a whole number to be judged as the whole number.
 	longFramesPerTickPrecision = 8
+
+	// maxTickPhaseFrames is the maximum number of frames that tickPhase is based on.
+	maxTickPhaseFrames = 8
+)
+
+const (
+	// warmUpFrameIntervalRatio is how many times longer or shorter than smoothedFrameInterval a frame interval
+	// must be to start the average over, while it is based on fewer than shortFrameIntervals frame intervals.
+	warmUpFrameIntervalRatio = 2
+
+	// regularFrameIntervalPrecision is the reciprocal of how far, in smoothedFrameInterval, a frame interval
+	// can be from smoothedFrameInterval to be judged as regular.
+	regularFrameIntervalPrecision = 4
+
+	// regularFrameIntervalDeviations is how many times smoothedFrameIntervalDeviation a frame interval can be
+	// from smoothedFrameInterval to be judged as regular. A jitter is hardly beyond it.
+	regularFrameIntervalDeviations = 6
+
+	// catchingUpFrameIntervalRatio is how many times shorter than smoothedFrameInterval a frame interval must
+	// be to be judged as irregular right after an irregular one, as a frame catching up after a long one.
+	catchingUpFrameIntervalRatio = 2
+
+	// maxSkippedFrameIntervals is the maximum number of irregular frame intervals skipped in a row. Irregular
+	// frame intervals beyond it are taken as a change of the frame rate.
+	maxSkippedFrameIntervals = 8
 )
 
 // Clock determines how many ticks should run in each frame, so that ticks run at the specified TPS
@@ -94,8 +134,8 @@ type Clock struct {
 	// less the time of the frames since the last tick, smoothed over frames.
 	tickPhase int64
 
-	// tickPhaseFrames is the number of frames that tickPhase is based on, up to 8. This is 0 unless ticks at
-	// the current TPS have run every k-th frame up to the last frame.
+	// tickPhaseFrames is the number of frames that tickPhase is based on, up to maxTickPhaseFrames. This is 0
+	// unless ticks at the current TPS have run every k-th frame up to the last frame.
 	tickPhaseFrames int64
 
 	actualFPS   float64
@@ -210,18 +250,17 @@ func (c *Clock) updateSmoothedFrameInterval(interval int64) bool {
 	if c.frameIntervals < shortFrameIntervals {
 		// The first frame intervals can be irregular, such as while the display queue fills up. Until the
 		// average is based on enough of them, start it over at an interval far from it.
-		if interval > 2*s || 2*interval < s {
+		if interval > warmUpFrameIntervalRatio*s || warmUpFrameIntervalRatio*interval < s {
 			c.frameIntervals = 0
 		}
 	} else {
-		// After that, skip up to 8 irregular frame intervals in a row, such as a long frame and the short
-		// frames catching up after it, so that they don't move the average across the ratios judged in
-		// consumeTicks. An irregular one is off by more than both a quarter of the average and 6 times the
-		// deviation, which a jitter hardly is, or is shorter than half the average right after another.
-		irregular := deviation > max(s/4, 6*c.smoothedFrameIntervalDeviation) ||
-			(c.skippableFrameIntervals < 8 && 2*interval < s)
+		// After that, skip irregular frame intervals in a row, such as a long frame and the short frames
+		// catching up after it, so that they don't move the average across the ratios judged in consumeTicks.
+		// An irregular one is far from the average, or is short right after another.
+		irregular := deviation > max(s/regularFrameIntervalPrecision, regularFrameIntervalDeviations*c.smoothedFrameIntervalDeviation) ||
+			(c.skippableFrameIntervals < maxSkippedFrameIntervals && catchingUpFrameIntervalRatio*interval < s)
 		if !irregular {
-			c.skippableFrameIntervals = 8
+			c.skippableFrameIntervals = maxSkippedFrameIntervals
 		} else if c.skippableFrameIntervals > 0 {
 			c.skippableFrameIntervals--
 			c.frameIntervalSkipped = true
@@ -255,11 +294,10 @@ func (c *Clock) consumeTicks(tps int64, delta int64, skipped bool) int {
 	// When frames come at a multiple of a tick, a jitter around a rounding boundary flips the count like
 	// 0, 2, 0, 2. To avoid this, run the multiple of ticks while the game time stays within a tick of the
 	// real time, and otherwise let the rounding below bring it back to the middle. The ratio is judged by
-	// the smoothed frame interval once it is based on a few frame intervals, with a tight tolerance so that
-	// a jitter doesn't switch between this and the rounding.
-	judgeable := c.frameIntervals >= 3
+	// the smoothed frame interval once it is based on a few frame intervals.
+	judgeable := c.frameIntervals >= minJudgedFrameIntervals
 	n := (delta + tick/2) / tick
-	if judgeable && n > 0 && n*tick <= limit && abs(c.smoothedFrameInterval-n*tick) < tick/16 && abs(c.unconsumedTime-n*tick) < tick {
+	if judgeable && n > 0 && n*tick <= limit && abs(c.smoothedFrameInterval-n*tick) < tick/ratioPrecision && abs(c.unconsumedTime-n*tick) < tick {
 		c.unconsumedTime -= n * tick
 		c.framesSinceTick = 0
 		c.tickPhaseFrames = 0
@@ -274,7 +312,7 @@ func (c *Clock) consumeTicks(tps int64, delta int64, skipped bool) int {
 	// phase drifts too fast for this to keep the ticks regular.
 	if s := c.smoothedFrameInterval; judgeable && s > 0 {
 		k := (tick + s/2) / s
-		lockable := k >= 2 && k <= maxShortFramesPerTick && abs(k*s-tick) < tick/16
+		lockable := k >= 2 && k <= maxShortFramesPerTick && abs(k*s-tick) < tick/ratioPrecision
 		if ls := c.longSmoothedFrameInterval; !lockable && c.frameIntervals >= shortFrameIntervals && ls > 0 {
 			k = (tick + ls/2) / ls
 			lockable = k > maxShortFramesPerTick && abs(k*ls-tick) < ls/longFramesPerTickPrecision
@@ -309,7 +347,7 @@ func (c *Clock) consumeTicks(tps int64, delta int64, skipped bool) int {
 					} else {
 						c.framesSinceTick++
 					}
-					c.tickPhaseFrames = min(c.tickPhaseFrames+1, 8)
+					c.tickPhaseFrames = min(c.tickPhaseFrames+1, maxTickPhaseFrames)
 					c.tickPhase += (c.unconsumedTime - c.framesSinceTick*tick/k - c.tickPhase) / c.tickPhaseFrames
 					return int(count)
 				}
@@ -371,12 +409,11 @@ func (c *Clock) SinkTick(now int64) {
 	}
 
 	// Consume the real time since the last frame too, as UpdateFrame might not be called in between.
-	// Keep the game time up to a tick and a half ahead of the real time, so that a tick forced between the
-	// clock's ticks replaces the next one instead of adding to it. Half a tick is for the ticks run a little
-	// early, which consumeTicks allows. The bound keeps a lot of forced ticks from stalling the game
-	// afterwards.
+	// Let the game time get ahead of the real time up to a bound, so that a tick forced between the clock's
+	// ticks replaces the next one instead of adding to it. The bound keeps a lot of forced ticks from stalling
+	// the game afterwards.
 	tick := int64(time.Second) / tps
-	c.unconsumedTime = max(c.unconsumedTime+(now-c.lastNow)-tick, -3*tick/2)
+	c.unconsumedTime = max(c.unconsumedTime+(now-c.lastNow)-tick, -maxSinkTickLeadHalfTicks*tick/2)
 	c.lastNow = now
 }
 
