@@ -128,6 +128,9 @@ func CursorPositionF() (x, y float64) {
 // The unit of the offsets varies among platforms and devices.
 // For amounts estimated in device-independent pixels, use [ScrollDelta].
 //
+// A pinch reported by [PinchDelta] is not reported by Wheel, while scrolling with the Control key held is.
+// See [PinchDelta] for the details and the differences from Ebitengine v2.10.
+//
 // Wheel is concurrent-safe.
 func Wheel() (xoff, yoff float64) {
 	return inputstate.Get().Wheel()
@@ -142,6 +145,12 @@ func Wheel() (xoff, yoff float64) {
 // the same everywhere.
 // The sign convention is the same as [Wheel]'s.
 //
+// A pinch reported by [PinchDelta] is not reported by ScrollDelta, while scrolling with the Control key held
+// is. See [PinchDelta] for the details and the differences from Ebitengine v2.10.
+//
+// On Windows, the amounts of scrolling on a precision touchpad follow how far the fingers move, and are
+// different from Ebitengine v2.10's.
+//
 // ScrollDelta is concurrent-safe.
 func ScrollDelta() (x, y float64) {
 	return inputstate.Get().ScrollDelta()
@@ -154,13 +163,36 @@ func ScrollDelta() (x, y float64) {
 // a request to shrink. To follow the gesture, multiply the scale by 1 + the returned value at each tick.
 // For example, 0.05 asks to make things 5% larger.
 //
-// PinchDelta reports a pinch on a touchpad. On mobile platforms, PinchDelta also reports a pinch on
-// the touch screen, whose touches are still reported by [AppendTouchIDs] and [TouchPosition]. On the
-// other platforms, a pinch on a touch screen is reported only as touches.
+// PinchDelta reports a pinch on these devices:
 //
-// A pinch reported by PinchDelta is not reported by [Wheel] or [ScrollDelta].
+//   - A touchpad on macOS, on Windows, and on Linux and other platforms with X11.
+//     On Windows, only a precision touchpad's pinches are reported.
+//   - A touchpad in browsers.
+//   - The touch screen and a trackpad on iOS.
+//   - The touch screen and a touchpad on Android.
 //
-// Some platforms and devices do not report pinches, and then PinchDelta returns 0.
+// On iOS and Android, the touches of a pinch on the touch screen are still reported by [AppendTouchIDs]
+// and [TouchPosition]. On desktops and in browsers, a pinch on a touch screen is reported only as touches.
+// Some platforms and devices do not report pinches, and then PinchDelta returns 0: for example, a touchpad
+// that is not a precision touchpad on Windows, and a touchpad on older versions of Android.
+//
+// A pinch reported by PinchDelta is not reported by [Wheel] or [ScrollDelta]. On a touchpad, a gesture
+// either scrolls or pinches: moving the fingers while pinching is not reported as scrolling. On a touch
+// screen, moving the fingers while pinching is reported by the touches. A pinch can be reported with a
+// rotation by [RotationDelta] at the same tick. To scale things around the point the gesture is done
+// around, use inpututil.PinchCenter.
+//
+// Scrolling with the Control key held is reported as scrolling by [Wheel] and [ScrollDelta], not by
+// PinchDelta. Some touchpads whose pinches PinchDelta does not report, such as a touchpad that is not a
+// precision touchpad on Windows, report a pinch as scrolling with the Control key held. To scale things by
+// such a pinch, scale things also by scrolling while [IsKeyPressed] reports [KeyControl]. In browsers,
+// scrolling with the Control key held can be reported as a pinch when the game does not have the focus
+// and the cursor has not moved since the Control key was pressed.
+//
+// This is different from Ebitengine v2.10's behavior. Ebitengine v2.10 reported a pinch on a precision
+// touchpad on Windows, and a pinch on a touchpad in browsers other than Safari, as scrolling by [Wheel]
+// and [ScrollDelta]. A game that scales things by scrolling should also use PinchDelta to keep scaling
+// things by these pinches.
 //
 // PinchDelta is concurrent-safe.
 func PinchDelta() float64 {
@@ -173,12 +205,21 @@ func PinchDelta() float64 {
 // A positive value is clockwise, as with [GeoM.Rotate]. To follow the gesture, add the returned value
 // to the angle at each tick.
 //
-// RotationDelta reports a rotation on a touchpad. On mobile platforms, RotationDelta also reports a
-// rotation on the touch screen, whose touches are still reported by [AppendTouchIDs] and [TouchPosition].
-// On the other platforms, a rotation on a touch screen is reported only as touches.
+// RotationDelta reports a rotation on these devices:
 //
-// Some platforms and devices do not report rotations, even when they report pinches, and then
-// RotationDelta returns 0.
+//   - A touchpad on macOS, and on Linux and other platforms with X11.
+//   - A touchpad in Safari.
+//   - The touch screen and a trackpad on iOS.
+//   - The touch screen on Android.
+//
+// On iOS and Android, the touches of a rotation on the touch screen are still reported by
+// [AppendTouchIDs] and [TouchPosition]. On desktops and in browsers, a rotation on a touch screen is
+// reported only as touches. Some platforms and devices do not report rotations, even when they report
+// pinches by [PinchDelta], and then RotationDelta returns 0: for example, a touchpad on Windows, a
+// touchpad in browsers other than Safari, and a touchpad on Android.
+//
+// A rotation can be reported with a pinch by [PinchDelta] at the same tick. To turn things around the
+// point the gesture is done around, use inpututil.PinchCenter.
 //
 // RotationDelta is concurrent-safe.
 func RotationDelta() float64 {

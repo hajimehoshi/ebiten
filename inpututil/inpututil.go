@@ -674,6 +674,9 @@ func TouchPositionFInPreviousTick(id ebiten.TouchID) (float64, float64) {
 // PinchCenter returns the middle of the two fingers when exactly two fingers touch the screen.
 // Otherwise, such as for a gesture on a touchpad, PinchCenter returns the point the platform reports
 // for the gesture at the current tick, or the cursor position when the platform reports none.
+// iOS and Android report the point, such as the middle of the fingers on a touchpad on Android. On
+// desktops and in browsers, a gesture on a touchpad is done around the cursor, and PinchCenter returns
+// the cursor position.
 //
 // PinchCenter is concurrent safe.
 func PinchCenter() (float64, float64) {
