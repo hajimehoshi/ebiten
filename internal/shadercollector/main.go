@@ -108,7 +108,13 @@ func xmain() error {
 	var targets []string
 	if ft := strings.TrimSpace(*flagTarget); ft != "" {
 		for t := range strings.SplitSeq(ft, ",") {
-			targets = append(targets, strings.TrimSpace(t))
+			target := strings.TrimSpace(t)
+			switch target {
+			case "glsl", "hlsl", "msl", "pssl":
+			default:
+				return fmt.Errorf("unsupported target: %s", target)
+			}
+			targets = append(targets, target)
 		}
 	}
 

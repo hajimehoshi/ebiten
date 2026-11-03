@@ -229,11 +229,14 @@ type glyphDataCacheKey struct {
 	// interpreter is added in the future, outlines may vary per ppem
 	// and the outline case will need a non-zero size here too.
 	size fixed.Int26_6
+	// Nearby fractional sizes can share size but request different bitmap strikes.
+	xPpem, yPpem uint16
 }
 
 // glyphRenderDataCacheKey identifies the render-data bundle for one glyph.
-// Scaled segments depend on all four key fields; bitmap depends only on
-// (gid, size) but is bundled here so a single cache entry yields every
+// Scaled segments depend on the glyph, variations, orientation, and size.
+// Bitmap selection also depends on the unrounded face size, captured by bitmapState.
+// Both are bundled here so a single cache entry yields every
 // renderable form of the glyph. For fonts exercising multiple variations
 // or sideways modes at the same size, the same bitmap image may be
 // referenced from multiple entries — the image data is still shared via
@@ -242,10 +245,11 @@ type glyphDataCacheKey struct {
 // Bundling segments and bitmap together means [AppendVectorPath] retains
 // access to the outline even for glyphs whose bitmap is also populated.
 type glyphRenderDataCacheKey struct {
-	gid        font.GID
-	variations string
-	sideways   bool
-	size       fixed.Int26_6
+	gid         font.GID
+	variations  string
+	sideways    bool
+	size        fixed.Int26_6
+	bitmapState faceBitmapState
 }
 
 // glyphRenderData holds a glyph's font-metric bounds and captured outline/bitmap state.
@@ -805,11 +809,11 @@ func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) faceBitmapState {
 }
 
 // buildOutputs runs HarfBuzz shaping on text and returns the per-segment
-// outputs, including per-glyph extents.
+// outputs, including per-glyph extents when required for layout.
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping.Output {
-	_ = g.applyFaceState(face)
+	bm := g.applyFaceState(face)
 
 	g.runes = g.runes[:0]
 	for _, r := range text {
@@ -865,8 +869,14 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 
 	outputs := make([]shaping.Output, len(inputs))
 	for i, input := range inputs {
-		out := g.shaper.Shape(input)
-		outputs[i] = out
+		// Bitmap placement needs glyph bearings, and vertical baseline
+		// adjustment needs glyph bounds. Horizontal outlines get their
+		// bounds separately when building render data.
+		if bm.useBitmap || input.Direction.IsVertical() {
+			outputs[i] = g.shaper.Shape(input)
+		} else {
+			outputs[i] = g.shaper.ShapeNoExtents(input)
+		}
 	}
 	// Baselines must shift a whole line at once; per-output calls drift
 	// sideways runs apart in vertical writing.
@@ -961,10 +971,11 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 				g.renderDataCache = newCache[glyphRenderDataCacheKey, *glyphRenderData](512)
 			}
 			renderKey := glyphRenderDataCacheKey{
-				gid:        gl.GlyphID,
-				variations: variations,
-				sideways:   sideways,
-				size:       out.Size,
+				gid:         gl.GlyphID,
+				variations:  variations,
+				sideways:    sideways,
+				size:        out.Size,
+				bitmapState: bm,
 			}
 			render := g.renderDataCache.getOrCreate(renderKey, func() (*glyphRenderData, bool) {
 				return g.buildRenderData(gl, out.Size, sideways, variationsSnapshot, variations, bm)
@@ -1156,7 +1167,7 @@ func colrClipBoxExtents(clips tables.ClipList, gid font.GID) (font.GlyphExtents,
 
 // fetchGlyphData returns the glyph data for gid via the glyph data
 // cache. Cached entries are reusable across glyph instances sharing
-// (gid, variations, sideways, size). useBitmap selects the bitmap-mode
+// (gid, variations, sideways, size, ppem). useBitmap selects the bitmap-mode
 // cache key; the outline path is ppem-independent and shares one entry
 // across sizes (see glyphDataCacheKey).
 //
@@ -1181,6 +1192,9 @@ func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string,
 		variations: variationsString,
 		sideways:   sideways,
 		size:       keySize,
+	}
+	if useBitmap {
+		key.xPpem, key.yPpem = g.lastXPpem, g.lastYPpem
 	}
 	return g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
 		d := g.glyphDataWithoutSVG(gid)

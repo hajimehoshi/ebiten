@@ -138,6 +138,7 @@ type nodeOptions struct {
 }
 
 type renderBuilder struct {
+	paths                      map[*element]path
 	document                   *document
 	styles                     *styleResolver
 	instances, commands        int
@@ -190,10 +191,10 @@ func ParseRenderDocument(source []byte) (*RenderDocument, error) {
 
 // Prepare interprets a glyph in the requested output coordinate system.
 func (doc *RenderDocument) Prepare(options RenderOptions) (*RenderPlan, error) {
-	return doc.prepare(options, nil)
+	return doc.prepare(options, nil, nil)
 }
 
-func (doc *RenderDocument) prepare(options RenderOptions, images map[string]*image.RGBA) (*RenderPlan, error) {
+func (doc *RenderDocument) prepare(options RenderOptions, images map[string]*image.RGBA, paths map[*element]path) (*RenderPlan, error) {
 	if options.AntiAlias && options.Samples != 1 || options.Width <= 0 || options.Height <= 0 || options.Samples != 1 && options.Samples != 2 && options.Samples != 4 && options.Samples != 8 {
 		return nil, errGeometry
 	}
@@ -221,6 +222,7 @@ func (doc *RenderDocument) prepare(options RenderOptions, images map[string]*ima
 		return nil, err
 	}
 	b := renderBuilder{
+		paths:      paths,
 		document:   d,
 		images:     images,
 		styles:     r,
@@ -374,9 +376,15 @@ func (b *renderBuilder) node(e *element, parent *style, lengths lengthContext, d
 	if err != nil {
 		return nil, err
 	}
-	p, err := e.geometry(lengths)
-	if err != nil {
-		return nil, err
+	p, ok := b.paths[e]
+	if !ok {
+		p, err = e.geometry(lengths)
+		if err != nil {
+			return nil, err
+		}
+		if b.paths != nil && (e.name.Local == "path" || e.name.Local == "polygon" || e.name.Local == "polyline") {
+			b.paths[e] = p
+		}
 	}
 	if err := b.charge(len(p.segments)); err != nil {
 		return nil, err

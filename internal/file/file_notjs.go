@@ -439,6 +439,7 @@ func (v *virtualDir) ReadDir(count int) ([]fs.DirEntry, error) {
 		fi, err := os.Stat(c.absPath)
 		if err != nil {
 			if count <= 0 {
+				v.offset += i
 				return ents[:i], err
 			}
 			return nil, err

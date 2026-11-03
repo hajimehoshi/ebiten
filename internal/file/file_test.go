@@ -396,3 +396,43 @@ func TestFSReadDirSorted(t *testing.T) {
 		t.Errorf("ReadDir names: got %v, want %v", names, want)
 	}
 }
+
+func TestFSReadDirResumeAfterError(t *testing.T) {
+	dir := t.TempDir()
+	paths := []string{filepath.Join(dir, "a"), filepath.Join(dir, "b")}
+	for _, path := range paths {
+		if err := os.WriteFile(path, nil, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	vfs := newVirtualFS(t, paths)
+	f, err := vfs.Open(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = f.Close() }()
+	if err := os.Remove(paths[1]); err != nil {
+		t.Fatal(err)
+	}
+	d := f.(fs.ReadDirFile)
+	entries, err := d.ReadDir(-1)
+	if !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("ReadDir: got %v, want ErrNotExist", err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "a" {
+		t.Fatalf("ReadDir: got %v, want only a", entries)
+	}
+	if err := os.WriteFile(paths[1], nil, 0600); err != nil {
+		t.Fatal(err)
+	}
+	entries, err = d.ReadDir(-1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 1 || entries[0].Name() != "b" {
+		t.Errorf("ReadDir retry: got %v, want only b", entries)
+	}
+	if entries, err := d.ReadDir(1); len(entries) != 0 || err != io.EOF {
+		t.Errorf("ReadDir at end: got %v, %v, want EOF", entries, err)
+	}
+}

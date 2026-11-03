@@ -1279,3 +1279,37 @@ func TestReadWithUnknownLength(t *testing.T) {
 		}
 	}
 }
+
+func TestResampledNonSeeker(t *testing.T) {
+	data := test_mono_ogg
+	decode := func() *vorbis.Stream {
+		t.Helper()
+		s, err := vorbis.DecodeWithSampleRate(48000, bytes.NewBuffer(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	control := decode()
+	want, err := io.ReadAll(control)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := decode()
+	prefix := make([]byte, 4)
+	if _, err := io.ReadFull(s, prefix); err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+		if _, err := s.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
+			t.Errorf("Seek(0, %d): got %v, want errors.ErrUnsupported", whence, err)
+		}
+	}
+	rest, err := io.ReadAll(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(append(prefix, rest...), want) {
+		t.Error("failed seeks changed the decoded stream")
+	}
+}

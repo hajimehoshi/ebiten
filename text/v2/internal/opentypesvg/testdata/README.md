@@ -106,9 +106,8 @@ and adjoining-fill seams; isolated groups do not fix this. Embedded-image tests
 cover minification, premultiplied filtering and exact half-pixel crop consistency,
 but strong shear and general affine sampling remain quality work. Near-unit
 reduction of large embedded images can be expensive on cache misses. Full-font
-visual and sustained performance acceptance remain incomplete; legacy removal
-is deferred. Rendering policy and resource limits belong in the
-[package README](../README.md#rendering).
+visual and sustained performance acceptance remain incomplete. Rendering policy
+and resource limits belong in the [package README](../README.md#rendering).
 
 ## Full-font inventory and bounded GPU checks
 

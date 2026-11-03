@@ -15,7 +15,6 @@ require (
 	github.com/jakecoffman/cp/v2 v2.4.0
 	github.com/jfreymuth/oggvorbis v1.0.5
 	github.com/kisielk/errcheck v1.30.0
-	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef
 	golang.org/x/image v0.47.0
 	golang.org/x/mod v0.42.0
 	golang.org/x/sync v0.24.0

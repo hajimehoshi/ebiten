@@ -290,14 +290,7 @@ func (g *Graphics) availableBuffer(length uintptr) (mtl.Buffer, error) {
 		return mtl.Buffer{}, err
 	}
 
-	var newBuf mtl.Buffer
-	for b := range g.unusedBuffers {
-		if b.Length() >= length {
-			newBuf = b
-			delete(g.unusedBuffers, b)
-			break
-		}
-	}
+	newBuf := takeUnusedBuffer(g.unusedBuffers, length)
 
 	if newBuf == (mtl.Buffer{}) {
 		b, err := g.view.getMTLDevice().NewBufferWithLength(pow2(length), resourceStorageMode)
@@ -313,6 +306,25 @@ func (g *Graphics) availableBuffer(length uintptr) (mtl.Buffer, error) {
 	}
 	g.buffers[g.frame] = append(g.buffers[g.frame], newBuf)
 	return newBuf, nil
+}
+
+func takeUnusedBuffer(buffers map[mtl.Buffer]struct{}, length uintptr) mtl.Buffer {
+	var selected mtl.Buffer
+	var selectedLength uintptr
+	for buffer := range buffers {
+		bufferLength := buffer.Length()
+		if bufferLength < length {
+			continue
+		}
+		if selected == (mtl.Buffer{}) || bufferLength < selectedLength {
+			selected = buffer
+			selectedLength = bufferLength
+		}
+	}
+	if selected != (mtl.Buffer{}) {
+		delete(buffers, selected)
+	}
+	return selected
 }
 
 func (g *Graphics) SetVertices(vertices []float32, indices []uint32) error {

@@ -618,6 +618,7 @@ func (p *Player) SetVolume(volume float64) {
 
 // SetBufferSize adjusts the buffer size of the player.
 // If a nonpositive value or a value too large to represent is specified, the default buffer size is used.
+// A positive, representable size is rounded down to a whole number of frames, with a minimum of one frame.
 // A small buffer size is useful if you want to play a real-time PCM for example.
 // Note that the audio quality might be affected if you modify the buffer size.
 func (p *Player) SetBufferSize(bufferSize time.Duration) {

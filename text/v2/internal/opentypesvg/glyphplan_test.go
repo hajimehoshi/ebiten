@@ -20,6 +20,7 @@ import (
 	"errors"
 	"image"
 	"image/color"
+	"reflect"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/text/v2/internal/opentypesvg"
@@ -106,5 +107,34 @@ func TestSVGDecodeBudgets(t *testing.T) {
 	broken[len(broken)-8] ^= 1
 	if _, err := opentypesvg.Decode(broken); !errors.Is(err, opentypesvg.ErrCompression) {
 		t.Errorf("corrupt trailer: %v", err)
+	}
+}
+
+func TestPreparedGlyphSharedPaths(t *testing.T) {
+	doc, err := opentypesvg.ParseRenderDocument([]byte(`<svg viewBox="0 0 100 100"><defs><path id="p" d="M-5 0Q10 -10 20 10L0 20Z"/><clipPath id="c"><use href="#p" transform="scale(2)"/></clipPath></defs><g clip-path="url(#c)"><use href="#p"/><use href="#p" transform="translate(20 5) scale(0.5)"/><polygon points="0,0 30,0 15,30"/><polyline points="0,0 20,10 30,0" fill="none" stroke="red"/></g></svg>`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	options := opentypesvg.RenderOptions{
+		UnitsPerEm: 100,
+		Samples:    1,
+		AntiAlias:  true,
+		Foreground: color.NRGBA{A: 255},
+	}
+	got, bounds, err := doc.PrepareGlyph(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bounds.Empty() {
+		t.Fatal("empty glyph bounds")
+	}
+	options.Width, options.Height = bounds.Dx(), bounds.Dy()
+	options.Transform = [6]float64{1, 0, 0, 1, -float64(bounds.Min.X), -float64(bounds.Min.Y)}
+	want, err := doc.Prepare(options)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Error("glyph preparation differs from independent output preparation")
 	}
 }

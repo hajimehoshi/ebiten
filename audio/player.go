@@ -550,7 +550,8 @@ func bufferSizeInBytes(bufferSize time.Duration, bytesPerSample, sampleRate int)
 	if !ok || size > int64(math.MaxInt) {
 		return 0
 	}
-	size = size / int64(bytesPerSample) * int64(bytesPerSample)
+	// Oto treats zero as the default buffer size, so positive durations need at least one frame.
+	size = max(1, size/int64(bytesPerSample)) * int64(bytesPerSample)
 	return int(size)
 }
 
@@ -590,7 +591,6 @@ func (p *playerImpl) updatePosition() {
 		return
 	}
 	if !p.context.IsReady() {
-		p.adjustedPosition = 0
 		return
 	}
 

@@ -152,6 +152,88 @@ func stereoI16FmtChunkData(sampleRate uint32) []byte {
 	return buf
 }
 
+func stereoExtensibleFmtChunkData(sampleRate uint32, bitsPerSample int, subFormat []byte) []byte {
+	blockAlign := 2 * bitsPerSample / 8
+	var buf []byte
+	buf = binary.LittleEndian.AppendUint16(buf, 0xfffe)                        // Format tag (WAVEFORMATEXTENSIBLE)
+	buf = binary.LittleEndian.AppendUint16(buf, 2)                             // Channel count
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate)                    // Sample rate
+	buf = binary.LittleEndian.AppendUint32(buf, sampleRate*uint32(blockAlign)) // Byte rate
+	buf = binary.LittleEndian.AppendUint16(buf, uint16(blockAlign))            // Block align
+	buf = binary.LittleEndian.AppendUint16(buf, uint16(bitsPerSample))         // Bits per sample
+	buf = binary.LittleEndian.AppendUint16(buf, 22)                            // Extension size
+	buf = binary.LittleEndian.AppendUint16(buf, 16)                            // Valid bits per sample
+	buf = binary.LittleEndian.AppendUint32(buf, 3)                             // Channel mask
+	buf = append(buf, subFormat...)
+	return buf
+}
+
+func TestDecodeWAVEFORMATEXTENSIBLE(t *testing.T) {
+	data := []byte{0, 0, 0, 0xff, 0xff, 0x7f}
+	pcmGUID := []byte{1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xaa, 0, 0x38, 0x9b, 0x71}
+	fmtData := stereoExtensibleFmtChunkData(testSampleRate, 24, pcmGUID)
+	src := wavFileWithFmtData(fmtData, data)
+
+	s, err := wav.DecodeWithoutResampling(bytes.NewReader(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := s.SampleRate(), testSampleRate; got != want {
+		t.Errorf("SampleRate(): got %d, want %d", got, want)
+	}
+	if got, want := s.Length(), int64(4); got != want {
+		t.Errorf("Length(): got %d, want %d", got, want)
+	}
+	got, err := io.ReadAll(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []byte{0, 0, 0xFF, 0x7F}; !bytes.Equal(got, want) {
+		t.Errorf("data: got %v, want %v", got, want)
+	}
+}
+
+func TestDecodeWAVEFORMATEXTENSIBLERejectsNonPCM(t *testing.T) {
+	data := []byte{1, 2, 3, 4}
+	guid := make([]byte, 16) // empty GUID, non-PCM
+	fmtData := stereoExtensibleFmtChunkData(testSampleRate, 24, guid)
+	src := wavFileWithFmtData(fmtData, data)
+
+	if _, err := wav.DecodeWithoutResampling(bytes.NewReader(src)); err == nil {
+		t.Errorf("DecodeWithoutResampling: got no error, want an error")
+	}
+}
+
+func TestDecodeInvalidWAVEFORMATEXTENSIBLE(t *testing.T) {
+	pcmGUID := []byte{1, 0, 0, 0, 0, 0, 0x10, 0, 0x80, 0, 0, 0xaa, 0, 0x38, 0x9b, 0x71}
+	testCases := []struct {
+		name    string
+		fmtData []byte
+	}{
+		{
+			name:    "short 'fmt ' chunk",
+			fmtData: stereoExtensibleFmtChunkData(testSampleRate, 24, pcmGUID)[:39],
+		},
+		{
+			name: "cbSize larger than chunk",
+			fmtData: func() []byte {
+				fmtData := stereoExtensibleFmtChunkData(testSampleRate, 24, pcmGUID)
+				binary.LittleEndian.PutUint16(fmtData[16:18], 100)
+				return fmtData
+			}(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			src := wavFileWithFmtData(tc.fmtData, []byte{1, 2, 3, 4})
+			if _, err := wav.DecodeWithoutResampling(bytes.NewReader(src)); err == nil {
+				t.Errorf("DecodeWithoutResampling: got no error, want an error")
+			}
+		})
+	}
+}
+
 // wavFile returns a WAV file whose 'data' chunk holds data.
 // beforeFmt and afterFmt are put before and after the 'fmt ' chunk respectively.
 func wavFile(sampleRate uint32, beforeFmt []chunk, afterFmt []chunk, data []byte) []byte {
@@ -163,6 +245,18 @@ func wavFile(sampleRate uint32, beforeFmt []chunk, afterFmt []chunk, data []byte
 	for _, c := range afterFmt {
 		body = appendChunk(body, c.id, []byte(c.data))
 	}
+	body = appendChunk(body, "data", data)
+
+	var buf []byte
+	buf = append(buf, "RIFF"...)
+	buf = binary.LittleEndian.AppendUint32(buf, uint32(len(body)+4))
+	buf = append(buf, "WAVE"...)
+	return append(buf, body...)
+}
+
+func wavFileWithFmtData(fmtData, data []byte) []byte {
+	var body []byte
+	body = appendChunk(body, "fmt ", fmtData)
 	body = appendChunk(body, "data", data)
 
 	var buf []byte
@@ -526,6 +620,12 @@ func TestDecodePartialFrame(t *testing.T) {
 			wantFrames:    32,
 		},
 		{
+			name:          "MonoS24",
+			channelCount:  1,
+			bitsPerSample: 24,
+			wantFrames:    21,
+		},
+		{
 			name:          "StereoU8",
 			channelCount:  2,
 			bitsPerSample: 8,
@@ -536,6 +636,12 @@ func TestDecodePartialFrame(t *testing.T) {
 			channelCount:  2,
 			bitsPerSample: 16,
 			wantFrames:    16,
+		},
+		{
+			name:          "StereoS24",
+			channelCount:  2,
+			bitsPerSample: 24,
+			wantFrames:    10,
 		},
 	}
 	for _, tc := range testCases {
@@ -714,22 +820,26 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 	}
 
 	decoders := []struct {
-		name   string
-		decode func(src io.Reader) (*wav.Stream, error)
+		name          string
+		decode        func(src io.Reader) (*wav.Stream, error)
+		bytesPerFrame int64
 	}{
 		{
-			name:   "DecodeWithoutResampling",
-			decode: wav.DecodeWithoutResampling,
+			name:          "DecodeWithoutResampling",
+			decode:        wav.DecodeWithoutResampling,
+			bytesPerFrame: 4,
 		},
 		{
-			name:   "DecodeF32",
-			decode: wav.DecodeF32,
+			name:          "DecodeF32",
+			decode:        wav.DecodeF32,
+			bytesPerFrame: 8,
 		},
 		{
 			name: "DecodeWithSampleRate",
 			decode: func(src io.Reader) (*wav.Stream, error) {
 				return wav.DecodeWithSampleRate(testSampleRate*2, src)
 			},
+			bytesPerFrame: 4,
 		},
 	}
 
@@ -739,6 +849,12 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 		channelCount  int
 		bitsPerSample int
 	}{
+		{
+			name:          "ZeroStereoS24",
+			declaredSize:  0,
+			channelCount:  2,
+			bitsPerSample: 24,
+		},
 		{
 			name:          "ZeroStereoS16",
 			declaredSize:  0,
@@ -750,6 +866,12 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 			declaredSize:  0,
 			channelCount:  1,
 			bitsPerSample: 8,
+		},
+		{
+			name:          "MaxStereoS24",
+			declaredSize:  0xffffffff,
+			channelCount:  2,
+			bitsPerSample: 24,
 		},
 		{
 			name:          "MaxStereoS16",
@@ -810,7 +932,7 @@ func TestDecodePlaceholderDataChunkSize(t *testing.T) {
 							t.Errorf("after Seek(0, io.SeekStart): decoded %d bytes, want %d bytes", len(got), len(wantBytes))
 						}
 
-						mid := want.Length() / 2
+						mid := want.Length() / 2 / d.bytesPerFrame * d.bytesPerFrame
 						if _, err := s.Seek(mid, io.SeekStart); err != nil {
 							t.Fatal(err)
 						}
@@ -961,7 +1083,7 @@ func TestDecodePlaceholderDataChunkSizeSeekUnsupported(t *testing.T) {
 
 func TestSeekOverflow(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range []struct {
 				name string
 				f    func(io.Reader) (*wav.Stream, error)
@@ -1087,7 +1209,7 @@ var wavDecoders = []struct {
 
 func TestSeekRounding(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range wavDecoders {
 				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
 					data := make([]byte, 8000)
@@ -1175,7 +1297,7 @@ func TestSeekRounding(t *testing.T) {
 
 func TestSeekCurrentAfterUnalignedRead(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range wavDecoders {
 				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
 					data := make([]byte, 8000)
@@ -1238,7 +1360,7 @@ func (s *seekCountingReader) Seek(offset int64, whence int) (int64, error) {
 
 func TestSeekCurrentDoesNotSeekSource(t *testing.T) {
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, decode := range wavDecoders {
 				t.Run(fmt.Sprintf("%s/channels=%d/bits=%d", decode.name, channels, bits), func(t *testing.T) {
 					data := make([]byte, 8000)
@@ -1465,7 +1587,7 @@ func TestReadWholeSamples(t *testing.T) {
 		data[i] = byte(i*7 + 1)
 	}
 	for _, channels := range []int{1, 2} {
-		for _, bits := range []int{8, 16} {
+		for _, bits := range []int{8, 16, 24} {
 			for _, placeholderSize := range []bool{false, true} {
 				for _, decode := range decoders {
 					t.Run(fmt.Sprintf("%s/channels=%d/bits=%d/placeholderSize=%t", decode.name, channels, bits, placeholderSize), func(t *testing.T) {
@@ -1521,8 +1643,8 @@ func TestResampledUnknownLength(t *testing.T) {
 				if got := s.Length(); got != want {
 					t.Errorf("Length after reading: got %d, want %d", got, want)
 				}
-				if got, err := s.Seek(0, io.SeekEnd); got != want || err != nil {
-					t.Errorf("Seek(0, io.SeekEnd): got (%d, %v), want (%d, nil)", got, err, want)
+				if _, err := s.Seek(0, io.SeekEnd); !errors.Is(err, errors.ErrUnsupported) {
+					t.Errorf("Seek(0, io.SeekEnd): got %v, want errors.ErrUnsupported", err)
 				}
 			})
 		}
@@ -1555,5 +1677,39 @@ func TestResampledConcurrentLength(t *testing.T) {
 			_ = s.Length()
 			runtime.Gosched()
 		}
+	}
+}
+
+func TestResampledNonSeeker(t *testing.T) {
+	data := pcmWavFile(2, 16, bytes.Repeat([]byte{1, 2, 3, 4}, 1000))
+	decode := func() *wav.Stream {
+		t.Helper()
+		s, err := wav.DecodeWithSampleRate(testSampleRate*2, bytes.NewBuffer(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return s
+	}
+	control := decode()
+	want, err := io.ReadAll(control)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s := decode()
+	prefix := make([]byte, 4)
+	if _, err := io.ReadFull(s, prefix); err != nil {
+		t.Fatal(err)
+	}
+	for _, whence := range []int{io.SeekStart, io.SeekCurrent, io.SeekEnd} {
+		if _, err := s.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
+			t.Errorf("Seek(0, %d): got %v, want errors.ErrUnsupported", whence, err)
+		}
+	}
+	rest, err := io.ReadAll(s)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(append(prefix, rest...), want) {
+		t.Error("failed seeks changed the decoded stream")
 	}
 }

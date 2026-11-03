@@ -120,7 +120,7 @@ func TestCircleVertexCount(t *testing.T) {
 		{
 			name:   "small",
 			radius: 0.5,
-			want:   2,
+			want:   3,
 		},
 		{
 			name:   "ordinary",
@@ -856,5 +856,23 @@ func TestDrawingNonFiniteGeometry(t *testing.T) {
 				}
 			})
 		}
+	}
+}
+
+func TestSmallCirclesNonAntiAlias(t *testing.T) {
+	for _, stroke := range []bool{false, true} {
+		t.Run(fmt.Sprintf("stroke=%t", stroke), func(t *testing.T) {
+			dst := ebiten.NewImage(16, 16)
+			defer dst.Deallocate()
+			if stroke {
+				// The pixel center is between the inner and outer boundaries of the ring.
+				vector.StrokeCircle(dst, 8.1, 8.5, 0.4, 0.4, color.White, false)
+			} else {
+				vector.FillCircle(dst, 8.5, 8.5, 0.5, color.White, false)
+			}
+			if got := dst.At(8, 8).(color.RGBA); got != (color.RGBA{R: 255, G: 255, B: 255, A: 255}) {
+				t.Errorf("pixel inside the circle: got %v, want white", got)
+			}
+		})
 	}
 }

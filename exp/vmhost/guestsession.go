@@ -1017,6 +1017,9 @@ func (g *GuestSession) queueTicks(n int) {
 	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
+	// Ticks requested on an ended session still count as requested, so that WaitTicks reports them as
+	// unprocessed.
+	g.submittedTicks += int64(n)
 	if g.closed || g.err != nil {
 		return
 	}
@@ -1030,7 +1033,6 @@ func (g *GuestSession) queueTicks(n int) {
 	} else {
 		g.ops = append(g.ops, op{kind: opTick, count: n})
 	}
-	g.submittedTicks += int64(n)
 	g.cond.Broadcast()
 }
 
