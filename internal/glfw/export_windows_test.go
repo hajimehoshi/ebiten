@@ -106,7 +106,7 @@ func DirectManipulationZoomToRect(left, top, right, bottom float32) (*[6]float32
 	}
 	defer d.release(hwnd)
 
-	if err := d.viewport.ZoomToRect(d.zoomToRect, left, top, right, bottom, false); err != nil {
+	if err := d.zoomToRect(left, top, right, bottom, false); err != nil {
 		return nil, err
 	}
 	if err := d.updateManager.Update(); err != nil {

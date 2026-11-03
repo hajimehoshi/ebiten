@@ -289,24 +289,6 @@ func (i *_IDirectManipulationViewport) newZoomToRectFunc() zoomToRectFunc {
 	return f
 }
 
-// ZoomToRect calls IDirectManipulationViewport::ZoomToRect. f is the function newZoomToRectFunc returns.
-func (i *_IDirectManipulationViewport) ZoomToRect(f zoomToRectFunc, left, top, right, bottom float32, animate bool) error {
-	var a int32
-	if animate {
-		a = 1
-	}
-	var r uintptr
-	if f != nil {
-		r = uintptr(uint32(f(unsafe.Pointer(i), left, top, right, bottom, a)))
-	} else {
-		r, _, _ = syscall.SyscallN(i.vtbl.ZoomToRect, uintptr(unsafe.Pointer(i)), uintptr(math.Float32bits(left)), uintptr(math.Float32bits(top)), uintptr(math.Float32bits(right)), uintptr(math.Float32bits(bottom)), uintptr(a))
-	}
-	if hresultFailed(r) {
-		return hresultError("IDirectManipulationViewport::ZoomToRect", r)
-	}
-	return nil
-}
-
 func (i *_IDirectManipulationViewport) GetPrimaryContent() (*_IDirectManipulationContent, error) {
 	var ptr *_IDirectManipulationContent
 	r, _, _ := syscall.SyscallN(i.vtbl.GetPrimaryContent, uintptr(unsafe.Pointer(i)), uintptr(unsafe.Pointer(&_IID_IDirectManipulationContent)), uintptr(unsafe.Pointer(&ptr)))
@@ -386,9 +368,9 @@ type directManipulation struct {
 	viewport      *_IDirectManipulationViewport
 	content       *_IDirectManipulationContent
 
-	// zoomToRect is the function to call ZoomToRect of the viewport with. It is registered once, as the
-	// method of the viewport does not change.
-	zoomToRect zoomToRectFunc
+	// puregoZoomToRect is the function to call ZoomToRect of the viewport with, or nil when the system call
+	// can call it. It is registered once, as the method of the viewport does not change.
+	puregoZoomToRect zoomToRectFunc
 
 	activated       bool
 	uninitializeCOM bool
@@ -400,6 +382,25 @@ type directManipulation struct {
 
 	// contactTime is when a contact was handed to the viewport last, until the viewport starts running.
 	contactTime time.Time
+}
+
+// zoomToRect calls IDirectManipulationViewport::ZoomToRect of the viewport.
+func (d *directManipulation) zoomToRect(left, top, right, bottom float32, animate bool) error {
+	var a int32
+	if animate {
+		a = 1
+	}
+	var r uintptr
+	if d.puregoZoomToRect != nil {
+		r = uintptr(uint32(d.puregoZoomToRect(unsafe.Pointer(d.viewport), left, top, right, bottom, a)))
+	} else {
+		v := d.viewport
+		r, _, _ = syscall.SyscallN(v.vtbl.ZoomToRect, uintptr(unsafe.Pointer(v)), uintptr(math.Float32bits(left)), uintptr(math.Float32bits(top)), uintptr(math.Float32bits(right)), uintptr(math.Float32bits(bottom)), uintptr(a))
+	}
+	if hresultFailed(r) {
+		return hresultError("IDirectManipulationViewport::ZoomToRect", r)
+	}
+	return nil
 }
 
 // newDirectManipulation starts Direct Manipulation for the window. It returns nil without an error
@@ -444,7 +445,7 @@ func newDirectManipulation(hwnd windows.HWND) (dm *directManipulation, err error
 	if dm.viewport, err = dm.manager.CreateViewport(hwnd); err != nil {
 		return nil, err
 	}
-	dm.zoomToRect = dm.viewport.newZoomToRectFunc()
+	dm.puregoZoomToRect = dm.viewport.newZoomToRectFunc()
 	if err := dm.viewport.ActivateConfiguration(_DIRECTMANIPULATION_CONFIGURATION_INTERACTION |
 		_DIRECTMANIPULATION_CONFIGURATION_TRANSLATION_X |
 		_DIRECTMANIPULATION_CONFIGURATION_TRANSLATION_Y |
@@ -602,7 +603,7 @@ func (d *directManipulation) update(w *Window) error {
 	// transform and never reaches the zoom boundaries.
 	if d.gesture.active() && status != _DIRECTMANIPULATION_RUNNING && status != _DIRECTMANIPULATION_INERTIA {
 		d.gesture = newDirectManipulationGesture()
-		if err := d.viewport.ZoomToRect(d.zoomToRect, 0, 0, directManipulationViewportSize, directManipulationViewportSize, false); err != nil {
+		if err := d.zoomToRect(0, 0, directManipulationViewportSize, directManipulationViewportSize, false); err != nil {
 			return err
 		}
 	}
