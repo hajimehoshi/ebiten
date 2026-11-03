@@ -57,6 +57,18 @@ func tps(counts []int, ts []int64) float64 {
 	return float64(total) * float64(time.Second) / float64(ts[len(ts)-1])
 }
 
+// windowSums returns the sum of the tick counts in each run of the given number of consecutive
+// frames.
+func windowSums(counts []int, window int) []int {
+	sums := make([]int, len(counts)-window+1)
+	for i := range sums {
+		for _, c := range counts[i : i+window] {
+			sums[i] += c
+		}
+	}
+	return sums
+}
+
 // distinctCounts returns the set of the tick counts, as a map from a count to the number of frames.
 func distinctCounts(counts []int) map[int]int {
 	m := map[int]int{}
@@ -133,49 +145,58 @@ func TestTickRate(t *testing.T) {
 
 // TestTickCountIsStable tests that the tick count doesn't fluctuate with a jitter in the frame
 // timing. An unstable count like 0, 2, 0, 2, ... makes the game stutter even though the average
-// TPS is correct.
+// TPS is correct. Likewise, when a tick runs once in several frames, an irregular placement like
+// 1, 0, 0, 1, 1, 0, ... makes the game stutter.
 func TestTickCountIsStable(t *testing.T) {
 	tests := []struct {
 		fps    float64
 		tps    int
 		jitter time.Duration
+		// window is the number of consecutive frames whose ticks are counted together.
+		window int
 		want   []int
 	}{
 		{
 			fps:    60,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
+			window: 1,
 			want:   []int{1},
 		},
 		{
 			fps:    30,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
+			window: 1,
 			want:   []int{2},
 		},
 		{
 			fps:    20,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
+			window: 1,
 			want:   []int{3},
 		},
 		{
 			fps:    15,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
+			window: 1,
 			want:   []int{4},
 		},
 		{
 			fps:    60,
 			tps:    30,
 			jitter: 2 * time.Millisecond,
-			want:   []int{0, 1},
+			window: 2,
+			want:   []int{1},
 		},
 		{
 			fps:    120,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
-			want:   []int{0, 1},
+			window: 2,
+			want:   []int{1},
 		},
 		// A frame rate slightly off from a multiple of the TPS moves the phase between frames and
 		// ticks across a boundary of rounding the elapsed time to ticks.
@@ -183,19 +204,68 @@ func TestTickCountIsStable(t *testing.T) {
 			fps:    59.94,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
+			window: 1,
 			want:   []int{1},
 		},
 		{
 			fps:    60.1,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
+			window: 1,
 			want:   []int{1},
 		},
 		{
 			fps:    29.97,
 			tps:    60,
 			jitter: 2 * time.Millisecond,
+			window: 1,
 			want:   []int{2},
+		},
+		{
+			fps:    120.1,
+			tps:    60,
+			jitter: 2 * time.Millisecond,
+			window: 2,
+			want:   []int{1},
+		},
+		{
+			fps:    119.88,
+			tps:    120,
+			jitter: 2 * time.Millisecond,
+			window: 1,
+			want:   []int{1},
+		},
+		{
+			fps:    59.94,
+			tps:    120,
+			jitter: 2 * time.Millisecond,
+			window: 1,
+			want:   []int{2},
+		},
+		// A frame rate not close to a multiple of the TPS needs a frame without a tick at a regular
+		// interval, like one in about 8 frames at 68 FPS with TPS 60.
+		{
+			fps:    68,
+			tps:    60,
+			jitter: 2 * time.Millisecond,
+			window: 8,
+			want:   []int{7, 8},
+		},
+		// A jitter comparable to a frame interval inevitably moves a tick between frames. Use a
+		// smaller jitter for a high frame rate.
+		{
+			fps:    240.1,
+			tps:    60,
+			jitter: time.Millisecond,
+			window: 4,
+			want:   []int{1},
+		},
+		{
+			fps:    240.1,
+			tps:    120,
+			jitter: time.Millisecond,
+			window: 2,
+			want:   []int{1},
 		},
 		// A jitter bigger than a half of a tick inevitably changes the count, as a tick is not
 		// divisible. Use a smaller jitter for a big TPS.
@@ -203,6 +273,7 @@ func TestTickCountIsStable(t *testing.T) {
 			fps:    60,
 			tps:    300,
 			jitter: 200 * time.Microsecond,
+			window: 1,
 			want:   []int{5},
 		},
 	}
@@ -210,8 +281,8 @@ func TestTickCountIsStable(t *testing.T) {
 	for _, tc := range tests {
 		c := clock.NewClock(0)
 		c.SetTPS(tc.tps)
-		frames := int(tc.fps * 10)
-		counts := distinctCounts(countTicks(c, frameTimes(tc.fps, tc.jitter, frames)))
+		sums := windowSums(countTicks(c, frameTimes(tc.fps, tc.jitter, int(tc.fps*10))), tc.window)
+		counts := distinctCounts(sums)
 
 		// A count other than the expected ones is acceptable only if it is off by one and rare.
 		// The game time cannot follow the real time exactly when the frame interval is not a
@@ -227,7 +298,7 @@ func TestTickCountIsStable(t *testing.T) {
 			}
 			rare += n
 		}
-		if got := float64(rare) / float64(frames); got > 0.05 {
+		if got := float64(rare) / float64(len(sums)); got > 0.05 {
 			t.Errorf("fps: %v, tps: %d: the tick count is unstable in %0.1f%% of the frames (counts: %v, want: %v)", tc.fps, tc.tps, got*100, counts, tc.want)
 		}
 	}

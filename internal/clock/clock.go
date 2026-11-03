@@ -50,6 +50,9 @@ type Clock struct {
 	// smoothedFrameInterval is the real time between recent frames.
 	smoothedFrameInterval int64
 
+	// framesSinceTick is the number of frames since the last frame that ran a tick.
+	framesSinceTick int64
+
 	actualFPS   float64
 	actualTPS   float64
 	lastUpdated int64
@@ -125,6 +128,12 @@ func (c *Clock) UpdateFrame(now int64) int {
 		c.unconsumedTime = 0
 	}
 
+	if count > 0 {
+		c.framesSinceTick = 0
+	} else {
+		c.framesSinceTick++
+	}
+
 	c.updateActualFPSAndTPS(now, count)
 
 	return count
@@ -153,11 +162,35 @@ func (c *Clock) consumeTicks(tps int64, delta int64) int {
 	// brings it back to around the middle of the range, far from both ends.
 	//
 	// Whether frames keep coming at the multiple is judged by the smoothed frame interval, as a single
-	// frame interval is as noisy as the jitter.
+	// frame interval is as noisy as the jitter. The judgement has a tight tolerance, as switching
+	// between this and the rounding below back and forth with a jitter also makes the count unstable.
 	n := (delta + tick/2) / tick
-	if n > 0 && n*tick <= limit && abs(c.smoothedFrameInterval-n*tick) < tick/8 && abs(c.unconsumedTime-n*tick) < tick {
+	if n > 0 && n*tick <= limit && abs(c.smoothedFrameInterval-n*tick) < tick/16 && abs(c.unconsumedTime-n*tick) < tick {
 		c.unconsumedTime -= n * tick
 		return int(n)
+	}
+
+	// When frames keep coming k times per tick, every k-th frame sees the ticks at almost the same
+	// phase. If the phase is around a boundary of the rounding below, a jitter in the frame timing
+	// moves the tick between adjacent frames like 1, 0, 0, 1, 1, 0, ... To avoid this, run a tick on
+	// every k-th frame as long as the game time stays within half a tick and half a frame of the real
+	// time. Once the game time goes out of this range, the rounding below moves the tick by a frame,
+	// which brings the game time back to around the middle of the range.
+	//
+	// The ratio is judged in the same way as above, but only up to 4 frames per tick, as the error of
+	// the smoothed frame interval is multiplied by k.
+	if s := c.smoothedFrameInterval; s > 0 {
+		k := (tick + s/2) / s
+		if k >= 2 && k <= 4 && abs(k*s-tick) < tick/16 {
+			var count int64
+			if c.framesSinceTick >= k-1 {
+				count = 1
+			}
+			if abs(c.unconsumedTime-count*tick) < tick/2+tick/(2*k) {
+				c.unconsumedTime -= count * tick
+				return int(count)
+			}
+		}
 	}
 
 	// Round the count to the nearest tick. The rounded-up part is kept as a negative unconsumed time,
@@ -215,6 +248,7 @@ func (c *Clock) SinkTick(now int64) {
 	// when UpdateFrame is not called in between.
 	c.unconsumedTime = max(c.unconsumedTime+(now-c.lastNow)-int64(time.Second)/tps, 0)
 	c.lastNow = now
+	c.framesSinceTick = 0
 }
 
 var theClock = NewClock(now())
