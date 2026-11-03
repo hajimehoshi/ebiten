@@ -428,12 +428,18 @@ func (g *GuestSession) sessionLoop() {
 	defer close(g.done)
 	// Release audio reads still queued at shutdown; a read already in flight is released by runReadAudio.
 	defer g.drainQueuedReads()
-	// A guest text-input session does not outlive the guest session: closing it here lets its holders
-	// observe the end through IsClosed.
+	// Guest input and audio streams do not outlive the guest session. Close them
+	// here so their holders can observe the end through IsClosed.
 	defer func() {
 		if g.textInput != nil {
 			g.textInput.markClosed()
 		}
+		g.audioMu.Lock()
+		defer g.audioMu.Unlock()
+		for _, stream := range g.audioStreams {
+			stream.markClosed()
+		}
+		clear(g.audioStreams)
 	}()
 	for {
 		o, ok := g.nextOp()

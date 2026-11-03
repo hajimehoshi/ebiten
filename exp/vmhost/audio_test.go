@@ -255,3 +255,42 @@ func TestAudioReadShortBuffer(t *testing.T) {
 		}
 	}
 }
+
+func TestAudioStreamsCloseWithSession(t *testing.T) {
+	var streams []*vmhost.GuestAudioStream
+	guest := startGuestWithOptions(t, "./testdata/audio", activateByEnv, "unix", &vmhost.NewGuestSessionOptions{
+		OnAudioStream: func(s *vmhost.GuestAudioStream) {
+			streams = append(streams, s)
+		},
+	})
+	if err := guest.SetOutsideScreen(ebiten.NewImage(64, 64)); err != nil {
+		t.Fatal(err)
+	}
+	guest.AdvanceTicks(4)
+	if !guest.WaitTicks() {
+		t.Fatalf("advancing the guest failed: %v", guest.Err())
+	}
+	if len(streams) != 2 {
+		t.Fatalf("got %d streams, want 2", len(streams))
+	}
+	for _, stream := range streams {
+		if stream.IsClosed() || !stream.IsPlaying() {
+			t.Fatal("stream must be open and playing before the session closes")
+		}
+	}
+	if err := guest.Close(); err != nil {
+		t.Fatal(err)
+	}
+	for _, stream := range streams {
+		if !stream.IsClosed() {
+			t.Error("stream is not closed after the session closes")
+		}
+		if stream.IsPlaying() {
+			t.Error("stream is playing after the session closes")
+		}
+		var buf [8]byte
+		if n, err := stream.Read(buf[:]); n != 0 || !errors.Is(err, io.EOF) {
+			t.Errorf("Read after Close = (%d, %v), want (0, EOF)", n, err)
+		}
+	}
+}
