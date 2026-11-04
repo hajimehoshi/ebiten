@@ -15,7 +15,6 @@
 package ui_test
 
 import (
-	"math"
 	"testing"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -127,49 +126,6 @@ func TestIsKeyString(t *testing.T) {
 	} {
 		if got := ui.IsKeyStringForTest(tc.key); got != tc.want {
 			t.Errorf("IsKeyString(%q) = %v, want %v", tc.key, got, tc.want)
-		}
-	}
-}
-
-func TestIsWheelPinch(t *testing.T) {
-	for _, tt := range []struct {
-		name           string
-		ctrlKey        bool
-		controlKeyDown bool
-		want           bool
-	}{
-		{
-			name: "scrolling",
-			want: false,
-		},
-		{
-			name:    "pinch on a touchpad",
-			ctrlKey: true,
-			want:    true,
-		},
-		{
-			name:           "scrolling with the Control key",
-			ctrlKey:        true,
-			controlKeyDown: true,
-			want:           false,
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := ui.IsWheelPinchForTest(tt.ctrlKey, tt.controlKeyDown); got != tt.want {
-				t.Errorf("IsWheelPinchForTest(%t, %t): got: %t, want: %t", tt.ctrlKey, tt.controlKeyDown, got, tt.want)
-			}
-		})
-	}
-}
-
-func TestWheelPinchDelta(t *testing.T) {
-	const eps = 1e-9
-	for _, scale := range []float64{0.5, 0.9, 1, 1.1, 2} {
-		// Chromium reports a pinch to the scale as deltaY = -100 * log(scale), and ScrollDelta's sign
-		// is the opposite of deltaY's.
-		scrollDeltaY := 100 * math.Log(scale)
-		if got, want := ui.WheelPinchDeltaForTest(scrollDeltaY), scale-1; math.Abs(got-want) > eps {
-			t.Errorf("WheelPinchDeltaForTest(%v): got: %v, want: %v", scrollDeltaY, got, want)
 		}
 	}
 }

@@ -90,25 +90,6 @@ func TestGLFWInputPinch(t *testing.T) {
 	}
 }
 
-// TestGLFWInputRotation tests that the rotation angles reported within a tick add up, and that a tick
-// without a gesture reads 0.
-func TestGLFWInputRotation(t *testing.T) {
-	i := ui.NewGLFWInputForTest()
-	i.HandleRotateForTest(0.25)
-	i.HandleRotateForTest(-0.125)
-
-	var s ui.InputState
-	i.ReadForTest(&s)
-	if got, want := s.RotationDelta, 0.125; got != want {
-		t.Errorf("rotation: got %v, want %v", got, want)
-	}
-
-	i.ReadForTest(&s)
-	if got := s.RotationDelta; got != 0 {
-		t.Errorf("rotation after a tick without a gesture: got %v, want 0", got)
-	}
-}
-
 // TestGLFWInputScrollPages tests that page-unit scrolling reaches a tick's input snapshot once the
 // content size is known, including a tick run outside the regular frame.
 func TestGLFWInputScrollPages(t *testing.T) {

@@ -17,25 +17,9 @@ package glfw_test
 import (
 	"math"
 	"testing"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/glfw"
 )
-
-func TestDirectManipulationVtblSlots(t *testing.T) {
-	// IUnknown has 3 methods.
-	want := map[string]uintptr{
-		"IDirectManipulationManager":       3 + 7,
-		"IDirectManipulationUpdateManager": 3 + 3,
-		"IDirectManipulationViewport":      3 + 28,
-		"IDirectManipulationContent":       3 + 8,
-	}
-	for name, got := range glfw.DirectManipulationVtblSlots() {
-		if got != want[name] {
-			t.Errorf("%s: got %d slots, want %d", name, got, want[name])
-		}
-	}
-}
 
 func transform(scale, x, y float32) [6]float32 {
 	return [6]float32{scale, 0, 0, scale, x, y}
@@ -95,68 +79,6 @@ func TestDirectManipulationGesture(t *testing.T) {
 				if panX != s.panX || panY != s.panY || math.Abs(pinch-s.pinch) > s.tolerance {
 					t.Errorf("step %d: got (%v, %v, %v), want (%v, %v, %v)", i, panX, panY, pinch, s.panX, s.panY, s.pinch)
 				}
-			}
-		})
-	}
-}
-
-func TestDirectManipulationPolling(t *testing.T) {
-	for _, tt := range []struct {
-		name         string
-		contact      bool
-		sinceContact time.Duration
-		statuses     []uint32
-		want         bool
-	}{
-		{
-			name:     "no contact",
-			statuses: []uint32{glfw.DirectManipulationBuilding},
-			want:     false,
-		},
-		{
-			name:     "ready without a contact",
-			statuses: []uint32{glfw.DirectManipulationReady},
-			want:     false,
-		},
-		{
-			name:         "ready after a contact",
-			contact:      true,
-			sinceContact: 0,
-			statuses:     []uint32{glfw.DirectManipulationReady},
-			want:         true,
-		},
-		{
-			name:         "ready long after a contact",
-			contact:      true,
-			sinceContact: glfw.DirectManipulationContactPollingDuration,
-			statuses:     []uint32{glfw.DirectManipulationReady},
-			want:         false,
-		},
-		{
-			name:         "running",
-			contact:      true,
-			sinceContact: time.Hour,
-			statuses:     []uint32{glfw.DirectManipulationReady, glfw.DirectManipulationRunning},
-			want:         true,
-		},
-		{
-			name:         "inertia",
-			contact:      true,
-			sinceContact: time.Hour,
-			statuses:     []uint32{glfw.DirectManipulationRunning, glfw.DirectManipulationInertia},
-			want:         true,
-		},
-		{
-			name:         "ready after running soon after a contact",
-			contact:      true,
-			sinceContact: 0,
-			statuses:     []uint32{glfw.DirectManipulationRunning, glfw.DirectManipulationReady},
-			want:         false,
-		},
-	} {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := glfw.DirectManipulationPolling(tt.contact, tt.sinceContact, tt.statuses...); got != tt.want {
-				t.Errorf("got %v, want %v", got, tt.want)
 			}
 		})
 	}

@@ -31,11 +31,6 @@ func XIPinchDeltasForTest(evtypes []int32, scales []float64) []float64 {
 	return deltas
 }
 
-// XIRotationForTest returns the angle in radians an event of a pinch gesture turns by.
-func XIRotationForTest(evtype int32, deltaAngle float64) float64 {
-	return xiRotation(evtype, deltaAngle)
-}
-
 const (
 	XIGesturePinchBeginForTest  = _XI_GesturePinchBegin
 	XIGesturePinchUpdateForTest = _XI_GesturePinchUpdate
