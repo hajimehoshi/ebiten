@@ -158,6 +158,9 @@ func (p *Path) ensureFlatPaths() []flatPath {
 	}
 
 	for _, subPath := range p.subPaths {
+		if !subPath.isValid() {
+			continue
+		}
 		p.appendNewFlatPath(subPath.start)
 		cur := subPath.start
 		for _, op := range subPath.ops {
