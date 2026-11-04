@@ -92,11 +92,10 @@ not establish a general font-loader or WOFF allocation budget.
 ## Text integration
 
 `text.Draw`, `AppendGlyphs` and `AppendLazyGlyphs` share this renderer.
-`GoTextFace.SVGForeground` supplies currentColor (nil means opaque black);
-`SVGPalette` supplies straight RGBA entries (nil selects the first CPAL palette,
-an empty non-nil slice supplies none). Draw's ColorScale RGB leaves fixed SVG
-colors unchanged; its alpha applies once to the completed glyph. Lazy glyphs
-capture colors and layout before the face changes.
+SVG currentColor is opaque black, and palette entries come from the font's
+first CPAL palette. Draw's ColorScale RGB leaves fixed SVG colors unchanged;
+its alpha applies once to the completed glyph. Lazy glyphs capture layout
+before the face changes.
 
 Layout uses font metrics; image bounds use conservative artwork bounds,
 including negative origins. `AppendVectorPath` continues to return outlines.

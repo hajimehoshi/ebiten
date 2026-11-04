@@ -211,13 +211,7 @@ func (g *GoTextFace) svgColors() svgColors {
 	if g.Source.svgFont == nil {
 		return c
 	}
-	if g.SVGForeground != nil {
-		c.foreground = color.NRGBAModel.Convert(g.SVGForeground).(color.NRGBA)
-	}
-	palette := g.SVGPalette
-	if palette == nil {
-		palette = g.Source.svgFont.palette
-	}
+	palette := g.Source.svgFont.palette
 	c.palette = append([]color.NRGBA(nil), palette...)
 	key := []byte{c.foreground.R, c.foreground.G, c.foreground.B, c.foreground.A}
 	for _, p := range palette {

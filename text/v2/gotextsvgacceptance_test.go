@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"image"
-	"image/color"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -365,7 +364,7 @@ func BenchmarkSVGProduction(b *testing.B) {
 	}
 
 	const document = `<svg viewBox="0 0 100 100"><defs><linearGradient id="g"><stop stop-color="currentColor"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g id="GLYPHA"><circle cx="50" cy="50" r="45" fill="url(#g)"/></g></svg>`
-	for _, workload := range []string{"cold", "warm", "layout", "colors", "large"} {
+	for _, workload := range []string{"cold", "warm", "layout", "large"} {
 		b.Run(workload, func(b *testing.B) {
 			face := &text.GoTextFace{
 				Source: svgTestFont(b, document, false),
@@ -394,8 +393,8 @@ func BenchmarkSVGProduction(b *testing.B) {
 				if workload == "cold" {
 					face.Source = svgTestFont(b, document, false)
 				}
-				if workload == "colors" || workload == "large" {
-					face.SVGForeground = color.NRGBA{R: byte(iteration), G: byte(iteration >> 8), A: 255}
+				if workload == "large" {
+					face.Size = 512 + float64(iteration)
 				}
 				if workload == "layout" {
 					text.AppendLazyGlyphs(nil, "A", face, nil)

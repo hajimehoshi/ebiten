@@ -18,7 +18,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"image"
-	"image/color"
 	"math"
 	"slices"
 
@@ -68,13 +67,6 @@ type GoTextFace struct {
 	//
 	// Deprecated: as of v2.9. Use Language instead.
 	Script language.Script
-
-	// SVGForeground supplies currentColor for SVG glyphs. Nil means opaque black.
-	// Draw applies ColorScale alpha separately; its RGB does not tint SVG artwork.
-	SVGForeground color.Color
-
-	// SVGPalette overrides SVG palette entries. Nil uses the font's first CPAL palette.
-	SVGPalette []color.NRGBA
 
 	variations []font.Variation
 	features   []shaping.FontFeature
