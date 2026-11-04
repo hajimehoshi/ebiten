@@ -15,12 +15,15 @@
 package text_test
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"testing"
 
 	"github.com/hajimehoshi/bitmapfont/v4"
 	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/goregular"
+	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -145,5 +148,36 @@ func TestNegativeKern(t *testing.T) {
 				t.Errorf("At(%d, %d): got: %v, want: %v", i, j, got, want)
 			}
 		}
+	}
+}
+
+func TestAppendGlyphsIncludesSubpixelOffset(t *testing.T) {
+	f, err := opentype.Parse(goregular.TTF)
+	if err != nil {
+		t.Fatal(err)
+	}
+	face, err := opentype.NewFace(f, &opentype.FaceOptions{Size: 12, DPI: 72, Hinting: font.HintingNone})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = face.Close() }()
+
+	glyphs := text.AppendGlyphs(nil, face, "C_")
+	if len(glyphs) != 2 {
+		t.Fatalf("got %d glyphs, want 2", len(glyphs))
+	}
+	// The advance of C places the underscore at a half-pixel offset. Its rightmost
+	// column extends beyond the seven pixels needed at offset zero.
+	want := image.NewRGBA(image.Rect(0, 0, 8, 1))
+	d := font.Drawer{Dst: want, Src: image.White, Face: face, Dot: fixed.Point26_6{X: 32}}
+	d.DrawString("_")
+	got := glyphs[1].Image
+	if got.Bounds() != want.Bounds() {
+		t.Fatalf("glyph bounds = %v, want %v", got.Bounds(), want.Bounds())
+	}
+	pixels := make([]byte, len(want.Pix))
+	got.ReadPixels(pixels)
+	if !bytes.Equal(pixels, want.Pix) {
+		t.Errorf("glyph pixels = %v, want %v", pixels, want.Pix)
 	}
 }

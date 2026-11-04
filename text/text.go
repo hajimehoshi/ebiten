@@ -95,12 +95,8 @@ func getGlyphImage(face *faceWithCache, r rune, offset fixed.Point26_6) *ebiten.
 		return nil
 	}
 
-	if b.Min.X&((1<<6)-1) != 0 {
-		w++
-	}
-	if b.Min.Y&((1<<6)-1) != 0 {
-		h++
-	}
+	w = (b.Max.X - b.Min.X + offset.X).Ceil()
+	h = (b.Max.Y - b.Min.Y + offset.Y).Ceil()
 	rgba := image.NewRGBA(image.Rect(0, 0, w, h))
 
 	d := font.Drawer{
