@@ -335,7 +335,15 @@ chunks:
 	} else {
 		// A partial frame at the tail of the data chunk cannot be decoded. Discard it.
 		dataSize = dataSize / bytesPerFrame * bytesPerFrame
-		s = newSectionReader(src, headerSize, dataSize)
+		dataOffset := headerSize
+		if seeker, ok := src.(io.Seeker); ok {
+			// The WAV may begin at a nonzero position in src. Keep the header-size
+			// fallback for sources that support SeekStart but not position queries.
+			if pos, err := seeker.Seek(0, io.SeekCurrent); err == nil {
+				dataOffset = pos
+			}
+		}
+		s = newSectionReader(src, dataOffset, dataSize)
 	}
 
 	var format convert.Format

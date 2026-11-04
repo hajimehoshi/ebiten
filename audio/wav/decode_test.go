@@ -27,6 +27,65 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/audio/wav"
 )
 
+func TestDecodeSeekFromNonzeroSourcePosition(t *testing.T) {
+	data := make([]byte, 8000)
+	for i := range data {
+		data[i] = byte(i)
+	}
+	for _, prefix := range []int{8, 64} {
+		for _, decode := range wavDecoders {
+			t.Run(fmt.Sprintf("%s/prefix=%d", decode.name, prefix), func(t *testing.T) {
+				src := bytes.NewReader(append(bytes.Repeat([]byte{0xaa}, prefix), pcmWavFile(2, 16, data)...))
+				if _, err := src.Seek(int64(prefix), io.SeekStart); err != nil {
+					t.Fatal(err)
+				}
+				s, err := decode.f(src)
+				if err != nil {
+					t.Fatal(err)
+				}
+				want := readAligned(t, s)
+				if _, err := s.Seek(0, io.SeekStart); err != nil {
+					t.Fatal(err)
+				}
+				if got := readAligned(t, s); !bytes.Equal(got, want) {
+					t.Error("rewinding a WAV at a nonzero source position changed the decoded data")
+				}
+			})
+		}
+	}
+}
+
+type seekStartOnlyReader struct{ *bytes.Reader }
+
+func (s *seekStartOnlyReader) Seek(offset int64, whence int) (int64, error) {
+	if whence != io.SeekStart {
+		return 0, errors.ErrUnsupported
+	}
+	return s.Reader.Seek(offset, whence)
+}
+
+func TestDecodeSeekStartOnly(t *testing.T) {
+	data := make([]byte, 8000)
+	for i := range data {
+		data[i] = byte(i)
+	}
+	for _, decode := range wavDecoders {
+		t.Run(decode.name, func(t *testing.T) {
+			s, err := decode.f(&seekStartOnlyReader{bytes.NewReader(pcmWavFile(2, 16, data))})
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := readAligned(t, s)
+			if _, err := s.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if got := readAligned(t, s); !bytes.Equal(got, want) {
+				t.Error("rewinding a SeekStart-only source changed the decoded data")
+			}
+		})
+	}
+}
+
 func TestDecodeInvalidHugeChunkSize(t *testing.T) {
 	buf := []byte("RIFF")
 	buf = binary.LittleEndian.AppendUint32(buf, 0)
