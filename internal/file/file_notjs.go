@@ -71,6 +71,9 @@ func (v *VirtualFS) Open(name string) (fs.File, error) {
 	}
 
 	if !n.given {
+		if n.absPath != "" {
+			return &virtualDirWithAbsPath{virtualDir: virtualDir{node: n}}, nil
+		}
 		return &virtualDir{node: n}, nil
 	}
 
@@ -379,6 +382,16 @@ type virtualDir struct {
 	node   *virtualFSNode
 	offset int
 	mu     sync.Mutex
+}
+
+// virtualDirWithAbsPath is a virtual directory backed by a real path.
+// A virtual root spanning different Windows volumes has no such path.
+type virtualDirWithAbsPath struct {
+	virtualDir
+}
+
+func (v *virtualDirWithAbsPath) AbsPath() string {
+	return v.node.absPath
 }
 
 func (v *virtualDir) Stat() (fs.FileInfo, error) {
