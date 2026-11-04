@@ -542,6 +542,9 @@ func standardAxisHalfValue(mapping mapping, state GamepadState) float64 {
 	if mapping.Type == mappingTypeNone {
 		return 0
 	}
+	if mapping.Type == mappingTypeAxis && !state.IsAxisReady(mapping.Index) {
+		return 0
+	}
 	// A half of an axis takes the range 0 to 1 where the whole axis takes -1 to 1. A released
 	// button or a centered input axis is then 0, so it leaves the standard axis at rest.
 	return (standardAxisValue(mapping, state) + 1) / 2
