@@ -281,11 +281,12 @@ func TestUpdateMappingWithoutContent(t *testing.T) {
 }
 
 type stubGamepadState struct {
-	axes    map[int]float64
-	buttons map[int]bool
+	axes        map[int]float64
+	buttons     map[int]bool
+	unreadyAxes map[int]bool
 }
 
-func (s stubGamepadState) IsAxisReady(index int) bool { return true }
+func (s stubGamepadState) IsAxisReady(index int) bool { return !s.unreadyAxes[index] }
 func (s stubGamepadState) Axis(index int) float64     { return s.axes[index] }
 func (s stubGamepadState) Button(index int) bool      { return s.buttons[index] }
 func (s stubGamepadState) Hat(index int) int          { return 0 }
@@ -374,6 +375,27 @@ func TestHalfAxisMapping(t *testing.T) {
 		State stubGamepadState
 		Want  float64
 	}{
+		{
+			Name:  "positive half from an unavailable axis",
+			Line:  "+leftx:+a0,",
+			Axis:  gamepaddb.StandardAxisLeftStickHorizontal,
+			State: stubGamepadState{unreadyAxes: map[int]bool{0: true}},
+			Want:  0,
+		},
+		{
+			Name:  "negative half from an unavailable axis",
+			Line:  "-leftx:-a0,",
+			Axis:  gamepaddb.StandardAxisLeftStickHorizontal,
+			State: stubGamepadState{unreadyAxes: map[int]bool{0: true}},
+			Want:  0,
+		},
+		{
+			Name:  "one available half and one unavailable half",
+			Line:  "+leftx:+a0,-leftx:-a1,",
+			Axis:  gamepaddb.StandardAxisLeftStickHorizontal,
+			State: stubGamepadState{axes: map[int]float64{0: 0.75}, unreadyAxes: map[int]bool{1: true}},
+			Want:  0.75,
+		},
 		{
 			Name: "positive half from a released button",
 			Line: "+leftx:b0,",
