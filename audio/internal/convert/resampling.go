@@ -82,8 +82,8 @@ func sinc01(x float64) float64 {
 	return fastSin01(x) / (x * 2 * math.Pi)
 }
 
-// errNoProgress defers output until a source block can be completed.
-var errNoProgress = errors.New("convert: source made no progress")
+// errSourceNotReady defers output until a source block can be completed.
+var errSourceNotReady = errors.New("convert: source made no progress")
 
 type Resampling struct {
 	source io.Reader
@@ -206,7 +206,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 					r.lastReadSrcBlockValid = false
 					break
 				}
-				err = errNoProgress
+				err = errSourceNotReady
 			}
 			if err != nil {
 				if err == io.EOF {
@@ -223,7 +223,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 				}
 				r.lastReadSrcBlockValid = false
 				// Keep the bytes read so far, as a source that is not an io.Seeker cannot deliver them again.
-				if c > 0 || err == errNoProgress {
+				if c > 0 || err == errSourceNotReady {
 					r.partialSrcBlock = nextPos
 					r.partialSrcBuf = buf[:c]
 					if c > 0 {
@@ -340,7 +340,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			// Resolve EOF through the source cache without advancing the output position.
 			_, _, err := r.at(r.pos / int64(size))
 			if err != nil && err != io.EOF {
-				if err == errNoProgress {
+				if err == errSourceNotReady {
 					err = io.ErrShortBuffer
 				}
 				return 0, err
@@ -360,7 +360,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				r.pos += int64(size * i)
-				if err == errNoProgress {
+				if err == errSourceNotReady {
 					err = nil
 				}
 				return size * i, err
@@ -394,7 +394,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				r.pos += int64(size * i)
-				if err == errNoProgress {
+				if err == errSourceNotReady {
 					err = nil
 				}
 				return size * i, err
