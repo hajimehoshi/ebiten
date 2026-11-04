@@ -60,14 +60,7 @@ func main() {
 	}
 }
 
-func invokeOriginalGobind(lang string) (pkgName string, err error) {
-	cmd := exec.Command("gobind-original", os.Args[1:]...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return "", err
-	}
-
+func boundPackageName(lang string) (string, error) {
 	cfgtags := strings.Join(strings.Split(*tags, ","), " ")
 	cfg := &packages.Config{}
 	switch lang {
@@ -89,6 +82,14 @@ func invokeOriginalGobind(lang string) (pkgName string, err error) {
 }
 
 func run() error {
+	// gobind-original generates all requested languages in one invocation.
+	cmd := exec.Command("gobind-original", os.Args[1:]...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return err
+	}
+
 	writeFile := func(filename string, content string) error {
 		if err := os.WriteFile(filepath.Join(*outdir, filename), []byte(content), 0644); err != nil {
 			return err
@@ -99,7 +100,7 @@ func run() error {
 	// Add additional files.
 	langs := strings.Split(*lang, ",")
 	for _, lang := range langs {
-		pkgName, err := invokeOriginalGobind(lang)
+		pkgName, err := boundPackageName(lang)
 		if err != nil {
 			return err
 		}
