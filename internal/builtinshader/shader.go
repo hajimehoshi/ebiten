@@ -76,8 +76,9 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	p1 := src0Pos + 1/2.0
 {{else if eq .Filter .FilterPixelated}}
 	// inversedScale is the size of the region on the source image.
-	// The size is the inverse of the geometry-matrix scale.
-	inversedScale := vec2(abs(dfdx(src0Pos.x)), abs(dfdy(src0Pos.y)))
+	// Include both screen axes so that rotating the image does not change its scale.
+	dx, dy := dfdx(src0Pos), dfdy(src0Pos)
+	inversedScale := vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y)))
 	// Cap the inversedScale to 1 as dfdx/dfdy is not accurate on some machines (#3182).
 	inversedScale = min(inversedScale, vec2(1))
 	p0 := src0Pos - inversedScale/2.0
