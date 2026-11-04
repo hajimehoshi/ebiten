@@ -105,8 +105,8 @@ func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) erro
 	u.pinchDelta = 0
 	u.rotationDelta = 0
 	if u.gestureCenterReported {
-		u.inputState.PinchCenterX, u.inputState.PinchCenterY = u.context.clientPositionToLogicalPosition(u.gestureCenterXInClient, u.gestureCenterYInClient, s)
-		u.inputState.PinchCenterReported = true
+		u.inputState.GestureCenterX, u.inputState.GestureCenterY = u.context.clientPositionToLogicalPosition(u.gestureCenterXInClient, u.gestureCenterYInClient, s)
+		u.inputState.GestureCenterReported = true
 		u.gestureCenterReported = false
 	}
 

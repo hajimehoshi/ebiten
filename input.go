@@ -180,7 +180,7 @@ func ScrollDelta() (x, y float64) {
 // either scrolls or pinches: moving the fingers while pinching is not reported as scrolling. On a touch
 // screen, moving the fingers while pinching is reported by the touches. A pinch can be reported with a
 // rotation by [RotationDelta] at the same tick. To scale things around the point the gesture is done
-// around, use inpututil.PinchCenter.
+// around, use [GestureCenter].
 //
 // Scrolling with the Control key held is reported as scrolling by [Wheel] and [ScrollDelta], not by
 // PinchDelta. Some touchpads whose pinches PinchDelta does not report, such as a touchpad that is not a
@@ -219,11 +219,26 @@ func PinchDelta() float64 {
 // touchpad in browsers other than Safari, and a touchpad on Android.
 //
 // A rotation can be reported with a pinch by [PinchDelta] at the same tick. To turn things around the
-// point the gesture is done around, use inpututil.PinchCenter.
+// point the gesture is done around, use [GestureCenter].
 //
 // RotationDelta is concurrent-safe.
 func RotationDelta() float64 {
 	return inputstate.Get().RotationDelta()
+}
+
+// GestureCenter returns the point that a pinch by [PinchDelta] and a rotation by [RotationDelta] at the
+// current tick are done around: the point to scale things around and to turn things around.
+//
+// GestureCenter returns the middle of the two fingers when exactly two fingers touch the screen.
+// Otherwise, such as for a gesture on a touchpad, GestureCenter returns the point the platform reports
+// for the gesture at the current tick, or the cursor position when the platform reports none.
+// iOS and Android report the point, such as the middle of the fingers on a touchpad on Android. On
+// desktops and in browsers, a gesture on a touchpad is done around the cursor, and GestureCenter returns
+// the cursor position.
+//
+// GestureCenter is concurrent-safe.
+func GestureCenter() (x, y float64) {
+	return inputstate.Get().GestureCenter()
 }
 
 // IsMouseButtonPressed returns a boolean indicating whether mouseButton is pressed.

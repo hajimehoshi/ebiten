@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 // ViewGesture is how the gestures at a tick ask to move, scale, and turn a view.
@@ -37,7 +36,7 @@ type ViewGesture struct {
 	// Rotation is the angle the view turns by around the center, in radians. A positive value is clockwise.
 	Rotation float64
 
-	// CenterX and CenterY are the point the view scales and turns around, which inpututil.PinchCenter
+	// CenterX and CenterY are the point the view scales and turns around, which ebiten.GestureCenter
 	// returns.
 	CenterX, CenterY float64
 }
@@ -494,7 +493,7 @@ func (t *GestureTracker) Update() ViewGesture {
 		v.Scale *= math.Exp(v.PanY * ctrlScrollLogScalePerPixel)
 		v.PanX, v.PanY = 0, 0
 	}
-	v.CenterX, v.CenterY = inpututil.PinchCenter()
+	v.CenterX, v.CenterY = ebiten.GestureCenter()
 
 	// Fingers touching or leaving the screen start a new gesture.
 	t.touchIDs = ebiten.AppendTouchIDs(t.touchIDs[:0])

@@ -150,11 +150,11 @@ type InputState struct {
 	PinchDelta    float64
 	RotationDelta float64
 
-	// PinchCenterX and PinchCenterY are the point that a pinch and a rotation at the tick are done around,
-	// in logical coordinates, when the platform reports it. PinchCenterReported reports whether it does.
-	PinchCenterX        float64
-	PinchCenterY        float64
-	PinchCenterReported bool
+	// GestureCenterX and GestureCenterY are the point that a pinch and a rotation at the tick are done around,
+	// in logical coordinates, when the platform reports it. GestureCenterReported reports whether it does.
+	GestureCenterX        float64
+	GestureCenterY        float64
+	GestureCenterReported bool
 
 	Touches           []Touch
 	Runes             []rune
@@ -396,9 +396,9 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	dst.ScrollDeltaY = i.ScrollDeltaY
 	dst.PinchDelta = i.PinchDelta
 	dst.RotationDelta = i.RotationDelta
-	dst.PinchCenterX = i.PinchCenterX
-	dst.PinchCenterY = i.PinchCenterY
-	dst.PinchCenterReported = i.PinchCenterReported
+	dst.GestureCenterX = i.GestureCenterX
+	dst.GestureCenterY = i.GestureCenterY
+	dst.GestureCenterReported = i.GestureCenterReported
 	dst.Touches = append(dst.Touches[:0], i.Touches...)
 	dst.Runes = append(dst.Runes[:0], i.Runes...)
 	dst.WindowBeingClosed = i.WindowBeingClosed
@@ -413,7 +413,7 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	i.ScrollDeltaY = 0
 	i.PinchDelta = 0
 	i.RotationDelta = 0
-	i.PinchCenterReported = false
+	i.GestureCenterReported = false
 	i.Runes = i.Runes[:0]
 
 	// Reset the members that are never reset until they are explicitly done.
