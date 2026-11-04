@@ -97,31 +97,20 @@ func svgTestFont(t testing.TB, document string, compressed bool, extraTables ...
 	return src
 }
 
-func TestSVGFaceColorsAndLazySnapshot(t *testing.T) {
-	src := svgTestFont(t, `<svg viewBox="0 0 100 100"><defs><rect id="tile" width="20" height="20"/></defs><g id="GLYPHA"><use href="#tile" fill="currentColor"/><use href="#tile" x="20" fill="var(--color0)"/><use href="#tile" x="40" fill="blue"/></g><g id="GLYPHB"><use href="#tile" fill="currentColor"/></g></svg>`, true)
-	palette := []color.NRGBA{{
-		G: 255,
-		A: 128,
-	}}
+func TestSVGDefaultColorsAndLazySnapshot(t *testing.T) {
+	src := svgTestFont(t, `<svg viewBox="0 0 100 100"><defs><rect id="tile" width="20" height="20"/></defs><g id="GLYPHA"><use href="#tile" fill="currentColor"/><use href="#tile" x="20" fill="var(--color0)"/><use href="#tile" x="40" fill="blue"/></g><g id="GLYPHB"><use href="#tile" fill="currentColor"/></g></svg>`, true, opentype.Table{
+		Tag:     opentype.MustNewTag("CPAL"),
+		Content: []byte{0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 14, 0, 0, 0, 255, 0, 128},
+	})
 	face := &text.GoTextFace{
-		Source:        src,
-		Size:          100,
-		SVGForeground: color.NRGBA{R: 255, A: 255},
-		SVGPalette:    palette,
+		Source: src,
+		Size:   100,
 	}
 	old := text.AppendLazyGlyphs(nil, "AB", face, nil)
-	face.SVGForeground = color.NRGBA{B: 255, A: 255}
-	palette[0] = color.NRGBA{R: 255, A: 255}
-	changed := text.AppendGlyphs(nil, "A", face, nil)
-	if got := changed[0].Image.At(5, 5); got != (color.RGBA{B: 255, A: 255}) {
-		t.Errorf("changed foreground: %v", got)
-	}
-	if got := changed[0].Image.At(25, 5); got != (color.RGBA{R: 255, A: 255}) {
-		t.Errorf("changed palette: %v", got)
-	}
+	initial := text.AppendGlyphs(nil, "A", face, nil)
 	face.Size = 50
 	smaller := text.AppendGlyphs(nil, "A", face, nil)[0]
-	if smaller.Image.Bounds().Dx() >= changed[0].Image.Bounds().Dx() {
+	if smaller.Image.Bounds().Dx() >= initial[0].Image.Bounds().Dx() {
 		t.Error("size reused the larger glyph")
 	}
 	img := old[0].Image()
@@ -131,7 +120,7 @@ func TestSVGFaceColorsAndLazySnapshot(t *testing.T) {
 	}{
 		{
 			x:    5,
-			want: color.RGBA{R: 255, A: 255},
+			want: color.RGBA{A: 255},
 		},
 		{
 			x:    25,
@@ -146,15 +135,10 @@ func TestSVGFaceColorsAndLazySnapshot(t *testing.T) {
 			t.Errorf("snapshot at %d: %v, want %v", tc.x, got, tc.want)
 		}
 	}
-	if got := old[1].Image().At(5, 5); got != (color.RGBA{R: 255, A: 255}) {
+	if got := old[1].Image().At(5, 5); got != (color.RGBA{A: 255}) {
 		t.Errorf("shared document glyph B: %v", got)
 	}
 	face.Size = 100
-	face.SVGForeground = color.NRGBA{R: 255, A: 255}
-	face.SVGPalette = []color.NRGBA{{
-		G: 255,
-		A: 128,
-	}}
 	dst := ebiten.NewImage(80, 30)
 	defer dst.Deallocate()
 	op := &text.DrawOptions{}
@@ -167,7 +151,7 @@ func TestSVGFaceColorsAndLazySnapshot(t *testing.T) {
 	}{
 		{
 			x:    5,
-			want: color.RGBA{R: 128, A: 128},
+			want: color.RGBA{A: 128},
 		},
 		{
 			x:    25,
@@ -323,11 +307,6 @@ func TestSVGDefaultCPAL(t *testing.T) {
 	if got := glyph.Image.At(5, 5); got != (color.RGBA{G: 128, A: 128}) {
 		t.Errorf("default CPAL entry: %v", got)
 	}
-	face.SVGPalette = []color.NRGBA{}
-	glyph = text.AppendGlyphs(nil, "A", face, nil)[0]
-	if got := glyph.Image.At(5, 5); got != (color.RGBA{R: 255, A: 255}) {
-		t.Errorf("explicit empty palette fallback: %v", got)
-	}
 }
 
 func TestSVGZeroSize(t *testing.T) {
@@ -476,34 +455,27 @@ func TestSVGColorFormatPriority(t *testing.T) {
 
 func TestSVGGradientImagesSurviveRendererReuse(t *testing.T) {
 	face := &text.GoTextFace{
-		Source:        svgTestFont(t, `<svg viewBox="0 0 100 100"><defs><linearGradient id="g"><stop stop-color="currentColor"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g opacity=".5"><rect x="10" y="10" width="80" height="80" fill="url(#g)"/></g></svg>`, false),
-		Size:          48,
-		SVGForeground: color.NRGBA{R: 255, A: 255},
+		Source: svgTestFont(t, `<svg viewBox="0 0 100 100"><defs><linearGradient id="g"><stop stop-color="currentColor"/><stop offset="1" stop-color="blue"/></linearGradient></defs><g opacity=".5"><rect x="10" y="10" width="80" height="80" fill="url(#g)"/></g></svg>`, false),
+		Size:   48,
 	}
-	red := text.AppendGlyphs(nil, "A", face, nil)[0]
-	if red.Image == nil || !red.Colored {
+	initial := text.AppendGlyphs(nil, "A", face, nil)[0]
+	if initial.Image == nil || !initial.Colored {
 		t.Fatal("missing initial SVG image")
 	}
-	before := make([]byte, 4*red.Image.Bounds().Dx()*red.Image.Bounds().Dy())
-	red.Image.ReadPixels(before)
-	face.SVGForeground = color.NRGBA{G: 255, A: 255}
-	green := text.AppendGlyphs(nil, "A", face, nil)[0]
-	if green.Image == nil || !green.Colored {
-		t.Fatal("missing recolored SVG image")
+	before := make([]byte, 4*initial.Image.Bounds().Dx()*initial.Image.Bounds().Dy())
+	initial.Image.ReadPixels(before)
+	face.Size = 64
+	larger := text.AppendGlyphs(nil, "A", face, nil)[0]
+	if larger.Image == nil || !larger.Colored {
+		t.Fatal("missing resized SVG image")
+	}
+	if larger.Image.Bounds().Dx() <= initial.Image.Bounds().Dx() {
+		t.Error("size reused the smaller glyph")
 	}
 	got := make([]byte, len(before))
-	red.Image.ReadPixels(got)
+	initial.Image.ReadPixels(got)
 	if !bytes.Equal(got, before) {
 		t.Error("retained glyph image changed after renderer reuse")
-	}
-	if green.Image.Bounds() != red.Image.Bounds() {
-		t.Error("opaque foreground change altered image bounds")
-		return
-	}
-	green.Image.ReadPixels(got)
-	i := 4 * ((green.Image.Bounds().Dy()/2)*green.Image.Bounds().Dx() + green.Image.Bounds().Dx()/2)
-	if before[i] == 0 || before[i+1] != 0 || got[i] != 0 || got[i+1] == 0 {
-		t.Errorf("gradient foreground did not update: red %v, green %v", before[i:i+4], got[i:i+4])
 	}
 }
 
