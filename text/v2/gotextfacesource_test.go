@@ -431,3 +431,48 @@ func TestGlyphImageCacheAfterVariationChange(t *testing.T) {
 		t.Error("glyph pixels differ from a fresh face with the same variation")
 	}
 }
+
+func TestGoTextFaceCopyOptions(t *testing.T) {
+	data := variableFontData(t)
+	width, weight := text.MustParseTag("wdth"), text.MustParseTag("wght")
+	kern, liga := text.MustParseTag("kern"), text.MustParseTag("liga")
+	for _, tc := range []struct {
+		name              string
+		configure, change func(*text.GoTextFace)
+	}{
+		{
+			name:      "set variation",
+			configure: func(f *text.GoTextFace) { f.SetVariation(width, 50); f.SetVariation(weight, 100) },
+			change:    func(f *text.GoTextFace) { f.SetVariation(width, 200) },
+		},
+		{
+			name:      "remove variation",
+			configure: func(f *text.GoTextFace) { f.SetVariation(width, 50); f.SetVariation(weight, 100) },
+			change:    func(f *text.GoTextFace) { f.RemoveVariation(width) },
+		},
+		{
+			name:      "set feature",
+			configure: func(f *text.GoTextFace) { f.SetFeature(kern, 0); f.SetFeature(liga, 0) },
+			change:    func(f *text.GoTextFace) { f.SetFeature(kern, 1) },
+		},
+		{
+			name:      "remove feature",
+			configure: func(f *text.GoTextFace) { f.SetFeature(kern, 0); f.SetFeature(liga, 0) },
+			change:    func(f *text.GoTextFace) { f.RemoveFeature(kern) },
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			original := &text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: 32}
+			want := &text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: 32}
+			tc.configure(original)
+			tc.configure(want)
+			copied := *original
+			tc.change(&copied)
+			// Shape only after changing the copy, so an already cached original layout
+			// cannot hide mutations of the original face's options.
+			if got, want := text.Advance("AVffi", original), text.Advance("AVffi", want); got != want {
+				t.Errorf("changing the copied face changed the original advance: got %v, want %v", got, want)
+			}
+		})
+	}
+}
