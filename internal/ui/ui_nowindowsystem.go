@@ -102,6 +102,8 @@ func (b *noWindowSystemBackend) run(game Game, options *RunOptions) error {
 	graphicscommand.SetOSThreadAsRenderThread()
 
 	b.context = newContext(game, options.ScreenTransparent)
+	b.context.screenHasNoAlpha = true // GBM and fbdev scan out XRGB8888
+	b.context.customFinalScreen = options.CustomFinalScreen
 
 	ctx, cancel := stdcontext.WithCancel(stdcontext.Background())
 	defer cancel()

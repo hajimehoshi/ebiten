@@ -72,6 +72,11 @@ type Image struct {
 	// lastBlend is the lastly-used blend for mipmap.Image.
 	lastBlend graphicsdriver.Blend
 
+	// ignoresAlpha reports whether the image's alpha is never shown, as on a screen without
+	// alpha. Draws onto it copy the alpha, so that a blend that doesn't read the destination's
+	// colors doesn't read the destination at all.
+	ignoresAlpha bool
+
 	// modifyCallback is a callback called when DrawTriangles or WritePixels is called.
 	// modifyCallback is useful to detect whether the image is manipulated or not after a certain time.
 	modifyCallback func()
@@ -160,6 +165,11 @@ func (i *Image) drawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertice
 	}
 
 	i.lastBlend = blend
+	if i.ignoresAlpha {
+		blend.BlendFactorSourceAlpha = graphicsdriver.BlendFactorOne
+		blend.BlendFactorDestinationAlpha = graphicsdriver.BlendFactorZero
+		blend.BlendOperationAlpha = graphicsdriver.BlendOperationAdd
+	}
 
 	var srcMipmaps [graphics.ShaderSrcImageCount]*mipmap.Mipmap
 	for i, src := range srcs {
