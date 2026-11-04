@@ -779,8 +779,8 @@ type faceBitmapState struct {
 //
 // The caller must hold g.shapeMu.
 func (g *GoTextFaceSource) applyFaceState(face *GoTextFace) faceBitmapState {
-	if s := face.variationsString; s != g.lastVariationsString {
-		g.f.SetVariations(face.variations)
+	if s := face.variations.key; s != g.lastVariationsString {
+		g.f.SetVariations(face.variations.values())
 		g.lastVariationsString = s
 	}
 
@@ -825,7 +825,7 @@ func (g *GoTextFaceSource) buildOutputs(text string, face *GoTextFace) []shaping
 		RunEnd:       len(g.runes),
 		Direction:    face.diDirection(),
 		Face:         g.f,
-		FontFeatures: face.features,
+		FontFeatures: face.features.values(),
 		Size:         float64ToFixed26_6(face.Size),
 		Script:       face.gScript(),
 		Language:     language.Language(face.Language.String()),
@@ -954,14 +954,14 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 	}
 	indices = append(indices, len(text))
 
-	variations := face.variationsString
+	variations := face.variations.key
 
 	// Snapshot the variations slice once; every glyphRenderData built
 	// in this call shares the same underlying copy. The user-facing
-	// face.variations may be replaced by a later SetVariation, so each
+	// face.variations may be changed by a later SetVariation, so each
 	// buildGlyphs call needs its own copy, but all glyphs within one
 	// call can safely point at the same snapshot.
-	variationsSnapshot := slices.Clone(face.variations)
+	variationsSnapshot := slices.Clone(face.variations.values())
 
 	var gs []goTextGlyph
 	for _, out := range outputs {
@@ -1342,12 +1342,12 @@ func (g *GoTextFaceSource) getOrCreateGlyphImage(size float64, variationCount in
 // variationsString; size scaling happens after the lookup.
 func (g *GoTextFaceSource) metrics(face *GoTextFace) Metrics {
 	um := g.unscaledMetrics
-	if variations := face.variationsString; variations != "" {
+	if variations := face.variations.key; variations != "" {
 		um = g.metricsCache.getOrCreate(variations, func() (Metrics, bool) {
 			if g.metricsFace == nil {
 				g.metricsFace = font.NewFace(g.f.Font)
 			}
-			g.metricsFace.SetVariations(face.variations)
+			g.metricsFace.SetVariations(face.variations.values())
 			return readUnscaledMetrics(g.metricsFace), true
 		})
 	}

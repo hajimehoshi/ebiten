@@ -15,17 +15,14 @@
 package text
 
 import (
-	"encoding/binary"
 	"fmt"
 	"image"
 	"image/color"
-	"math"
 	"slices"
 
 	"github.com/go-text/typesetting/di"
 	"github.com/go-text/typesetting/font"
 	glanguage "github.com/go-text/typesetting/language"
-	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 	"golang.org/x/text/language"
 
@@ -76,109 +73,30 @@ type GoTextFace struct {
 	// SVGPalette overrides SVG palette entries. Nil uses the font's first CPAL palette.
 	SVGPalette []color.NRGBA
 
-	variations []font.Variation
-	features   []shaping.FontFeature
-
-	variationsString string
-	featuresString   string
+	variations variations
+	features   features
 }
 
 // SetVariation sets a variation value.
 // For font variations, see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_fonts/Variable_fonts_guide for more details.
 func (g *GoTextFace) SetVariation(tag Tag, value float32) {
-	idx := len(g.variations)
-	for i, v := range g.variations {
-		if uint32(v.Tag) < uint32(tag) {
-			continue
-		}
-		if uint32(v.Tag) > uint32(tag) {
-			idx = i
-			break
-		}
-		if v.Value == value {
-			return
-		}
-		g.variations = slices.Clone(g.variations)
-		g.variations[i].Value = value
-		g.variationsString = encodeVariations(g.variations)
-		return
-	}
-
-	// Keep the alphabetical order in order to make the cache key deterministic.
-	g.variations = append(slices.Clone(g.variations), font.Variation{})
-	copy(g.variations[idx+1:], g.variations[idx:])
-	g.variations[idx] = font.Variation{
-		Tag:   font.Tag(tag),
-		Value: value,
-	}
-	g.variationsString = encodeVariations(g.variations)
+	g.variations.set(font.Tag(tag), value)
 }
 
 // RemoveVariation removes a variation value.
 func (g *GoTextFace) RemoveVariation(tag Tag) {
-	for i, v := range g.variations {
-		if uint32(v.Tag) < uint32(tag) {
-			continue
-		}
-		if uint32(v.Tag) > uint32(tag) {
-			return
-		}
-
-		g.variations = slices.Clone(g.variations)
-		copy(g.variations[i:], g.variations[i+1:])
-		g.variations = g.variations[:len(g.variations)-1]
-		g.variationsString = encodeVariations(g.variations)
-		return
-	}
+	g.variations.remove(font.Tag(tag))
 }
 
 // SetFeature sets a feature value.
 // For font features, see https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_fonts/OpenType_fonts_guide for more details.
 func (g *GoTextFace) SetFeature(tag Tag, value uint32) {
-	idx := len(g.features)
-	for i, f := range g.features {
-		if uint32(f.Tag) < uint32(tag) {
-			continue
-		}
-		if uint32(f.Tag) > uint32(tag) {
-			idx = i
-			break
-		}
-		if f.Value == value {
-			return
-		}
-		g.features = slices.Clone(g.features)
-		g.features[i].Value = value
-		g.featuresString = encodeFeatures(g.features)
-		return
-	}
-
-	// Keep the alphabetical order in order to make the cache key deterministic.
-	g.features = append(slices.Clone(g.features), shaping.FontFeature{})
-	copy(g.features[idx+1:], g.features[idx:])
-	g.features[idx] = shaping.FontFeature{
-		Tag:   font.Tag(tag),
-		Value: value,
-	}
-	g.featuresString = encodeFeatures(g.features)
+	g.features.set(font.Tag(tag), value)
 }
 
 // RemoveFeature removes a feature value.
 func (g *GoTextFace) RemoveFeature(tag Tag) {
-	for i, v := range g.features {
-		if uint32(v.Tag) < uint32(tag) {
-			continue
-		}
-		if uint32(v.Tag) > uint32(tag) {
-			return
-		}
-
-		g.features = slices.Clone(g.features)
-		copy(g.features[i:], g.features[i+1:])
-		g.features = g.features[:len(g.features)-1]
-		g.featuresString = encodeFeatures(g.features)
-		return
-	}
+	g.features.remove(font.Tag(tag))
 }
 
 // Tag is a tag for font variations and features.
@@ -214,35 +132,6 @@ func (g *GoTextFace) Metrics() Metrics {
 	return g.Source.metrics(g)
 }
 
-// encodeVariations returns a binary string encoding of variations
-// suitable for use as a cache key. It is the canonical form referenced
-// by glyphDataCacheKey and glyphRenderDataCacheKey.
-func encodeVariations(variations []font.Variation) string {
-	if len(variations) == 0 {
-		return ""
-	}
-	buf := make([]byte, 0, 8*len(variations))
-	for _, t := range variations {
-		buf = binary.LittleEndian.AppendUint32(buf, uint32(t.Tag))
-		buf = binary.LittleEndian.AppendUint32(buf, math.Float32bits(t.Value))
-	}
-	return string(buf)
-}
-
-// encodeFeatures returns a binary string encoding of features
-// suitable for use as a cache key.
-func encodeFeatures(features []shaping.FontFeature) string {
-	if len(features) == 0 {
-		return ""
-	}
-	buf := make([]byte, 0, 8*len(features))
-	for _, t := range features {
-		buf = binary.LittleEndian.AppendUint32(buf, uint32(t.Tag))
-		buf = binary.LittleEndian.AppendUint32(buf, t.Value)
-	}
-	return string(buf)
-}
-
 func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 	return goTextOutputCacheKey{
 		text:       text,
@@ -250,8 +139,8 @@ func (g *GoTextFace) outputCacheKey(text string) goTextOutputCacheKey {
 		size:       g.Size,
 		language:   g.Language,
 		script:     g.Script,
-		variations: g.variationsString,
-		features:   g.featuresString,
+		variations: g.variations.key,
+		features:   g.features.key,
 	}
 }
 
@@ -352,7 +241,7 @@ func (g *GoTextFace) appendLazyGlyphsForLine(glyphs []LazyGlyph, line string, in
 					imager = &goTextLineImager{
 						source:         g.Source,
 						size:           g.Size,
-						variations:     g.variationsString,
+						variations:     g.variations.key,
 						variationCount: glyphVariationCount(g),
 						args:           make([]goTextGlyphImageArgs, 0, len(gs)-i),
 					}

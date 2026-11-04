@@ -16,9 +16,11 @@ package text
 
 import (
 	"image"
+	"slices"
 
 	"github.com/go-text/typesetting/bidi"
 	"github.com/go-text/typesetting/font"
+	"github.com/go-text/typesetting/shaping"
 	"golang.org/x/image/math/fixed"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -119,4 +121,12 @@ func NewSVGMemoForTesting[K comparable, V any]() *svgMemo[K, V] {
 
 func (m *svgMemo[K, V]) GetSized(key K, entryLimit, byteLimit, sizeBytes int, create func() V) V {
 	return m.getSized(key, entryLimit, byteLimit, sizeBytes, create)
+}
+
+func GoTextFaceVariationState(face *GoTextFace) ([]font.Variation, string) {
+	return slices.Clone(face.variations.values()), face.variations.key
+}
+
+func GoTextFaceFeatureState(face *GoTextFace) ([]shaping.FontFeature, string) {
+	return slices.Clone(face.features.values()), face.features.key
 }
