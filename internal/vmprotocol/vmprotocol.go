@@ -552,8 +552,9 @@ type Endpoint struct {
 func ParseEndpoint(endpoint string) (Endpoint, error) {
 	if p, ok := strings.CutPrefix(endpoint, "unix://"); ok {
 		// The path keeps a leading slash. On Unix it is part of the absolute socket path; on Windows the
-		// path is drive-lettered (unix:///C:/foo), so the leading slash is dropped to recover C:/foo.
-		if runtime.GOOS == "windows" {
+		// path can be drive-lettered (unix:///C:/foo), so the added slash is dropped to recover C:/foo.
+		// Preserve the two leading slashes of UNC and device paths.
+		if runtime.GOOS == "windows" && !strings.HasPrefix(p, "//") {
 			p = strings.TrimPrefix(p, "/")
 		}
 		addr := filepath.FromSlash(p)
