@@ -62,11 +62,53 @@ func (u *UserInterface) updateInputStateFromOutside(keys []KeyEvent, runes []run
 	}
 }
 
+func (u *UserInterface) updatePinchFromOutside(delta float64, centerX, centerY float64) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	if !u.foreground.Load() {
+		return
+	}
+
+	u.pinchDelta = composePinches(u.pinchDelta, delta)
+	u.setGestureCenter(centerX, centerY)
+}
+
+func (u *UserInterface) updateRotationFromOutside(delta float64, centerX, centerY float64) {
+	u.mu.Lock()
+	defer u.mu.Unlock()
+
+	if !u.foreground.Load() {
+		return
+	}
+
+	u.rotationDelta += delta
+	u.setGestureCenter(centerX, centerY)
+}
+
+// setGestureCenter records the point a gesture is done around. setGestureCenter must be called with u.mu
+// held.
+func (u *UserInterface) setGestureCenter(x, y float64) {
+	u.gestureCenterXInClient = x
+	u.gestureCenterYInClient = y
+	u.gestureCenterReported = true
+}
+
 func (u *UserInterface) updateInputStateForFrame(deviceScaleFactor float64) error {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 
 	s := deviceScaleFactor
+
+	u.inputState.addPinch(u.pinchDelta)
+	u.inputState.RotationDelta += u.rotationDelta
+	u.pinchDelta = 0
+	u.rotationDelta = 0
+	if u.gestureCenterReported {
+		u.inputState.GestureCenterX, u.inputState.GestureCenterY = u.context.clientPositionToLogicalPosition(u.gestureCenterXInClient, u.gestureCenterYInClient, s)
+		u.inputState.GestureCenterReported = true
+		u.gestureCenterReported = false
+	}
 
 	u.inputState.Touches = u.inputState.Touches[:0]
 	for _, t := range u.touches {

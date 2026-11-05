@@ -593,6 +593,36 @@ func registerGLFWClasses() error {
 					}
 				},
 			},
+			// Pinch gesture on a touchpad.
+			{
+				Cmd: objc.RegisterName("magnifyWithEvent:"),
+				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
+					window := getGoWindow(self)
+					if window == nil {
+						return
+					}
+					// magnification is the change of the scale since the previous event of the
+					// gesture: AppKit's contract is to multiply the scale by 1 + magnification.
+					if delta := objc.Send[float64](event, sel_magnification); delta != 0 {
+						window.inputPinch(delta)
+					}
+				},
+			},
+			// Rotation gesture on a touchpad.
+			{
+				Cmd: objc.RegisterName("rotateWithEvent:"),
+				Fn: func(self objc.ID, _ objc.SEL, event objc.ID) {
+					window := getGoWindow(self)
+					if window == nil {
+						return
+					}
+					// rotation is the angle since the previous event of the gesture, in degrees, and is a
+					// float, not a CGFloat. A positive value is counterclockwise.
+					if deg := objc.Send[float32](event, sel_rotation); deg != 0 {
+						window.inputRotate(-float64(deg) * math.Pi / 180)
+					}
+				},
+			},
 			// View lifecycle.
 			{
 				Cmd: objc.RegisterName("viewDidChangeBackingProperties"),

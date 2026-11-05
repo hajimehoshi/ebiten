@@ -40,6 +40,10 @@ var (
 	stringTouchmove   = js.ValueOf("touchmove")
 	stringTouchcancel = js.ValueOf("touchcancel")
 
+	stringGesturestart  = js.ValueOf("gesturestart")
+	stringGesturechange = js.ValueOf("gesturechange")
+	stringGestureend    = js.ValueOf("gestureend")
+
 	stringAltGraph = js.ValueOf("AltGraph")
 	stringCapsLock = js.ValueOf("CapsLock")
 	stringNumLock  = js.ValueOf("NumLock")
@@ -128,6 +132,10 @@ func (u *UserInterface) keyDown(event js.Value) {
 func (u *UserInterface) keyUp(event js.Value) {
 	now := u.inputState.nextInputTime()
 	key0, key1 := eventToKeys(event)
+	if key0 == KeyControlLeft || key0 == KeyControlRight {
+		// The last mouse event might be before the Control key is released.
+		u.controlKeyInMouseEvent = false
+	}
 	if key0 >= 0 {
 		u.inputState.setKeyReleased(key0, now)
 	}
@@ -184,8 +192,6 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	case t.Equal(stringWheel):
 		dx := -e.Get("deltaX").Float()
 		dy := -e.Get("deltaY").Float()
-		u.inputState.WheelX += dx
-		u.inputState.WheelY += dy
 
 		// deltaMode indicates the unit of deltaX and deltaY.
 		const (
@@ -193,19 +199,54 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 			domDeltaLine  = 1
 			domDeltaPage  = 2
 		)
+		var scrollDeltaX, scrollDeltaY float64
 		switch e.Get("deltaMode").Int() {
 		case domDeltaPixel:
 			// CSS pixels are device-independent pixels.
-			u.inputState.ScrollDeltaX += dx
-			u.inputState.ScrollDeltaY += dy
+			scrollDeltaX = dx
+			scrollDeltaY = dy
 		case domDeltaLine:
-			u.inputState.ScrollDeltaX += dx * pixelsPerScrollLine
-			u.inputState.ScrollDeltaY += dy * pixelsPerScrollLine
+			scrollDeltaX = dx * pixelsPerScrollLine
+			scrollDeltaY = dy * pixelsPerScrollLine
 		case domDeltaPage:
 			window := js.Global().Get("window")
-			u.inputState.ScrollDeltaX += dx * window.Get("innerWidth").Float()
-			u.inputState.ScrollDeltaY += dy * window.Get("innerHeight").Float()
+			scrollDeltaX = dx * window.Get("innerWidth").Float()
+			scrollDeltaY = dy * window.Get("innerHeight").Float()
 		}
+
+		if isWheelPinch(e.Get("ctrlKey").Bool(), u.isControlKeyDown()) {
+			// Safari reports a pinch with gesture events instead. Do not count it twice in case it
+			// reports both.
+			if !u.inGesture {
+				u.inputState.addPinch(wheelPinchDelta(scrollDeltaY))
+			}
+			break
+		}
+
+		u.inputState.WheelX += dx
+		u.inputState.WheelY += dy
+		u.inputState.ScrollDeltaX += scrollDeltaX
+		u.inputState.ScrollDeltaY += scrollDeltaY
+	case t.Equal(stringGesturestart):
+		u.inGesture = true
+		u.gestureScale = 1
+		u.gestureRotation = 0
+	case t.Equal(stringGesturechange):
+		if !u.inGesture {
+			break
+		}
+		scale := e.Get("scale").Float()
+		rotation := e.Get("rotation").Float()
+		// On a touch screen, a pinch is reported by touches, like the other platforms.
+		if len(u.touchesInClient) == 0 && u.gestureScale > 0 {
+			u.inputState.addPinch(scale/u.gestureScale - 1)
+			// rotation is in degrees, and a positive value is clockwise.
+			u.inputState.RotationDelta += (rotation - u.gestureRotation) * math.Pi / 180
+		}
+		u.gestureScale = scale
+		u.gestureRotation = rotation
+	case t.Equal(stringGestureend):
+		u.inGesture = false
 	case t.Equal(stringTouchstart) || t.Equal(stringTouchend) || t.Equal(stringTouchmove) || t.Equal(stringTouchcancel):
 		u.updateTouchesFromEvent(e)
 	}
@@ -223,7 +264,10 @@ func (u *UserInterface) updateInputFromEvent(e js.Value) error {
 	return nil
 }
 
+// setMouseCursorFromEvent records the cursor position and whether the Control key is down from a mouse event.
 func (u *UserInterface) setMouseCursorFromEvent(e js.Value) {
+	u.controlKeyInMouseEvent = e.Get("ctrlKey").Bool()
+
 	if u.context == nil {
 		return
 	}
@@ -244,6 +288,38 @@ func (u *UserInterface) setMouseCursorFromEvent(e js.Value) {
 func (u *UserInterface) recoverCursorPosition() {
 	u.cursorXInClient = u.origCursorXInClient
 	u.cursorYInClient = u.origCursorYInClient
+}
+
+// isControlKeyDown reports whether the Control key is down according to the keyboard and mouse events so
+// far. The keyboard events reach the canvas only while it has the focus, and the mouse events report
+// the Control key without the focus, such as in an iframe or while a text field has the focus.
+func (u *UserInterface) isControlKeyDown() bool {
+	if u.controlKeyInMouseEvent {
+		return true
+	}
+	for _, k := range []Key{KeyControlLeft, KeyControlRight} {
+		if u.inputState.KeyReleasedTimes[k] < u.inputState.KeyPressedTimes[k] {
+			return true
+		}
+	}
+	return false
+}
+
+// isWheelPinch reports whether a wheel event is a pinch on a touchpad.
+//
+// Browsers other than Safari report a pinch on a touchpad as a wheel event whose ctrlKey is true, as
+// many pages zoom with Ctrl+wheel, though the Control key is not pressed. ctrlKey is ctrlKey of the
+// event, and controlKeyDown reports whether the Control key is actually down. A wheel event with the
+// Control key down is scrolling.
+func isWheelPinch(ctrlKey, controlKeyDown bool) bool {
+	return ctrlKey && !controlKeyDown
+}
+
+// wheelPinchDelta returns the change of the scale a pinch asks for, from the vertical amount of the
+// wheel event that reports it, in device-independent pixels with the sign of ScrollDelta. Chromium
+// makes the amount of the event as 100 times the logarithm of the scale.
+func wheelPinchDelta(scrollDeltaY float64) float64 {
+	return math.Exp(scrollDeltaY/100) - 1
 }
 
 // clearTouches ends all the touches that are down.

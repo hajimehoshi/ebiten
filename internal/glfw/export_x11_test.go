@@ -20,6 +20,23 @@ import (
 	"fmt"
 )
 
+// XIPinchDeltasForTest feeds a sequence of pinch gesture events, given as event types and scales, to
+// the conversion that turns their scales into changes, and returns the changes.
+func XIPinchDeltasForTest(evtypes []int32, scales []float64) []float64 {
+	var p xiPinch
+	deltas := make([]float64, len(evtypes))
+	for i := range evtypes {
+		deltas[i] = p.delta(evtypes[i], scales[i])
+	}
+	return deltas
+}
+
+const (
+	XIGesturePinchBeginForTest  = _XI_GesturePinchBegin
+	XIGesturePinchUpdateForTest = _XI_GesturePinchUpdate
+	XIGesturePinchEndForTest    = _XI_GesturePinchEnd
+)
+
 // SmokeTestX11 exercises the purego foundation against a live X server: the
 // libX11 bindings, platform initialization including the fixed-arity
 // variadic XGetIMValues call, the X error handler callback, and the

@@ -14,6 +14,8 @@
 
 package glfw
 
+import "runtime"
+
 func PackPoint64(x, y int32) uint64 {
 	return (_POINT{x: x, y: y}).pack64()
 }
@@ -25,3 +27,55 @@ func WheelScrollAmount(notches float64, setting uint32) (float64, ScrollUnit) {
 }
 
 var SetFocusForTesting = _SetFocus
+
+type DirectManipulationGesture struct {
+	g directManipulationGesture
+}
+
+func NewDirectManipulationGesture() *DirectManipulationGesture {
+	return &DirectManipulationGesture{
+		g: newDirectManipulationGesture(),
+	}
+}
+
+func (d *DirectManipulationGesture) Transform(m [6]float32) (panX, panY, pinch float64) {
+	return d.g.transform(m)
+}
+
+// DirectManipulationZoomToRect zooms the viewport of Direct Manipulation for a hidden window to the given
+// rectangle, and returns the content transform. It returns nil without an error when Direct Manipulation is
+// not available.
+func DirectManipulationZoomToRect(left, top, right, bottom float32) (*[6]float32, error) {
+	// Direct Manipulation is used from the thread that owns the window.
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	hwnd, err := _CreateWindowExW(0, "STATIC", "", 0, 0, 0, directManipulationViewportSize, directManipulationViewportSize, 0, 0, 0, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		_ = _DestroyWindow(hwnd)
+	}()
+
+	d, err := newDirectManipulation(hwnd)
+	if err != nil {
+		return nil, err
+	}
+	if d == nil {
+		return nil, nil
+	}
+	defer d.release(hwnd)
+
+	if err := d.zoomToRect(left, top, right, bottom, false); err != nil {
+		return nil, err
+	}
+	if err := d.updateManager.Update(); err != nil {
+		return nil, err
+	}
+	m, err := d.content.GetContentTransform()
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
+}

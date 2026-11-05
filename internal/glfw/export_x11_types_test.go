@@ -77,6 +77,7 @@ type (
 	XIModifierState        = _XIModifierState
 	XIDeviceEvent          = _XIDeviceEvent
 	XIDeviceChangedEvent   = _XIDeviceChangedEvent
+	XIGesturePinchEvent    = _XIGesturePinchEvent
 	XIAnyClassInfo         = _XIAnyClassInfo
 	XIValuatorClassInfo    = _XIValuatorClassInfo
 	XIScrollClassInfo      = _XIScrollClassInfo

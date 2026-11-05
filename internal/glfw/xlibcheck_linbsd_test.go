@@ -105,6 +105,7 @@ func TestXlibStructSizes(t *testing.T) {
 		{"XIModifierState", unsafe.Sizeof(_XIModifierState{}), sizeofXIModifierState},
 		{"XIDeviceEvent", unsafe.Sizeof(_XIDeviceEvent{}), sizeofXIDeviceEvent},
 		{"XIDeviceChangedEvent", unsafe.Sizeof(_XIDeviceChangedEvent{}), sizeofXIDeviceChangedEvent},
+		{"XIGesturePinchEvent", unsafe.Sizeof(_XIGesturePinchEvent{}), sizeofXIGesturePinchEvent},
 		{"XIAnyClassInfo", unsafe.Sizeof(_XIAnyClassInfo{}), sizeofXIAnyClassInfo},
 		{"XIValuatorClassInfo", unsafe.Sizeof(_XIValuatorClassInfo{}), sizeofXIValuatorClassInfo},
 		{"XIScrollClassInfo", unsafe.Sizeof(_XIScrollClassInfo{}), sizeofXIScrollClassInfo},

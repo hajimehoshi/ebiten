@@ -70,6 +70,26 @@ func TestGLFWInputScrollUnits(t *testing.T) {
 	}
 }
 
+// TestGLFWInputPinch tests that the pinch amounts reported within a tick are composed as ratios, and
+// that a tick without a gesture reads 0.
+func TestGLFWInputPinch(t *testing.T) {
+	i := ui.NewGLFWInputForTest()
+	i.HandlePinchForTest(0.25)
+	i.HandlePinchForTest(-0.125)
+
+	var s ui.InputState
+	i.ReadForTest(&s)
+	// 1.25 times 0.875 is 1.09375.
+	if got, want := s.PinchDelta, 0.09375; got != want {
+		t.Errorf("pinch: got %v, want %v", got, want)
+	}
+
+	i.ReadForTest(&s)
+	if got := s.PinchDelta; got != 0 {
+		t.Errorf("pinch after a tick without a gesture: got %v, want 0", got)
+	}
+}
+
 // TestGLFWInputScrollPages tests that page-unit scrolling reaches a tick's input snapshot once the
 // content size is known, including a tick run outside the regular frame.
 func TestGLFWInputScrollPages(t *testing.T) {

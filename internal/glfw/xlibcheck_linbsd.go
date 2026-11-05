@@ -106,6 +106,7 @@ var (
 	sizeofXIModifierState        = uintptr(C.sizeof_XIModifierState)
 	sizeofXIDeviceEvent          = uintptr(C.sizeof_XIDeviceEvent)
 	sizeofXIDeviceChangedEvent   = uintptr(C.sizeof_XIDeviceChangedEvent)
+	sizeofXIGesturePinchEvent    = uintptr(C.sizeof_XIGesturePinchEvent)
 	sizeofXIAnyClassInfo         = uintptr(C.sizeof_XIAnyClassInfo)
 	sizeofXIValuatorClassInfo    = uintptr(C.sizeof_XIValuatorClassInfo)
 	sizeofXIScrollClassInfo      = uintptr(C.sizeof_XIScrollClassInfo)

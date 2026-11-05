@@ -13,6 +13,7 @@ import (
 	"math"
 	"math/bits"
 	"runtime"
+	"time"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -1014,6 +1015,20 @@ func windowProc(hWnd windows.HWND, uMsg uint32, wParam _WPARAM, lParam _LPARAM) 
 		window.inputCursorEnter(false)
 		return 0
 
+	case _DM_POINTERHITTEST:
+		// Hand a contact on a precision touchpad to Direct Manipulation to receive pans and pinches.
+		// Other pointers, including mice, are not affected.
+		if dm := window.platform.directManipulation; dm != nil {
+			id := uint32(_LOWORD(uint32(wParam)))
+			if t, err := _GetPointerType(id); err == nil && t == _PT_TOUCHPAD {
+				if err := dm.viewport.SetContact(id); err != nil {
+					window.disableDirectManipulation()
+				} else {
+					dm.contactTime = time.Now()
+				}
+			}
+		}
+
 	case _WM_MOUSEWHEEL:
 		notches := float64(int16(_HIWORD(uint32(wParam)))) / _WHEEL_DELTA
 		amount, unit := wheelScrollAmount(notches, wheelScrollSetting(_SPI_GETWHEELSCROLLLINES))
@@ -1550,6 +1565,14 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 		return err
 	}
 
+	if !microsoftgdk.IsXbox() {
+		// Direct Manipulation is optional. Without it, gestures on a touchpad are reported as mouse
+		// wheel messages and no pinch is reported.
+		if dm, err := newDirectManipulation(w.platform.handle); err == nil {
+			w.platform.directManipulation = dm
+		}
+	}
+
 	if ctxconfig.client != NoAPI {
 		if ctxconfig.source == NativeContextAPI {
 			if err := initWGL(); err != nil {
@@ -1624,6 +1647,8 @@ func (w *Window) platformDestroyWindow() error {
 			return err
 		}
 	}
+
+	w.disableDirectManipulation()
 
 	if w.platform.handle != 0 {
 		if !microsoftgdk.IsXbox() {
@@ -2310,6 +2335,14 @@ func platformPollEvents() error {
 		}
 	}
 
+	for _, window := range _glfw.windows {
+		if dm := window.platform.directManipulation; dm != nil {
+			if err := dm.update(window); err != nil {
+				window.disableDirectManipulation()
+			}
+		}
+	}
+
 	var handle windows.HWND
 	if microsoftgdk.IsXbox() {
 		// Assume that there is always exactly one active window.
@@ -2372,6 +2405,9 @@ func platformPollEvents() error {
 }
 
 func platformWaitEvents() error {
+	if directManipulationPolling() {
+		return platformWaitEventsTimeout(directManipulationPollingInterval.Seconds())
+	}
 	if err := _WaitMessage(); err != nil {
 		return err
 	}
@@ -2382,6 +2418,9 @@ func platformWaitEvents() error {
 }
 
 func platformWaitEventsTimeout(timeout float64) error {
+	if directManipulationPolling() {
+		timeout = min(timeout, directManipulationPollingInterval.Seconds())
+	}
 	if _, err := _MsgWaitForMultipleObjects(0, nil, false, uint32(timeout*1e3), _QS_ALLINPUT); err != nil {
 		return err
 	}

@@ -1336,6 +1336,24 @@ func (g *GuestSession) ScrollBy(x, y float64) {
 	g.postMessage(msg)
 }
 
+// PinchBy injects a pinch gesture on a touchpad that changes the scale by delta.
+// PinchBy feeds the guest's [ebiten.PinchDelta] value.
+func (g *GuestSession) PinchBy(delta float64) {
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindPinch
+	msg.X = delta
+	g.postMessage(msg)
+}
+
+// RotateBy injects a rotation gesture on a touchpad that turns by angle radians. A positive value is
+// clockwise. RotateBy feeds the guest's [ebiten.RotationDelta] value.
+func (g *GuestSession) RotateBy(angle float64) {
+	msg := g.takeMessage()
+	msg.Kind = vmprotocol.HostMessageKindRotate
+	msg.X = angle
+	g.postMessage(msg)
+}
+
 // TypeRune injects a typed character.
 func (g *GuestSession) TypeRune(r rune) {
 	msg := g.takeMessage()

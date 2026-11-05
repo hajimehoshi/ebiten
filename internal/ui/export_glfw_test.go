@@ -67,6 +67,10 @@ func (i *glfwInput) HandleScrollForTest(wheelX, wheelY, scrollDeltaX, scrollDelt
 	i.handleScroll(wheelX, wheelY, scrollDeltaX, scrollDeltaY, unit)
 }
 
+func (i *glfwInput) HandlePinchForTest(delta float64) {
+	i.handlePinch(delta)
+}
+
 func (i *glfwInput) SetContentSizeForTest(width, height float64) {
 	i.setContentSize(width, height)
 }

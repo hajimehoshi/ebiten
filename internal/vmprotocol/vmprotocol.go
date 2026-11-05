@@ -85,6 +85,14 @@ const (
 	// HostMessageKindScroll injects a scroll movement in device-independent pixels, feeding the guest's
 	// scroll-delta values as HostMessageKindScrollWheel feeds the guest's wheel values.
 	HostMessageKindScroll
+
+	// HostMessageKindPinch injects a pinch gesture on a touchpad, feeding the guest's pinch-delta value.
+	// X carries the change of the scale.
+	HostMessageKindPinch
+
+	// HostMessageKindRotate injects a rotation gesture on a touchpad, feeding the guest's rotation-delta
+	// value. X carries the angle in radians, where a positive value is clockwise.
+	HostMessageKindRotate
 )
 
 // HostMessage is a message the host sends to a guest: an operation to perform, or the answer to a
@@ -107,7 +115,8 @@ type HostMessage struct {
 	// PressTouch/MoveTouch/ReleaseTouch carry a ui.TouchID.
 	Code int
 
-	// MoveCursor, ScrollWheel, and Scroll; also PressTouch and MoveTouch carry the touch position.
+	// MoveCursor, ScrollWheel, and Scroll; also PressTouch and MoveTouch carry the touch position. Pinch
+	// carries the change of the scale in X, and Rotate carries the angle in X.
 	X float64
 	Y float64
 

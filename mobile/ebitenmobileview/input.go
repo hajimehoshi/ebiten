@@ -74,3 +74,18 @@ func updateInput(runes []rune) {
 	ui.Get().UpdateInput(keyEvents, runes, touchSlice, capsLock, numLock)
 	keyEvents = keyEvents[:0]
 }
+
+// UpdatePinch reports a pinch gesture on a touchpad or a touch screen, as the change of the scale it asks for
+// since the last call. centerX and centerY are the point the gesture is done around, in device-independent
+// pixels relative to the view, as the positions of touches.
+func UpdatePinch(delta float64, centerX, centerY float64) {
+	ui.Get().UpdatePinch(delta, centerX, centerY)
+}
+
+// UpdateRotation reports a rotation gesture with two fingers on a touchpad or a touch screen, as the angle
+// it turns by since the last call, in radians. A positive value is clockwise. centerX and centerY are the
+// point the gesture is done around, in device-independent pixels relative to the view, as the positions of
+// touches.
+func UpdateRotation(delta float64, centerX, centerY float64) {
+	ui.Get().UpdateRotation(delta, centerX, centerY)
+}

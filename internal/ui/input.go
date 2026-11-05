@@ -141,12 +141,21 @@ type InputState struct {
 	MouseButtonPressedTimes  [MouseButtonMax + 1]InputTime
 	MouseButtonReleasedTimes [MouseButtonMax + 1]InputTime
 
-	CursorX           float64
-	CursorY           float64
-	WheelX            float64
-	WheelY            float64
-	ScrollDeltaX      float64
-	ScrollDeltaY      float64
+	CursorX       float64
+	CursorY       float64
+	WheelX        float64
+	WheelY        float64
+	ScrollDeltaX  float64
+	ScrollDeltaY  float64
+	PinchDelta    float64
+	RotationDelta float64
+
+	// GestureCenterX and GestureCenterY are the point that a pinch and a rotation at the tick are done around,
+	// in logical coordinates, when the platform reports it. GestureCenterReported reports whether it does.
+	GestureCenterX        float64
+	GestureCenterY        float64
+	GestureCenterReported bool
+
 	Touches           []Touch
 	Runes             []rune
 	WindowBeingClosed bool
@@ -385,6 +394,11 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	dst.WheelY = i.WheelY
 	dst.ScrollDeltaX = i.ScrollDeltaX
 	dst.ScrollDeltaY = i.ScrollDeltaY
+	dst.PinchDelta = i.PinchDelta
+	dst.RotationDelta = i.RotationDelta
+	dst.GestureCenterX = i.GestureCenterX
+	dst.GestureCenterY = i.GestureCenterY
+	dst.GestureCenterReported = i.GestureCenterReported
 	dst.Touches = append(dst.Touches[:0], i.Touches...)
 	dst.Runes = append(dst.Runes[:0], i.Runes...)
 	dst.WindowBeingClosed = i.WindowBeingClosed
@@ -397,6 +411,9 @@ func (i *InputState) copyAndReset(dst *InputState) {
 	i.WheelY = 0
 	i.ScrollDeltaX = 0
 	i.ScrollDeltaY = 0
+	i.PinchDelta = 0
+	i.RotationDelta = 0
+	i.GestureCenterReported = false
 	i.Runes = i.Runes[:0]
 
 	// Reset the members that are never reset until they are explicitly done.
@@ -405,6 +422,18 @@ func (i *InputState) copyAndReset(dst *InputState) {
 
 	// The next event belongs to the first tick that can consume it.
 	i.inputTime = NewInputTimeFromTick(i.inputTime.Tick() + 1)
+}
+
+// addPinch adds the amount of a pinch gesture, as the change of the scale it asks for, to PinchDelta.
+// The amounts are composed as the ratios they are, so that two pinches that ask for 1+a and 1+b times
+// ask for (1+a)(1+b) times in total.
+func (i *InputState) addPinch(delta float64) {
+	i.PinchDelta = composePinches(i.PinchDelta, delta)
+}
+
+// composePinches returns the amount of two pinch gestures in a row, as the change of the scale they ask for.
+func composePinches(a, b float64) float64 {
+	return (1+a)*(1+b) - 1
 }
 
 func (i *InputState) appendRune(r rune) {

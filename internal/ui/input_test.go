@@ -292,3 +292,20 @@ func TestInputSnapshotTickAssignment(t *testing.T) {
 		t.Error("press followed by release left the button pressed")
 	}
 }
+
+// TestAddPinch tests that pinch amounts are composed as the ratios they are, so that a pinch and the
+// pinch that undoes it cancel out.
+func TestAddPinch(t *testing.T) {
+	var s ui.InputState
+	s.AddPinch(1)    // Twice as large.
+	s.AddPinch(-0.5) // Half as large.
+	if got, want := s.PinchDelta, 0.0; got != want {
+		t.Errorf("PinchDelta: got %v, want %v", got, want)
+	}
+
+	s.AddPinch(0.5)
+	s.AddPinch(0.5)
+	if got, want := s.PinchDelta, 1.25; got != want {
+		t.Errorf("PinchDelta: got %v, want %v", got, want)
+	}
+}

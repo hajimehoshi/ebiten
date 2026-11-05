@@ -234,8 +234,41 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
         return true;
     }
 
+    // MotionEvent.CLASSIFICATION_PINCH and MotionEvent.AXIS_GESTURE_PINCH_SCALE_FACTOR, which were added in API level 34.
+    private static final int CLASSIFICATION_PINCH = 5;
+    private static final int AXIS_GESTURE_PINCH_SCALE_FACTOR = 52;
+
     @Override
     public boolean onTouchEvent(MotionEvent e) {
+        // A pinch on a touchpad is delivered as two fake fingers around the cursor. Report it as a pinch
+        // instead of touches, as the other platforms do.
+        if (Build.VERSION.SDK_INT >= 34 && e.getClassification() == CLASSIFICATION_PINCH) {
+            if (e.getActionMasked() == MotionEvent.ACTION_MOVE) {
+                // The scale factor of each sample is relative to the previous sample, including the batched ones,
+                // so the factors are multiplied.
+                double scale = 1;
+                for (int h = 0; h < e.getHistorySize(); h++) {
+                    scale *= e.getHistoricalAxisValue(AXIS_GESTURE_PINCH_SCALE_FACTOR, 0, h);
+                }
+                scale *= e.getAxisValue(AXIS_GESTURE_PINCH_SCALE_FACTOR, 0);
+                if (scale != 1) {
+                    // The pinch is done around the middle of the pointers of the event.
+                    double x = 0;
+                    double y = 0;
+                    for (int i = 0; i < e.getPointerCount(); i++) {
+                        x += e.getX(i);
+                        y += e.getY(i);
+                    }
+                    x /= e.getPointerCount();
+                    y /= e.getPointerCount();
+                    Ebitenmobileview.updatePinch(scale - 1.0, pxToDp(x), pxToDp(y));
+                }
+            }
+            return true;
+        }
+
+        updateTouchScreenGesture(e);
+
         // getActionIndex returns a valid value only for the action whose index is the returned value of getActionIndex (#2220).
         // See https://developer.android.com/reference/android/view/MotionEvent#getActionMasked().
         // For other pointers, treat their actions as MotionEvent.ACTION_MOVE.
@@ -258,6 +291,76 @@ public class EbitenView extends ViewGroup implements InputManager.InputDeviceLis
             Ebitenmobileview.updateTouchesOnAndroid(action, id, pxToDp(x), pxToDp(y));
         }
         return true;
+    }
+
+    // touchScreenGestureDistance and touchScreenGestureAngle are the distance and the angle between the two
+    // fingers at the last sample of a gesture on a touch screen. touchScreenGestureDistance is 0 when no
+    // gesture is being done.
+    private float touchScreenGestureDistance = 0;
+    private double touchScreenGestureAngle = 0;
+
+    // updateTouchScreenGesture reports moving exactly two fingers on a touch screen as a pinch and a rotation,
+    // in addition to the touches.
+    private void updateTouchScreenGesture(MotionEvent e) {
+        if ((e.getSource() & InputDevice.SOURCE_TOUCHSCREEN) != InputDevice.SOURCE_TOUCHSCREEN || e.getPointerCount() != 2) {
+            touchScreenGestureDistance = 0;
+            return;
+        }
+        switch (e.getActionMasked()) {
+        case MotionEvent.ACTION_POINTER_DOWN:
+            // The second finger starts a gesture.
+            touchScreenGestureDistance = (float)Math.hypot(e.getX(1) - e.getX(0), e.getY(1) - e.getY(0));
+            touchScreenGestureAngle = Math.atan2(e.getY(1) - e.getY(0), e.getX(1) - e.getX(0));
+            return;
+        case MotionEvent.ACTION_MOVE:
+            break;
+        default:
+            touchScreenGestureDistance = 0;
+            return;
+        }
+
+        // Each sample, including the batched ones, adds the changes of the distance and the angle relative to
+        // the previous sample.
+        double scale = 1;
+        double rotation = 0;
+        for (int h = 0; h <= e.getHistorySize(); h++) {
+            float dx, dy;
+            if (h < e.getHistorySize()) {
+                dx = e.getHistoricalX(1, h) - e.getHistoricalX(0, h);
+                dy = e.getHistoricalY(1, h) - e.getHistoricalY(0, h);
+            } else {
+                dx = e.getX(1) - e.getX(0);
+                dy = e.getY(1) - e.getY(0);
+            }
+            float d = (float)Math.hypot(dx, dy);
+            if (d <= 0) {
+                continue;
+            }
+            // As the Y axis points down, an increasing angle is clockwise.
+            double a = Math.atan2(dy, dx);
+            if (touchScreenGestureDistance > 0) {
+                scale *= d / touchScreenGestureDistance;
+                double da = a - touchScreenGestureAngle;
+                // Take the shorter way around, as the angle wraps at ±pi.
+                if (da > Math.PI) {
+                    da -= 2 * Math.PI;
+                } else if (da < -Math.PI) {
+                    da += 2 * Math.PI;
+                }
+                rotation += da;
+            }
+            touchScreenGestureDistance = d;
+            touchScreenGestureAngle = a;
+        }
+        // The gesture is done around the middle of the two fingers.
+        double centerX = pxToDp((e.getX(0) + e.getX(1)) / 2);
+        double centerY = pxToDp((e.getY(0) + e.getY(1)) / 2);
+        if (scale != 1) {
+            Ebitenmobileview.updatePinch(scale - 1.0, centerX, centerY);
+        }
+        if (rotation != 0) {
+            Ebitenmobileview.updateRotation(rotation, centerX, centerY);
+        }
     }
 
     private Gamepad getGamepad(int deviceId) {

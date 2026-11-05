@@ -396,6 +396,15 @@ func TestXlibStructLayouts(t *testing.T) {
 		{"XIDeviceChangedEvent.Classes", unsafe.Offsetof(glfw.XIDeviceChangedEvent{}.Classes), 64},
 		{"sizeof XIDeviceChangedEvent", unsafe.Sizeof(glfw.XIDeviceChangedEvent{}), 72},
 
+		{"XIGesturePinchEvent.Evtype", unsafe.Offsetof(glfw.XIGesturePinchEvent{}.Evtype), 36},
+		{"XIGesturePinchEvent.Event", unsafe.Offsetof(glfw.XIGesturePinchEvent{}.Event), 72},
+		{"XIGesturePinchEvent.Scale", unsafe.Offsetof(glfw.XIGesturePinchEvent{}.Scale), 152},
+		{"XIGesturePinchEvent.DeltaAngle", unsafe.Offsetof(glfw.XIGesturePinchEvent{}.DeltaAngle), 160},
+		{"XIGesturePinchEvent.Flags", unsafe.Offsetof(glfw.XIGesturePinchEvent{}.Flags), 168},
+		{"XIGesturePinchEvent.Mods", unsafe.Offsetof(glfw.XIGesturePinchEvent{}.Mods), 172},
+		{"XIGesturePinchEvent.Group", unsafe.Offsetof(glfw.XIGesturePinchEvent{}.Group), 188},
+		{"sizeof XIGesturePinchEvent", unsafe.Sizeof(glfw.XIGesturePinchEvent{}), 208},
+
 		{"XIAnyClassInfo.Sourceid", unsafe.Offsetof(glfw.XIAnyClassInfo{}.Sourceid), 4},
 		{"sizeof XIAnyClassInfo", unsafe.Sizeof(glfw.XIAnyClassInfo{}), 8},
 
