@@ -1031,6 +1031,7 @@ func (g *GuestSession) queueTicks(n int) {
 	}
 	if g.outsideScreen == nil {
 		g.setErrLocked(errors.New("vmhost: SetOutsideScreen must be called at least once before AdvanceTicks"))
+		g.cond.Broadcast()
 		return
 	}
 	// Coalesce consecutive ticks into a single counted entry.
