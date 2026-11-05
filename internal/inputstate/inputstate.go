@@ -181,16 +181,19 @@ func (i *inputState) RotationDelta() float64 {
 }
 
 // GestureCenter returns the point that a pinch and a rotation at the current tick are done around: the
-// middle of the two fingers when exactly two fingers touch the screen, the point the platform reports
-// otherwise, or the cursor position when the platform reports none.
+// point the platform reports with the gesture, the middle of the two fingers when the platform reports
+// none and exactly two fingers touch the screen, or the cursor position otherwise.
+//
+// The reported point comes first, as it belongs to the gesture: a gesture on a touchpad is not done
+// around fingers that happen to rest on the touch screen.
 func (i *inputState) GestureCenter() (x, y float64) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if ts := i.state.Touches; len(ts) == 2 {
-		return (ts[0].X + ts[1].X) / 2, (ts[0].Y + ts[1].Y) / 2
-	}
 	if i.state.GestureCenterReported {
 		return i.state.GestureCenterX, i.state.GestureCenterY
+	}
+	if ts := i.state.Touches; len(ts) == 2 {
+		return (ts[0].X + ts[1].X) / 2, (ts[0].Y + ts[1].Y) / 2
 	}
 	return i.state.CursorX, i.state.CursorY
 }

@@ -229,12 +229,12 @@ func RotationDelta() float64 {
 // GestureCenter returns the point that a pinch by [PinchDelta] and a rotation by [RotationDelta] at the
 // current tick are done around: the point to scale things around and to turn things around.
 //
-// GestureCenter returns the middle of the two fingers when exactly two fingers touch the screen.
-// Otherwise, such as for a gesture on a touchpad, GestureCenter returns the point the platform reports
-// for the gesture at the current tick, or the cursor position when the platform reports none.
-// iOS and Android report the point, such as the middle of the fingers on a touchpad on Android. On
-// desktops and in browsers, a gesture on a touchpad is done around the cursor, and GestureCenter returns
-// the cursor position.
+// GestureCenter returns the point the platform reports for the gesture at the current tick. iOS and
+// Android report the point with every gesture: the middle of the fingers on the touch screen, and the
+// point the gesture is done around on a touchpad or a trackpad. When the platform reports no point,
+// GestureCenter returns the middle of the two fingers if exactly two fingers touch the screen, and the
+// cursor position otherwise. On desktops and in browsers, a gesture on a touchpad is done around the
+// cursor, and GestureCenter returns the cursor position.
 //
 // GestureCenter is concurrent-safe.
 func GestureCenter() (x, y float64) {
