@@ -60,24 +60,17 @@ func (l *LimitedFace) advanceAt(text string, indexInBytes int) float64 {
 	if filtered == firstLine {
 		return l.face.advanceAt(filtered, indexInBytes)
 	}
-	// Filter substitutes unsupported runes with U+FFFD (3 bytes), so byte
-	// offsets in text don't match those in filtered. Translate indexInBytes
-	// into the filtered string's byte space.
-	const fffdLen = 3
+	// Filter can change rune byte lengths, including re-encoding invalid
+	// bytes after the first replacement. Decode both strings to translate
+	// indexInBytes into the filtered string's byte space.
 	var filteredIdx int
-	for i, r := range firstLine {
+	for i := range firstLine {
 		_, runeLen := utf8.DecodeRuneInString(firstLine[i:])
-		if runeLen < 0 {
-			runeLen = 1
-		}
 		if i+runeLen > indexInBytes {
 			break
 		}
-		if l.unicodeRanges.Contains(r) {
-			filteredIdx += runeLen
-		} else {
-			filteredIdx += fffdLen
-		}
+		_, filteredRuneLen := utf8.DecodeRuneInString(filtered[filteredIdx:])
+		filteredIdx += filteredRuneLen
 	}
 	return l.face.advanceAt(filtered, filteredIdx)
 }

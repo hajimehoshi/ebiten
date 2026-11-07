@@ -69,6 +69,29 @@ func TestLimitedFaceAdvanceAtNewline(t *testing.T) {
 	}
 }
 
+func TestLimitedFaceAdvanceAtInvalidSequence(t *testing.T) {
+	face := text.NewLimitedFace(text.NewGoXFace(&testGoXFace{}))
+	face.AddUnicodeRange('A', 'A')
+	face.AddUnicodeRange('\ufffd', '\ufffd')
+
+	// Z is replaced. An invalid byte before Z is copied verbatim, while
+	// one after Z is re-encoded as U+FFFD, even though U+FFFD is allowed.
+	for _, str := range []string{"Z\xffA", "\xffZA", "Z\xff\xfeA", "Z\ufffdA", "Z😀A"} {
+		t.Run(str, func(t *testing.T) {
+			var runes int
+			for i := range str {
+				if got, want := text.AdvanceAt(str, i, face), float64(runes*testGoXFaceSize); got != want {
+					t.Errorf("AdvanceAt(%q, %d): got %v, want %v", str, i, got, want)
+				}
+				runes++
+			}
+			if got, want := text.AdvanceAt(str, len(str), face), float64(runes*testGoXFaceSize); got != want {
+				t.Errorf("AdvanceAt(%q, len): got %v, want %v", str, got, want)
+			}
+		})
+	}
+}
+
 func TestLimitedFaceAppendLazyGlyphsIndicesInOriginalText(t *testing.T) {
 	base := limitedFaceTestFace(t)
 	l := text.NewLimitedFace(base)
