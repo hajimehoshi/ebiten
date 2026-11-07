@@ -128,7 +128,19 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 		return
 	}
 
-	DefaultDrawFinalScreen(g.screen, g.offscreen, geoM)
+	drawFinalScreen(g.screen, g.offscreen, geoM, blendFinalScreen)
+}
+
+// blendFinalScreen copies the offscreen's colors and blends its alpha like BlendSourceOver.
+// On a screen cleared to black, it gives the same pixels as BlendSourceOver, and a screen
+// without alpha needs no clear first.
+var blendFinalScreen = Blend{
+	BlendFactorSourceRGB:        BlendFactorOne,
+	BlendFactorSourceAlpha:      BlendFactorOne,
+	BlendFactorDestinationRGB:   BlendFactorZero,
+	BlendFactorDestinationAlpha: BlendFactorOneMinusSourceAlpha,
+	BlendOperationRGB:           BlendOperationAdd,
+	BlendOperationAlpha:         BlendOperationAdd,
 }
 
 // DefaultDrawFinalScreen is the default implementation of [FinalScreenDrawer.DrawFinalScreen],
@@ -137,8 +149,13 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 // You can use DefaultDrawFinalScreen when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
 // in your implementation of [FinalScreenDrawer], for example.
 func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
+	drawFinalScreen(screen, offscreen, geoM, BlendSourceOver)
+}
+
+func drawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM, blend Blend) {
 	var op DrawImageOptions
 	op.GeoM = geoM
+	op.Blend = blend
 	scale := geoM.Element(0, 0)
 	switch {
 	case !screenFilterEnabled.Load(), math.Floor(scale) == scale:

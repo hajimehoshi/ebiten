@@ -372,6 +372,7 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 	op.InitWindowWidthInDIP = ww
 	op.InitWindowHeightInDIP = wh
 	op.WindowPositionSet = windowPositionSetExplicitly.Load()
+	_, op.CustomFinalScreen = game.(FinalScreenDrawer)
 
 	// This is necessary to change the result of IsScreenTransparent.
 	screenTransparent.Store(op.ScreenTransparent)

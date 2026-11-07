@@ -48,6 +48,12 @@ type context struct {
 
 	screenTransparent bool
 
+	// screenHasNoAlpha reports whether the screen has no alpha channel (XRGB8888 scanout).
+	screenHasNoAlpha bool
+
+	// customFinalScreen reports whether the game draws its own final screen.
+	customFinalScreen bool
+
 	updateCalled bool
 
 	offscreen *Image
@@ -427,7 +433,12 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		return false, nil
 	}
 
-	if graphicsDriver.NeedsClearingScreen() {
+	s, x, y := c.screenScaleAndOffsets()
+	covered := x <= 0 && y <= 0 &&
+		x+c.offscreenWidth*s >= float64(c.screenWidth) && y+c.offscreenHeight*s >= float64(c.screenHeight)
+	// The default final screen draw copies the offscreen's colors, so a screen without alpha
+	// needs no clear where the offscreen covers it.
+	if graphicsDriver.NeedsClearingScreen() && !(c.screenHasNoAlpha && !c.customFinalScreen && covered) {
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
 		// An opaque screen is cleared with opaque black: when the screen's framebuffer has an alpha
 		// channel, a compositor would show the desktop through the area the offscreen does not
@@ -439,7 +450,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		}
 	}
 
-	c.game.DrawFinalScreen(c.screenScaleAndOffsets())
+	c.game.DrawFinalScreen(s, x, y)
 
 	return true, nil
 }
@@ -474,6 +485,7 @@ func (c *context) layoutGame(outsideWidth, outsideHeight float64, screenWidth, s
 	}
 	if c.screen == nil && screenWidth > 0 && screenHeight > 0 {
 		c.screen = c.game.NewScreenImage(screenWidth, screenHeight)
+		c.screen.ignoresAlpha = c.screenHasNoAlpha
 	}
 
 	if c.offscreen != nil && (c.offscreen.width != ow || c.offscreen.height != oh) {

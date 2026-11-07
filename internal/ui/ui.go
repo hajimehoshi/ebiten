@@ -269,6 +269,7 @@ type RunOptions struct {
 	GraphicsLibrary          GraphicsLibrary
 	InitUnfocused            bool
 	ScreenTransparent        bool
+	CustomFinalScreen        bool
 	SkipTaskbar              bool
 	SingleThread             bool
 	DisableHiDPI             bool
