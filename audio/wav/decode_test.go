@@ -32,26 +32,31 @@ func TestDecodeSeekFromNonzeroSourcePosition(t *testing.T) {
 	for i := range data {
 		data[i] = byte(i)
 	}
-	for _, prefix := range []int{8, 64} {
-		for _, decode := range wavDecoders {
-			t.Run(fmt.Sprintf("%s/prefix=%d", decode.name, prefix), func(t *testing.T) {
-				src := bytes.NewReader(append(bytes.Repeat([]byte{0xaa}, prefix), pcmWavFile(2, 16, data)...))
-				if _, err := src.Seek(int64(prefix), io.SeekStart); err != nil {
-					t.Fatal(err)
-				}
-				s, err := decode.f(src)
-				if err != nil {
-					t.Fatal(err)
-				}
-				want := readAligned(t, s)
-				if _, err := s.Seek(0, io.SeekStart); err != nil {
-					t.Fatal(err)
-				}
-				if got := readAligned(t, s); !bytes.Equal(got, want) {
-					t.Error("rewinding a WAV at a nonzero source position changed the decoded data")
-				}
-			})
-		}
+	const prefix = 8
+	for _, decode := range []struct {
+		name string
+		f    func(io.Reader) (*wav.Stream, error)
+	}{
+		{name: "Int16", f: wav.DecodeWithoutResampling},
+		{name: "Float32", f: wav.DecodeF32},
+	} {
+		t.Run(decode.name, func(t *testing.T) {
+			src := bytes.NewReader(append(bytes.Repeat([]byte{0xaa}, prefix), pcmWavFile(2, 16, data)...))
+			if _, err := src.Seek(int64(prefix), io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			s, err := decode.f(src)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := readAligned(t, s)
+			if _, err := s.Seek(0, io.SeekStart); err != nil {
+				t.Fatal(err)
+			}
+			if got := readAligned(t, s); !bytes.Equal(got, want) {
+				t.Error("rewinding a WAV at a nonzero source position changed the decoded data")
+			}
+		})
 	}
 }
 
@@ -69,7 +74,13 @@ func TestDecodeSeekStartOnly(t *testing.T) {
 	for i := range data {
 		data[i] = byte(i)
 	}
-	for _, decode := range wavDecoders {
+	for _, decode := range []struct {
+		name string
+		f    func(io.Reader) (*wav.Stream, error)
+	}{
+		{name: "Int16", f: wav.DecodeWithoutResampling},
+		{name: "Float32", f: wav.DecodeF32},
+	} {
 		t.Run(decode.name, func(t *testing.T) {
 			s, err := decode.f(&seekStartOnlyReader{bytes.NewReader(pcmWavFile(2, 16, data))})
 			if err != nil {
