@@ -16,8 +16,13 @@ package text_test
 
 import (
 	"bytes"
+	"encoding/binary"
+	"fmt"
+	"maps"
+	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"testing"
 
@@ -429,5 +434,260 @@ func TestGlyphImageCacheAfterVariationChange(t *testing.T) {
 	want.ReadPixels(wantPixels)
 	if !bytes.Equal(gotPixels, wantPixels) {
 		t.Error("glyph pixels differ from a fresh face with the same variation")
+	}
+}
+
+func TestGoTextFaceCopyOptions(t *testing.T) {
+	data := variableFontData(t)
+	width, weight := text.MustParseTag("wdth"), text.MustParseTag("wght")
+	kern, liga := text.MustParseTag("kern"), text.MustParseTag("liga")
+	for _, tc := range []struct {
+		name              string
+		configure, change func(*text.GoTextFace)
+	}{
+		{
+			name:      "set variation",
+			configure: func(f *text.GoTextFace) { f.SetVariation(width, 50); f.SetVariation(weight, 100) },
+			change:    func(f *text.GoTextFace) { f.SetVariation(width, 200) },
+		},
+		{
+			name:      "remove variation",
+			configure: func(f *text.GoTextFace) { f.SetVariation(width, 50); f.SetVariation(weight, 100) },
+			change:    func(f *text.GoTextFace) { f.RemoveVariation(width) },
+		},
+		{
+			name:      "set feature",
+			configure: func(f *text.GoTextFace) { f.SetFeature(kern, 0); f.SetFeature(liga, 0) },
+			change:    func(f *text.GoTextFace) { f.SetFeature(kern, 1) },
+		},
+		{
+			name:      "remove feature",
+			configure: func(f *text.GoTextFace) { f.SetFeature(kern, 0); f.SetFeature(liga, 0) },
+			change:    func(f *text.GoTextFace) { f.RemoveFeature(kern) },
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			original := &text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: 32}
+			want := &text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: 32}
+			tc.configure(original)
+			tc.configure(want)
+			copied := *original
+			tc.change(&copied)
+			// Shape only after changing the copy, so an already cached original layout
+			// cannot hide mutations of the original face's options.
+			if got, want := text.Advance("AVffi", original), text.Advance("AVffi", want); got != want {
+				t.Errorf("changing the copied face changed the original advance: got %v, want %v", got, want)
+			}
+		})
+	}
+}
+
+// Check both the option values and their cached key: a stale key alone can hide
+// changes through a shared backing array.
+func TestGoTextFaceOptionStorage(t *testing.T) {
+	for _, kind := range []struct {
+		name        string
+		set         func(*text.GoTextFace, text.Tag, uint32)
+		remove      func(*text.GoTextFace, text.Tag)
+		state       func(*text.GoTextFace) ([]byte, string)
+		encodeValue func(uint32) uint32
+	}{
+		{
+			name:   "variations",
+			set:    func(f *text.GoTextFace, tag text.Tag, value uint32) { f.SetVariation(tag, float32(value)) },
+			remove: (*text.GoTextFace).RemoveVariation,
+			state: func(f *text.GoTextFace) ([]byte, string) {
+				values, key := text.GoTextFaceVariationState(f)
+				var data []byte
+				for _, v := range values {
+					data = binary.LittleEndian.AppendUint32(data, uint32(v.Tag))
+					data = binary.LittleEndian.AppendUint32(data, math.Float32bits(v.Value))
+				}
+				return data, key
+			},
+			encodeValue: func(v uint32) uint32 { return math.Float32bits(float32(v)) },
+		},
+		{
+			name:   "features",
+			set:    (*text.GoTextFace).SetFeature,
+			remove: (*text.GoTextFace).RemoveFeature,
+			state: func(f *text.GoTextFace) ([]byte, string) {
+				values, key := text.GoTextFaceFeatureState(f)
+				var data []byte
+				for _, v := range values {
+					data = binary.LittleEndian.AppendUint32(data, uint32(v.Tag))
+					data = binary.LittleEndian.AppendUint32(data, v.Value)
+				}
+				return data, key
+			},
+			encodeValue: func(v uint32) uint32 { return v },
+		},
+	} {
+		for _, count := range []int{1, 3, 4, 5, 6} {
+			for _, change := range []string{"replace", "insert", "remove first", "remove middle", "remove last", "no-op set", "no-op remove"} {
+				t.Run(fmt.Sprintf("%s/count=%d/%s", kind.name, count, change), func(t *testing.T) {
+					var original text.GoTextFace
+					wantOriginal := map[text.Tag]uint32{}
+					// Reverse insertion must still produce a sorted key.
+					for i := count; i > 0; i-- {
+						tag := text.Tag(i * 10)
+						kind.set(&original, tag, uint32(i))
+						wantOriginal[tag] = uint32(i)
+					}
+					check := func(f *text.GoTextFace, want map[text.Tag]uint32) {
+						t.Helper()
+						tags := slices.Sorted(maps.Keys(want))
+						var expected []byte
+						for _, tag := range tags {
+							expected = binary.LittleEndian.AppendUint32(expected, uint32(tag))
+							expected = binary.LittleEndian.AppendUint32(expected, kind.encodeValue(want[tag]))
+						}
+						data, key := kind.state(f)
+						if !bytes.Equal(data, expected) || key != string(expected) {
+							t.Errorf("options/key: got %x/%x, want %x", data, key, expected)
+						}
+					}
+					mutate := func(f *text.GoTextFace, want map[text.Tag]uint32, value uint32) {
+						switch change {
+						case "replace":
+							kind.set(f, 10, value)
+							want[10] = value
+						case "insert":
+							kind.set(f, 15, value)
+							want[15] = value
+						case "remove first":
+							kind.remove(f, 10)
+							delete(want, 10)
+						case "remove middle":
+							tag := text.Tag((count/2 + 1) * 10)
+							kind.remove(f, tag)
+							delete(want, tag)
+						case "remove last":
+							tag := text.Tag(count * 10)
+							kind.remove(f, tag)
+							delete(want, tag)
+						case "no-op set":
+							kind.set(f, 10, want[10])
+						case "no-op remove":
+							kind.remove(f, 999)
+						}
+					}
+					copied := original
+					wantCopied := maps.Clone(wantOriginal)
+					mutate(&original, wantOriginal, 99)
+					check(&original, wantOriginal)
+					check(&copied, wantCopied)
+					mutate(&copied, wantCopied, 77)
+					check(&original, wantOriginal)
+					check(&copied, wantCopied)
+					// Copy again after a boundary transition, then mutate both values.
+					again := original
+					wantAgain := maps.Clone(wantOriginal)
+					kind.set(&original, 999, 123)
+					wantOriginal[999] = 123
+					check(&again, wantAgain)
+					kind.set(&again, 998, 456)
+					wantAgain[998] = 456
+					check(&original, wantOriginal)
+					check(&again, wantAgain)
+				})
+			}
+		}
+	}
+}
+
+func TestGoTextFaceLazyVariationSnapshot(t *testing.T) {
+	data := variableFontData(t)
+	weight := text.MustParseTag("wght")
+	for _, count := range []int{4, 5} {
+		t.Run(fmt.Sprintf("count=%d", count), func(t *testing.T) {
+			face := &text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: 32}
+			face.SetVariation(weight, 100)
+			// Unrecognized tags leave this font unchanged but exercise both storage modes.
+			for i := 1; i < count; i++ {
+				face.SetVariation(text.Tag(i), float32(i))
+			}
+			glyphs := text.AppendLazyGlyphs(nil, "J", face, nil)
+			copied := *face
+			face.SetVariation(weight, 900)
+			copied.SetVariation(weight, 500)
+			got := glyphs[0].Image()
+			fresh := &text.GoTextFace{Source: newGoTextFaceSourceForTest(t, data), Size: 32}
+			fresh.SetVariation(weight, 100)
+			want := text.AppendLazyGlyphs(nil, "J", fresh, nil)[0].Image()
+			if got == nil || want == nil {
+				t.Fatal("expected glyph images")
+			}
+			if got.Bounds().Size() != want.Bounds().Size() {
+				t.Fatalf("snapshot image size: got %v, want %v", got.Bounds().Size(), want.Bounds().Size())
+			}
+			gotPixels := make([]byte, 4*got.Bounds().Dx()*got.Bounds().Dy())
+			wantPixels := make([]byte, len(gotPixels))
+			got.ReadPixels(gotPixels)
+			want.ReadPixels(wantPixels)
+			if !bytes.Equal(gotPixels, wantPixels) {
+				t.Error("face mutation changed the pending glyph's variation snapshot")
+			}
+		})
+	}
+}
+
+func TestGoTextFaceVariationSpecialValues(t *testing.T) {
+	for _, count := range []int{4, 5} {
+		for _, tc := range []struct {
+			name          string
+			before, after uint32
+			want          uint32
+		}{
+			{name: "positive zero", before: 0, after: 0x80000000, want: 0},
+			{name: "negative zero", before: 0x80000000, after: 0, want: 0x80000000},
+			{name: "NaN", before: 0x7fc00001, after: 0x7fc00002, want: 0x7fc00002},
+		} {
+			t.Run(fmt.Sprintf("count=%d/%s", count, tc.name), func(t *testing.T) {
+				var original text.GoTextFace
+				original.SetVariation(1, math.Float32frombits(tc.before))
+				for i := 2; i <= count; i++ {
+					original.SetVariation(text.Tag(i), float32(i))
+				}
+				copied := original
+				copied.SetVariation(1, math.Float32frombits(tc.after))
+				for _, state := range []struct {
+					name string
+					face *text.GoTextFace
+					want uint32
+				}{
+					{name: "original", face: &original, want: tc.before},
+					{name: "copied", face: &copied, want: tc.want},
+				} {
+					values, key := text.GoTextFaceVariationState(state.face)
+					if got := math.Float32bits(values[0].Value); got != state.want {
+						t.Errorf("%s value bits: got %08x, want %08x", state.name, got, state.want)
+					}
+					if got := binary.LittleEndian.Uint32([]byte(key[4:8])); got != state.want {
+						t.Errorf("%s key bits: got %08x, want %08x", state.name, got, state.want)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestGoTextFaceUnchangedOptionsAllocateNothing(t *testing.T) {
+	for _, count := range []int{4, 5} {
+		t.Run(fmt.Sprintf("count=%d", count), func(t *testing.T) {
+			var face text.GoTextFace
+			for i := 1; i <= count; i++ {
+				face.SetVariation(text.Tag(i), float32(i))
+				face.SetFeature(text.Tag(i), uint32(i))
+			}
+			if got := testing.AllocsPerRun(100, func() {
+				face.SetVariation(1, 1)
+				face.SetFeature(1, 1)
+				face.RemoveVariation(999)
+				face.RemoveFeature(999)
+			}); got != 0 {
+				t.Errorf("unchanged options: got %v allocations, want 0", got)
+			}
+		})
 	}
 }
