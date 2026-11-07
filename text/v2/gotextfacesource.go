@@ -216,6 +216,8 @@ type glyphDataCacheKey struct {
 	gid        font.GID
 	variations string
 	sideways   bool
+	// sidewaysOffset is the shaping offset used for sideways rotation, which can vary with size.
+	sidewaysOffset float32
 	// size is 0 in outline mode and out.Size in bitmap mode. The outline
 	// path is ppem-independent (GlyphData reads raw outline points and
 	// variable-font axes route through SetVariations), so 0 is used for
@@ -1196,6 +1198,9 @@ func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string,
 	if useBitmap {
 		key.xPpem, key.yPpem = g.lastXPpem, g.lastYPpem
 	}
+	if sideways {
+		key.sidewaysOffset = fixed26_6ToFloat32(-yOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
+	}
 	return g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
 		d := g.glyphDataWithoutSVG(gid)
 		if d == nil {
@@ -1206,13 +1211,12 @@ func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string,
 			// outline of an SVG or bitmap glyph) into already-rotated
 			// bounds, so every outline that can be drawn must be rotated
 			// and offset here, not only a top-level GlyphOutline.
-			yOffsetFontUnits := fixed26_6ToFloat32(-yOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
 			switch d := d.(type) {
 			case font.GlyphOutline:
-				d.Sideways(yOffsetFontUnits)
+				d.Sideways(key.sidewaysOffset)
 			case font.GlyphBitmap:
 				if d.Outline != nil {
-					d.Outline.Sideways(yOffsetFontUnits)
+					d.Outline.Sideways(key.sidewaysOffset)
 				}
 			}
 		}

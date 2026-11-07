@@ -32,7 +32,40 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"github.com/hajimehoshi/ebiten/v2/vector"
 )
+
+func TestSidewaysOutlineCacheAcrossSizes(t *testing.T) {
+	newSource := func() *text.GoTextFaceSource {
+		t.Helper()
+		source, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return source
+	}
+	vertices := func(source *text.GoTextFaceSource, size float64) []ebiten.Vertex {
+		var path vector.Path
+		text.AppendVectorPath(&path, "F", &text.GoTextFace{
+			Source:    source,
+			Size:      size,
+			Direction: text.DirectionTopToBottomAndLeftToRight,
+		}, nil)
+		v, _ := path.AppendVerticesAndIndicesForFilling(nil, nil)
+		return v
+	}
+
+	source := newSource()
+	vertices(source, 1)
+	got := vertices(source, 128)
+	want := vertices(newSource(), 128)
+	if len(want) == 0 {
+		t.Fatal("expected an outline")
+	}
+	if !slices.Equal(got, want) {
+		t.Error("sideways outline differs after rendering at another size")
+	}
+}
 
 func TestGlyphImageCacheConcurrent(t *testing.T) {
 	src, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
