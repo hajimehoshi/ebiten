@@ -240,16 +240,21 @@ func TestFSAbsPath(t *testing.T) {
 		t.Errorf("AbsPath(): got: %s, want: %s", got, want)
 	}
 
-	// An opened file reports its path as well.
-	f, err := vfs.Open("dir/foo.txt")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		_ = f.Close()
-	}()
-	if got, want := absPath(t, f), filepath.Join(base, "dir", "foo.txt"); got != want {
-		t.Errorf("AbsPath(): got: %s, want: %s", got, want)
+	// Opened files and directories report their paths as well, including
+	// directories created only to reach the given files.
+	for _, name := range []string{".", "dir", "dir/foo.txt"} {
+		t.Run(name, func(t *testing.T) {
+			f, err := vfs.Open(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer func() {
+				_ = f.Close()
+			}()
+			if got, want := absPath(t, f), filepath.Join(base, filepath.FromSlash(name)); got != want {
+				t.Errorf("AbsPath(): got: %s, want: %s", got, want)
+			}
+		})
 	}
 }
 

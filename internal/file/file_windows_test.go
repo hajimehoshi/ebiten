@@ -107,6 +107,15 @@ func TestFSUNCShareRootPath(t *testing.T) {
 func TestFSAbsPathDifferentVolumes(t *testing.T) {
 	vfs := newVirtualFS(t, []string{`C:\a\x.txt`, `D:\b\y.txt`})
 
+	root, err := vfs.Open(".")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = root.Close() }()
+	if _, ok := root.(interface{ AbsPath() string }); ok {
+		t.Error("the virtual root has no absolute path")
+	}
+
 	// The file system has no root directory, so a child of the root is a volume root.
 	want := map[string]string{
 		"C:": `C:\`,
@@ -119,6 +128,14 @@ func TestFSAbsPathDifferentVolumes(t *testing.T) {
 	for _, ent := range ents {
 		if got, want := absPath(t, ent), want[ent.Name()]; got != want {
 			t.Errorf("AbsPath() for %s: got: %s, want: %s", ent.Name(), got, want)
+		}
+		f, err := vfs.Open(ent.Name())
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() { _ = f.Close() }()
+		if got, want := absPath(t, f), want[ent.Name()]; got != want {
+			t.Errorf("opened AbsPath() for %s: got: %s, want: %s", ent.Name(), got, want)
 		}
 	}
 
