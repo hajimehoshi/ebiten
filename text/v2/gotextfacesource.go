@@ -216,7 +216,7 @@ type glyphDataCacheKey struct {
 	gid        font.GID
 	variations string
 	sideways   bool
-	// Sideways rotation includes a shaping offset, which can vary with size.
+	// sidewaysOffset is the shaping offset used for sideways rotation, which can vary with size.
 	sidewaysOffset float32
 	// size is 0 in outline mode and out.Size in bitmap mode. The outline
 	// path is ppem-independent (GlyphData reads raw outline points and
