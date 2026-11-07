@@ -28,3 +28,7 @@ func NewGuestAudioStreamForTesting(rate int, readBytes int64) *GuestAudioStream 
 		readBytes: readBytes,
 	}
 }
+
+func (g *GuestSession) DoneForTesting() <-chan struct{} {
+	return g.done
+}

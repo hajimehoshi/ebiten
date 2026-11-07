@@ -21,6 +21,7 @@ package vmhost_test
 import (
 	"runtime"
 	"testing"
+	"testing/synctest"
 
 	"github.com/hajimehoshi/ebiten/v2"
 )
@@ -286,4 +287,23 @@ func TestCompositeFrameUnderConcurrentSetOutsideScreen(t *testing.T) {
 			t.Fatalf("CompositeFrame failed with equal-sized screens: %v", guest.Err())
 		}
 	}
+}
+
+func TestAdvanceTicksWithoutOutsideScreenStopsSession(t *testing.T) {
+	skipIfVMUnsupported(t)
+	synctest.Test(t, func(t *testing.T) {
+		guest := newFakeGuestSession(t, func(fg *fakeGuest) {})
+		// Let the session worker reach its condition-variable wait before recording the error.
+		synctest.Wait()
+		guest.AdvanceTicks(1)
+		if guest.Err() == nil {
+			t.Fatal("AdvanceTicks without an outside screen did not report an error")
+		}
+		synctest.Wait()
+		select {
+		case <-guest.DoneForTesting():
+		default:
+			t.Error("the session worker did not stop after AdvanceTicks failed")
+		}
+	})
 }

@@ -500,7 +500,6 @@ func (g *GuestSession) fail(err error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	g.setErrLocked(err)
-	g.cond.Broadcast()
 }
 
 // finishFrame publishes the just-rendered mirror screen for the host to composite and wakes a waiting
@@ -946,10 +945,11 @@ func (g *GuestSession) answerColorSpace() error {
 	})
 }
 
-// setErrLocked records an error that ends the session, joined with any already recorded. g.mu must be
-// held.
+// setErrLocked records an error that ends the session, joined with any already recorded, and wakes
+// any waiters. g.mu must be held.
 func (g *GuestSession) setErrLocked(err error) {
 	g.err = errors.Join(g.err, err)
+	g.cond.Broadcast()
 }
 
 // SetOutsideScreen sets the host-owned image the guest's frames composite into, and sizes the guest to
