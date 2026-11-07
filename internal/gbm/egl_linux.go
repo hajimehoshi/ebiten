@@ -34,11 +34,15 @@ type Context struct {
 	swapInterval             int
 	modesetDone              bool
 	asyncPageFlipUnsupported bool
-	prevBo                   uintptr
-	prevFB                   uint32
-	pendingBo                uintptr
-	pendingFB                uint32
-	eventBuf                 [64]byte
+
+	// frontBo is the buffer on screen, and flipBo the one a queued page flip
+	// will put there (0 if none). Both stay locked, with their framebuffers,
+	// until they leave the screen.
+	frontBo  uintptr
+	frontFB  uint32
+	flipBo   uintptr
+	flipFB   uint32
+	eventBuf [64]byte
 }
 
 // NewContext creates an OpenGL ES 3 context for the GBM display.
@@ -133,16 +137,17 @@ func (c *Context) Probe() error {
 		return err
 	}
 	c.modesetDone = false
-	if r := drml.RmFB(c.d.fd, c.prevFB); r != 0 {
+	if r := drml.RmFB(c.d.fd, c.frontFB); r != 0 {
 		return fmt.Errorf("gbm: removing probe framebuffer failed: %d", r)
 	}
-	gbml.ReleaseBuffer(c.gbmSurface, c.prevBo)
-	c.prevFB = 0
-	c.prevBo = 0
+	gbml.ReleaseBuffer(c.gbmSurface, c.frontBo)
+	c.frontFB = 0
+	c.frontBo = 0
 	return nil
 }
 
-// SwapBuffers presents the current frame through KMS.
+// SwapBuffers presents the current frame through KMS. It can return before the
+// frame is on screen.
 func (c *Context) SwapBuffers() error {
 	if err := c.eglContext.SwapBuffers(); err != nil {
 		return err
@@ -151,58 +156,89 @@ func (c *Context) SwapBuffers() error {
 	if bo == 0 {
 		return fmt.Errorf("gbm: gbm_surface_lock_front_buffer failed")
 	}
-	fb, err := c.addFB(bo)
-	if err != nil {
+	if err := c.present(bo); err != nil {
 		gbml.ReleaseBuffer(c.gbmSurface, bo)
 		return err
 	}
-	release := func() {
-		drml.RmFB(c.d.fd, fb)
-		gbml.ReleaseBuffer(c.gbmSurface, bo)
+	// The next frame needs a free buffer. If the surface has none left, wait
+	// for the queued flip to release one.
+	if gbml.HasFreeBuffers(c.gbmSurface) == 0 {
+		return c.waitFlip()
 	}
+	return nil
+}
+
+// present puts bo on screen: with a modeset the first time, and after that
+// with a page flip, queued once the previous one has completed.
+func (c *Context) present(bo uintptr) (err error) {
+	fb, err := c.addFB(bo)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if err != nil {
+			drml.RmFB(c.d.fd, fb)
+		}
+	}()
 
 	if !c.modesetDone {
 		if r := drml.SetCrtc(c.d.fd, c.d.crtcID, fb, 0, 0, &c.d.connID, 1, &c.d.mode); r != 0 {
-			release()
 			return fmt.Errorf("gbm: drmModeSetCrtc failed: %d", r)
 		}
 		c.modesetDone = true
-	} else {
-		flags := uint32(_DRM_MODE_PAGE_FLIP_EVENT)
-		async := c.swapInterval == 0 && !c.asyncPageFlipUnsupported
-		if async {
-			flags |= _DRM_MODE_PAGE_FLIP_ASYNC
-		}
-		r := drml.PageFlip(c.d.fd, c.d.crtcID, fb, flags, 0)
-		if r != 0 && async {
-			c.asyncPageFlipUnsupported = true
-			r = drml.PageFlip(c.d.fd, c.d.crtcID, fb, _DRM_MODE_PAGE_FLIP_EVENT, 0)
-		}
-		if r != 0 {
-			release()
-			return fmt.Errorf("gbm: drmModePageFlip failed: %d", r)
-		}
-		for {
-			_, err := unix.Read(int(c.d.fd), c.eventBuf[:])
-			if err == unix.EINTR {
-				continue
-			}
-			if err != nil {
-				c.pendingBo = bo
-				c.pendingFB = fb
-				return fmt.Errorf("gbm: waiting for page flip failed: %w", err)
-			}
-			break
-		}
+		c.setFront(bo, fb)
+		return nil
 	}
 
-	if c.prevBo != 0 {
-		drml.RmFB(c.d.fd, c.prevFB)
-		gbml.ReleaseBuffer(c.gbmSurface, c.prevBo)
+	// KMS refuses a flip while another is pending.
+	if err := c.waitFlip(); err != nil {
+		return err
 	}
-	c.prevBo = bo
-	c.prevFB = fb
+	flags := uint32(_DRM_MODE_PAGE_FLIP_EVENT)
+	async := c.swapInterval == 0 && !c.asyncPageFlipUnsupported
+	if async {
+		flags |= _DRM_MODE_PAGE_FLIP_ASYNC
+	}
+	r := drml.PageFlip(c.d.fd, c.d.crtcID, fb, flags, 0)
+	if r != 0 && async {
+		c.asyncPageFlipUnsupported = true
+		r = drml.PageFlip(c.d.fd, c.d.crtcID, fb, _DRM_MODE_PAGE_FLIP_EVENT, 0)
+	}
+	if r != 0 {
+		return fmt.Errorf("gbm: drmModePageFlip failed: %d", r)
+	}
+	c.flipBo, c.flipFB = bo, fb
 	return nil
+}
+
+// waitFlip waits for the queued page flip, if any. Its buffer is then on
+// screen, and the one it replaced is released.
+func (c *Context) waitFlip() error {
+	if c.flipBo == 0 {
+		return nil
+	}
+	for {
+		_, err := unix.Read(int(c.d.fd), c.eventBuf[:])
+		if err == unix.EINTR {
+			continue
+		}
+		if err != nil {
+			return fmt.Errorf("gbm: waiting for page flip failed: %w", err)
+		}
+		break
+	}
+	c.setFront(c.flipBo, c.flipFB)
+	c.flipBo, c.flipFB = 0, 0
+	return nil
+}
+
+// setFront records bo and fb as on screen, and releases the previous ones.
+func (c *Context) setFront(bo uintptr, fb uint32) {
+	if c.frontBo != 0 {
+		drml.RmFB(c.d.fd, c.frontFB)
+		gbml.ReleaseBuffer(c.gbmSurface, c.frontBo)
+	}
+	c.frontBo, c.frontFB = bo, fb
 }
 
 func (c *Context) addFB(bo uintptr) (uint32, error) {
@@ -235,26 +271,28 @@ func (c *Context) Close() error {
 		return nil
 	}
 	c.eglContext.Unbind()
-	var err error
+	// Wait for a queued flip, so that its buffer isn't released while the
+	// display may still show it.
+	err := c.waitFlip()
 	if c.modesetDone {
 		err = errors.Join(err, c.d.restoreCRTC())
 		c.modesetDone = false
 	}
-	if c.prevBo != 0 {
-		if r := drml.RmFB(c.d.fd, c.prevFB); r != 0 {
+	if c.frontBo != 0 {
+		if r := drml.RmFB(c.d.fd, c.frontFB); r != 0 {
 			err = errors.Join(err, fmt.Errorf("gbm: removing framebuffer failed: %d", r))
 		}
-		gbml.ReleaseBuffer(c.gbmSurface, c.prevBo)
-		c.prevBo = 0
-		c.prevFB = 0
+		gbml.ReleaseBuffer(c.gbmSurface, c.frontBo)
+		c.frontBo = 0
+		c.frontFB = 0
 	}
-	if c.pendingBo != 0 {
-		if r := drml.RmFB(c.d.fd, c.pendingFB); r != 0 {
+	if c.flipBo != 0 {
+		if r := drml.RmFB(c.d.fd, c.flipFB); r != 0 {
 			err = errors.Join(err, fmt.Errorf("gbm: removing pending framebuffer failed: %d", r))
 		}
-		gbml.ReleaseBuffer(c.gbmSurface, c.pendingBo)
-		c.pendingBo = 0
-		c.pendingFB = 0
+		gbml.ReleaseBuffer(c.gbmSurface, c.flipBo)
+		c.flipBo = 0
+		c.flipFB = 0
 	}
 	err = errors.Join(err, c.eglContext.Close())
 	c.eglContext = nil

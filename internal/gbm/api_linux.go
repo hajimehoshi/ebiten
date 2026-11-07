@@ -178,6 +178,7 @@ type gbmLib struct {
 	SurfaceDestroy func(surf uintptr)
 	LockFront      func(surf uintptr) uintptr
 	ReleaseBuffer  func(surf, bo uintptr)
+	HasFreeBuffers func(surf uintptr) int32
 	BoGetStride    func(bo uintptr) uint32
 	BoGetHandle    func(bo uintptr) uint64
 	BoGetModifier  func(bo uintptr) uint64
@@ -259,6 +260,7 @@ func loadDRMGBMImpl() error {
 		{&gbml.SurfaceDestroy, libgbm, "gbm_surface_destroy"},
 		{&gbml.LockFront, libgbm, "gbm_surface_lock_front_buffer"},
 		{&gbml.ReleaseBuffer, libgbm, "gbm_surface_release_buffer"},
+		{&gbml.HasFreeBuffers, libgbm, "gbm_surface_has_free_buffers"},
 		{&gbml.BoGetStride, libgbm, "gbm_bo_get_stride"},
 		{&gbml.BoGetHandle, libgbm, "gbm_bo_get_handle"},
 	} {
