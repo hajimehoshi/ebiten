@@ -82,6 +82,9 @@ func sinc01(x float64) float64 {
 	return fastSin01(x) / (x * 2 * math.Pi)
 }
 
+// errSourceNotReady defers output until a source block can be completed.
+var errSourceNotReady = errors.New("convert: source made no progress")
+
 type Resampling struct {
 	source io.Reader
 
@@ -110,7 +113,7 @@ type Resampling struct {
 	lruSrcBlocks          []int64
 	eof                   bool
 
-	// partialSrcBuf is the beginning of the block partialSrcBlock read before a source error.
+	// partialSrcBuf is the beginning of the block partialSrcBlock read before a source error or an empty read.
 	// The source position is right after it. partialSrcBuf is nil when there is no such block.
 	partialSrcBlock int64
 	partialSrcBuf   []byte
@@ -197,6 +200,14 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		for c < len(buf) {
 			n, err := r.source.Read(buf[c:])
 			c += n
+			if n == 0 && err == nil {
+				// Preserve the existing silence padding past a declared end.
+				if length := r.srcLength(); length >= 0 && blockStart+int64(c) >= length {
+					r.lastReadSrcBlockValid = false
+					break
+				}
+				err = errSourceNotReady
+			}
 			if err != nil {
 				if err == io.EOF {
 					eof = true
@@ -212,17 +223,14 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 				}
 				r.lastReadSrcBlockValid = false
 				// Keep the bytes read so far, as a source that is not an io.Seeker cannot deliver them again.
-				if c > 0 {
+				if c > 0 || err == errSourceNotReady {
 					r.partialSrcBlock = nextPos
 					r.partialSrcBuf = buf[:c]
-					r.srcReadEnd = max(r.srcReadEnd, blockStart+int64(c))
+					if c > 0 {
+						r.srcReadEnd = max(r.srcReadEnd, blockStart+int64(c))
+					}
 				}
 				return 0, 0, err
-			}
-			// A source making no progress must not spin here.
-			if n == 0 {
-				r.lastReadSrcBlockValid = false
-				break
 			}
 		}
 		if c == len(buf) {
@@ -332,6 +340,9 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			// Resolve EOF through the source cache without advancing the output position.
 			_, _, err := r.at(r.pos / int64(size))
 			if err != nil && err != io.EOF {
+				if err == errSourceNotReady {
+					err = io.ErrShortBuffer
+				}
 				return 0, err
 			}
 			if (err == io.EOF && r.srcLength() < 0) || (r.srcLength() >= 0 && r.pos >= r.Length()) {
@@ -349,6 +360,9 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				r.pos += int64(size * i)
+				if err == errSourceNotReady {
+					err = nil
+				}
 				return size * i, err
 			}
 			// EOF from the at method indicates that the source reaches the end, and doesn't indicate the resampled data ends.
@@ -380,6 +394,9 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
 			if err != nil && err != io.EOF {
 				r.pos += int64(size * i)
+				if err == errSourceNotReady {
+					err = nil
+				}
 				return size * i, err
 			}
 			if err == io.EOF && r.srcLength() < 0 {
