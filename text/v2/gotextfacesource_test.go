@@ -631,3 +631,63 @@ func TestGoTextFaceLazyVariationSnapshot(t *testing.T) {
 		})
 	}
 }
+
+func TestGoTextFaceVariationSpecialValues(t *testing.T) {
+	for _, count := range []int{4, 5} {
+		for _, tc := range []struct {
+			name          string
+			before, after uint32
+			want          uint32
+		}{
+			{name: "positive zero", before: 0, after: 0x80000000, want: 0},
+			{name: "negative zero", before: 0x80000000, after: 0, want: 0x80000000},
+			{name: "NaN", before: 0x7fc00001, after: 0x7fc00002, want: 0x7fc00002},
+		} {
+			t.Run(fmt.Sprintf("count=%d/%s", count, tc.name), func(t *testing.T) {
+				var original text.GoTextFace
+				original.SetVariation(1, math.Float32frombits(tc.before))
+				for i := 2; i <= count; i++ {
+					original.SetVariation(text.Tag(i), float32(i))
+				}
+				copied := original
+				copied.SetVariation(1, math.Float32frombits(tc.after))
+				for _, state := range []struct {
+					name string
+					face *text.GoTextFace
+					want uint32
+				}{
+					{name: "original", face: &original, want: tc.before},
+					{name: "copied", face: &copied, want: tc.want},
+				} {
+					values, key := text.GoTextFaceVariationState(state.face)
+					if got := math.Float32bits(values[0].Value); got != state.want {
+						t.Errorf("%s value bits: got %08x, want %08x", state.name, got, state.want)
+					}
+					if got := binary.LittleEndian.Uint32([]byte(key[4:8])); got != state.want {
+						t.Errorf("%s key bits: got %08x, want %08x", state.name, got, state.want)
+					}
+				}
+			})
+		}
+	}
+}
+
+func TestGoTextFaceUnchangedOptionsAllocateNothing(t *testing.T) {
+	for _, count := range []int{4, 5} {
+		t.Run(fmt.Sprintf("count=%d", count), func(t *testing.T) {
+			var face text.GoTextFace
+			for i := 1; i <= count; i++ {
+				face.SetVariation(text.Tag(i), float32(i))
+				face.SetFeature(text.Tag(i), uint32(i))
+			}
+			if got := testing.AllocsPerRun(100, func() {
+				face.SetVariation(1, 1)
+				face.SetFeature(1, 1)
+				face.RemoveVariation(999)
+				face.RemoveFeature(999)
+			}); got != 0 {
+				t.Errorf("unchanged options: got %v allocations, want 0", got)
+			}
+		})
+	}
+}
