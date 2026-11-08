@@ -111,8 +111,9 @@ type platformLibraryWindowState struct {
 	imStyle _XIMStyle
 	// The previous X error handler, to be restored later
 	errorHandler uintptr
-	// Most recent error code received by X error handler
-	errorCode int
+	// Most recent error code received by X error handler since
+	// grabErrorHandlerX11, or nil outside a grab
+	errorCode *int
 	// Primary selection string (while the primary selection is owned)
 	primarySelectionString string
 	// Clipboard string (while the selection is owned)

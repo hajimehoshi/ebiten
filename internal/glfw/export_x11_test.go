@@ -17,6 +17,7 @@
 package glfw
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -58,10 +59,7 @@ func SmokeTestX11() error {
 	// the handler with BadWindow.
 	grabErrorHandlerX11()
 	xDestroyWindow(_glfw.platformWindow.display, 0xdeadbeef)
-	xSync(_glfw.platformWindow.display, false)
-	errorCode := _glfw.platformWindow.errorCode
-	releaseErrorHandlerX11()
-	if errorCode == _Success {
+	if releaseErrorHandlerX11() == _Success {
 		return fmt.Errorf("glfw: smoke: the X error handler was not invoked")
 	}
 
@@ -113,14 +111,21 @@ func SmokeTestX11() error {
 	}
 	grabErrorHandlerX11()
 	cursorErr := destroyCursors()
-	xSync(_glfw.platformWindow.display, false)
-	cursorErrorCode := _glfw.platformWindow.errorCode
-	releaseErrorHandlerX11()
+	cursorErrorCode := releaseErrorHandlerX11()
 	if cursorErr != nil {
 		return fmt.Errorf("glfw: smoke: destroyCursors failed: %w", cursorErr)
 	}
 	if cursorErrorCode != _Success {
 		return fmt.Errorf("glfw: smoke: cursor teardown raised an X error (code %d), likely a double free", cursorErrorCode)
+	}
+
+	xDestroyWindow(_glfw.platformWindow.display, 0xdeadbeef)
+	xSync(_glfw.platformWindow.display, false)
+	if err := PollEvents(); !errors.Is(err, ErrPlatform) {
+		return fmt.Errorf("glfw: smoke: PollEvents after an X error outside a grabErrorHandlerX11 bracket returned %v, want ErrPlatform", err)
+	}
+	if err := PollEvents(); err != nil {
+		return fmt.Errorf("glfw: smoke: PollEvents reported an already reported X error again: %w", err)
 	}
 
 	return nil

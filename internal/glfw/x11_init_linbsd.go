@@ -988,38 +988,75 @@ func createEmptyEventPipe() error {
 // errorHandlerCallback is the purego callback pointer for errorHandler.
 var errorHandlerCallback uintptr
 
-// errorHandler is the X error handler.
+// errorHandler is the X error handler, installed while the display is open.
+// Between grabErrorHandlerX11 and releaseErrorHandlerX11 it records the error
+// code; otherwise it queues the error, as the request that caused it has
+// already returned. Errors on other displays go to the previous handler.
 func errorHandler(display uintptr, event *_XErrorEvent) uintptr {
 	if _glfw.platformWindow.display != display {
+		if _glfw.platformWindow.errorHandler == 0 {
+			return 0
+		}
+		r, _, _ := purego.SyscallN(_glfw.platformWindow.errorHandler, display, uintptr(unsafe.Pointer(event)))
+		return r
+	}
+
+	if code := _glfw.platformWindow.errorCode; code != nil {
+		*code = int(event.ErrorCode)
 		return 0
 	}
 
-	_glfw.platformWindow.errorCode = int(event.ErrorCode)
+	_glfw.errors = append(_glfw.errors, fmt.Errorf("%w: x11: %s (request code %d, minor code %d, resource 0x%x)",
+		ErrPlatform, xErrorText(int(event.ErrorCode)), event.RequestCode, event.MinorCode, event.Resourceid))
 	return 0
 }
 
-// grabErrorHandlerX11 sets the X error handler callback.
-func grabErrorHandlerX11() {
+// installErrorHandlerX11 installs the X error handler, keeping the previous
+// one for other displays and for uninstallErrorHandlerX11.
+func installErrorHandlerX11() {
 	if errorHandlerCallback == 0 {
 		errorHandlerCallback = purego.NewCallback(errorHandler)
 	}
-	_glfw.platformWindow.errorCode = _Success
-	_glfw.platformWindow.errorHandler = xSetErrorHandler(errorHandlerCallback)
+	if prev := xSetErrorHandler(errorHandlerCallback); prev != errorHandlerCallback {
+		_glfw.platformWindow.errorHandler = prev
+	}
 }
 
-// releaseErrorHandlerX11 clears the X error handler callback.
-func releaseErrorHandlerX11() {
-	// Synchronize to make sure all commands are processed
-	xSync(_glfw.platformWindow.display, false)
+// uninstallErrorHandlerX11 restores the X error handler that
+// installErrorHandlerX11 replaced.
+func uninstallErrorHandlerX11() {
 	xSetErrorHandler(_glfw.platformWindow.errorHandler)
 	_glfw.platformWindow.errorHandler = 0
 }
 
-// inputErrorX11 returns the specified error, appending information about the
-// last X error.
-func inputErrorX11(err error, message string) error {
+// grabErrorHandlerX11 makes the X error handler record the error code instead
+// of queuing the error. Grabs must not nest.
+func grabErrorHandlerX11() {
+	if _glfw.platformWindow.errorCode != nil {
+		panic("glfw: grabErrorHandlerX11 is called while the X error handler is already grabbed")
+	}
+	code := _Success
+	_glfw.platformWindow.errorCode = &code
+}
+
+// releaseErrorHandlerX11 makes the X error handler queue errors again, and
+// returns the most recent X error code since grabErrorHandlerX11, or _Success.
+// It must follow grabErrorHandlerX11.
+func releaseErrorHandlerX11() int {
+	if _glfw.platformWindow.errorCode == nil {
+		panic("glfw: releaseErrorHandlerX11 is called without grabErrorHandlerX11")
+	}
+	// Synchronize to make sure all commands are processed
+	xSync(_glfw.platformWindow.display, false)
+	code := *_glfw.platformWindow.errorCode
+	_glfw.platformWindow.errorCode = nil
+	return code
+}
+
+// xErrorText returns the description of the X error code.
+func xErrorText(code int) string {
 	buffer := make([]byte, 1024)
-	xGetErrorText(_glfw.platformWindow.display, int32(_glfw.platformWindow.errorCode), buffer, int32(len(buffer)))
+	xGetErrorText(_glfw.platformWindow.display, int32(code), buffer, int32(len(buffer)))
 	text := buffer[:]
 	for i, c := range buffer {
 		if c == 0 {
@@ -1027,7 +1064,13 @@ func inputErrorX11(err error, message string) error {
 			break
 		}
 	}
-	return fmt.Errorf("%w: %s: %s", err, message, text)
+	return string(text)
+}
+
+// inputErrorX11 returns the specified error, appending information about the
+// X error code.
+func inputErrorX11(err error, message string, code int) error {
+	return fmt.Errorf("%w: %s: %s", err, message, xErrorText(code))
 }
 
 // createCursorX11 creates a native cursor object from the specified image and
@@ -1087,6 +1130,7 @@ func platformInit() error {
 		}
 		return fmt.Errorf("%w: x11: the DISPLAY environment variable is missing", ErrPlatform)
 	}
+	installErrorHandlerX11()
 
 	_glfw.platformWindow.screen = int(xDefaultScreen(_glfw.platformWindow.display))
 	_glfw.platformWindow.root = xRootWindow(_glfw.platformWindow.display, int32(_glfw.platformWindow.screen))
@@ -1153,6 +1197,7 @@ func platformTerminate() error {
 	if _glfw.platformWindow.display != 0 {
 		xCloseDisplay(_glfw.platformWindow.display)
 		_glfw.platformWindow.display = 0
+		uninstallErrorHandlerX11()
 	}
 
 	if _glfw.platformWindow.xcursor.handle != 0 {

@@ -984,10 +984,10 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 		_CWBorderPixel|_CWColormap|_CWEventMask,
 		&wa)
 
-	releaseErrorHandlerX11()
+	errorCode := releaseErrorHandlerX11()
 
 	if window.platform.handle == 0 {
-		return inputErrorX11(ErrPlatform, "X11: Failed to create window")
+		return inputErrorX11(ErrPlatform, "X11: Failed to create window", errorCode)
 	}
 
 	_glfw.platformWindow.windowsByXID[window.platform.handle] = window
@@ -1889,8 +1889,7 @@ func processEvent(event *_XEvent) error {
 				&xpos, &ypos,
 				&dummy)
 
-			releaseErrorHandlerX11()
-			if _glfw.platformWindow.errorCode == _BadWindow {
+			if releaseErrorHandlerX11() == _BadWindow {
 				return nil
 			}
 		}
@@ -2945,9 +2944,7 @@ func (w *Window) platformWindowHovered() (bool, error) {
 			&root, &child, &rootX, &rootY,
 			&childX, &childY, &mask)
 
-		releaseErrorHandlerX11()
-
-		if _glfw.platformWindow.errorCode == _BadWindow {
+		if releaseErrorHandlerX11() == _BadWindow {
 			window = _glfw.platformWindow.root
 		} else if !result {
 			return false, nil

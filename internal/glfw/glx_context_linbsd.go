@@ -461,7 +461,7 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		//       default 1.0 context creation with a GLXBadProfileARB error in
 		//       violation of the extension spec
 		if window.context.platform.glx.handle == 0 {
-			if _glfw.platformWindow.errorCode == int(glx.errorBase)+_GLXBadProfileARB &&
+			if *_glfw.platformWindow.errorCode == int(glx.errorBase)+_GLXBadProfileARB &&
 				ctxconfig.client == OpenGLAPI &&
 				ctxconfig.profile == OpenGLAnyProfile &&
 				!ctxconfig.forward {
@@ -472,10 +472,10 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		window.context.platform.glx.handle = createLegacyContextGLX(window, native, share)
 	}
 
-	releaseErrorHandlerX11()
+	errorCode := releaseErrorHandlerX11()
 
 	if window.context.platform.glx.handle == 0 {
-		return inputErrorX11(ErrVersionUnavailable, "GLX: Failed to create context")
+		return inputErrorX11(ErrVersionUnavailable, "GLX: Failed to create context", errorCode)
 	}
 
 	// Set the destroy function as soon as the context exists so that an error
