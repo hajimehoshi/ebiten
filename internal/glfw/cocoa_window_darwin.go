@@ -127,7 +127,11 @@ func updateCursorImage(window *Window) {
 func updateCursorMode(window *Window) error {
 	if window.cursorMode == CursorDisabled {
 		_glfw.platformWindow.disabledCursorWindow = window
-		_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY, _ = window.platformGetCursorPos()
+		x, y, err := window.platformGetCursorPos()
+		if err != nil {
+			return err
+		}
+		_glfw.platformWindow.restoreCursorPosX, _glfw.platformWindow.restoreCursorPosY = x, y
 		if err := window.centerCursorInContentArea(); err != nil {
 			return err
 		}
