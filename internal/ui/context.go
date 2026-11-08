@@ -33,13 +33,26 @@ var (
 	LinearFilterShader  = &Shader{shader: atlas.LinearFilterShader}
 )
 
+// Game is a game run by [UserInterface].
+//
+// The game buffers pixel writes to the images returned by NewOffscreenImage and NewScreenImage, so
+// the images must be drawn and cleared only through the game.
 type Game interface {
 	NewOffscreenImage(width, height int) *Image
 	NewScreenImage(width, height int) *Image
 	Layout(outsideWidth, outsideHeight float64) (screenWidth, screenHeight float64)
 	UpdateInputState(fn func(*InputState))
 	Update() error
+
+	// ClearOffscreen clears the offscreen image.
+	ClearOffscreen()
+
 	DrawOffscreen() error
+
+	// ClearScreen clears the screen image. If opaque is true, the screen image is filled with
+	// opaque black instead.
+	ClearScreen(opaque bool)
+
 	DrawFinalScreen(scale, offsetX, offsetY float64)
 }
 
@@ -388,7 +401,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 	// Draw should not update the game state and then the screen should not be updated without Update, but
 	// users might want to process something at Draw with the time intervals of FPS.
 	if ui.IsScreenClearedEveryFrame() {
-		c.offscreen.clear()
+		c.game.ClearOffscreen()
 	}
 
 	if err := c.game.DrawOffscreen(); err != nil {
@@ -432,11 +445,7 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		// An opaque screen is cleared with opaque black: when the screen's framebuffer has an alpha
 		// channel, a compositor would show the desktop through the area the offscreen does not
 		// cover (#3454).
-		if c.screenTransparent {
-			c.screen.clear()
-		} else {
-			c.screen.fillBlack()
-		}
+		c.game.ClearScreen(!c.screenTransparent)
 	}
 
 	c.game.DrawFinalScreen(c.screenScaleAndOffsets())

@@ -434,6 +434,13 @@ func (i *imageImpl) regionWithPadding() image.Rectangle {
 //	10: Custom2
 //	11: Custom3
 func (i *Image) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Image, vertices []float32, indices []uint32, blend graphicsdriver.Blend, dstRegion image.Rectangle, srcRegions [graphics.ShaderSrcImageCount]image.Rectangle, shader *Shader, uniforms []uint32) {
+	// Check this before deferring the draw, so that the panic is at the caller.
+	for _, src := range srcs {
+		if src == i {
+			panic("atlas: Image.DrawTriangles: source must be different from the receiver")
+		}
+	}
+
 	backendsM.Lock()
 	defer backendsM.Unlock()
 

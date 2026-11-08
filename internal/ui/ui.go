@@ -160,12 +160,12 @@ func newUserInterface() (*UserInterface, error) {
 	return u, nil
 }
 
-func (u *UserInterface) readPixels(img *Image, pixels []byte, region image.Rectangle) error {
+func (u *UserInterface) readPixels(r PixelsReader, pixels []byte, region image.Rectangle) error {
 	if !u.running.Load() {
 		panic("ui: ReadPixels cannot be called before the game starts")
 	}
 
-	ok, err := img.readPixels(pixels, region)
+	ok, err := r.ReadPixels(pixels, region)
 	if err != nil {
 		return err
 	}
@@ -180,9 +180,9 @@ func (u *UserInterface) readPixels(img *Image, pixels []byte, region image.Recta
 
 		var err error
 		u.context.runInFrame(func() {
-			ok, imgErr := img.readPixels(pixels, region)
-			if imgErr != nil {
-				err = imgErr
+			ok, readErr := r.ReadPixels(pixels, region)
+			if readErr != nil {
+				err = readErr
 				return
 			}
 			if !ok {

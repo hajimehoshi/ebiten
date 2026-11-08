@@ -42,7 +42,7 @@ type Image struct {
 	// addr holds self to check copying.
 	// See strings.Builder for similar examples.
 	addr     *Image
-	image    *ui.Image
+	image    *bufferedImage
 	original *Image
 	bounds   image.Rectangle
 
@@ -87,6 +87,7 @@ type Image struct {
 
 	// Do not add a 'buffering' member that is resolved lazily.
 	// This tends to forget resolving the buffer easily (#2362).
+	// The pending pixel writes are kept in bufferedImage, which every use of the pixels goes through.
 }
 
 // theImagePool is a global pool of Image structs to reduce allocations.
@@ -256,7 +257,7 @@ func init() {
 			return false
 		}
 		i.invokeUsageCallbacks()
-		drawer.DrawOnImage(i.image, i.adjustedBounds())
+		i.image.drawOnUIImage(drawer, i.adjustedBounds())
 		return true
 	})
 }
@@ -299,6 +300,8 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawImage must not be disposed")
 	}
+	// TODO: Panic at v3 if img shares pixels with i, including any sub-image of the same image.
+	// In v2, a self-draw that returns early or samples a mipmap level does not panic.
 	if i.isDisposed() {
 		return
 	}
@@ -340,7 +343,7 @@ func (i *Image) DrawImage(img *Image, options *DrawImageOptions) {
 	graphics.QuadVerticesFromSrcAndMatrix(vs, float32(sx0), float32(sy0), float32(sx1), float32(sy1), a, b, c, d, tx, ty, cr, cg, cb, ca)
 	is := graphics.QuadIndices()
 
-	srcs := [graphics.ShaderSrcImageCount]*ui.Image{img.image}
+	srcs := [graphics.ShaderSrcImageCount]*bufferedImage{img.image}
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, builtinshader.AddressUnsafe, useColorM)
@@ -627,6 +630,8 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 	if img.isDisposed() {
 		panic("ebiten: the given image to DrawTriangles must not be disposed")
 	}
+	// TODO: Panic at v3 if img shares pixels with i, including any sub-image of the same image.
+	// In v2, a self-draw that returns early or samples a mipmap level does not panic.
 	if i.isDisposed() {
 		return
 	}
@@ -716,7 +721,7 @@ func (i *Image) DrawTriangles32(vertices []Vertex, indices []uint32, img *Image,
 		}
 	}
 
-	srcs := [graphics.ShaderSrcImageCount]*ui.Image{img.image}
+	srcs := [graphics.ShaderSrcImageCount]*bufferedImage{img.image}
 
 	useColorM := !colorm.IsIdentity()
 	shader := builtinShader(filter, address, useColorM)
@@ -874,6 +879,8 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 			if img.isDisposed() {
 				panic("ebiten: the given image to DrawTrianglesShader must not be disposed")
 			}
+			// TODO: Panic at v3 if img shares pixels with i, including any sub-image of the same image.
+			// In v2, a self-draw that returns early does not panic.
 		}
 	}
 
@@ -958,7 +965,7 @@ func (i *Image) DrawTrianglesShader32(vertices []Vertex, indices []uint32, shade
 		vs[11] = vertices[i].Custom3
 	}
 
-	var imgs [graphics.ShaderSrcImageCount]*ui.Image
+	var imgs [graphics.ShaderSrcImageCount]*bufferedImage
 	var imgSize image.Point
 	for i, img := range options.Images {
 		if img == nil {
@@ -1074,6 +1081,8 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 			if img.isDisposed() {
 				panic("ebiten: the given image to DrawRectShader must not be disposed")
 			}
+			// TODO: Panic at v3 if img shares pixels with i, including any sub-image of the same image.
+			// In v2, a self-draw that returns early does not panic.
 		}
 	}
 
@@ -1112,7 +1121,7 @@ func (i *Image) DrawRectShader(width, height int, shader *Shader, options *DrawR
 		blend = options.CompositeMode.blend().internalBlend()
 	}
 
-	var imgs [graphics.ShaderSrcImageCount]*ui.Image
+	var imgs [graphics.ShaderSrcImageCount]*bufferedImage
 	for i, img := range options.Images {
 		if img == nil {
 			continue
@@ -1307,7 +1316,7 @@ func (i *Image) ReadPixels(pixels []byte) {
 
 	i.invokeUsageCallbacks()
 
-	i.image.ReadPixels(pixels, i.adjustedBounds())
+	ui.Get().ReadPixels(i.image, pixels, i.adjustedBounds())
 }
 
 // ReadPixelsAsync reads the image's pixels into pixels in RGBA order with premultiplied alpha.
@@ -1383,7 +1392,7 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 
 	x, y = i.adjustPosition(x, y)
 	var pix [4]byte
-	i.image.ReadPixels(pix[:], image.Rect(x, y, x+1, y+1))
+	ui.Get().ReadPixels(i.image, pix[:], image.Rect(x, y, x+1, y+1))
 	return pix[0], pix[1], pix[2], pix[3]
 }
 
@@ -1545,7 +1554,7 @@ func (i *Image) WritePixels(pixels []byte) {
 	i.invokeUsageCallbacks()
 
 	// Do not need to copy pixels here.
-	// * In internal/mipmap, pixels are copied when necessary.
+	// * In the pixel cache, pixels are copied when necessary.
 	// * In internal/atlas, pixels are copied to make its paddings.
 	i.image.WritePixels(pixels, i.adjustedBounds())
 }
@@ -1636,7 +1645,7 @@ func newImage(bounds image.Rectangle, imageType atlas.ImageType) *Image {
 	width, height := bounds.Dx(), bounds.Dy()
 
 	i := &Image{}
-	i.image = ui.Get().NewImage(width, height, imageType)
+	i.image = newBufferedImage(width, height, imageType)
 	i.bounds = bounds
 	i.addr = i
 	return i

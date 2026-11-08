@@ -41,3 +41,20 @@ func ResetStencilBufferImagesForTesting() {
 		offscreenImage2 = nil
 	}
 }
+
+const (
+	MaxPixelsCacheSize = maxPixelsCacheSize
+	DividedTileSize    = dividedTileSize
+)
+
+// CachedPixelsSizeForTesting returns the total size in bytes of the cached tiles.
+func (i *Image) CachedPixelsSizeForTesting() int {
+	i.image.mu.Lock()
+	defer i.image.mu.Unlock()
+
+	var size int
+	for _, t := range i.image.cache.tiles {
+		size += len(t.pixels)
+	}
+	return size
+}

@@ -2703,6 +2703,105 @@ func BenchmarkImageDrawOver(b *testing.B) {
 	}
 }
 
+func TestImageUnsyncedPixels(t *testing.T) {
+	dst := ebiten.NewImage(16, 16)
+	dst.Set(0, 0, color.White)
+	dst.ReadPixels(make([]byte, 4*16*16))
+	dst.SubImage(image.Rect(1, 1, 3, 3)).(*ebiten.Image).WritePixels(make([]byte, 4*2*2))
+
+	src := ebiten.NewImage(16, 16)
+	dst.DrawImage(src, nil)
+
+	if got, want := dst.At(0, 0), (color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}); got != want {
+		t.Errorf("At(0, 0) after a partial WritePixels and a draw: got: %v, want: %v", got, want)
+	}
+}
+
+func TestImageReadPixelsOnLargeImage(t *testing.T) {
+	const width = 1024
+	height := ebiten.MaxPixelsCacheSize/(4*width) + 1
+	img := ebiten.NewImage(width, height)
+
+	pix := make([]byte, 4*2*2)
+	for i := range pix {
+		pix[i] = 0x40
+	}
+	img.SubImage(image.Rect(2, 2, 4, 4)).(*ebiten.Image).WritePixels(pix)
+	img.Set(3, 3, color.White)
+
+	want := make([]byte, 4*4*4)
+	for _, p := range []image.Point{{2, 2}, {3, 2}, {2, 3}} {
+		idx := 4 * ((p.Y-1)*4 + (p.X - 1))
+		for i := range 4 {
+			want[idx+i] = 0x40
+		}
+	}
+	idx := 4 * ((3-1)*4 + (3 - 1))
+	for i := range 4 {
+		want[idx+i] = 0xff
+	}
+
+	sub := img.SubImage(image.Rect(1, 1, 5, 5)).(*ebiten.Image)
+	for i := range 2 {
+		got := make([]byte, 4*4*4)
+		sub.ReadPixels(got)
+		if !bytes.Equal(got, want) {
+			t.Errorf("read #%d: got: %v, want: %v", i, got, want)
+		}
+	}
+
+	if got, want := img.CachedPixelsSizeForTesting(), 4*ebiten.DividedTileSize*ebiten.DividedTileSize; got != want {
+		t.Errorf("cached pixels size, which must be only the tile containing the read region: got: %d, want: %d", got, want)
+	}
+}
+
+func TestImageReadPixelsOnLargeImageAcrossTiles(t *testing.T) {
+	const width = 1024
+	height := ebiten.MaxPixelsCacheSize/(4*width) + 1
+	img := ebiten.NewImage(width, height)
+
+	pix := make([]byte, 4*4*4)
+	for i := range pix {
+		pix[i] = 0x40
+	}
+	img.SubImage(image.Rect(254, 254, 258, 258)).(*ebiten.Image).WritePixels(pix)
+	img.Set(256, 256, color.White)
+
+	if got, want := img.At(0, 0), (color.RGBA{}); got != want {
+		t.Errorf("At(0, 0): got: %v, want: %v", got, want)
+	}
+	if got, want := img.CachedPixelsSizeForTesting(), 4*ebiten.DividedTileSize*ebiten.DividedTileSize; got != want {
+		t.Errorf("cached pixels size after reading one pixel: got: %d, want: %d", got, want)
+	}
+
+	want := make([]byte, 4*8*8)
+	for y := 254; y < 258; y++ {
+		for x := 254; x < 258; x++ {
+			v := byte(0x40)
+			if x == 256 && y == 256 {
+				v = 0xff
+			}
+			idx := 4 * ((y-252)*8 + (x - 252))
+			for i := range 4 {
+				want[idx+i] = v
+			}
+		}
+	}
+
+	sub := img.SubImage(image.Rect(252, 252, 260, 260)).(*ebiten.Image)
+	for i := range 2 {
+		got := make([]byte, 4*8*8)
+		sub.ReadPixels(got)
+		if !bytes.Equal(got, want) {
+			t.Errorf("read #%d: got: %v, want: %v", i, got, want)
+		}
+	}
+
+	if got, want := img.CachedPixelsSizeForTesting(), 4*4*ebiten.DividedTileSize*ebiten.DividedTileSize; got != want {
+		t.Errorf("cached pixels size, which must be the four tiles around (256, 256): got: %d, want: %d", got, want)
+	}
+}
+
 // Issue #1171
 func TestImageFloatTranslate(t *testing.T) {
 	const w, h = 32, 32
@@ -5469,6 +5568,33 @@ func TestSubImageDrawImageInOppositeDirections(t *testing.T) {
 			dst.DrawImage(src, nil)
 		}
 	})
+	wg.Wait()
+}
+
+func TestSubImageRaceConditionWithPixelCache(t *testing.T) {
+	const w, h = 16, 16
+	img0 := ebiten.NewImage(w, h)
+	img1 := ebiten.NewImage(w, h)
+
+	var wg sync.WaitGroup
+	for j := range h {
+		for i := range w {
+			dst, src := img0, img1
+			if (i+j)%2 == 1 {
+				dst, src = img1, img0
+			}
+			r := image.Rect(i, j, i+1, j+1)
+			dstSub := dst.SubImage(r).(*ebiten.Image)
+			srcSub := src.SubImage(r).(*ebiten.Image)
+			wg.Go(func() {
+				for range 20 {
+					srcSub.Set(i, j, color.White)
+					_ = dstSub.At(i, j)
+					dstSub.DrawImage(srcSub, nil)
+				}
+			})
+		}
+	}
 	wg.Wait()
 }
 

@@ -19,6 +19,7 @@
 package vmhost_test
 
 import (
+	"image/color"
 	"runtime"
 	"testing"
 	"testing/synctest"
@@ -71,6 +72,35 @@ func TestAsyncTickQueue(t *testing.T) {
 	i := 4 * (y*pw + x)
 	if r, g, b := pixels[i], pixels[i+1], pixels[i+2]; r != 0xff || g != 0x00 || b != 0x00 {
 		t.Errorf("red tile after async driving = (%d, %d, %d); want (255, 0, 0)", r, g, b)
+	}
+}
+
+func TestCompositeFrameOverCachedPixels(t *testing.T) {
+	guest := startGuest(t, "./testdata/atlas", activateByEnv, "unix")
+
+	const w, h = 128, 128
+	scale := ebiten.Monitor().DeviceScaleFactor()
+	pw, ph := int(w*scale), int(h*scale)
+	outsideScreen := ebiten.NewImage(pw, ph)
+	if err := guest.SetOutsideScreen(outsideScreen); err != nil {
+		t.Fatal(err)
+	}
+
+	x := int(float64(10+8) * scale)
+	y := int(float64(10+8) * scale)
+	if got, want := outsideScreen.At(x, y), (color.RGBA{}); got != want {
+		t.Errorf("At(%d, %d) before compositing: got: %v, want: %v", x, y, got, want)
+	}
+	outsideScreen.Set(x+1, y, color.White)
+
+	tickAndFrame(t, guest)
+
+	red := color.RGBA{R: 0xff, A: 0xff}
+	if got := outsideScreen.At(x, y); got != red {
+		t.Errorf("At(%d, %d), which was cached before compositing: got: %v, want: %v", x, y, got, red)
+	}
+	if got := outsideScreen.At(x+1, y); got != red {
+		t.Errorf("At(%d, %d), which was set before compositing: got: %v, want: %v", x+1, y, got, red)
 	}
 }
 

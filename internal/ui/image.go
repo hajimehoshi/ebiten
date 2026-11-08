@@ -189,25 +189,33 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	i.mipmap.WritePixels(pix, region)
 }
 
-func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) {
+// PixelsReader reads pixels in a way [UserInterface.ReadPixels] can retry.
+type PixelsReader interface {
+	// ReadPixels reads the pixels in region into pixels. It reports false without reading the
+	// pixels when called between frames.
+	ReadPixels(pixels []byte, region image.Rectangle) (bool, error)
+}
+
+// ReadPixels reads the pixels in region into pixels with r. A read between frames is retried in
+// the next frame. An error is reported as the error of the game.
+//
+// The caller must not hold a lock that a frame needs, as ReadPixels can wait for the next frame.
+func (u *UserInterface) ReadPixels(r PixelsReader, pixels []byte, region image.Rectangle) {
 	// Check the error existence and avoid unnecessary calls.
-	if i.ui.error() != nil {
+	if u.error() != nil {
 		return
 	}
 
-	if err := i.ui.readPixels(i, pixels, region); err != nil {
+	if err := u.readPixels(r, pixels, region); err != nil {
 		if panicOnErrorOnReadingPixels {
 			panic(err)
 		}
-		i.ui.setError(err)
+		u.setError(err)
 	}
 }
 
-// readPixels reports whether the pixels were read.
-//
-// The caller must not hold the mutex: a failed read is retried in a frame, and the frame needs the
-// mutex to draw the image.
-func (i *Image) readPixels(pixels []byte, region image.Rectangle) (bool, error) {
+// ReadPixels implements [PixelsReader].
+func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) (bool, error) {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
@@ -243,14 +251,6 @@ func (i *Image) DumpScreenshot(name string, blackbg bool) (string, error) {
 
 func (u *UserInterface) DumpImages(dir string) (string, error) {
 	return u.dumpImages(dir)
-}
-
-func (i *Image) clear() {
-	i.Fill(0, 0, 0, 0, image.Rect(0, 0, i.width, i.height))
-}
-
-func (i *Image) fillBlack() {
-	i.Fill(0, 0, 0, 1, image.Rect(0, 0, i.width, i.height))
 }
 
 func (i *Image) Fill(r, g, b, a float32, region image.Rectangle) {

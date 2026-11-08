@@ -20,7 +20,6 @@ import (
 	"math"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
-	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -34,18 +33,18 @@ func canUseMipmap(imageType atlas.ImageType) bool {
 	return false
 }
 
-// Mipmap is a set of buffered.Image indexed by the mipmap level.
+// Mipmap is a set of atlas.Image indexed by the mipmap level.
 // The level 0 image is a regular image and higher-level images are used for mipmap.
 type Mipmap struct {
 	width     int
 	height    int
 	imageType atlas.ImageType
-	orig      *buffered.Image
+	orig      *atlas.Image
 	imgs      map[int]imageWithDirtyFlag
 }
 
 type imageWithDirtyFlag struct {
-	img   *buffered.Image
+	img   *atlas.Image
 	dirty bool
 }
 
@@ -53,7 +52,7 @@ func New(width, height int, imageType atlas.ImageType) *Mipmap {
 	return &Mipmap{
 		width:     width,
 		height:    height,
-		orig:      buffered.NewImage(width, height, imageType),
+		orig:      atlas.NewImage(width, height, imageType),
 		imageType: imageType,
 	}
 }
@@ -90,7 +89,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 
 	// Use the fast path if mipmap is not used.
 	if canSkipMipmap || srcs[0] == nil || !canUseMipmap(srcs[0].imageType) {
-		var imgs [graphics.ShaderSrcImageCount]*buffered.Image
+		var imgs [graphics.ShaderSrcImageCount]*atlas.Image
 		for i, src := range srcs {
 			if src == nil {
 				continue
@@ -133,7 +132,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 		panic("mipmap: level must be calculated at least once")
 	}
 
-	var imgs [graphics.ShaderSrcImageCount]*buffered.Image
+	var imgs [graphics.ShaderSrcImageCount]*atlas.Image
 	for i, src := range srcs {
 		if src == nil {
 			continue
@@ -159,7 +158,7 @@ func (m *Mipmap) DrawTriangles(srcs [graphics.ShaderSrcImageCount]*Mipmap, verti
 	m.markDirty()
 }
 
-func (m *Mipmap) setImg(level int, img *buffered.Image) {
+func (m *Mipmap) setImg(level int, img *atlas.Image) {
 	if m.imgs == nil {
 		m.imgs = map[int]imageWithDirtyFlag{}
 	}
@@ -169,7 +168,7 @@ func (m *Mipmap) setImg(level int, img *buffered.Image) {
 	}
 }
 
-func (m *Mipmap) level(level int) *buffered.Image {
+func (m *Mipmap) level(level int) *atlas.Image {
 	if level == 0 {
 		panic("mipmap: level must be non-zero")
 	}
@@ -184,7 +183,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 	}
 
 	var srcW, srcH int
-	var src *buffered.Image
+	var src *atlas.Image
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	switch {
 	case level == 1:
@@ -213,7 +212,7 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		m.setImg(level, nil)
 		return nil
 	}
-	// buffered.NewImage panics with a too big size when actual allocation happens.
+	// atlas.NewImage panics with a too big size when actual allocation happens.
 	// 4096 should be a safe size in most environments (#1399).
 	// Unfortunately a precise max image size cannot be obtained here since this requires GPU access.
 	if dstW > 4096 || dstH > 4096 {
@@ -221,17 +220,17 @@ func (m *Mipmap) level(level int) *buffered.Image {
 		return nil
 	}
 
-	var s *buffered.Image
+	var s *atlas.Image
 	if img.img != nil {
 		// As s is overwritten, this doesn't have to be cleared.
 		s = img.img
 	} else {
-		s = buffered.NewImage(dstW, dstH, m.imageType)
+		s = atlas.NewImage(dstW, dstH, m.imageType)
 	}
 
 	dstRegion := image.Rect(0, 0, dstW, dstH)
 	srcRegion := image.Rect(0, 0, srcW, srcH)
-	s.DrawTriangles([graphics.ShaderSrcImageCount]*buffered.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{srcRegion}, atlas.LinearFilterShader, nil)
+	s.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendCopy, dstRegion, [graphics.ShaderSrcImageCount]image.Rectangle{srcRegion}, atlas.LinearFilterShader, nil)
 	m.setImg(level, s)
 
 	return m.imgs[level].img

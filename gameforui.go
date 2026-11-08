@@ -63,7 +63,7 @@ func (g *gameForUI) NewOffscreenImage(width, height int) *ui.Image {
 	// and the shader program unexpectedly picks the pixel on the edges.
 	g.offscreen = newImage(bounds, atlas.ImageTypeUnmanaged)
 	screenSize.Store(&image.Point{X: width, Y: height})
-	return g.offscreen.image
+	return g.offscreen.image.image
 }
 
 func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
@@ -74,7 +74,7 @@ func (g *gameForUI) NewScreenImage(width, height int) *ui.Image {
 	}
 
 	g.screen = newImage(bounds, atlas.ImageTypeScreen)
-	return g.screen.image
+	return g.screen.image.image
 }
 
 func (g *gameForUI) Layout(outsideWidth, outsideHeight float64) (float64, float64) {
@@ -110,12 +110,34 @@ func (g *gameForUI) Update() error {
 	return nil
 }
 
+func (g *gameForUI) ClearOffscreen() {
+	if g.offscreen.isDisposed() {
+		return
+	}
+	g.offscreen.image.Fill(0, 0, 0, 0, g.offscreen.adjustedBounds())
+}
+
 func (g *gameForUI) DrawOffscreen() error {
 	g.game.Draw(g.offscreen)
+	if !g.offscreen.isDisposed() {
+		// Apply the pending pixel writes, so that the ui package detects the modification by Draw.
+		g.offscreen.image.writeBackPixelsIfNeeded()
+	}
 	if err := g.imageDumper.dump(g.offscreen, g.transparent); err != nil {
 		return err
 	}
 	return nil
+}
+
+func (g *gameForUI) ClearScreen(opaque bool) {
+	if g.screen.isDisposed() {
+		return
+	}
+	var a float32
+	if opaque {
+		a = 1
+	}
+	g.screen.image.Fill(0, 0, 0, a, g.screen.adjustedBounds())
 }
 
 func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {

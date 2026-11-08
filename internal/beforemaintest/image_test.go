@@ -22,8 +22,6 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
-	"github.com/hajimehoshi/ebiten/v2/internal/buffered"
 )
 
 var gameUpdateCh = make(chan func())
@@ -307,10 +305,25 @@ func TestWritePixelsAndModifyBeforeMain(t *testing.T) {
 	}
 }
 
+var drawImageSelfBeforeMainPanicked = func() (panicked bool) {
+	defer func() {
+		panicked = recover() != nil
+	}()
+	img := ebiten.NewImage(16, 16)
+	img.DrawImage(img, nil)
+	return false
+}()
+
+func TestDrawImageSelfBeforeMain(t *testing.T) {
+	if !drawImageSelfBeforeMainPanicked {
+		t.Error("DrawImage with the receiver as the source before the main loop must panic at the call")
+	}
+}
+
 var imageGCedCh = make(chan struct{})
 
 func init() {
-	img := buffered.NewImage(1, 1, atlas.ImageTypeRegular)
+	img := ebiten.NewImage(1, 1)
 	runtime.AddCleanup(img, func(ch chan struct{}) {
 		close(ch)
 	}, imageGCedCh)

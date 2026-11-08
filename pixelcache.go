@@ -12,15 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package buffered
+package ebiten
 
 import (
 	"image"
 	"maps"
 
-	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
+	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
 
 // maxPixelsCacheSize is the maximum size in bytes for caching the whole pixels of an image as a single tile.
@@ -87,7 +87,7 @@ func (c *pixelCache) tileRegion(idx image.Point) image.Rectangle {
 }
 
 // readPixels reads the pixels in region into pixels, loading the tiles intersecting region as needed.
-func (c *pixelCache) readPixels(img *atlas.Image, graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (bool, error) {
+func (c *pixelCache) readPixels(img *ui.Image, pixels []byte, region image.Rectangle) (bool, error) {
 	if region.Dx() == 1 && region.Dy() == 1 {
 		if clr, ok := c.dots[region.Min]; ok {
 			copy(pixels, clr[:])
@@ -108,7 +108,7 @@ func (c *pixelCache) readPixels(img *atlas.Image, graphicsDriver graphicsdriver.
 			}
 			r := c.tileRegion(idx)
 			pix := make([]byte, 4*r.Dx()*r.Dy())
-			ok, err := img.ReadPixels(graphicsDriver, pix, r)
+			ok, err := img.ReadPixels(pix, r)
 			if err != nil {
 				return false, err
 			}
@@ -155,7 +155,7 @@ func (c *pixelCache) readPixels(img *atlas.Image, graphicsDriver graphicsdriver.
 }
 
 // writePixels updates the cache for a write to region, and writes the pixels to the GPU if necessary.
-func (c *pixelCache) writePixels(img *atlas.Image, pix []byte, region image.Rectangle) {
+func (c *pixelCache) writePixels(img *ui.Image, pix []byte, region image.Rectangle) {
 	// Writing one pixel is a special case.
 	// Do not write the pixels to the GPU, as (image/draw).Image's functions might call WritePixels with pixels one by one.
 	if region.Dx() == 1 && region.Dy() == 1 {
@@ -201,7 +201,7 @@ func (c *pixelCache) writePixels(img *atlas.Image, pix []byte, region image.Rect
 			copy(t.pixels[dstX:dstX+lineWidth], pix[srcX:srcX+lineWidth])
 		}
 		// needsWriteBack can NOT be set false as the outside pixels of the region are not written by writePixels here.
-		// See the test TestUnsyncedPixels.
+		// See the test TestImageUnsyncedPixels.
 	}
 
 	// Even if no tile is cached, do not create a new tile.
@@ -218,7 +218,7 @@ func (c *pixelCache) writePixels(img *atlas.Image, pix []byte, region image.Rect
 
 // writeBackPixelsIfNeeded applies the pending pixel writes to the GPU.
 // After writeBackPixelsIfNeeded, dots is cleared, but cached tiles might remain.
-func (c *pixelCache) writeBackPixelsIfNeeded(img *atlas.Image) {
+func (c *pixelCache) writeBackPixelsIfNeeded(img *ui.Image) {
 	for idx, t := range c.tiles {
 		if !t.needsWriteBack {
 			continue
@@ -293,11 +293,11 @@ func (c *pixelCache) writeBackPixelsIfNeeded(img *atlas.Image) {
 		idx++
 	}
 
-	srcs := [graphics.ShaderSrcImageCount]*atlas.Image{whiteImage.img}
+	srcs := [graphics.ShaderSrcImageCount]*ui.Image{whiteImage}
 	dr := image.Rect(0, 0, c.width, c.height)
-	sr := image.Rect(0, 0, whiteImage.width, whiteImage.height)
+	sr := image.Rect(0, 0, whiteImageSize, whiteImageSize)
 	blend := graphicsdriver.BlendCopy
-	img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil)
+	img.DrawTriangles(srcs, vs, is, blend, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, ui.NearestFilterShader, nil, true)
 
 	clear(c.dots)
 }
@@ -306,11 +306,11 @@ func (c *pixelCache) writeBackPixelsIfNeeded(img *atlas.Image) {
 // The dots must be empty and no tile must need a write-back, as they are pending writes that must not be discarded.
 func (c *pixelCache) reset() {
 	if len(c.dots) > 0 {
-		panic("buffered: the dots must be empty at reset")
+		panic("ebiten: the dots must be empty at reset")
 	}
 	for _, t := range c.tiles {
 		if t.needsWriteBack {
-			panic("buffered: no tile must need a write-back at reset")
+			panic("ebiten: no tile must need a write-back at reset")
 		}
 	}
 	clear(c.tiles)
