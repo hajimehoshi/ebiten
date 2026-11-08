@@ -8,6 +8,7 @@
 package glfw
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -386,8 +387,7 @@ func CreateCursor(img image.Image, xhot, yhot int) (*Cursor, error) {
 	_glfw.cursors = append(_glfw.cursors, cursor)
 
 	if err := cursor.platformCreateCursor(nrgba, xhot, yhot); err != nil {
-		_ = cursor.Destroy()
-		return nil, err
+		return nil, errors.Join(err, cursor.Destroy())
 	}
 
 	return cursor, nil
@@ -415,8 +415,7 @@ func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 	_glfw.cursors = append(_glfw.cursors, cursor)
 
 	if err := cursor.platformCreateStandardCursor(shape); err != nil {
-		_ = cursor.Destroy()
-		return nil, err
+		return nil, errors.Join(err, cursor.Destroy())
 	}
 
 	return cursor, nil

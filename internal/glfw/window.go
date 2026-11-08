@@ -144,7 +144,7 @@ func CreateWindow(width, height int, title string, monitor *Monitor, share *Wind
 	window.inputWindowMonitor(monitor)
 	defer func(window *Window) {
 		if err != nil {
-			_ = window.Destroy()
+			err = errors.Join(err, window.Destroy())
 		}
 	}(window)
 	_glfw.windows = append(_glfw.windows, window)
