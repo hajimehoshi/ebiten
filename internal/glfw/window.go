@@ -9,6 +9,7 @@
 package glfw
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/draw"
@@ -910,6 +911,13 @@ func (w *Window) SetContentScaleCallback(cbfun ContentScaleCallback) (ContentSca
 	return old, nil
 }
 
+// takeErrors returns the queued errors joined into one, or nil, and empties the queue.
+func takeErrors() error {
+	err := errors.Join(_glfw.errors...)
+	_glfw.errors = nil
+	return err
+}
+
 func PollEvents() error {
 	if !_glfw.initialized {
 		return ErrNotInitialized
@@ -917,7 +925,7 @@ func PollEvents() error {
 	if err := platformPollEvents(); err != nil {
 		return err
 	}
-	return nil
+	return takeErrors()
 }
 
 func WaitEvents() error {
@@ -927,7 +935,7 @@ func WaitEvents() error {
 	if err := platformWaitEvents(); err != nil {
 		return err
 	}
-	return nil
+	return takeErrors()
 }
 
 func WaitEventsTimeout(timeout float64) error {
@@ -940,7 +948,7 @@ func WaitEventsTimeout(timeout float64) error {
 	if err := platformWaitEventsTimeout(timeout); err != nil {
 		return err
 	}
-	return nil
+	return takeErrors()
 }
 
 func PostEmptyEvent() error {

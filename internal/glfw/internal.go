@@ -238,7 +238,9 @@ type library struct {
 		refreshRate int
 	}
 
-	errors  []error // TODO: Check the error at polling?
+	// errors holds errors raised in OS callbacks, which cannot return them.
+	// PollEvents, WaitEvents and WaitEventsTimeout report them.
+	errors  []error
 	cursors []*Cursor
 	windows []*Window
 

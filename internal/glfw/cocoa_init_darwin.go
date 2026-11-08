@@ -461,7 +461,9 @@ func platformInit() error {
 			{
 				Cmd: sel_selectedKeyboardInputSourceChanged,
 				Fn: func(_ objc.ID, _ objc.SEL, _ objc.ID) {
-					_ = updateUnicodeDataNS()
+					if err := updateUnicodeDataNS(); err != nil {
+						_glfw.errors = append(_glfw.errors, err)
+					}
 				},
 			},
 		},
@@ -505,7 +507,9 @@ func platformInit() error {
 							window.context.platform.object.Send(objc.RegisterName("update"))
 						}
 					}
-					_ = pollMonitorsNS()
+					if err := pollMonitorsNS(); err != nil {
+						_glfw.errors = append(_glfw.errors, err)
+					}
 				},
 			},
 			{

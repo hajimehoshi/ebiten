@@ -222,7 +222,9 @@ func registerGLFWClasses() error {
 					}
 
 					if _glfw.platformWindow.disabledCursorWindow == window {
-						_ = window.centerCursorInContentArea()
+						if err := window.centerCursorInContentArea(); err != nil {
+							_glfw.errors = append(_glfw.errors, err)
+						}
 					}
 
 					maximized := objc.Send[bool](window.platform.object, sel_isZoomed)
@@ -250,7 +252,9 @@ func registerGLFWClasses() error {
 					}
 
 					if _glfw.platformWindow.disabledCursorWindow == window {
-						_ = window.centerCursorInContentArea()
+						if err := window.centerCursorInContentArea(); err != nil {
+							_glfw.errors = append(_glfw.errors, err)
+						}
 					}
 
 					frame := objc.Send[cocoa.NSRect](window.platform.object, sel_frame)
@@ -268,7 +272,9 @@ func registerGLFWClasses() error {
 						return
 					}
 					if window.monitor != nil {
-						_ = window.releaseMonitor()
+						if err := window.releaseMonitor(); err != nil {
+							_glfw.errors = append(_glfw.errors, err)
+						}
 					}
 					window.inputWindowIconify(true)
 				},
@@ -281,7 +287,9 @@ func registerGLFWClasses() error {
 						return
 					}
 					if window.monitor != nil {
-						_ = window.acquireMonitor()
+						if err := window.acquireMonitor(); err != nil {
+							_glfw.errors = append(_glfw.errors, err)
+						}
 					}
 					window.inputWindowIconify(false)
 				},
@@ -294,10 +302,14 @@ func registerGLFWClasses() error {
 						return
 					}
 					if _glfw.platformWindow.disabledCursorWindow == window {
-						_ = window.centerCursorInContentArea()
+						if err := window.centerCursorInContentArea(); err != nil {
+							_glfw.errors = append(_glfw.errors, err)
+						}
 					}
 					window.inputWindowFocus(true)
-					_ = updateCursorMode(window)
+					if err := updateCursorMode(window); err != nil {
+						_glfw.errors = append(_glfw.errors, err)
+					}
 				},
 			},
 			{

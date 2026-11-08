@@ -2314,12 +2314,6 @@ func platformRawMouseMotionSupported() bool {
 }
 
 func platformPollEvents() error {
-	if len(_glfw.errors) > 0 {
-		err := errors.Join(_glfw.errors...)
-		_glfw.errors = nil
-		return err
-	}
-
 	var msg _MSG
 	for _PeekMessageW(&msg, 0, 0, 0, _PM_REMOVE) {
 		if msg.message == _WM_QUIT {
