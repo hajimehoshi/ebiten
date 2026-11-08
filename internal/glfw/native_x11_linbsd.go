@@ -51,19 +51,3 @@ func (w *Window) GetGLXWindow() (uintptr, error) {
 	}
 	return uintptr(w.context.platform.glx.window), nil
 }
-
-// SetX11SelectionString sets the X11 primary selection string.
-func SetX11SelectionString(str string) {
-	_glfw.platformWindow.primarySelectionString = str
-
-	xSetSelectionOwner(_glfw.platformWindow.display,
-		_glfw.platformWindow.PRIMARY,
-		_glfw.platformWindow.helperWindowHandle,
-		_CurrentTime)
-}
-
-// GetX11SelectionString gets the X11 primary selection string.
-func GetX11SelectionString() string {
-	str, _ := getSelectionString(_glfw.platformWindow.PRIMARY)
-	return str
-}
