@@ -17,6 +17,7 @@
 package glfw_test
 
 import (
+	"errors"
 	"os"
 	"testing"
 
@@ -29,5 +30,18 @@ func TestX11Smoke(t *testing.T) {
 	}
 	if err := glfw.SmokeTestX11(); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestTerminateReportsQueuedErrors(t *testing.T) {
+	if os.Getenv("DISPLAY") == "" {
+		t.Skip("no DISPLAY is available")
+	}
+	if err := glfw.Init(); err != nil {
+		t.Fatal(err)
+	}
+	glfw.SendFailingXRequestForTest()
+	if err := glfw.Terminate(); !errors.Is(err, glfw.ErrPlatform) {
+		t.Errorf("Terminate after an X error outside a grabErrorHandlerX11 bracket returned %v, want ErrPlatform", err)
 	}
 }

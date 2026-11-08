@@ -27,6 +27,10 @@ func terminate() error {
 
 	err = errors.Join(err, platformTerminate())
 
+	// Report the errors queued since the last event processing, including those raised while
+	// tearing down, as no later call can report them.
+	err = errors.Join(err, takeErrors())
+
 	_glfw.initialized = false
 
 	return err

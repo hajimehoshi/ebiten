@@ -131,6 +131,12 @@ func SmokeTestX11() error {
 	return nil
 }
 
+// SendFailingXRequestForTest sends a request that fails with BadWindow, without waiting for the
+// error to arrive.
+func SendFailingXRequestForTest() {
+	xDestroyWindow(_glfw.platformWindow.display, 0xdeadbeef)
+}
+
 type XIScrollAxis = xiScrollAxis
 
 const (

@@ -239,7 +239,7 @@ type library struct {
 	}
 
 	// errors holds errors raised in OS callbacks, which cannot return them.
-	// PollEvents, WaitEvents and WaitEventsTimeout report them.
+	// PollEvents, WaitEvents, WaitEventsTimeout and Terminate report them.
 	errors  []error
 	cursors []*Cursor
 	windows []*Window
