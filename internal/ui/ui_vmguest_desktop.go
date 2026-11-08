@@ -823,10 +823,6 @@ func (c *context) updateTickForVMGuest(graphicsDriver graphicsdriver.Graphics, o
 		}
 	}()
 
-	if err := c.processFuncsInFrame(ui); err != nil {
-		return err
-	}
-
 	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, screenWidth, screenHeight); w == 0 || h == 0 {
 		return nil
 	}
@@ -871,10 +867,6 @@ func (c *context) drawFrameForVMGuest(graphicsDriver graphicsdriver.Graphics, ou
 			err = errors.Join(err, atlasErr)
 		}
 	}()
-
-	if err := c.processFuncsInFrame(ui); err != nil {
-		return err
-	}
 
 	if w, h, _ := c.layoutGame(outsideWidth, outsideHeight, screenWidth, screenHeight); w == 0 || h == 0 {
 		return nil

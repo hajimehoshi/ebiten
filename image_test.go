@@ -32,7 +32,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/examples/resources/images"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
-	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
@@ -52,7 +51,7 @@ func skipTooSlowTests(t *testing.T) bool {
 }
 
 func TestMain(m *testing.M) {
-	ui.SetPanicOnErrorOnReadingPixelsForTesting(true)
+	ebiten.SetPanicOnErrorOnReadingPixelsForTesting(true)
 	t.MainWithRunLoop(m)
 }
 
@@ -2799,6 +2798,34 @@ func TestImageReadPixelsOnLargeImageAcrossTiles(t *testing.T) {
 
 	if got, want := img.CachedPixelsSizeForTesting(), 4*4*ebiten.DividedTileSize*ebiten.DividedTileSize; got != want {
 		t.Errorf("cached pixels size, which must be the four tiles around (256, 256): got: %d, want: %d", got, want)
+	}
+}
+
+func TestImageReadPixelsModifiedDuringRead(t *testing.T) {
+	const w, h = 4, 4
+	red := color.RGBA{R: 0xff, A: 0xff}
+	blue := color.RGBA{B: 0xff, A: 0xff}
+	img := ebiten.NewImage(w, h)
+	img.Set(0, 0, red)
+
+	pix := make([]byte, 4*w*h)
+	img.ReadPixelsInterruptedForTesting(pix, func() {
+		img.Fill(blue)
+	})
+	for i := range w * h {
+		var want color.RGBA
+		if i == 0 {
+			want = red
+		}
+		if got := (color.RGBA{R: pix[4*i], G: pix[4*i+1], B: pix[4*i+2], A: pix[4*i+3]}); got != want {
+			t.Errorf("pixel %d: got: %v, want: %v", i, got, want)
+		}
+	}
+
+	for _, p := range []image.Point{{0, 0}, {1, 1}} {
+		if got := img.At(p.X, p.Y); got != blue {
+			t.Errorf("At(%d, %d) after the read: got: %v, want: %v", p.X, p.Y, got, blue)
+		}
 	}
 }
 

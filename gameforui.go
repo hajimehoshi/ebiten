@@ -101,7 +101,15 @@ func (g *gameForUI) UpdateInputState(fn func(*ui.InputState)) {
 }
 
 func (g *gameForUI) Update() error {
+	// A synchronous pixel read cannot return its error, so the error ends the game here, including
+	// one in this Update.
+	if err := readPixelsError(); err != nil {
+		return err
+	}
 	if err := g.game.Update(); err != nil {
+		return err
+	}
+	if err := readPixelsError(); err != nil {
 		return err
 	}
 	if err := g.imageDumper.update(); err != nil {

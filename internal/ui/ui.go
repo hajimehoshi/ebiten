@@ -160,43 +160,7 @@ func newUserInterface() (*UserInterface, error) {
 	return u, nil
 }
 
-func (u *UserInterface) readPixels(r PixelsReader, pixels []byte, region image.Rectangle) error {
-	if !u.running.Load() {
-		panic("ui: ReadPixels cannot be called before the game starts")
-	}
-
-	ok, err := r.ReadPixels(pixels, region)
-	if err != nil {
-		return err
-	}
-
-	// ReadPixels failed since this was called in between two frames.
-	// Try this again at the next frame.
-	if !ok {
-		// If this function is called from the same sequence as a game's Update and Draw,
-		// this causes a dead lock.
-		// This never happens so far, but if handling inputs after EndFrame is implemented,
-		// this might be possible (#1704).
-
-		var err error
-		u.context.runInFrame(func() {
-			ok, readErr := r.ReadPixels(pixels, region)
-			if readErr != nil {
-				err = readErr
-				return
-			}
-			if !ok {
-				// This never reaches since this function must be called in a frame.
-				panic("ui: ReadPixels unexpectedly failed")
-			}
-		})
-		return err
-	}
-
-	return nil
-}
-
-// readPixelsAsync starts reading pixels and returns its result.
+// readPixelsAsync starts reading pixels and returns its result without waiting for a frame.
 //
 // A read-back never fails to be enqueued, so this reports a failure to read the pixels only via the
 // returned result.
@@ -204,23 +168,7 @@ func (u *UserInterface) readPixelsAsync(img *Image, pixels []byte, region image.
 	if !u.running.Load() {
 		panic("ui: ReadPixelsAsync cannot be called before the game starts")
 	}
-
-	result := img.readPixelsAsync(pixels, region)
-	if result != nil {
-		return result
-	}
-
-	// The read-back was not enqueued since this was called in between two frames.
-	// Try this again at the next frame.
-	// Like readPixels, this can deadlock when called from the same Update/Draw sequence.
-	u.context.runInFrame(func() {
-		result = img.readPixelsAsync(pixels, region)
-		if result == nil {
-			// This never reaches since this function must be called in a frame.
-			panic("ui: ReadPixelsAsync unexpectedly failed")
-		}
-	})
-	return result
+	return img.readPixelsAsync(pixels, region)
 }
 
 // abortedReadPixels returns the error that stopped the graphics driver.

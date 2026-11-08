@@ -1316,12 +1316,12 @@ func (i *Image) ReadPixels(pixels []byte) {
 
 	i.invokeUsageCallbacks()
 
-	ui.Get().ReadPixels(i.image, pixels, i.adjustedBounds())
+	i.image.ReadPixels(pixels, i.adjustedBounds())
 }
 
 // ReadPixelsAsync reads the image's pixels into pixels in RGBA order with premultiplied alpha.
 // It captures drawing operations preceding the call and excludes subsequent operations.
-// The call returns without waiting for the GPU.
+// The call returns without waiting for the GPU or for the next frame.
 //
 // pixels must not be accessed or reused until the returned [PixelReadback] completes.
 // The buffer contents are unspecified on error.
@@ -1392,7 +1392,7 @@ func (i *Image) at(x, y int) (r, g, b, a byte) {
 
 	x, y = i.adjustPosition(x, y)
 	var pix [4]byte
-	ui.Get().ReadPixels(i.image, pix[:], image.Rect(x, y, x+1, y+1))
+	i.image.ReadPixels(pix[:], image.Rect(x, y, x+1, y+1))
 	return pix[0], pix[1], pix[2], pix[3]
 }
 

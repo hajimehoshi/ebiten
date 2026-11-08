@@ -43,6 +43,35 @@ type tile struct {
 	needsWriteBack bool
 }
 
+// dot is a pending write of a single pixel.
+type dot struct {
+	pos image.Point
+	clr [4]byte
+}
+
+// tileLoad is a load of a tile's pixels from the GPU.
+type tileLoad struct {
+	// index is the index of the tile.
+	index image.Point
+
+	// pixels receives the GPU pixels of the tile.
+	pixels []byte
+
+	// dots are the dots in the tile at the start of the load, which the GPU pixels do not include.
+	dots []dot
+}
+
+// tilesLoad is a load of tiles from the GPU, started by startReadPixels and finished by finishReadPixels.
+type tilesLoad struct {
+	// generation is the generation of the cache at the start of the load.
+	generation uint64
+
+	tiles []tileLoad
+
+	// results are the read-backs of tiles, in the same order.
+	results []*PixelReadback
+}
+
 // pixelCache manages the CPU-side pixel data of an image.
 type pixelCache struct {
 	// width and height are the size of the image in pixels.
@@ -56,6 +85,9 @@ type pixelCache struct {
 
 	// tiles is cached pixels keyed by the tile index.
 	tiles map[image.Point]*tile
+
+	// generation changes whenever the pixels of the image change.
+	generation uint64
 }
 
 // init initializes the cache for an image of the given size.
@@ -86,76 +118,118 @@ func (c *pixelCache) tileRegion(idx image.Point) image.Rectangle {
 	return r.Intersect(image.Rect(0, 0, c.width, c.height))
 }
 
-// readPixels reads the pixels in region into pixels, loading the tiles intersecting region as needed.
-func (c *pixelCache) readPixels(img *ui.Image, pixels []byte, region image.Rectangle) (bool, error) {
+// startReadPixels reads the pixels in region into pixels from the cache, and starts loading the tiles in
+// region that are not cached. The pixels of the loaded tiles are read by finishReadPixels after the
+// read-backs of the returned load complete. The returned load is nil when no tile needs loading.
+func (c *pixelCache) startReadPixels(img *ui.Image, pixels []byte, region image.Rectangle) *tilesLoad {
 	if region.Dx() == 1 && region.Dy() == 1 {
 		if clr, ok := c.dots[region.Min]; ok {
 			copy(pixels, clr[:])
-			return true, nil
+			return nil
 		}
 	}
 
 	// Do not call writeBackPixelsIfNeeded here. This would slow (image/draw).Draw.
 	// See ebiten.TestImageDrawOver.
 
+	var load *tilesLoad
 	minTile := c.tileIndex(region.Min)
 	maxTile := c.tileIndex(region.Max.Sub(image.Point{X: 1, Y: 1}))
 	for ty := minTile.Y; ty <= maxTile.Y; ty++ {
 		for tx := minTile.X; tx <= maxTile.X; tx++ {
 			idx := image.Point{X: tx, Y: ty}
-			if _, ok := c.tiles[idx]; ok {
+			if t, ok := c.tiles[idx]; ok {
+				c.copyTilePixels(pixels, region, idx, t.pixels)
 				continue
 			}
 			r := c.tileRegion(idx)
 			pix := make([]byte, 4*r.Dx()*r.Dy())
-			ok, err := img.ReadPixels(pix, r)
-			if err != nil {
-				return false, err
+			result := &PixelReadback{
+				result: img.ReadPixelsAsync(pix, r),
 			}
-			if !ok {
-				return false, nil
-			}
-			t := &tile{pixels: pix}
-			// Merge the dots in this tile into the tile and delete them.
-			for pos, clr := range c.dots {
-				if !pos.In(r) {
-					continue
+			if load == nil {
+				load = &tilesLoad{
+					generation: c.generation,
 				}
-				i := 4 * ((pos.Y-r.Min.Y)*r.Dx() + (pos.X - r.Min.X))
-				t.pixels[i] = clr[0]
-				t.pixels[i+1] = clr[1]
-				t.pixels[i+2] = clr[2]
-				t.pixels[i+3] = clr[3]
-				t.needsWriteBack = true
-				delete(c.dots, pos)
 			}
-			if c.tiles == nil {
-				c.tiles = map[image.Point]*tile{}
-			}
-			c.tiles[idx] = t
+			load.tiles = append(load.tiles, tileLoad{
+				index:  idx,
+				pixels: pix,
+				dots:   c.dotsIn(r),
+			})
+			load.results = append(load.results, result)
 		}
 	}
+	return load
+}
 
-	for ty := minTile.Y; ty <= maxTile.Y; ty++ {
-		for tx := minTile.X; tx <= maxTile.X; tx++ {
-			idx := image.Point{X: tx, Y: ty}
-			t := c.tiles[idx]
-			r := c.tileRegion(idx)
-			ir := r.Intersect(region)
-			lineWidth := 4 * ir.Dx()
-			for y := ir.Min.Y; y < ir.Max.Y; y++ {
-				srcX := 4 * ((y-r.Min.Y)*r.Dx() + (ir.Min.X - r.Min.X))
-				dstX := 4 * ((y-region.Min.Y)*region.Dx() + (ir.Min.X - region.Min.X))
-				copy(pixels[dstX:dstX+lineWidth], t.pixels[srcX:srcX+lineWidth])
-			}
+// finishReadPixels reads the pixels in region of the tiles loaded by load into pixels.
+// The read-backs of load must have completed successfully.
+func (c *pixelCache) finishReadPixels(load *tilesLoad, pixels []byte, region image.Rectangle) {
+	// The loaded pixels and the dots are the pixels at the start of the load, so they are cached only
+	// when the pixels have not changed since then.
+	cacheable := load.generation == c.generation
+	for _, l := range load.tiles {
+		r := c.tileRegion(l.index)
+		for _, d := range l.dots {
+			i := 4 * ((d.pos.Y-r.Min.Y)*r.Dx() + (d.pos.X - r.Min.X))
+			copy(l.pixels[i:i+4], d.clr[:])
+		}
+		c.copyTilePixels(pixels, region, l.index, l.pixels)
+
+		if !cacheable {
+			continue
+		}
+		// Another read might have cached the same pixels during the load.
+		if _, ok := c.tiles[l.index]; ok {
+			continue
+		}
+		// The dots are merged into the tile.
+		for _, d := range l.dots {
+			delete(c.dots, d.pos)
+		}
+		if c.tiles == nil {
+			c.tiles = map[image.Point]*tile{}
+		}
+		c.tiles[l.index] = &tile{
+			pixels:         l.pixels,
+			needsWriteBack: len(l.dots) > 0,
 		}
 	}
+}
 
-	return true, nil
+// dotsIn returns the dots in region.
+func (c *pixelCache) dotsIn(region image.Rectangle) []dot {
+	var dots []dot
+	for pos, clr := range c.dots {
+		if !pos.In(region) {
+			continue
+		}
+		dots = append(dots, dot{
+			pos: pos,
+			clr: clr,
+		})
+	}
+	return dots
+}
+
+// copyTilePixels copies the pixels in region of the tile at idx, whose pixels are tilePixels, into pixels
+// of region.
+func (c *pixelCache) copyTilePixels(pixels []byte, region image.Rectangle, idx image.Point, tilePixels []byte) {
+	r := c.tileRegion(idx)
+	ir := r.Intersect(region)
+	lineWidth := 4 * ir.Dx()
+	for y := ir.Min.Y; y < ir.Max.Y; y++ {
+		srcX := 4 * ((y-r.Min.Y)*r.Dx() + (ir.Min.X - r.Min.X))
+		dstX := 4 * ((y-region.Min.Y)*region.Dx() + (ir.Min.X - region.Min.X))
+		copy(pixels[dstX:dstX+lineWidth], tilePixels[srcX:srcX+lineWidth])
+	}
 }
 
 // writePixels updates the cache for a write to region, and writes the pixels to the GPU if necessary.
 func (c *pixelCache) writePixels(img *ui.Image, pix []byte, region image.Rectangle) {
+	c.generation++
+
 	// Writing one pixel is a special case.
 	// Do not write the pixels to the GPU, as (image/draw).Image's functions might call WritePixels with pixels one by one.
 	if region.Dx() == 1 && region.Dy() == 1 {
@@ -302,7 +376,7 @@ func (c *pixelCache) writeBackPixelsIfNeeded(img *ui.Image) {
 	clear(c.dots)
 }
 
-// reset clears the cached tiles, keeping the allocated capacity for reuse.
+// reset clears the cached tiles after the GPU pixels change, keeping the allocated capacity for reuse.
 // The dots must be empty and no tile must need a write-back, as they are pending writes that must not be discarded.
 func (c *pixelCache) reset() {
 	if len(c.dots) > 0 {
@@ -314,10 +388,12 @@ func (c *pixelCache) reset() {
 		}
 	}
 	clear(c.tiles)
+	c.generation++
 }
 
 // deallocate clears the cache, releasing the allocations.
 func (c *pixelCache) deallocate() {
 	c.dots = nil
 	c.tiles = nil
+	c.generation++
 }

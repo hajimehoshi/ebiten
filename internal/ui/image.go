@@ -28,14 +28,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/mipmap"
 )
 
-// panicOnErrorOnReadingPixels indicates whether reading pixels panics on an error or not.
-// This value is set only in tests.
-var panicOnErrorOnReadingPixels bool
-
-func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
-	panicOnErrorOnReadingPixels = value
-}
-
 // EbitenImageDrawer draws on the internal image underlying a public ebiten.Image.
 type EbitenImageDrawer interface {
 	// DrawOnImage draws on dst, whose region dstRegion corresponds to the ebiten image's bounds.
@@ -189,42 +181,7 @@ func (i *Image) WritePixels(pix []byte, region image.Rectangle) {
 	i.mipmap.WritePixels(pix, region)
 }
 
-// PixelsReader reads pixels in a way [UserInterface.ReadPixels] can retry.
-type PixelsReader interface {
-	// ReadPixels reads the pixels in region into pixels. It reports false without reading the
-	// pixels when called between frames.
-	ReadPixels(pixels []byte, region image.Rectangle) (bool, error)
-}
-
-// ReadPixels reads the pixels in region into pixels with r. A read between frames is retried in
-// the next frame. An error is reported as the error of the game.
-//
-// The caller must not hold a lock that a frame needs, as ReadPixels can wait for the next frame.
-func (u *UserInterface) ReadPixels(r PixelsReader, pixels []byte, region image.Rectangle) {
-	// Check the error existence and avoid unnecessary calls.
-	if u.error() != nil {
-		return
-	}
-
-	if err := u.readPixels(r, pixels, region); err != nil {
-		if panicOnErrorOnReadingPixels {
-			panic(err)
-		}
-		u.setError(err)
-	}
-}
-
-// ReadPixels implements [PixelsReader].
-func (i *Image) ReadPixels(pixels []byte, region image.Rectangle) (bool, error) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	return i.mipmap.ReadPixels(i.ui.graphicsDriver, pixels, region)
-}
-
 // readPixelsAsync queues a pixel read-back and returns its result.
-//
-// The caller must not hold the mutex, as the frame needs the mutex to draw the image.
 func (i *Image) readPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	i.mu.Lock()
 	defer i.mu.Unlock()
@@ -232,7 +189,7 @@ func (i *Image) readPixelsAsync(pixels []byte, region image.Rectangle) *graphics
 	return i.mipmap.ReadPixelsAsync(pixels, region)
 }
 
-// ReadPixelsAsync starts a pixel read-back and returns its result.
+// ReadPixelsAsync starts a pixel read-back and returns its result without waiting for a frame.
 func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	// Check the error existence and avoid unnecessary calls.
 	if i.ui.error() != nil {

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -74,13 +75,70 @@ func (b *bufferedImage) Deallocate() {
 	b.cache.deallocate()
 }
 
+// theReadPixelsError is the first error at a synchronous pixel read.
+var theReadPixelsError atomic.Pointer[error]
+
+// panicOnErrorOnReadingPixels indicates whether an error at a synchronous pixel read panics.
+// This value is set only in tests.
+var panicOnErrorOnReadingPixels bool
+
+// readPixelsError returns the first error at a synchronous pixel read, if any.
+func readPixelsError() error {
+	if err := theReadPixelsError.Load(); err != nil {
+		return *err
+	}
+	return nil
+}
+
+// setReadPixelsError records err at a synchronous pixel read, which ends the game at the next Update.
+func setReadPixelsError(err error) {
+	if panicOnErrorOnReadingPixels {
+		panic(err)
+	}
+	theReadPixelsError.CompareAndSwap(nil, &err)
+}
+
 // ReadPixels reads the pixels in region into pixels, from the cache when possible.
-// ReadPixels implements [ui.PixelsReader].
-func (b *bufferedImage) ReadPixels(pixels []byte, region image.Rectangle) (bool, error) {
+// An error is reported as the error of the game.
+func (b *bufferedImage) ReadPixels(pixels []byte, region image.Rectangle) {
+	// Check the error existence and avoid unnecessary calls.
+	if readPixelsError() != nil {
+		return
+	}
+	if !isRunGameStarted() {
+		panic("ebiten: ReadPixels cannot be called before the game starts")
+	}
+
+	load := b.startReadPixels(pixels, region)
+	b.finishReadPixels(load, pixels, region)
+}
+
+// startReadPixels reads the cached pixels in region into pixels, and starts loading the other pixels.
+func (b *bufferedImage) startReadPixels(pixels []byte, region image.Rectangle) *tilesLoad {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	return b.cache.readPixels(b.image, pixels, region)
+	return b.cache.startReadPixels(b.image, pixels, region)
+}
+
+// finishReadPixels waits for load, and reads the loaded pixels in region into pixels.
+// An error is reported as the error of the game.
+func (b *bufferedImage) finishReadPixels(load *tilesLoad, pixels []byte, region image.Rectangle) {
+	if load == nil {
+		return
+	}
+	// Waiting for the read-backs can need the next frame, so mu must not be held here.
+	for _, r := range load.results {
+		if err := r.Wait(); err != nil {
+			setReadPixelsError(err)
+			return
+		}
+	}
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.cache.finishReadPixels(load, pixels, region)
 }
 
 // ReadPixelsAsync queues a pixel read-back and returns its result.
@@ -88,8 +146,10 @@ func (b *bufferedImage) ReadPixels(pixels []byte, region image.Rectangle) (bool,
 // Read-back must neither read from nor populate the CPU pixel cache. Pending CPU writes are
 // flushed to the GPU before the read; GPU pixels go directly into the caller's buffer.
 func (b *bufferedImage) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
-	b.writeBackPixelsIfNeeded()
-	// The read-back can wait for the next frame, so mu must not be held here.
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	b.cache.writeBackPixelsIfNeeded(b.image)
 	return b.image.ReadPixelsAsync(pixels, region)
 }
 

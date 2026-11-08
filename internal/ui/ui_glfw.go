@@ -1632,7 +1632,8 @@ func (u *glfwBackend) updateIconIfNeeded() error {
 		newImgs[i] = rgba
 	}
 
-	// Catch a possible error at 'At' (#2647).
+	// Catch a possible error of the graphics driver at 'At' (#2647).
+	// Package ebiten reports other errors at 'At' at the next Update.
 	if err := u.error(); err != nil {
 		return err
 	}

@@ -73,10 +73,6 @@ func (m *Mipmap) markDirty() {
 	}
 }
 
-func (m *Mipmap) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
-	return m.orig.ReadPixels(graphicsDriver, pixels, region)
-}
-
 // ReadPixelsAsync queues a read-back of the original image and returns its result.
 func (m *Mipmap) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	return m.orig.ReadPixelsAsync(pixels, region)

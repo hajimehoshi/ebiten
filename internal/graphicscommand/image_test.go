@@ -211,6 +211,12 @@ func requireReadPixelsAsyncResult(t *testing.T, result *graphicscommand.PixelRea
 	return fmt.Errorf("test: read-back timed out")
 }
 
+func readPixelsAsync(img *graphicscommand.Image, args []graphicsdriver.PixelsArgs) *graphicscommand.PixelReadback {
+	result := graphicscommand.NewPixelReadback()
+	img.ReadPixelsAsync(args, result)
+	return result
+}
+
 func fillImage(t *testing.T, img *graphicscommand.Image, clr color.RGBA) {
 	t.Helper()
 	const w, h = 16, 16
@@ -234,7 +240,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 		img := graphicscommand.NewImage(w, h, false, "")
 		fillImage(t, img, color.RGBA{R: 0x80, A: 0xff})
 		pixels := make([]byte, 4*w*h)
-		result := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+		result := readPixelsAsync(img, []graphicsdriver.PixelsArgs{
 			{
 				Pixels: pixels,
 				Region: region,
@@ -242,7 +248,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 		})
 		fillImage(t, img, color.RGBA{G: 0xff, A: 0xff})
 		overwrittenPixels := make([]byte, 4*w*h)
-		overwrittenResult := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+		overwrittenResult := readPixelsAsync(img, []graphicsdriver.PixelsArgs{
 			{
 				Pixels: overwrittenPixels,
 				Region: region,
@@ -281,7 +287,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 				img := graphicscommand.NewImage(w, h, false, "")
 				fillImage(t, img, color.RGBA{R: byte(0x40 + count*round + i), A: 0xff})
 				pixels[i] = make([]byte, 4*w*h)
-				results[i] = img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+				results[i] = readPixelsAsync(img, []graphicsdriver.PixelsArgs{{
 					Pixels: pixels[i],
 					Region: region,
 				}})
@@ -321,12 +327,12 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 				Region: region,
 			},
 		}
-		result := img.ReadPixelsAsync(args)
+		result := readPixelsAsync(img, args)
 		img.WritePixels(graphics.NewManagedBytes(4*w*h, func(bs []byte) {
 			clear(bs)
 		}), region)
 		cleared := bytes.Repeat([]byte{0xff}, 4*w*h)
-		clearedCh := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{
+		clearedCh := readPixelsAsync(img, []graphicsdriver.PixelsArgs{
 			{
 				Pixels: cleared,
 				Region: region,
@@ -368,7 +374,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 			img := graphicscommand.NewImage(w, h, false, "")
 			fillImage(t, img, clr)
 			pixels[i] = make([]byte, 4*w*h)
-			results[i] = img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+			results[i] = readPixelsAsync(img, []graphicsdriver.PixelsArgs{{
 				Pixels: pixels[i],
 				Region: region,
 			}})
@@ -393,7 +399,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 
 		const count = 32
 		for range count {
-			img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+			readPixelsAsync(img, []graphicsdriver.PixelsArgs{{
 				Pixels: make([]byte, 4*w*h),
 				Region: region,
 			}})
@@ -401,7 +407,7 @@ func TestReadPixelsAsyncWithRealDriver(t *testing.T) {
 		flushEndFrame(t)
 
 		pix := make([]byte, 4*w*h)
-		result := img.ReadPixelsAsync([]graphicsdriver.PixelsArgs{{
+		result := readPixelsAsync(img, []graphicsdriver.PixelsArgs{{
 			Pixels: pix,
 			Region: region,
 		}})

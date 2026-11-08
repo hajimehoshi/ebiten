@@ -162,7 +162,8 @@ func CurrentFPS() float64 {
 }
 
 var (
-	isRunGameEnded_ atomic.Bool
+	isRunGameStarted_ atomic.Bool
+	isRunGameEnded_   atomic.Bool
 )
 
 // SetScreenClearedEveryFrame enables or disables the clearing of the screen at the beginning of each frame.
@@ -365,6 +366,7 @@ type RunGameOptions struct {
 //
 // Don't call RunGame or RunGameWithOptions twice or more in one process.
 func RunGameWithOptions(game Game, options *RunGameOptions) error {
+	isRunGameStarted_.Store(true)
 	defer isRunGameEnded_.Store(true)
 
 	op := toUIRunOptions(options)
@@ -385,6 +387,10 @@ func RunGameWithOptions(game Game, options *RunGameOptions) error {
 		return err
 	}
 	return nil
+}
+
+func isRunGameStarted() bool {
+	return isRunGameStarted_.Load()
 }
 
 func isRunGameEnded() bool {

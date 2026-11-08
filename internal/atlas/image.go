@@ -202,6 +202,9 @@ var (
 	// If inFrame is false, function calls on an image should be deferred until the next BeginFrame.
 	inFrame bool
 
+	// theDeferredReadPixels is the pixel read-backs requested between frames and not queued yet.
+	theDeferredReadPixels []*deferredReadPixels
+
 	initOnce  sync.Once
 	inited    atomic.Bool
 	suspended atomic.Bool
@@ -619,56 +622,57 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 	i.backend.backendImage.WritePixels(pixb, r)
 }
 
-func (i *Image) ReadPixels(graphicsDriver graphicsdriver.Graphics, pixels []byte, region image.Rectangle) (ok bool, err error) {
-	backendsM.Lock()
-	defer backendsM.Unlock()
+// deferredReadPixels is a pixel read-back requested between frames.
+type deferredReadPixels struct {
+	result *graphicscommand.PixelReadback
 
-	if !inFrame {
-		// Not ready to read pixels. Try this later.
-		return false, nil
-	}
-
-	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
-	// To prevent memory leaks, flush the deferred functions here.
-	flushDeferred()
-
-	if i.backend == nil || i.backend.backendImage == nil {
-		for i := range pixels {
-			pixels[i] = 0
-		}
-		return true, nil
-	}
-
-	args := []graphicsdriver.PixelsArgs{
-		{
-			Pixels: pixels,
-			Region: region.Add(i.regionWithPadding().Min),
-		},
-	}
-	if err := i.backend.backendImage.ReadPixels(graphicsDriver, args); err != nil {
-		return false, err
-	}
-	return true, nil
+	// queued is closed when the read-back is queued or aborted.
+	queued chan struct{}
 }
 
-// ReadPixelsAsync queues a pixel read-back and returns its result.
-// A nil result indicates that the read-back must be tried again in the next frame, like ReadPixels.
+// ReadPixelsAsync starts a pixel read-back and returns its result without waiting for a frame.
 func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphicscommand.PixelReadback {
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
+	result := graphicscommand.NewPixelReadback()
+
 	if !inFrame {
-		// Not ready to read pixels. Try this later.
-		return nil
+		// Queue the read-back at the next BeginFrame, in order with the other deferred operations, so
+		// that it includes the operations before it and excludes the operations after it.
+		d := &deferredReadPixels{
+			result: result,
+			queued: make(chan struct{}),
+		}
+		theDeferredReadPixels = append(theDeferredReadPixels, d)
+		appendDeferred(func() {
+			idx := slices.Index(theDeferredReadPixels, d)
+			if idx < 0 {
+				// The read-back has been aborted.
+				return
+			}
+			theDeferredReadPixels = slices.Delete(theDeferredReadPixels, idx, idx+1)
+			i.readPixelsAsync(pixels, region, result)
+			close(d.queued)
+		})
+		return result
 	}
 
 	// In the tests, BeginFrame might not be called often and then images might not be disposed (#2292).
 	// To prevent memory leaks, flush the deferred functions here.
 	flushDeferred()
 
+	i.readPixelsAsync(pixels, region, result)
+	return result
+}
+
+// readPixelsAsync queues a pixel read-back that completes result.
+// readPixelsAsync must be called in a frame with backendsM locked.
+func (i *Image) readPixelsAsync(pixels []byte, region image.Rectangle, result *graphicscommand.PixelReadback) {
 	if i.backend == nil || i.backend.backendImage == nil {
 		clear(pixels)
-		return graphicscommand.NewCompletedPixelReadback(nil)
+		result.Complete(nil)
+		return
 	}
 
 	args := []graphicsdriver.PixelsArgs{
@@ -677,7 +681,7 @@ func (i *Image) ReadPixelsAsync(pixels []byte, region image.Rectangle) *graphics
 			Region: region.Add(i.regionWithPadding().Min),
 		},
 	}
-	return i.backend.backendImage.ReadPixelsAsync(args)
+	i.backend.backendImage.ReadPixelsAsync(args, result)
 }
 
 // Deallocate deallocates the internal state.
@@ -898,17 +902,49 @@ func FlushAndPollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
 }
 
 // FlushAndWaitPixelReadbacks submits pending commands and completes the given read-backs.
+// A read-back requested between frames is waited for until the next frame queues it.
 func FlushAndWaitPixelReadbacks(graphicsDriver graphicsdriver.Graphics, results []*graphicscommand.PixelReadback) error {
+	// backendsM must not be held while waiting, as BeginFrame needs it to queue the read-backs.
+	for {
+		queued := deferredReadPixelsQueued(results)
+		if queued == nil {
+			break
+		}
+		<-queued
+	}
+
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
 	return graphicscommand.FlushAndWaitPixelReadbacks(graphicsDriver, results)
 }
 
-// AbortReadPixels completes pending and queued pixel read-backs with an error.
+// deferredReadPixelsQueued returns the channel closed when the first of results that is not queued yet
+// is queued, or nil when all of results are queued.
+func deferredReadPixelsQueued(results []*graphicscommand.PixelReadback) <-chan struct{} {
+	backendsM.Lock()
+	defer backendsM.Unlock()
+
+	for _, d := range theDeferredReadPixels {
+		if slices.Contains(results, d.result) {
+			return d.queued
+		}
+	}
+	return nil
+}
+
+// AbortReadPixels completes pending, queued, and deferred pixel read-backs with an error.
 func AbortReadPixels() {
 	backendsM.Lock()
 	defer backendsM.Unlock()
+
+	for _, d := range theDeferredReadPixels {
+		d.result.Abort()
+		close(d.queued)
+	}
+	clear(theDeferredReadPixels)
+	theDeferredReadPixels = theDeferredReadPixels[:0]
+
 	graphicscommand.AbortReadPixels()
 }
 

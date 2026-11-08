@@ -36,14 +36,31 @@ type PixelReadback struct {
 	err error
 }
 
+// NewPixelReadback returns an incomplete read-back. It is completed by [Image.ReadPixelsAsync],
+// [PixelReadback.Complete], or [PixelReadback.Abort], exactly once.
+func NewPixelReadback() *PixelReadback {
+	return &PixelReadback{
+		done: make(chan struct{}),
+	}
+}
+
 // NewCompletedPixelReadback returns a completed read-back with the given error.
 func NewCompletedPixelReadback(err error) *PixelReadback {
-	r := &PixelReadback{
-		done: make(chan struct{}),
-		err:  err,
-	}
-	close(r.done)
+	r := NewPixelReadback()
+	r.Complete(err)
 	return r
+}
+
+// Complete completes the read-back with err without reading pixels.
+func (r *PixelReadback) Complete(err error) {
+	r.err = err
+	close(r.done)
+}
+
+// Abort completes the read-back with an error without reading pixels, as the graphics driver is not
+// usable anymore.
+func (r *PixelReadback) Abort() {
+	r.Complete(errReadPixelsAborted)
 }
 
 // Poll reports whether the read-back has completed and its error, if any.
@@ -127,13 +144,11 @@ type readPixelsRequest struct {
 	finished bool
 }
 
-// newReadPixelsRequest creates a pixel read-back request with a completion result.
-func newReadPixelsRequest(args []graphicsdriver.PixelsArgs) *readPixelsRequest {
+// newReadPixelsRequest creates a pixel read-back request that completes result.
+func newReadPixelsRequest(args []graphicsdriver.PixelsArgs, result *PixelReadback) *readPixelsRequest {
 	return &readPixelsRequest{
-		args: args,
-		result: &PixelReadback{
-			done: make(chan struct{}),
-		},
+		args:   args,
+		result: result,
 	}
 }
 
@@ -150,8 +165,7 @@ func (r *readPixelsRequest) finish(err error) {
 		r.readback = nil
 	}
 	r.args = nil
-	r.result.err = err
-	close(r.result.done)
+	r.result.Complete(err)
 }
 
 // readPixelsAsyncCommand starts a pixel read-back at its position in the command queue.

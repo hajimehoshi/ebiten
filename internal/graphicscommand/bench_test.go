@@ -105,7 +105,7 @@ func BenchmarkReadPixelsAsync(b *testing.B) {
 
 func readPixelsAsyncAndWait(b *testing.B, img *graphicscommand.Image, args []graphicsdriver.PixelsArgs) {
 	b.Helper()
-	result := img.ReadPixelsAsync(args)
+	result := readPixelsAsync(img, args)
 	for {
 		if err := graphicscommand.FlushCommands(ui.Get().GraphicsDriverForTesting(), graphicsdriver.FlushModeEndFrame); err != nil {
 			b.Fatal(err)

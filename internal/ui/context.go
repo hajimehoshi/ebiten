@@ -17,7 +17,6 @@ package ui
 import (
 	"errors"
 	"math"
-	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
@@ -101,19 +100,12 @@ type context struct {
 
 	// presentationSkipped keeps a redraw pending until an ordinary frame can be presented.
 	presentationSkipped bool
-
-	funcsInFrameCh        chan func()
-	completionChannelPool sync.Pool
 }
 
 func newContext(game Game, screenTransparent bool) *context {
 	return &context{
 		game:              game,
 		screenTransparent: screenTransparent,
-		funcsInFrameCh:    make(chan func()),
-		completionChannelPool: sync.Pool{
-			New: func() any { return make(chan struct{}, 1) },
-		},
 	}
 }
 
@@ -199,11 +191,6 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		}
 	}()
 
-	// Flush deferred functions, like reading pixels from GPU.
-	if err := c.processFuncsInFrame(ui); err != nil {
-		return false, err
-	}
-
 	// ForceUpdate can be invoked even if the context is not initialized yet (#1591).
 	ow, oh, resized := c.layoutGame(outsideWidth, outsideHeight, screenWidth, screenHeight)
 	if ow == 0 || oh == 0 {
@@ -249,7 +236,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 			return false, err
 		}
 
-		// Catch the error that happened at (*Image).At.
+		// Catch the error that happened in Update, e.g. at a pixel read-back.
 		if err := ui.error(); err != nil {
 			return false, err
 		}
@@ -583,33 +570,4 @@ func (u *UserInterface) LogicalPositionToClientPositionInNativePixels(x, y float
 // device-independent pixels, which mean the same lengths on every platform (unlike native pixels).
 func (u *UserInterface) LogicalPositionToClientPositionInDIPs(x, y float64) (float64, float64) {
 	return u.context.logicalPositionToClientPosition(x, y, u.monitorDeviceScaleFactor())
-}
-
-func (c *context) runInFrame(f func()) {
-	ch := c.completionChannelPool.Get().(chan struct{})
-	defer c.completionChannelPool.Put(ch)
-	c.funcsInFrameCh <- func() {
-		defer func() { ch <- struct{}{} }()
-		f()
-	}
-	<-ch
-}
-
-func (c *context) processFuncsInFrame(ui *UserInterface) error {
-	var processed bool
-	for {
-		select {
-		case f := <-c.funcsInFrameCh:
-			f()
-			processed = true
-		default:
-			if processed {
-				// Catch the error that happened at (*Image).At.
-				if err := ui.error(); err != nil {
-					return err
-				}
-			}
-			return nil
-		}
-	}
 }

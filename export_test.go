@@ -20,6 +20,10 @@ var (
 	ImageToBytes = imageToBytes
 )
 
+func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
+	panicOnErrorOnReadingPixels = value
+}
+
 func BuiltinShader(filter builtinshader.Filter, address builtinshader.Address, useColorM bool) *Shader {
 	return builtinShader(filter, address, useColorM)
 }
@@ -46,6 +50,15 @@ const (
 	MaxPixelsCacheSize = maxPixelsCacheSize
 	DividedTileSize    = dividedTileSize
 )
+
+// ReadPixelsInterruptedForTesting reads the pixels like ReadPixels, calling interrupt after the
+// read-backs start and before they are waited for.
+func (i *Image) ReadPixelsInterruptedForTesting(pixels []byte, interrupt func()) {
+	region := i.adjustedBounds()
+	load := i.image.startReadPixels(pixels, region)
+	interrupt()
+	i.image.finishReadPixels(load, pixels, region)
+}
 
 // CachedPixelsSizeForTesting returns the total size in bytes of the cached tiles.
 func (i *Image) CachedPixelsSizeForTesting() int {

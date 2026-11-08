@@ -24,6 +24,7 @@ import (
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	t "github.com/hajimehoshi/ebiten/v2/internal/testing"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
@@ -53,6 +54,15 @@ func quadVertices(sw, sh, x, y int, scalex float32) []float32 {
 	vs := make([]float32, 4*graphics.VertexFloatCount)
 	graphics.QuadVerticesFromDstAndSrc(vs, dx0, dy0, dx1, dy1, sx0, sy0, sx1, sy1, 1, 1, 1, 1)
 	return vs
+}
+
+func readPixels(img *atlas.Image, pixels []byte, region image.Rectangle) error {
+	result := img.ReadPixelsAsync(pixels, region)
+	if err := atlas.FlushAndWaitPixelReadbacks(ui.Get().GraphicsDriverForTesting(), []*graphicscommand.PixelReadback{result}); err != nil {
+		return err
+	}
+	_, err := result.Poll()
+	return err
 }
 
 const bigSize = 2049
@@ -118,12 +128,8 @@ func TestEnsureIsolatedFromSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	ok, err := img4.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
-	if err != nil {
+	if err := readPixels(img4, pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range size {
 		for i := range size {
@@ -220,12 +226,8 @@ func TestReputOnSourceBackend(t *testing.T) {
 	atlas.PutImagesOnSourceBackendForTesting()
 
 	pix = make([]byte, 4*size*size)
-	ok, err := img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
-	if err != nil {
+	if err := readPixels(img1, pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range size {
 		for i := range size {
@@ -248,12 +250,8 @@ func TestReputOnSourceBackend(t *testing.T) {
 	}
 
 	pix = make([]byte, 4*size*size)
-	ok, err = img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
-	if err != nil {
+	if err := readPixels(img1, pix, image.Rect(0, 0, size, size)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range size {
 		for i := range size {
@@ -373,12 +371,8 @@ func TestExtend(t *testing.T) {
 	img1.WritePixels(p1, image.Rect(0, 0, w1, h1))
 
 	pix0 := make([]byte, 4*w0*h0)
-	ok, err := img0.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix0, image.Rect(0, 0, w0, h0))
-	if err != nil {
+	if err := readPixels(img0, pix0, image.Rect(0, 0, w0, h0)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range h0 {
 		for i := range w0 {
@@ -396,12 +390,8 @@ func TestExtend(t *testing.T) {
 	}
 
 	pix1 := make([]byte, 4*w1*h1)
-	ok, err = img1.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix1, image.Rect(0, 0, w1, h1))
-	if err != nil {
+	if err := readPixels(img1, pix1, image.Rect(0, 0, w1, h1)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range h1 {
 		for i := range w1 {
@@ -443,12 +433,8 @@ func TestWritePixelsAfterDrawTriangles(t *testing.T) {
 	dst.WritePixels(pix, image.Rect(0, 0, w, h))
 
 	pix = make([]byte, 4*w*h)
-	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h))
-	if err != nil {
+	if err := readPixels(dst, pix, image.Rect(0, 0, w, h)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range h {
 		for i := range w {
@@ -506,12 +492,8 @@ func TestSmallImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil)
 
 	pix = make([]byte, 4*w*h)
-	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, w, h))
-	if err != nil {
+	if err := readPixels(dst, pix, image.Rect(0, 0, w, h)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range h {
 		for i := range w {
@@ -554,12 +536,8 @@ func TestLongImages(t *testing.T) {
 	dst.DrawTriangles([graphics.ShaderSrcImageCount]*atlas.Image{src}, vs, is, graphicsdriver.BlendSourceOver, dr, [graphics.ShaderSrcImageCount]image.Rectangle{sr}, atlas.NearestFilterShader, nil)
 
 	pix = make([]byte, 4*dstW*dstH)
-	ok, err := dst.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, dstW, dstH))
-	if err != nil {
+	if err := readPixels(dst, pix, image.Rect(0, 0, dstW, dstH)); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range h {
 		for i := range w * scale {
@@ -776,12 +754,8 @@ func TestImageWritePixelsModify(t *testing.T) {
 
 		// Check the pixels are the original ones.
 		pix = make([]byte, 4*size*size)
-		ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), pix, image.Rect(0, 0, size, size))
-		if err != nil {
+		if err := readPixels(img, pix, image.Rect(0, 0, size, size)); err != nil {
 			t.Fatal(err)
-		}
-		if !ok {
-			t.Fatal("ReadPixels failed")
 		}
 		for j := range size {
 			for i := range size {
@@ -996,12 +970,8 @@ func TestImageSizeSameAsBackendSize(t *testing.T) {
 	const regionSize = 16
 	region := image.Rect(size-regionSize, size-regionSize, size, size)
 	readPix := make([]byte, 4*regionSize*regionSize)
-	ok, err := img.ReadPixels(ui.Get().GraphicsDriverForTesting(), readPix, region)
-	if err != nil {
+	if err := readPixels(img, readPix, region); err != nil {
 		t.Fatal(err)
-	}
-	if !ok {
-		t.Fatal("ReadPixels failed")
 	}
 	for j := range regionSize {
 		for i := range regionSize {
