@@ -101,7 +101,7 @@ type GuestSession struct {
 	sentOutsideHeight float64
 	sentScreenWidth   int
 	sentScreenHeight  int
-	compositeVtxBuf   []float32
+	compositor        frameCompositor
 
 	mu   sync.Mutex
 	cond *sync.Cond
@@ -1160,20 +1160,36 @@ func (g *GuestSession) CompositeFrame() bool {
 	if frame.width != b.Dx() || frame.height != b.Dy() {
 		return false
 	}
-	dst, dstRegion := ui.ImageFromEbitenImage(outsideScreen)
-	if dst == nil {
-		// A disposed outside screen draws nothing.
-		return false
-	}
+	// A disposed outside screen draws nothing.
+	return g.compositor.composite(outsideScreen, frame)
+}
+
+// frameCompositor copies a guest frame onto the outside screen.
+type frameCompositor struct {
+	// frame is the frame being composited, set only during composite.
+	frame  hostImage
+	vtxBuf []float32
+}
+
+// composite copies frame onto dst. It reports false if dst is disposed.
+func (c *frameCompositor) composite(dst *ebiten.Image, frame hostImage) bool {
+	c.frame = frame
+	defer func() {
+		c.frame = hostImage{}
+	}()
+	return ui.DrawOnEbitenImage(dst, c)
+}
+
+// DrawOnImage implements [ui.EbitenImageDrawer].
+func (c *frameCompositor) DrawOnImage(dst *ui.Image, dstRegion image.Rectangle) {
 	n := 4 * graphics.VertexFloatCount
-	g.compositeVtxBuf = slices.Grow(g.compositeVtxBuf[:0], n)[:n]
-	graphics.QuadVerticesFromDstAndSrc(g.compositeVtxBuf,
+	c.vtxBuf = slices.Grow(c.vtxBuf[:0], n)[:n]
+	graphics.QuadVerticesFromDstAndSrc(c.vtxBuf,
 		float32(dstRegion.Min.X), float32(dstRegion.Min.Y), float32(dstRegion.Max.X), float32(dstRegion.Max.Y),
-		0, 0, float32(frame.width), float32(frame.height), 1, 1, 1, 1)
-	srcs := [graphics.ShaderSrcImageCount]*ui.Image{frame.img}
-	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, frame.width, frame.height)}
-	dst.DrawTriangles(srcs, g.compositeVtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
-	return true
+		0, 0, float32(c.frame.width), float32(c.frame.height), 1, 1, 1, 1)
+	srcs := [graphics.ShaderSrcImageCount]*ui.Image{c.frame.img}
+	srcRegions := [graphics.ShaderSrcImageCount]image.Rectangle{image.Rect(0, 0, c.frame.width, c.frame.height)}
+	dst.DrawTriangles(srcs, c.vtxBuf, graphics.QuadIndices(), graphicsdriver.BlendCopy, dstRegion, srcRegions, ui.NearestFilterShader, nil, true)
 }
 
 // takeFrame returns the completed frame for the host to composite, or the zero value (nil img) when

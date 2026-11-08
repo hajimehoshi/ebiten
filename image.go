@@ -249,14 +249,15 @@ func (i *Image) adjustedBounds() image.Rectangle {
 func init() {
 	// The bridge serves module-internal packages drawing at the internal image layer (e.g. vmhost);
 	// the ui package cannot import this package.
-	ui.SetImageFromEbitenImageFunc(func(img any) (*ui.Image, image.Rectangle) {
+	ui.SetDrawOnEbitenImageFunc(func(img any, drawer ui.EbitenImageDrawer) bool {
 		i := img.(*Image)
 		i.copyCheck()
 		if i.isDisposed() {
-			return nil, image.Rectangle{}
+			return false
 		}
 		i.invokeUsageCallbacks()
-		return i.image, i.adjustedBounds()
+		drawer.DrawOnImage(i.image, i.adjustedBounds())
+		return true
 	})
 }
 

@@ -36,18 +36,25 @@ func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
 	panicOnErrorOnReadingPixels = value
 }
 
-var imageFromEbitenImage func(ebitenImage any) (*Image, image.Rectangle)
-
-// SetImageFromEbitenImageFunc sets the implementation of [ImageFromEbitenImage]. Package ebiten calls
-// this at initialization: this package cannot import ebiten, so the bridge is a function value.
-func SetImageFromEbitenImageFunc(f func(ebitenImage any) (*Image, image.Rectangle)) {
-	imageFromEbitenImage = f
+// EbitenImageDrawer draws on the internal image underlying a public ebiten.Image.
+type EbitenImageDrawer interface {
+	// DrawOnImage draws on dst, whose region dstRegion corresponds to the ebiten image's bounds.
+	DrawOnImage(dst *Image, dstRegion image.Rectangle)
 }
 
-// ImageFromEbitenImage returns the internal image and the adjusted bounds underlying a public
-// ebiten.Image, or a nil image if the ebiten image is disposed.
-func ImageFromEbitenImage(ebitenImage any) (*Image, image.Rectangle) {
-	return imageFromEbitenImage(ebitenImage)
+var drawOnEbitenImage func(ebitenImage any, drawer EbitenImageDrawer) bool
+
+// SetDrawOnEbitenImageFunc sets the implementation of [DrawOnEbitenImage]. Package ebiten calls
+// this at initialization: this package cannot import ebiten, so the bridge is a function value.
+func SetDrawOnEbitenImageFunc(f func(ebitenImage any, drawer EbitenImageDrawer) bool) {
+	drawOnEbitenImage = f
+}
+
+// DrawOnEbitenImage calls drawer's DrawOnImage with the internal image and the adjusted bounds underlying
+// a public ebiten.Image before it returns. It reports false without calling drawer if the ebiten image is
+// disposed.
+func DrawOnEbitenImage(ebitenImage any, drawer EbitenImageDrawer) bool {
+	return drawOnEbitenImage(ebitenImage, drawer)
 }
 
 // lastImageID is the last ID given to an image.
