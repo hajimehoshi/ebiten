@@ -825,6 +825,9 @@ func Tick() int64 {
 //
 // If RunOnMainThread is called on the main thread, RunOnMainThread blocks forever.
 //
+// Unless RunOnMainThread is called inside Update or Draw, the function must not read pixels from images
+// or wait for a [PixelReadback]. Otherwise, RunOnMainThread can block forever.
+//
 // RunOnMainThread might not run the function e.g. before the game starts or after the game ends.
 //
 // RunOnMainThread is useful to access platform-specific APIs in a safe way.

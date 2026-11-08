@@ -35,6 +35,7 @@ func (r *PixelReadback) Poll() (done bool, err error) {
 // It can be called inside Update or Draw without advancing the game to another frame.
 // When Wait returns, Ebitengine no longer accesses the destination buffer.
 // Repeated calls return the same result. Wait is concurrent-safe unless single-thread mode is enabled.
+// On browsers, Wait can block forever if it is called in a function passed to [syscall/js.FuncOf].
 func (r *PixelReadback) Wait() error {
 	if done, err := r.Poll(); done {
 		return err
