@@ -39,7 +39,7 @@ func (w *Window) GetX11InputContext() (uintptr, error) {
 // GetGLXContext returns the GLXContext of the window.
 func (w *Window) GetGLXContext() (uintptr, error) {
 	if w.context.source != NativeContextAPI {
-		return 0, fmt.Errorf("glfw: window has no GLX context: %w", NoWindowContext)
+		return 0, fmt.Errorf("%w: window has no GLX context", ErrNoWindowContext)
 	}
 	return w.context.platform.glx.handle, nil
 }
@@ -47,7 +47,7 @@ func (w *Window) GetGLXContext() (uintptr, error) {
 // GetGLXWindow returns the GLXWindow of the window.
 func (w *Window) GetGLXWindow() (uintptr, error) {
 	if w.context.source != NativeContextAPI {
-		return 0, fmt.Errorf("glfw: window has no GLX context: %w", NoWindowContext)
+		return 0, fmt.Errorf("%w: window has no GLX context", ErrNoWindowContext)
 	}
 	return uintptr(w.context.platform.glx.window), nil
 }

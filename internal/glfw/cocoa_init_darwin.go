@@ -314,13 +314,13 @@ func updateUnicodeDataNS() error {
 
 	_glfw.platformWindow.inputSource = _glfw.platformWindow.tis.CopyCurrentKeyboardLayoutInputSource()
 	if _glfw.platformWindow.inputSource == 0 {
-		return fmt.Errorf("glfw: failed to retrieve keyboard layout input source: %w", PlatformError)
+		return fmt.Errorf("%w: failed to retrieve keyboard layout input source", ErrPlatform)
 	}
 
 	_glfw.platformWindow.unicodeData = _glfw.platformWindow.tis.GetInputSourceProperty(
 		_glfw.platformWindow.inputSource, _glfw.platformWindow.tis.kPropertyUnicodeKeyLayoutData)
 	if _glfw.platformWindow.unicodeData == 0 {
-		return fmt.Errorf("glfw: failed to retrieve keyboard layout Unicode data: %w", PlatformError)
+		return fmt.Errorf("%w: failed to retrieve keyboard layout Unicode data", ErrPlatform)
 	}
 
 	return nil
@@ -337,24 +337,24 @@ func initializeTIS() error {
 
 	bundleID := cfString("com.apple.HIToolbox")
 	if bundleID == 0 {
-		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create a CFString", ErrPlatform)
 	}
 	defer cfRelease(bundleID)
 
 	bundle := cfBundleGetBundleWithIdentifier(bundleID)
 	if bundle == 0 {
-		return fmt.Errorf("glfw: failed to load HIToolbox.framework: %w", PlatformError)
+		return fmt.Errorf("%w: failed to load HIToolbox.framework", ErrPlatform)
 	}
 
 	// Load TISCopyCurrentKeyboardLayoutInputSource
 	fnName1 := cfString("TISCopyCurrentKeyboardLayoutInputSource")
 	if fnName1 == 0 {
-		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create a CFString", ErrPlatform)
 	}
 	defer cfRelease(fnName1)
 	ptr1 := cfBundleGetFunctionPointerForName(bundle, fnName1)
 	if ptr1 == 0 {
-		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
+		return fmt.Errorf("%w: failed to load TIS API symbols", ErrPlatform)
 	}
 	_glfw.platformWindow.tis.CopyCurrentKeyboardLayoutInputSource = func() uintptr {
 		r, _, _ := purego.SyscallN(ptr1)
@@ -364,12 +364,12 @@ func initializeTIS() error {
 	// Load TISGetInputSourceProperty
 	fnName2 := cfString("TISGetInputSourceProperty")
 	if fnName2 == 0 {
-		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create a CFString", ErrPlatform)
 	}
 	defer cfRelease(fnName2)
 	ptr2 := cfBundleGetFunctionPointerForName(bundle, fnName2)
 	if ptr2 == 0 {
-		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
+		return fmt.Errorf("%w: failed to load TIS API symbols", ErrPlatform)
 	}
 	_glfw.platformWindow.tis.GetInputSourceProperty = func(inputSource uintptr, propertyKey uintptr) uintptr {
 		r, _, _ := purego.SyscallN(ptr2, inputSource, propertyKey)
@@ -379,12 +379,12 @@ func initializeTIS() error {
 	// Load LMGetKbdType
 	fnName3 := cfString("LMGetKbdType")
 	if fnName3 == 0 {
-		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create a CFString", ErrPlatform)
 	}
 	defer cfRelease(fnName3)
 	ptr3 := cfBundleGetFunctionPointerForName(bundle, fnName3)
 	if ptr3 == 0 {
-		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
+		return fmt.Errorf("%w: failed to load TIS API symbols", ErrPlatform)
 	}
 	_glfw.platformWindow.tis.GetKbdType = func() uint8 {
 		r, _, _ := purego.SyscallN(ptr3)
@@ -408,12 +408,12 @@ func initializeTIS() error {
 	// Load kTISPropertyUnicodeKeyLayoutData string constant
 	dataName := cfString("kTISPropertyUnicodeKeyLayoutData")
 	if dataName == 0 {
-		return fmt.Errorf("glfw: failed to create a CFString: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create a CFString", ErrPlatform)
 	}
 	defer cfRelease(dataName)
 	dataPtr := cfBundleGetDataPointerForName(bundle, dataName)
 	if dataPtr == 0 {
-		return fmt.Errorf("glfw: failed to load TIS API symbols: %w", PlatformError)
+		return fmt.Errorf("%w: failed to load TIS API symbols", ErrPlatform)
 	}
 	_glfw.platformWindow.tis.kPropertyUnicodeKeyLayoutData = *(*uintptr)(unsafe.Pointer(dataPtr))
 
@@ -436,7 +436,7 @@ func checkWindowServerAccess() error {
 	case _KERN_SUCCESS:
 		machPortDeallocate(*machTaskSelf, port)
 	case _BOOTSTRAP_NOT_PRIVILEGED:
-		return fmt.Errorf("glfw: access to the window server is denied: %w", PlatformError)
+		return fmt.Errorf("%w: access to the window server is denied", ErrPlatform)
 	}
 	return nil
 }
@@ -597,7 +597,7 @@ func platformInit() error {
 	// Create a CGEventSource for synthesized events.
 	_glfw.platformWindow.eventSource = cgEventSourceCreate(_kCGEventSourceStateHIDSystemState)
 	if _glfw.platformWindow.eventSource == 0 {
-		return fmt.Errorf("glfw: failed to create CGEventSource: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create CGEventSource", ErrPlatform)
 	}
 
 	// Set the suppression interval to zero so that synthesized events

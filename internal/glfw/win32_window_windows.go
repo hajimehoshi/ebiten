@@ -2531,7 +2531,7 @@ func (w *Window) platformSetCursorMode(mode int) error {
 
 func platformGetScancodeName(scancode int) (string, error) {
 	if scancode < 0 || scancode > (_KF_EXTENDED|0xff) {
-		return "", fmt.Errorf("glfw: invalid scancode %d: %w", scancode, InvalidValue)
+		return "", fmt.Errorf("%w: invalid scancode %d", ErrInvalidValue, scancode)
 	}
 	key := _glfw.platformWindow.keycodes[scancode]
 	if key == KeyUnknown {
@@ -2641,7 +2641,7 @@ func platformGetClipboardString() (string, error) {
 
 func (w *Window) GetWin32Window() (windows.HWND, error) {
 	if !_glfw.initialized {
-		return 0, NotInitialized
+		return 0, ErrNotInitialized
 	}
 	return w.platform.handle, nil
 }

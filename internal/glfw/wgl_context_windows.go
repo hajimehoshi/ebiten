@@ -367,7 +367,7 @@ func initWGL() error {
 	// opengl32.dll must be loaded first. The loading state might affect Windows APIs.
 	// This is needed at least before SetPixelFormat.
 	if err := opengl32.Load(); err != nil {
-		return err
+		return fmt.Errorf("glfw: %w", err)
 	}
 
 	// NOTE: A dummy context has to be created for opengl32.dll to load the
@@ -474,15 +474,15 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 
 	if ctxconfig.client == OpenGLAPI {
 		if ctxconfig.forward && !_glfw.platformContext.ARB_create_context {
-			return fmt.Errorf("glfw: a forward compatible OpenGL context requested but WGL_ARB_create_context is unavailable: %w", VersionUnavailable)
+			return fmt.Errorf("%w: a forward compatible OpenGL context requested but WGL_ARB_create_context is unavailable", ErrVersionUnavailable)
 		}
 
 		if ctxconfig.profile != 0 && !_glfw.platformContext.ARB_create_context_profile {
-			return fmt.Errorf("glfw: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable: %w", VersionUnavailable)
+			return fmt.Errorf("%w: OpenGL profile requested but WGL_ARB_create_context_profile is unavailable", ErrVersionUnavailable)
 		}
 	} else {
 		if !_glfw.platformContext.ARB_create_context || !_glfw.platformContext.ARB_create_context_profile || !_glfw.platformContext.EXT_create_context_es2_profile {
-			return fmt.Errorf("glfw: OpenGL ES requested but WGL_ARB_create_context_es2_profile is unavailable: %w", APIUnavailable)
+			return fmt.Errorf("%w: OpenGL ES requested but WGL_ARB_create_context_es2_profile is unavailable", ErrAPIUnavailable)
 		}
 	}
 
@@ -590,7 +590,7 @@ func (w *Window) createContextWGL(ctxconfig *ctxconfig, fbconfig *fbconfig) erro
 func getWGLContext(handle *Window) _HGLRC {
 	window := handle
 	if !_glfw.initialized {
-		panic(NotInitialized)
+		panic(ErrNotInitialized)
 	}
 	if window.context.source != NativeContextAPI {
 		// TODO: Should this return an error?

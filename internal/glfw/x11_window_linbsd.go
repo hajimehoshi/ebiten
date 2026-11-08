@@ -331,7 +331,7 @@ func updateWindowHints(window *Window) {
 func updateNormalHints(window *Window, width, height int) error {
 	hintsPtr := xAllocSizeHints()
 	if hintsPtr == 0 {
-		return fmt.Errorf("glfw: x11: failed to allocate size hints: %w", OutOfMemory)
+		return fmt.Errorf("%w: x11: failed to allocate size hints", ErrOutOfMemory)
 	}
 	defer xFree(hintsPtr)
 
@@ -987,7 +987,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	releaseErrorHandlerX11()
 
 	if window.platform.handle == 0 {
-		return inputErrorX11(PlatformError, "X11: Failed to create window")
+		return inputErrorX11(ErrPlatform, "X11: Failed to create window")
 	}
 
 	_glfw.platformWindow.windowsByXID[window.platform.handle] = window
@@ -1081,7 +1081,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	{
 		hintsPtr := xAllocWMHints()
 		if hintsPtr == 0 {
-			return fmt.Errorf("glfw: x11: failed to allocate WM hints: %w", OutOfMemory)
+			return fmt.Errorf("%w: x11: failed to allocate WM hints", ErrOutOfMemory)
 		}
 		hints := (*_XWMHints)(unsafe.Pointer(hintsPtr))
 
@@ -1096,7 +1096,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, visual uintptr, de
 	{
 		hintsPtr := xAllocSizeHints()
 		if hintsPtr == 0 {
-			return fmt.Errorf("glfw: x11: failed to allocate size hints: %w", OutOfMemory)
+			return fmt.Errorf("%w: x11: failed to allocate size hints", ErrOutOfMemory)
 		}
 		hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
@@ -1462,7 +1462,7 @@ func getSelectionString(selection _Atom) (string, error) {
 	}
 
 	if !found {
-		return "", fmt.Errorf("glfw: x11: failed to convert selection to string: %w", FormatUnavailable)
+		return "", fmt.Errorf("%w: x11: failed to convert selection to string", ErrFormatUnavailable)
 	}
 
 	return *selectionString, nil
@@ -2295,7 +2295,7 @@ func (w *Window) platformCreateWindow(wndconfig *wndconfig, ctxconfig *ctxconfig
 				return err
 			}
 		case OSMesaContextAPI:
-			return fmt.Errorf("glfw: x11: OSMesa is not supported: %w", APIUnavailable)
+			return fmt.Errorf("%w: x11: OSMesa is not supported", ErrAPIUnavailable)
 		}
 	}
 
@@ -2508,7 +2508,7 @@ func (w *Window) platformSetWindowPos(xpos, ypos int) error {
 		var supplied _Clong
 		hintsPtr := xAllocSizeHints()
 		if hintsPtr == 0 {
-			return fmt.Errorf("glfw: x11: failed to allocate size hints: %w", OutOfMemory)
+			return fmt.Errorf("%w: x11: failed to allocate size hints", ErrOutOfMemory)
 		}
 		hints := (*_XSizeHints)(unsafe.Pointer(hintsPtr))
 
@@ -2618,7 +2618,7 @@ func (w *Window) platformGetWindowFrameSize() (left, top, right, bottom int, err
 			isFrameExtentsEventCallback,
 			uintptr(w.platform.handle)) {
 			if !waitForX11Event(&timeout) {
-				return 0, 0, 0, 0, fmt.Errorf("glfw: x11: the window manager has a broken _NET_REQUEST_FRAME_EXTENTS implementation; please report this issue: %w", PlatformError)
+				return 0, 0, 0, 0, fmt.Errorf("%w: x11: the window manager has a broken _NET_REQUEST_FRAME_EXTENTS implementation; please report this issue", ErrPlatform)
 			}
 		}
 	}
@@ -3048,7 +3048,7 @@ func (w *Window) platformSetWindowMousePassthrough(enabled bool) error {
 	if enabled {
 		region := xCreateRegion()
 		if region == 0 {
-			return fmt.Errorf("glfw: x11: failed to create a region: %w", OutOfMemory)
+			return fmt.Errorf("%w: x11: failed to create a region", ErrOutOfMemory)
 		}
 		_glfw.platformWindow.xshape.CombineRegion(_glfw.platformWindow.display, w.platform.handle,
 			_ShapeInput, 0, 0, region, _ShapeSet)
@@ -3231,7 +3231,7 @@ func platformGetScancodeName(scancode int) (string, error) {
 	}
 
 	if scancode < 0 || scancode > 0xff {
-		return "", fmt.Errorf("glfw: x11: invalid scancode %d: %w", scancode, InvalidValue)
+		return "", fmt.Errorf("%w: x11: invalid scancode %d", ErrInvalidValue, scancode)
 	}
 
 	key := _glfw.platformWindow.keycodes[scancode]
@@ -3274,7 +3274,7 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 
 	c.platform.handle = createCursorX11(&Image{Width: w, Height: h, Pixels: pixels}, xhot, yhot)
 	if c.platform.handle == _None {
-		return fmt.Errorf("glfw: x11: failed to create cursor: %w", PlatformError)
+		return fmt.Errorf("%w: x11: failed to create cursor", ErrPlatform)
 	}
 
 	return nil
@@ -3346,7 +3346,7 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 
 		c.platform.handle = xCreateFontCursor(_glfw.platformWindow.display, native)
 		if c.platform.handle == _None {
-			return fmt.Errorf("glfw: x11: failed to create standard cursor: %w", PlatformError)
+			return fmt.Errorf("%w: x11: failed to create standard cursor", ErrPlatform)
 		}
 	}
 
@@ -3378,7 +3378,7 @@ func platformSetClipboardString(str string) error {
 
 	if xGetSelectionOwner(_glfw.platformWindow.display, _glfw.platformWindow.CLIPBOARD) !=
 		_glfw.platformWindow.helperWindowHandle {
-		return fmt.Errorf("glfw: x11: failed to become owner of clipboard selection: %w", PlatformError)
+		return fmt.Errorf("%w: x11: failed to become owner of clipboard selection", ErrPlatform)
 	}
 	return nil
 }

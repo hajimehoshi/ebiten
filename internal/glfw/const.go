@@ -17,12 +17,11 @@
 package glfw
 
 import (
-	"fmt"
+	"errors"
 )
 
 type (
 	Action          int
-	ErrorCode       int
 	Hint            int
 	InputMode       int
 	Key             int
@@ -151,45 +150,17 @@ const (
 	ReleaseBehaviorNone  = 0x00035002
 )
 
-const (
-	NotInitialized     = ErrorCode(0x00010001)
-	NoCurrentContext   = ErrorCode(0x00010002)
-	InvalidEnum        = ErrorCode(0x00010003)
-	InvalidValue       = ErrorCode(0x00010004)
-	OutOfMemory        = ErrorCode(0x00010005)
-	APIUnavailable     = ErrorCode(0x00010006)
-	VersionUnavailable = ErrorCode(0x00010007)
-	PlatformError      = ErrorCode(0x00010008)
-	FormatUnavailable  = ErrorCode(0x00010009)
-	NoWindowContext    = ErrorCode(0x0001000A)
+var (
+	ErrNotInitialized     = errors.New("glfw: the GLFW library is not initialized")
+	ErrInvalidEnum        = errors.New("glfw: invalid argument for enum parameter")
+	ErrInvalidValue       = errors.New("glfw: invalid value for parameter")
+	ErrOutOfMemory        = errors.New("glfw: out of memory")
+	ErrAPIUnavailable     = errors.New("glfw: the requested API is unavailable")
+	ErrVersionUnavailable = errors.New("glfw: the requested API version is unavailable")
+	ErrPlatform           = errors.New("glfw: a platform-specific error occurred")
+	ErrFormatUnavailable  = errors.New("glfw: the requested format is unavailable")
+	ErrNoWindowContext    = errors.New("glfw: the specified window has no context")
 )
-
-func (e ErrorCode) Error() string {
-	switch e {
-	case NotInitialized:
-		return "the GLFW library is not initialized"
-	case NoCurrentContext:
-		return "there is no current context"
-	case InvalidEnum:
-		return "invalid argument for enum parameter"
-	case InvalidValue:
-		return "invalid value for parameter"
-	case OutOfMemory:
-		return "out of memory"
-	case APIUnavailable:
-		return "the requested API is unavailable"
-	case VersionUnavailable:
-		return "the requested API version is unavailable"
-	case PlatformError:
-		return "a platform-specific error occurred"
-	case FormatUnavailable:
-		return "the requested format is unavailable"
-	case NoWindowContext:
-		return "the specified window has no context"
-	default:
-		return fmt.Sprintf("GLFW error (%d)", e)
-	}
-}
 
 const (
 	Connected    = PeripheralEvent(0x00040001)

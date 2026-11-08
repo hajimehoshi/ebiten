@@ -1051,7 +1051,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	// window if delegate creation fails).
 	delegateID := objc.ID(class_GLFWWindowDelegate).Send(sel_alloc).Send(sel_init)
 	if delegateID == 0 {
-		return fmt.Errorf("glfw: failed to create window delegate: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create window delegate", ErrPlatform)
 	}
 	setGoWindow(delegateID, window)
 	window.platform.delegate = delegateID
@@ -1090,7 +1090,7 @@ func createNativeWindow(window *Window, wndconfig *wndconfig, fbconfig_ *fbconfi
 	nsWindow := objc.ID(class_GLFWWindow).Send(sel_alloc).Send(sel_initWithContentRect_styleMask_backing_defer,
 		contentRect, styleMask, uintptr(NSBackingStoreBuffered), false)
 	if nsWindow == 0 {
-		return fmt.Errorf("glfw: failed to create Cocoa window: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create Cocoa window", ErrPlatform)
 	}
 
 	window.platform.object = nsWindow
@@ -1912,7 +1912,7 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 		uintptr(32),                  // bitsPerPixel
 	)
 	if rep == 0 {
-		return fmt.Errorf("glfw: failed to create NSBitmapImageRep: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create NSBitmapImageRep", ErrPlatform)
 	}
 
 	// Copy pixel data into the bitmap row by row to honor the image's stride
@@ -1939,7 +1939,7 @@ func (c *Cursor) platformCreateCursor(img *image.NRGBA, xhot, yhot int) error {
 	rep.Send(sel_release)
 
 	if cursor == 0 {
-		return fmt.Errorf("glfw: failed to create custom cursor: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create custom cursor", ErrPlatform)
 	}
 
 	c.platform.object = cursor
@@ -2017,7 +2017,7 @@ func (c *Cursor) platformCreateStandardCursor(shape StandardCursor) error {
 	}
 
 	if cursor == 0 {
-		return fmt.Errorf("glfw: failed to create standard cursor: %w", PlatformError)
+		return fmt.Errorf("%w: failed to create standard cursor", ErrPlatform)
 	}
 
 	cursor.Send(sel_retain)
@@ -2071,12 +2071,12 @@ func platformGetClipboardString() (string, error) {
 
 	types := pasteboard.Send(sel_types)
 	if objc.Send[bool](types, sel_containsObject, nsPasteboardTypeString.ID) == false {
-		return "", fmt.Errorf("glfw: failed to retrieve string from pasteboard: %w", FormatUnavailable)
+		return "", fmt.Errorf("%w: failed to retrieve string from pasteboard", ErrFormatUnavailable)
 	}
 
 	strID := pasteboard.Send(sel_stringForType, nsPasteboardTypeString.ID)
 	if strID == 0 {
-		return "", fmt.Errorf("glfw: failed to retrieve object from pasteboard: %w", PlatformError)
+		return "", fmt.Errorf("%w: failed to retrieve object from pasteboard", ErrPlatform)
 	}
 
 	str := cocoa.NSString{ID: strID}
@@ -2087,7 +2087,7 @@ func platformGetClipboardString() (string, error) {
 
 func platformGetScancodeName(scancode int) (string, error) {
 	if scancode < 0 || scancode > 0xff {
-		return "", fmt.Errorf("glfw: invalid scancode %d: %w", scancode, InvalidValue)
+		return "", fmt.Errorf("%w: invalid scancode %d", ErrInvalidValue, scancode)
 	}
 	key := _glfw.platformWindow.keycodes[scancode]
 	if key == KeyUnknown {

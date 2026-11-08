@@ -79,13 +79,13 @@ func chooseEGLConfig(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (uintptr, error)
 	}
 
 	if fbconfig_.stereo {
-		return 0, fmt.Errorf("glfw: egl: stereo rendering not supported: %w", FormatUnavailable)
+		return 0, fmt.Errorf("%w: egl: stereo rendering not supported", ErrFormatUnavailable)
 	}
 
 	var nativeCount int32
 	egl.GetConfigs(egl.display, nil, 0, &nativeCount)
 	if nativeCount == 0 {
-		return 0, fmt.Errorf("glfw: egl: no EGLConfigs returned: %w", APIUnavailable)
+		return 0, fmt.Errorf("%w: egl: no EGLConfigs returned", ErrAPIUnavailable)
 	}
 
 	nativeConfigs := make([]uintptr, nativeCount)
@@ -150,13 +150,13 @@ func chooseEGLConfig(ctxconfig *ctxconfig, fbconfig_ *fbconfig) (uintptr, error)
 		if wrongApiAvailable {
 			if ctxconfig.client == OpenGLESAPI {
 				if ctxconfig.major == 1 {
-					return 0, fmt.Errorf("glfw: egl: failed to find support for OpenGL ES 1.x: %w", APIUnavailable)
+					return 0, fmt.Errorf("%w: egl: failed to find support for OpenGL ES 1.x", ErrAPIUnavailable)
 				}
-				return 0, fmt.Errorf("glfw: egl: failed to find support for OpenGL ES 2 or later: %w", APIUnavailable)
+				return 0, fmt.Errorf("%w: egl: failed to find support for OpenGL ES 2 or later", ErrAPIUnavailable)
 			}
-			return 0, fmt.Errorf("glfw: egl: failed to find support for OpenGL: %w", APIUnavailable)
+			return 0, fmt.Errorf("%w: egl: failed to find support for OpenGL", ErrAPIUnavailable)
 		}
-		return 0, fmt.Errorf("glfw: egl: failed to find a suitable EGLConfig: %w", FormatUnavailable)
+		return 0, fmt.Errorf("%w: egl: failed to find a suitable EGLConfig", ErrFormatUnavailable)
 	}
 
 	return closest.handle, nil
@@ -170,13 +170,13 @@ func makeContextCurrentEGL(window *Window) error {
 			window.context.platform.egl.surface,
 			window.context.platform.egl.handle) {
 			_glfw.currentContext = nil
-			return fmt.Errorf("glfw: egl: failed to make context current: %s: %w", getEGLErrorString(egl.GetError()), PlatformError)
+			return fmt.Errorf("%w: egl: failed to make context current: %s", ErrPlatform, getEGLErrorString(egl.GetError()))
 		}
 		_glfw.currentContext = window
 	} else {
 		_glfw.currentContext = nil
 		if !egl.MakeCurrent(egl.display, _EGL_NO_SURFACE, _EGL_NO_SURFACE, _EGL_NO_CONTEXT) {
-			return fmt.Errorf("glfw: egl: failed to clear current context: %s: %w", getEGLErrorString(egl.GetError()), PlatformError)
+			return fmt.Errorf("%w: egl: failed to clear current context: %s", ErrPlatform, getEGLErrorString(egl.GetError()))
 		}
 	}
 	return nil
@@ -185,7 +185,7 @@ func makeContextCurrentEGL(window *Window) error {
 func swapBuffersEGL(window *Window) error {
 	egl := &_glfw.platformContext.egl
 	if window != _glfw.currentContext {
-		return fmt.Errorf("glfw: egl: the context must be current on the calling thread when swapping buffers: %w", PlatformError)
+		return fmt.Errorf("%w: egl: the context must be current on the calling thread when swapping buffers", ErrPlatform)
 	}
 	egl.SwapBuffers(egl.display, window.context.platform.egl.surface)
 	window.signalFrameSyncCounter()
@@ -263,7 +263,7 @@ func initEGL() error {
 	}
 
 	if egl.handle == 0 {
-		return fmt.Errorf("glfw: egl: library not found: %w", APIUnavailable)
+		return fmt.Errorf("%w: egl: library not found", ErrAPIUnavailable)
 	}
 
 	egl.prefix = strings.HasPrefix(soname, "lib")
@@ -294,18 +294,18 @@ func initEGL() error {
 		!registerRequired(&egl.QueryString, "eglQueryString") ||
 		!registerRequired(&egl.GetProcAddress, "eglGetProcAddress") {
 		terminateEGL()
-		return fmt.Errorf("glfw: egl: failed to load required entry points: %w", PlatformError)
+		return fmt.Errorf("%w: egl: failed to load required entry points", ErrPlatform)
 	}
 
 	egl.display = egl.GetDisplay(_glfw.platformWindow.display)
 	if egl.display == _EGL_NO_DISPLAY {
-		err := fmt.Errorf("glfw: egl: failed to get EGL display: %s: %w", getEGLErrorString(egl.GetError()), APIUnavailable)
+		err := fmt.Errorf("%w: egl: failed to get EGL display: %s", ErrAPIUnavailable, getEGLErrorString(egl.GetError()))
 		terminateEGL()
 		return err
 	}
 
 	if !egl.Initialize(egl.display, &egl.major, &egl.minor) {
-		err := fmt.Errorf("glfw: egl: failed to initialize EGL: %s: %w", getEGLErrorString(egl.GetError()), APIUnavailable)
+		err := fmt.Errorf("%w: egl: failed to initialize EGL: %s", ErrAPIUnavailable, getEGLErrorString(egl.GetError()))
 		terminateEGL()
 		return err
 	}
@@ -340,7 +340,7 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	egl := &_glfw.platformContext.egl
 
 	if egl.display == 0 {
-		return fmt.Errorf("glfw: egl: API not available: %w", APIUnavailable)
+		return fmt.Errorf("%w: egl: API not available", ErrAPIUnavailable)
 	}
 
 	var share uintptr
@@ -355,11 +355,11 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 
 	if ctxconfig.client == OpenGLESAPI {
 		if !egl.BindAPI(_EGL_OPENGL_ES_API) {
-			return fmt.Errorf("glfw: egl: failed to bind OpenGL ES: %s: %w", getEGLErrorString(egl.GetError()), APIUnavailable)
+			return fmt.Errorf("%w: egl: failed to bind OpenGL ES: %s", ErrAPIUnavailable, getEGLErrorString(egl.GetError()))
 		}
 	} else {
 		if !egl.BindAPI(_EGL_OPENGL_API) {
-			return fmt.Errorf("glfw: egl: failed to bind OpenGL: %s: %w", getEGLErrorString(egl.GetError()), APIUnavailable)
+			return fmt.Errorf("%w: egl: failed to bind OpenGL: %s", ErrAPIUnavailable, getEGLErrorString(egl.GetError()))
 		}
 	}
 
@@ -434,7 +434,7 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	window.context.platform.egl.handle = egl.CreateContext(egl.display, config, share, &attribs[0])
 
 	if window.context.platform.egl.handle == _EGL_NO_CONTEXT {
-		return fmt.Errorf("glfw: egl: failed to create context: %s: %w", getEGLErrorString(egl.GetError()), VersionUnavailable)
+		return fmt.Errorf("%w: egl: failed to create context: %s", ErrVersionUnavailable, getEGLErrorString(egl.GetError()))
 	}
 
 	// Set the destroy function as soon as the context exists so that an error
@@ -459,7 +459,7 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	window.context.platform.egl.surface =
 		egl.CreateWindowSurface(egl.display, config, window.platform.handle, &attribs[0])
 	if window.context.platform.egl.surface == _EGL_NO_SURFACE {
-		return fmt.Errorf("glfw: egl: failed to create window surface: %s: %w", getEGLErrorString(egl.GetError()), PlatformError)
+		return fmt.Errorf("%w: egl: failed to create window surface: %s", ErrPlatform, getEGLErrorString(egl.GetError()))
 	}
 
 	window.context.platform.egl.config = config
@@ -492,7 +492,7 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		}
 
 		if window.context.platform.egl.client == 0 {
-			return fmt.Errorf("glfw: egl: failed to load client library: %w", APIUnavailable)
+			return fmt.Errorf("%w: egl: failed to load client library", ErrAPIUnavailable)
 		}
 	}
 
@@ -522,7 +522,7 @@ func chooseVisualEGL(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbcon
 	var count int32
 	resultPtr := xGetVisualInfo(_glfw.platformWindow.display, _VisualScreenMask|_VisualIDMask, &desired, &count)
 	if resultPtr == 0 {
-		return 0, 0, fmt.Errorf("glfw: egl: failed to retrieve Visual for EGLConfig: %w", PlatformError)
+		return 0, 0, fmt.Errorf("%w: egl: failed to retrieve Visual for EGLConfig", ErrPlatform)
 	}
 	defer xFree(resultPtr)
 

@@ -47,7 +47,7 @@ type TextInputActiveCallback func(w *Window) bool
 // itself and this callback is never called.
 func (w *Window) SetPreeditCallback(cbfun PreeditCallback) (PreeditCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.platform.preeditCallback
 	w.platform.preeditCallback = cbfun
@@ -58,7 +58,7 @@ func (w *Window) SetPreeditCallback(cbfun PreeditCallback) (PreeditCallback, err
 // the previously set one.
 func (w *Window) SetTextInputCallback(cbfun TextInputCallback) (TextInputCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.platform.textInputCallback
 	w.platform.textInputCallback = cbfun
@@ -73,7 +73,7 @@ func (w *Window) SetTextInputCallback(cbfun TextInputCallback) (TextInputCallbac
 // arrive when no callback is set.
 func (w *Window) SetTextInputActiveCallback(cbfun TextInputActiveCallback) (TextInputActiveCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.platform.textInputActiveCallback
 	w.platform.textInputActiveCallback = cbfun
@@ -282,7 +282,7 @@ func (w *Window) clearPreedit() {
 // ResetInputContext must be called from the main thread.
 func (w *Window) ResetInputContext() error {
 	if !_glfw.initialized {
-		return NotInitialized
+		return ErrNotInitialized
 	}
 	if w.platform.ic == 0 {
 		return nil

@@ -151,7 +151,7 @@ func (w *Window) centerCursorInContentArea() error {
 
 func (w *Window) GetInputMode(mode InputMode) (int, error) {
 	if !_glfw.initialized {
-		return 0, NotInitialized
+		return 0, ErrNotInitialized
 	}
 	switch mode {
 	case CursorMode:
@@ -165,19 +165,19 @@ func (w *Window) GetInputMode(mode InputMode) (int, error) {
 	case RawMouseMotion:
 		return boolToInt(w.rawMouseMotion), nil
 	default:
-		return 0, fmt.Errorf("glfw: invalid input mode 0x%08X: %w", mode, InvalidEnum)
+		return 0, fmt.Errorf("%w: invalid input mode 0x%08X", ErrInvalidEnum, mode)
 	}
 }
 
 func (w *Window) SetInputMode(mode InputMode, value int) error {
 	if !_glfw.initialized {
-		return NotInitialized
+		return ErrNotInitialized
 	}
 
 	switch mode {
 	case CursorMode:
 		if value != CursorNormal && value != CursorHidden && value != CursorDisabled {
-			return fmt.Errorf("glfw: invalid cursor mode 0x%08X: %w", value, InvalidEnum)
+			return fmt.Errorf("%w: invalid cursor mode 0x%08X", ErrInvalidEnum, value)
 		}
 
 		if w.cursorMode == value {
@@ -238,7 +238,7 @@ func (w *Window) SetInputMode(mode InputMode, value int) error {
 
 	case RawMouseMotion:
 		if !platformRawMouseMotionSupported() {
-			return fmt.Errorf("glfw: raw mouse motion is not supported on this system: %w", PlatformError)
+			return fmt.Errorf("%w: raw mouse motion is not supported on this system", ErrPlatform)
 		}
 
 		if w.rawMouseMotion == intToBool(value) {
@@ -252,25 +252,25 @@ func (w *Window) SetInputMode(mode InputMode, value int) error {
 		return nil
 
 	default:
-		return fmt.Errorf("glfw: invalid input mode 0x%08X: %w", mode, InvalidEnum)
+		return fmt.Errorf("%w: invalid input mode 0x%08X", ErrInvalidEnum, mode)
 	}
 }
 
 func RawMouseMotionSupported() (bool, error) {
 	if !_glfw.initialized {
-		return false, NotInitialized
+		return false, ErrNotInitialized
 	}
 	return platformRawMouseMotionSupported(), nil
 }
 
 func GetKeyName(key Key, scancode int) (string, error) {
 	if !_glfw.initialized {
-		return "", NotInitialized
+		return "", ErrNotInitialized
 	}
 
 	if key != KeyUnknown {
 		if key < KeySpace || key > KeyLast {
-			return "", fmt.Errorf("glfw: invalid key %d: %w", key, InvalidEnum)
+			return "", fmt.Errorf("%w: invalid key %d", ErrInvalidEnum, key)
 		}
 		if key != KeyKPEqual && (key < KeyKP0 || key > KeyKPAdd) && (key < KeyApostrophe || key > KeyWorld2) {
 			return "", nil
@@ -283,11 +283,11 @@ func GetKeyName(key Key, scancode int) (string, error) {
 
 func GetKeyScancode(key Key) (int, error) {
 	if !_glfw.initialized {
-		return 0, NotInitialized
+		return 0, ErrNotInitialized
 	}
 
 	if key < KeySpace || key > KeyLast {
-		return 0, fmt.Errorf("glfw: invalid key %d: %w", key, InvalidEnum)
+		return 0, fmt.Errorf("%w: invalid key %d", ErrInvalidEnum, key)
 	}
 
 	return platformGetKeyScancode(key), nil
@@ -295,11 +295,11 @@ func GetKeyScancode(key Key) (int, error) {
 
 func (w *Window) GetKey(key Key) (Action, error) {
 	if !_glfw.initialized {
-		return 0, NotInitialized
+		return 0, ErrNotInitialized
 	}
 
 	if key < KeySpace || key > KeyLast {
-		return 0, fmt.Errorf("glfw: invalid key %d: %w", key, InvalidEnum)
+		return 0, fmt.Errorf("%w: invalid key %d", ErrInvalidEnum, key)
 	}
 
 	if w.keys[key] == stick {
@@ -313,11 +313,11 @@ func (w *Window) GetKey(key Key) (Action, error) {
 
 func (w *Window) GetMouseButton(button MouseButton) (Action, error) {
 	if !_glfw.initialized {
-		return 0, NotInitialized
+		return 0, ErrNotInitialized
 	}
 
 	if button < MouseButton1 || button > MouseButtonLast {
-		return 0, fmt.Errorf("glfw: invalid mouse button %d: %w", button, InvalidEnum)
+		return 0, fmt.Errorf("%w: invalid mouse button %d", ErrInvalidEnum, button)
 	}
 
 	if w.mouseButtons[button] == stick {
@@ -331,7 +331,7 @@ func (w *Window) GetMouseButton(button MouseButton) (Action, error) {
 
 func (w *Window) GetCursorPos() (xpos, ypos float64, err error) {
 	if !_glfw.initialized {
-		return 0, 0, NotInitialized
+		return 0, 0, ErrNotInitialized
 	}
 
 	if w.cursorMode == CursorDisabled {
@@ -343,11 +343,11 @@ func (w *Window) GetCursorPos() (xpos, ypos float64, err error) {
 
 func (w *Window) SetCursorPos(xpos, ypos float64) error {
 	if !_glfw.initialized {
-		return NotInitialized
+		return ErrNotInitialized
 	}
 
 	if xpos != xpos || xpos < -math.MaxFloat64 || xpos > math.MaxFloat64 || ypos != ypos || ypos < -math.MaxFloat64 || ypos > math.MaxFloat64 {
-		return fmt.Errorf("glfw: invalid cursor position %f %f: %w", xpos, ypos, InvalidValue)
+		return fmt.Errorf("%w: invalid cursor position %f %f", ErrInvalidValue, xpos, ypos)
 	}
 
 	if !w.platformWindowFocused() {
@@ -367,12 +367,12 @@ func (w *Window) SetCursorPos(xpos, ypos float64) error {
 
 func CreateCursor(img image.Image, xhot, yhot int) (*Cursor, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 
 	b := img.Bounds()
 	if b.Dx() <= 0 || b.Dy() <= 0 {
-		return nil, fmt.Errorf("glfw: invalid image dimensions for cursor: %w", InvalidValue)
+		return nil, fmt.Errorf("%w: invalid image dimensions for cursor", ErrInvalidValue)
 	}
 
 	// Convert image to NRGBA.
@@ -395,7 +395,7 @@ func CreateCursor(img image.Image, xhot, yhot int) (*Cursor, error) {
 
 func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 
 	if shape != ArrowCursor &&
@@ -408,7 +408,7 @@ func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 		shape != ResizeNESWCursor &&
 		shape != ResizeAllCursor &&
 		shape != NotAllowedCursor {
-		return nil, fmt.Errorf("glfw: invalid standard cursor 0x%08X: %w", shape, InvalidEnum)
+		return nil, fmt.Errorf("%w: invalid standard cursor 0x%08X", ErrInvalidEnum, shape)
 	}
 
 	cursor := &Cursor{}
@@ -424,7 +424,7 @@ func CreateStandardCursor(shape StandardCursor) (*Cursor, error) {
 
 func (c *Cursor) Destroy() error {
 	if !_glfw.initialized {
-		return NotInitialized
+		return ErrNotInitialized
 	}
 
 	if c == nil {
@@ -457,7 +457,7 @@ func (c *Cursor) Destroy() error {
 
 func (w *Window) SetCursor(cursor *Cursor) error {
 	if !_glfw.initialized {
-		return NotInitialized
+		return ErrNotInitialized
 	}
 
 	w.cursor = cursor
@@ -470,7 +470,7 @@ func (w *Window) SetCursor(cursor *Cursor) error {
 
 func (w *Window) SetKeyCallback(cbfun KeyCallback) (KeyCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.key
 	w.callbacks.key = cbfun
@@ -479,7 +479,7 @@ func (w *Window) SetKeyCallback(cbfun KeyCallback) (KeyCallback, error) {
 
 func (w *Window) SetCharCallback(cbfun CharCallback) (CharCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.character
 	w.callbacks.character = cbfun
@@ -488,7 +488,7 @@ func (w *Window) SetCharCallback(cbfun CharCallback) (CharCallback, error) {
 
 func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (CharModsCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.charmods
 	w.callbacks.charmods = cbfun
@@ -497,7 +497,7 @@ func (w *Window) SetCharModsCallback(cbfun CharModsCallback) (CharModsCallback, 
 
 func (w *Window) SetMouseButtonCallback(cbfun MouseButtonCallback) (MouseButtonCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.mouseButton
 	w.callbacks.mouseButton = cbfun
@@ -506,7 +506,7 @@ func (w *Window) SetMouseButtonCallback(cbfun MouseButtonCallback) (MouseButtonC
 
 func (w *Window) SetCursorPosCallback(cbfun CursorPosCallback) (CursorPosCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.cursorPos
 	w.callbacks.cursorPos = cbfun
@@ -515,7 +515,7 @@ func (w *Window) SetCursorPosCallback(cbfun CursorPosCallback) (CursorPosCallbac
 
 func (w *Window) SetCursorEnterCallback(cbfun CursorEnterCallback) (CursorEnterCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.cursorEnter
 	w.callbacks.cursorEnter = cbfun
@@ -524,7 +524,7 @@ func (w *Window) SetCursorEnterCallback(cbfun CursorEnterCallback) (CursorEnterC
 
 func (w *Window) SetScrollCallback(cbfun ScrollCallback) (ScrollCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.scroll
 	w.callbacks.scroll = cbfun
@@ -536,7 +536,7 @@ func (w *Window) SetScrollCallback(cbfun ScrollCallback) (ScrollCallback, error)
 // XInput 2.4 so far.
 func (w *Window) SetPinchCallback(cbfun PinchCallback) (PinchCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.pinch
 	w.callbacks.pinch = cbfun
@@ -547,7 +547,7 @@ func (w *Window) SetPinchCallback(cbfun PinchCallback) (PinchCallback, error) {
 // The callback is called only on macOS and on X11 with XInput 2.4 so far.
 func (w *Window) SetRotateCallback(cbfun RotateCallback) (RotateCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.rotate
 	w.callbacks.rotate = cbfun
@@ -556,7 +556,7 @@ func (w *Window) SetRotateCallback(cbfun RotateCallback) (RotateCallback, error)
 
 func (w *Window) SetDropCallback(cbfun DropCallback) (DropCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := w.callbacks.drop
 	w.callbacks.drop = cbfun
@@ -565,14 +565,14 @@ func (w *Window) SetDropCallback(cbfun DropCallback) (DropCallback, error) {
 
 func (w *Window) SetClipboardString(str string) error {
 	if !_glfw.initialized {
-		return NotInitialized
+		return ErrNotInitialized
 	}
 	return platformSetClipboardString(str)
 }
 
 func GetClipboardString() (string, error) {
 	if !_glfw.initialized {
-		return "", NotInitialized
+		return "", ErrNotInitialized
 	}
 	return platformGetClipboardString()
 }

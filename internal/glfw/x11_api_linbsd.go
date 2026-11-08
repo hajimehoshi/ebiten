@@ -328,7 +328,7 @@ func initLibX11() error {
 
 	setlocaleSym, err := purego.Dlsym(purego.RTLD_DEFAULT, "setlocale")
 	if err != nil {
-		return err
+		return fmt.Errorf("glfw: failed to look up setlocale: %w", err)
 	}
 	purego.RegisterFunc(&setlocale, setlocaleSym)
 	purego.RegisterFunc(&setlocaleQuery, setlocaleSym)

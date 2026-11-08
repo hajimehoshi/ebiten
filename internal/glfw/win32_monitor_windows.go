@@ -343,7 +343,7 @@ func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 
 	dm, ok := _EnumDisplaySettingsW(m.platform.adapterName, _ENUM_CURRENT_SETTINGS)
 	if !ok {
-		return nil, fmt.Errorf("glfw: failed to query display settings: %w", PlatformError)
+		return nil, fmt.Errorf("%w: failed to query display settings", ErrPlatform)
 	}
 	r, g, b := splitBPP(int(dm.dmBitsPerPel))
 	return &VidMode{
@@ -358,14 +358,14 @@ func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 
 func (m *Monitor) in32Adapter() (string, error) {
 	if !_glfw.initialized {
-		return "", NotInitialized
+		return "", ErrNotInitialized
 	}
 	return m.platform.adapterName, nil
 }
 
 func (m *Monitor) win32Monitor() (string, error) {
 	if !_glfw.initialized {
-		return "", NotInitialized
+		return "", ErrNotInitialized
 	}
 	return m.platform.displayName, nil
 }

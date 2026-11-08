@@ -528,14 +528,14 @@ func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 
 	srPtr := randr.GetScreenResourcesCurrent(display, _glfw.platformWindow.root)
 	if srPtr == 0 {
-		return nil, fmt.Errorf("glfw: failed to query screen resources: %w", PlatformError)
+		return nil, fmt.Errorf("%w: failed to query screen resources", ErrPlatform)
 	}
 	defer randr.FreeScreenResources(srPtr)
 	sr := (*_XRRScreenResources)(unsafe.Pointer(srPtr))
 
 	ciPtr := getCrtcInfoX11(srPtr, m.platform.crtc)
 	if ciPtr == 0 {
-		return nil, fmt.Errorf("glfw: failed to query CRTC info: %w", PlatformError)
+		return nil, fmt.Errorf("%w: failed to query CRTC info", ErrPlatform)
 	}
 	defer randr.FreeCrtcInfo(ciPtr)
 	ci := (*_XRRCrtcInfo)(unsafe.Pointer(ciPtr))
@@ -543,7 +543,7 @@ func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 	// The mode can be missing if the monitor has been disconnected.
 	mi := getModeInfo(sr, ci.Mode)
 	if mi == nil {
-		return nil, fmt.Errorf("glfw: failed to query video mode: %w", PlatformError)
+		return nil, fmt.Errorf("%w: failed to query video mode", ErrPlatform)
 	}
 	return vidmodeFromModeInfo(mi, ci), nil
 }

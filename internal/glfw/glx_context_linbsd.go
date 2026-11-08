@@ -41,7 +41,7 @@ func chooseGLXFBConfig(desired *fbconfig) (uintptr, error) {
 	var nativeCount int32
 	nativeConfigsPtr := glx.GetFBConfigs(_glfw.platformWindow.display, int32(_glfw.platformWindow.screen), &nativeCount)
 	if nativeConfigsPtr == 0 || nativeCount == 0 {
-		return 0, fmt.Errorf("glfw: glx: no GLXFBConfigs returned: %w", APIUnavailable)
+		return 0, fmt.Errorf("%w: glx: no GLXFBConfigs returned", ErrAPIUnavailable)
 	}
 	defer xFree(nativeConfigsPtr)
 
@@ -109,7 +109,7 @@ func chooseGLXFBConfig(desired *fbconfig) (uintptr, error) {
 
 	closest := chooseFBConfig(desired, usableConfigs)
 	if closest == nil {
-		return 0, fmt.Errorf("glfw: glx: failed to find a suitable GLXFBConfig: %w", FormatUnavailable)
+		return 0, fmt.Errorf("%w: glx: failed to find a suitable GLXFBConfig", ErrFormatUnavailable)
 	}
 	return closest.handle, nil
 }
@@ -130,13 +130,13 @@ func makeContextCurrentGLX(window *Window) error {
 			window.context.platform.glx.window,
 			window.context.platform.glx.handle) {
 			_glfw.currentContext = nil
-			return fmt.Errorf("glfw: glx: failed to make context current: %w", PlatformError)
+			return fmt.Errorf("%w: glx: failed to make context current", ErrPlatform)
 		}
 		_glfw.currentContext = window
 	} else {
 		_glfw.currentContext = nil
 		if !glx.MakeCurrent(_glfw.platformWindow.display, _None, 0) {
-			return fmt.Errorf("glfw: glx: failed to clear current context: %w", PlatformError)
+			return fmt.Errorf("%w: glx: failed to clear current context", ErrPlatform)
 		}
 	}
 	return nil
@@ -212,7 +212,7 @@ func initGLX() (err error) {
 
 	handle, err := openX11Library("libGLX.so.0", "libGL.so.1", "libGL.so")
 	if err != nil {
-		return fmt.Errorf("glfw: glx: failed to load GLX: %w", APIUnavailable)
+		return fmt.Errorf("%w: glx: failed to load GLX", ErrAPIUnavailable)
 	}
 	glx.handle = handle
 	defer func() {
@@ -243,7 +243,7 @@ func initGLX() (err error) {
 		!registerRequired(&glx.CreateWindow, "glXCreateWindow") ||
 		!registerRequired(&glx.DestroyWindow, "glXDestroyWindow") ||
 		!registerRequired(&glx.GetVisualFromFBConfig, "glXGetVisualFromFBConfig") {
-		return fmt.Errorf("glfw: glx: failed to load required entry points: %w", PlatformError)
+		return fmt.Errorf("%w: glx: failed to load required entry points", ErrPlatform)
 	}
 
 	// NOTE: Unlike GLX 1.3 entry points these are not required to be present
@@ -255,15 +255,15 @@ func initGLX() (err error) {
 	}
 
 	if !glx.QueryExtension(_glfw.platformWindow.display, &glx.errorBase, &glx.eventBase) {
-		return fmt.Errorf("glfw: glx: GLX extension not found: %w", APIUnavailable)
+		return fmt.Errorf("%w: glx: GLX extension not found", ErrAPIUnavailable)
 	}
 
 	if !glx.QueryVersion(_glfw.platformWindow.display, &glx.major, &glx.minor) {
-		return fmt.Errorf("glfw: glx: failed to query GLX version: %w", APIUnavailable)
+		return fmt.Errorf("%w: glx: failed to query GLX version", ErrAPIUnavailable)
 	}
 
 	if glx.major == 1 && glx.minor < 3 {
-		return fmt.Errorf("glfw: glx: GLX version 1.3 is required: %w", APIUnavailable)
+		return fmt.Errorf("%w: glx: GLX version 1.3 is required", ErrAPIUnavailable)
 	}
 
 	if extensionSupportedGLX("GLX_EXT_swap_control") {
@@ -359,19 +359,19 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 		if !glx.ARB_create_context ||
 			!glx.ARB_create_context_profile ||
 			!glx.EXT_create_context_es2_profile {
-			return fmt.Errorf("glfw: glx: OpenGL ES requested but GLX_EXT_create_context_es2_profile is unavailable: %w", APIUnavailable)
+			return fmt.Errorf("%w: glx: OpenGL ES requested but GLX_EXT_create_context_es2_profile is unavailable", ErrAPIUnavailable)
 		}
 	}
 
 	if ctxconfig.forward {
 		if !glx.ARB_create_context {
-			return fmt.Errorf("glfw: glx: forward compatibility requested but GLX_ARB_create_context_profile is unavailable: %w", VersionUnavailable)
+			return fmt.Errorf("%w: glx: forward compatibility requested but GLX_ARB_create_context_profile is unavailable", ErrVersionUnavailable)
 		}
 	}
 
 	if ctxconfig.profile != 0 {
 		if !glx.ARB_create_context || !glx.ARB_create_context_profile {
-			return fmt.Errorf("glfw: glx: an OpenGL profile requested but GLX_ARB_create_context_profile is unavailable: %w", VersionUnavailable)
+			return fmt.Errorf("%w: glx: an OpenGL profile requested but GLX_ARB_create_context_profile is unavailable", ErrVersionUnavailable)
 		}
 	}
 
@@ -475,7 +475,7 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	releaseErrorHandlerX11()
 
 	if window.context.platform.glx.handle == 0 {
-		return inputErrorX11(VersionUnavailable, "GLX: Failed to create context")
+		return inputErrorX11(ErrVersionUnavailable, "GLX: Failed to create context")
 	}
 
 	// Set the destroy function as soon as the context exists so that an error
@@ -485,7 +485,7 @@ func createContextGLX(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 	window.context.platform.glx.window =
 		glx.CreateWindow(_glfw.platformWindow.display, native, window.platform.handle, nil)
 	if window.context.platform.glx.window == 0 {
-		return fmt.Errorf("glfw: glx: failed to create window: %w", PlatformError)
+		return fmt.Errorf("%w: glx: failed to create window", ErrPlatform)
 	}
 
 	window.context.makeCurrent = makeContextCurrentGLX
@@ -506,7 +506,7 @@ func chooseVisualGLX(wndconfig *wndconfig, ctxconfig *ctxconfig, fbconfig *fbcon
 
 	resultPtr := _glfw.platformContext.glx.GetVisualFromFBConfig(_glfw.platformWindow.display, native)
 	if resultPtr == 0 {
-		return 0, 0, fmt.Errorf("glfw: glx: failed to retrieve Visual for GLXFBConfig: %w", PlatformError)
+		return 0, 0, fmt.Errorf("%w: glx: failed to retrieve Visual for GLXFBConfig", ErrPlatform)
 	}
 	defer xFree(resultPtr)
 

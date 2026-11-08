@@ -324,7 +324,7 @@ func nsScreenForDisplayID(displayID uint32) objc.ID {
 func pollMonitorsNS() error {
 	var displayCount uint32
 	if cgGetOnlineDisplayList(0, nil, &displayCount) != kCGErrorSuccess {
-		return fmt.Errorf("glfw: failed to get online display list: %w", PlatformError)
+		return fmt.Errorf("%w: failed to get online display list", ErrPlatform)
 	}
 	if displayCount == 0 {
 		return nil
@@ -332,7 +332,7 @@ func pollMonitorsNS() error {
 
 	displays := make([]uint32, displayCount)
 	if cgGetOnlineDisplayList(displayCount, &displays[0], &displayCount) != kCGErrorSuccess {
-		return fmt.Errorf("glfw: failed to get online display list: %w", PlatformError)
+		return fmt.Errorf("%w: failed to get online display list", ErrPlatform)
 	}
 
 	// Reset screen references for all existing monitors.
@@ -425,7 +425,7 @@ func (m *Monitor) setVideoModeNS(desired *VidMode) error {
 
 	modes := cgDisplayCopyAllDisplayModes(m.platform.displayID, 0)
 	if modes == 0 {
-		return fmt.Errorf("glfw: failed to copy display modes: %w", PlatformError)
+		return fmt.Errorf("%w: failed to copy display modes", ErrPlatform)
 	}
 	defer cfRelease(modes)
 
@@ -496,7 +496,7 @@ func (m *Monitor) platformGetMonitorPos() (xpos, ypos int, ok bool) {
 
 func (m *Monitor) platformGetMonitorContentScale() (xscale, yscale float32, err error) {
 	if m.platform.screen == 0 {
-		return 0, 0, fmt.Errorf("glfw: cannot query content scale without screen: %w", PlatformError)
+		return 0, 0, fmt.Errorf("%w: cannot query content scale without screen", ErrPlatform)
 	}
 
 	points := objc.Send[cocoa.NSRect](m.platform.screen, sel_frame)
@@ -565,7 +565,7 @@ func (m *Monitor) platformAppendVideoModes(monitors []*VidMode) ([]*VidMode, err
 func (m *Monitor) platformGetVideoMode() (*VidMode, error) {
 	mode := cgDisplayCopyDisplayMode(m.platform.displayID)
 	if mode == 0 {
-		return nil, fmt.Errorf("glfw: failed to query display mode: %w", PlatformError)
+		return nil, fmt.Errorf("%w: failed to query display mode", ErrPlatform)
 	}
 	defer cfRelease(mode)
 
@@ -580,7 +580,7 @@ func (m *Monitor) platformGetGammaRamp() (GammaRamp, error) {
 	green := make([]float32, sampleCount)
 	blue := make([]float32, sampleCount)
 	if cgGetDisplayTransferByTable(m.platform.displayID, sampleCount, &red[0], &green[0], &blue[0], &sampleCount) != kCGErrorSuccess {
-		return GammaRamp{}, fmt.Errorf("glfw: failed to get gamma ramp: %w", PlatformError)
+		return GammaRamp{}, fmt.Errorf("%w: failed to get gamma ramp", ErrPlatform)
 	}
 
 	ramp := GammaRamp{
@@ -609,7 +609,7 @@ func (m *Monitor) platformSetGammaRamp(ramp *GammaRamp) error {
 	}
 
 	if cgSetDisplayTransferByTable(m.platform.displayID, uint32(size), &red[0], &green[0], &blue[0]) != kCGErrorSuccess {
-		return fmt.Errorf("glfw: failed to set gamma ramp: %w", PlatformError)
+		return fmt.Errorf("%w: failed to set gamma ramp", ErrPlatform)
 	}
 
 	return nil

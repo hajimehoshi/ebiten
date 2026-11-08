@@ -459,7 +459,7 @@ func createKeyTables() error {
 
 		descPtr := xkbGetMap(_glfw.platformWindow.display, 0, _XkbUseCoreKbd)
 		if descPtr == 0 {
-			return fmt.Errorf("glfw: x11: failed to allocate an XKB keyboard description: %w", OutOfMemory)
+			return fmt.Errorf("%w: x11: failed to allocate an XKB keyboard description", ErrOutOfMemory)
 		}
 		defer xkbFreeKeyboard(descPtr, 0, true)
 		defer xkbFreeNames(descPtr, _XkbKeyNamesMask, true)
@@ -474,7 +474,7 @@ func createKeyTables() error {
 
 		names := (*_XkbNamesRec)(unsafe.Pointer(desc.Names))
 		if names.Keys == 0 {
-			return fmt.Errorf("glfw: x11: failed to allocate XKB key names: %w", OutOfMemory)
+			return fmt.Errorf("%w: x11: failed to allocate XKB key names", ErrOutOfMemory)
 		}
 		keyNames := unsafe.Slice((*_XkbKeyNameRec)(unsafe.Pointer(names.Keys)), int(scancodeMax)+1)
 		keyAliases := unsafe.Slice((*_XkbKeyAliasRec)(unsafe.Pointer(names.KeyAliases)), int(names.NumKeyAliases))
@@ -980,7 +980,7 @@ func createHelperWindow() _XID {
 // createEmptyEventPipe creates the pipe for empty events.
 func createEmptyEventPipe() error {
 	if err := unix.Pipe2(_glfw.platformWindow.emptyEventPipe[:], unix.O_NONBLOCK|unix.O_CLOEXEC); err != nil {
-		return fmt.Errorf("glfw: x11: failed to create empty event pipe: %v: %w", err, PlatformError)
+		return fmt.Errorf("%w: x11: failed to create empty event pipe: %v", ErrPlatform, err)
 	}
 	return nil
 }
@@ -1017,7 +1017,7 @@ func releaseErrorHandlerX11() {
 
 // inputErrorX11 returns the specified error, appending information about the
 // last X error.
-func inputErrorX11(code ErrorCode, message string) error {
+func inputErrorX11(err error, message string) error {
 	buffer := make([]byte, 1024)
 	xGetErrorText(_glfw.platformWindow.display, int32(_glfw.platformWindow.errorCode), buffer, int32(len(buffer)))
 	text := buffer[:]
@@ -1027,7 +1027,7 @@ func inputErrorX11(code ErrorCode, message string) error {
 			break
 		}
 	}
-	return fmt.Errorf("glfw: %s: %s: %w", message, text, code)
+	return fmt.Errorf("%w: %s: %s", err, message, text)
 }
 
 // createCursorX11 creates a native cursor object from the specified image and
@@ -1083,9 +1083,9 @@ func platformInit() error {
 	_glfw.platformWindow.display = xOpenDisplay(0)
 	if _glfw.platformWindow.display == 0 {
 		if display := os.Getenv("DISPLAY"); display != "" {
-			return fmt.Errorf("glfw: x11: failed to open display %s: %w", display, PlatformError)
+			return fmt.Errorf("%w: x11: failed to open display %s", ErrPlatform, display)
 		}
-		return fmt.Errorf("glfw: x11: the DISPLAY environment variable is missing: %w", PlatformError)
+		return fmt.Errorf("%w: x11: the DISPLAY environment variable is missing", ErrPlatform)
 	}
 
 	_glfw.platformWindow.screen = int(xDefaultScreen(_glfw.platformWindow.display))

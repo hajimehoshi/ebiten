@@ -29,19 +29,19 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	defer pool.Release()
 
 	if ctxconfig.client == OpenGLESAPI {
-		return fmt.Errorf("glfw: NSGL does not support OpenGL ES: %w", APIUnavailable)
+		return fmt.Errorf("%w: NSGL does not support OpenGL ES", ErrAPIUnavailable)
 	}
 
 	if ctxconfig.major == 3 && ctxconfig.minor < 2 {
-		return fmt.Errorf("glfw: NSGL does not support OpenGL version 3.0 or 3.1: %w", VersionUnavailable)
+		return fmt.Errorf("%w: NSGL does not support OpenGL version 3.0 or 3.1", ErrVersionUnavailable)
 	}
 
 	if ctxconfig.major >= 3 && !ctxconfig.forward {
-		return fmt.Errorf("glfw: NSGL OpenGL 3.2+ requires a forward-compatible core profile: %w", VersionUnavailable)
+		return fmt.Errorf("%w: NSGL OpenGL 3.2+ requires a forward-compatible core profile", ErrVersionUnavailable)
 	}
 
 	if ctxconfig.major >= 3 && ctxconfig.profile != OpenGLCoreProfile {
-		return fmt.Errorf("glfw: NSGL OpenGL 3.2+ requires a core profile: %w", VersionUnavailable)
+		return fmt.Errorf("%w: NSGL OpenGL 3.2+ requires a core profile", ErrVersionUnavailable)
 	}
 
 	// Build the pixel format attributes array.
@@ -115,7 +115,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	}
 
 	if fbconfig_.stereo {
-		return fmt.Errorf("glfw: NSGL stereo rendering is deprecated: %w", FormatUnavailable)
+		return fmt.Errorf("%w: NSGL stereo rendering is deprecated", ErrFormatUnavailable)
 	}
 
 	if fbconfig_.doublebuffer {
@@ -137,7 +137,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	// Create the pixel format.
 	pixelFormat := objc.ID(class_NSOpenGLPixelFormat).Send(sel_alloc).Send(sel_initWithAttributes, unsafe.Pointer(&attribs[0]))
 	if pixelFormat == 0 {
-		return fmt.Errorf("glfw: NSGL: failed to find a suitable pixel format: %w", FormatUnavailable)
+		return fmt.Errorf("%w: NSGL: failed to find a suitable pixel format", ErrFormatUnavailable)
 	}
 
 	// Create the OpenGL context.
@@ -149,7 +149,7 @@ func (w *Window) createContextNSGL(ctxconfig *ctxconfig, fbconfig_ *fbconfig) er
 	context := objc.ID(class_NSOpenGLContext).Send(sel_alloc).Send(sel_initWithFormat_shareContext, uintptr(pixelFormat), uintptr(share))
 	if context == 0 {
 		pixelFormat.Send(sel_release)
-		return fmt.Errorf("glfw: NSGL: failed to create OpenGL context: %w", VersionUnavailable)
+		return fmt.Errorf("%w: NSGL: failed to create OpenGL context", ErrVersionUnavailable)
 	}
 
 	w.context.platform.object = context

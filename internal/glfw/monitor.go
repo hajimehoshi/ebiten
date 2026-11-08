@@ -196,14 +196,14 @@ func splitBPP(bpp int) (red, green, blue int) {
 
 func GetMonitors() ([]*Monitor, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	return _glfw.monitors, nil
 }
 
 func GetPrimaryMonitor() (*Monitor, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	if len(_glfw.monitors) == 0 {
 		return nil, nil
@@ -213,7 +213,7 @@ func GetPrimaryMonitor() (*Monitor, error) {
 
 func (m *Monitor) GetPos() (xpos, ypos int, err error) {
 	if !_glfw.initialized {
-		return 0, 0, NotInitialized
+		return 0, 0, ErrNotInitialized
 	}
 	xpos, ypos, ok := m.platformGetMonitorPos()
 	if !ok {
@@ -224,7 +224,7 @@ func (m *Monitor) GetPos() (xpos, ypos int, err error) {
 
 func (m *Monitor) GetWorkarea() (xpos, ypos, width, height int, err error) {
 	if !_glfw.initialized {
-		return 0, 0, 0, 0, NotInitialized
+		return 0, 0, 0, 0, ErrNotInitialized
 	}
 	xpos, ypos, width, height = m.platformGetMonitorWorkarea()
 	return
@@ -234,7 +234,7 @@ func (m *Monitor) GetWorkarea() (xpos, ypos, width, height int, err error) {
 
 func (m *Monitor) GetContentScale() (xscale, yscale float32, err error) {
 	if !_glfw.initialized {
-		return 0, 0, NotInitialized
+		return 0, 0, ErrNotInitialized
 	}
 	xscale, yscale, err = m.platformGetMonitorContentScale()
 	return
@@ -242,7 +242,7 @@ func (m *Monitor) GetContentScale() (xscale, yscale float32, err error) {
 
 func (m *Monitor) GetName() (string, error) {
 	if !_glfw.initialized {
-		return "", NotInitialized
+		return "", ErrNotInitialized
 	}
 	return m.name, nil
 }
@@ -252,7 +252,7 @@ func (m *Monitor) GetName() (string, error) {
 
 func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	old := _glfw.callbacks.monitor
 	_glfw.callbacks.monitor = cbfun
@@ -261,7 +261,7 @@ func SetMonitorCallback(cbfun MonitorCallback) (MonitorCallback, error) {
 
 func (m *Monitor) GetVideoModes() ([]*VidMode, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	if err := m.refreshVideoModes(); err != nil {
 		return nil, err
@@ -271,7 +271,7 @@ func (m *Monitor) GetVideoModes() ([]*VidMode, error) {
 
 func (m *Monitor) GetVideoMode() (*VidMode, error) {
 	if !_glfw.initialized {
-		return nil, NotInitialized
+		return nil, ErrNotInitialized
 	}
 	return m.platformGetVideoMode()
 }
