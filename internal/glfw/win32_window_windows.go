@@ -1732,8 +1732,7 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		}
 		smallIcon, err = createIcon(smallImage, 0, 0, false)
 		if err != nil {
-			_ = _DestroyIcon(bigIcon)
-			return err
+			return errors.Join(err, _DestroyIcon(bigIcon))
 		}
 	} else {
 		// A class icon can be 0, e.g. when the class sets no small icon. A 0 handle is valid

@@ -406,9 +406,7 @@ func initWGL() error {
 	prc := wglGetCurrentContext()
 
 	if err := wglMakeCurrent(dc, rc); err != nil {
-		_ = wglMakeCurrent(pdc, prc)
-		_ = wglDeleteContext(rc)
-		return err
+		return errors.Join(err, wglMakeCurrent(pdc, prc), wglDeleteContext(rc))
 	}
 
 	// NOTE: Functions must be loaded first as they're needed to retrieve the
@@ -433,8 +431,7 @@ func initWGL() error {
 	_glfw.platformContext.ARB_context_flush_control = extensionSupportedWGL("WGL_ARB_context_flush_control")
 
 	if err := wglMakeCurrent(pdc, prc); err != nil {
-		_ = wglDeleteContext(rc)
-		return err
+		return errors.Join(err, wglDeleteContext(rc))
 	}
 	if err := wglDeleteContext(rc); err != nil {
 		return err
