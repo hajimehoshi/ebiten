@@ -10,14 +10,23 @@ import (
 )
 
 func (m *Monitor) GetCocoaMonitor() (uintptr, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	return uintptr(m.platform.displayID), nil
 }
 
 func (w *Window) GetCocoaWindow() (uintptr, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	return uintptr(w.platform.object), nil
 }
 
 func (w *Window) GetNSGLContext() (unsafe.Pointer, error) {
+	if !_glfw.initialized {
+		return nil, ErrNotInitialized
+	}
 	if w.context.source != NativeContextAPI {
 		return nil, fmt.Errorf("%w: window has no NSGL context", ErrNoWindowContext)
 	}

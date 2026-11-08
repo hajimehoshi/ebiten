@@ -12,32 +12,50 @@ import (
 )
 
 func GetX11Display() (uintptr, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	return _glfw.platformWindow.display, nil
 }
 
 // GetX11Adapter returns the RRCrtc of the monitor.
 func (m *Monitor) GetX11Adapter() (_RRCrtc, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	return m.platform.crtc, nil
 }
 
 // GetX11Monitor returns the RROutput of the monitor.
 func (m *Monitor) GetX11Monitor() (_RROutput, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	return m.platform.output, nil
 }
 
 // GetX11Window returns the Window of the window.
 func (w *Window) GetX11Window() (uintptr, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	return uintptr(w.platform.handle), nil
 }
 
 // GetX11InputContext returns the X input context (XIC) of the window, or 0
 // when no input method is available.
 func (w *Window) GetX11InputContext() (uintptr, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	return w.platform.ic, nil
 }
 
 // GetGLXContext returns the GLXContext of the window.
 func (w *Window) GetGLXContext() (uintptr, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	if w.context.source != NativeContextAPI {
 		return 0, fmt.Errorf("%w: window has no GLX context", ErrNoWindowContext)
 	}
@@ -46,6 +64,9 @@ func (w *Window) GetGLXContext() (uintptr, error) {
 
 // GetGLXWindow returns the GLXWindow of the window.
 func (w *Window) GetGLXWindow() (uintptr, error) {
+	if !_glfw.initialized {
+		return 0, ErrNotInitialized
+	}
 	if w.context.source != NativeContextAPI {
 		return 0, fmt.Errorf("%w: window has no GLX context", ErrNoWindowContext)
 	}
