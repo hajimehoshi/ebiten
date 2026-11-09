@@ -91,6 +91,21 @@ func xmain() error {
 		}
 	}
 
+	for filter := builtinshader.Filter(0); filter < builtinshader.FilterCount; filter++ {
+		for _, opaque := range []bool{false, true} {
+			s := builtinshader.FinalScreenShaderSource(filter, opaque)
+			if _, err := w.WriteString("\n"); err != nil {
+				return err
+			}
+			if _, err := w.WriteString("//ebitengine:shadersource\n"); err != nil {
+				return err
+			}
+			if _, err := fmt.Fprintf(w, "const _ = %q\n", s); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := w.Flush(); err != nil {
 		return err
 	}

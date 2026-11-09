@@ -49,20 +49,9 @@ var (
 	shadersM sync.Mutex
 )
 
-var tmpl = template.Must(template.New("tmpl").Parse(`//kage:unit pixels
-
-package main
-
-{{if eq .Address .AddressRepeat}}
-func adjustSrcPosForAddressRepeat(p vec2) vec2 {
-	origin := imageSrc0Origin()
-	size := imageSrc0Size()
-	return mod(p - origin, size) + origin
-}
-{{end}}
-
-func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
-{{if eq .Filter .FilterNearest}}
+// samplingTmplText is the part of a Fragment function that samples the source image at src0Pos
+// into clr, with the filter and the address given as the template's data.
+const samplingTmplText = `{{if eq .Filter .FilterNearest}}
 {{if eq .Address .AddressUnsafe}}
 	clr := imageSrc0UnsafeAt(src0Pos)
 {{else if eq .Address .AddressClampToZero}}
@@ -109,7 +98,22 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 {{end}}
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 {{end}}
+`
 
+var tmpl = template.Must(template.New("tmpl").Parse(`//kage:unit pixels
+
+package main
+
+{{if eq .Address .AddressRepeat}}
+func adjustSrcPosForAddressRepeat(p vec2) vec2 {
+	origin := imageSrc0Origin()
+	size := imageSrc0Size()
+	return mod(p - origin, size) + origin
+}
+{{end}}
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+` + samplingTmplText + `
 	// Apply the color scale.
 	clr *= color
 
@@ -128,16 +132,29 @@ func ShaderSource(filter Filter, address Address) []byte {
 	}
 
 	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, struct {
-		Filter             Filter
-		FilterNearest      Filter
-		FilterLinear       Filter
-		FilterPixelated    Filter
-		Address            Address
-		AddressUnsafe      Address
-		AddressClampToZero Address
-		AddressRepeat      Address
-	}{
+	if err := tmpl.Execute(&buf, newSamplingTmplData(filter, address)); err != nil {
+		panic(fmt.Sprintf("builtinshader: tmpl.Execute failed: %v", err))
+	}
+
+	b := buf.Bytes()
+	shaders[filter][address] = b
+	return b
+}
+
+// samplingTmplData is the data for samplingTmplText.
+type samplingTmplData struct {
+	Filter             Filter
+	FilterNearest      Filter
+	FilterLinear       Filter
+	FilterPixelated    Filter
+	Address            Address
+	AddressUnsafe      Address
+	AddressClampToZero Address
+	AddressRepeat      Address
+}
+
+func newSamplingTmplData(filter Filter, address Address) samplingTmplData {
+	return samplingTmplData{
 		Filter:             filter,
 		FilterNearest:      FilterNearest,
 		FilterLinear:       FilterLinear,
@@ -146,12 +163,59 @@ func ShaderSource(filter Filter, address Address) []byte {
 		AddressUnsafe:      AddressUnsafe,
 		AddressClampToZero: AddressClampToZero,
 		AddressRepeat:      AddressRepeat,
+	}
+}
+
+var finalScreenTmpl = template.Must(template.New("finalScreenTmpl").Parse(`//kage:unit pixels
+
+package main
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+` + samplingTmplText + `
+	// Make the pixels outside the source region transparent black. The mask is arithmetic, as
+	// dfdx and dfdy are undefined in control flow that differs between neighboring pixels.
+	origin := imageSrc0Origin()
+	inside := step(origin, src0Pos) * (1 - step(origin+imageSrc0Size(), src0Pos))
+	clr *= inside.x * inside.y
+
+{{if .Opaque}}
+	return vec4(clr.rgb, 1)
+{{else}}
+	return clr
+{{end}}
+}
+`))
+
+var finalScreenShaders [FilterCount][2][]byte
+
+// FinalScreenShaderSource returns the source of a shader that draws the source image with the given
+// filter, and transparent black outside the source region. If opaque is true, every alpha the shader
+// returns is 1.
+func FinalScreenShaderSource(filter Filter, opaque bool) []byte {
+	shadersM.Lock()
+	defer shadersM.Unlock()
+
+	var o int
+	if opaque {
+		o = 1
+	}
+	if s := finalScreenShaders[filter][o]; s != nil {
+		return s
+	}
+
+	var buf bytes.Buffer
+	if err := finalScreenTmpl.Execute(&buf, struct {
+		samplingTmplData
+		Opaque bool
+	}{
+		samplingTmplData: newSamplingTmplData(filter, AddressUnsafe),
+		Opaque:           opaque,
 	}); err != nil {
-		panic(fmt.Sprintf("builtinshader: tmpl.Execute failed: %v", err))
+		panic(fmt.Sprintf("builtinshader: finalScreenTmpl.Execute failed: %v", err))
 	}
 
 	b := buf.Bytes()
-	shaders[filter][address] = b
+	finalScreenShaders[filter][o] = b
 	return b
 }
 

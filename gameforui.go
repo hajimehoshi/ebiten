@@ -16,10 +16,13 @@ package ebiten
 
 import (
 	"image"
+	"image/color"
 	"math"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
+	"github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
+	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/inputstate"
 	"github.com/hajimehoshi/ebiten/v2/internal/ui"
 )
@@ -29,6 +32,10 @@ var screenFilterEnabled atomic.Bool
 func init() {
 	screenFilterEnabled.Store(true)
 }
+
+// finalScreenTransparent reports whether the screen of the running game is transparent.
+// Unlike screenTransparent, it does not change after the game starts.
+var finalScreenTransparent atomic.Bool
 
 type gameForUI struct {
 	game        Game
@@ -43,6 +50,7 @@ func newGameForUI(game Game, transparent bool) *gameForUI {
 		game:        game,
 		transparent: transparent,
 	}
+	finalScreenTransparent.Store(transparent)
 	return g
 }
 
@@ -161,22 +169,87 @@ func (g *gameForUI) DrawFinalScreen(scale, offsetX, offsetY float64) {
 	DefaultDrawFinalScreen(g.screen, g.offscreen, geoM)
 }
 
+func (g *gameForUI) HasCustomFinalScreenDrawer() bool {
+	_, ok := g.game.(FinalScreenDrawer)
+	return ok
+}
+
 // DefaultDrawFinalScreen is the default implementation of [FinalScreenDrawer.DrawFinalScreen],
 // used when a [Game] doesn't implement [FinalScreenDrawer].
+//
+// DefaultDrawFinalScreen overwrites every pixel of screen: offscreen drawn with geoM, and black elsewhere.
+// If the screen is not transparent, every resulting pixel is opaque.
+//
+// The exact rendering result is not guaranteed to be compatible across Ebitengine versions.
+// The result might also depend on Ebitengine's state, especially on whether the game loop has started.
 //
 // You can use DefaultDrawFinalScreen when you need the default implementation of [FinalScreenDrawer.DrawFinalScreen]
 // in your implementation of [FinalScreenDrawer], for example.
 func DefaultDrawFinalScreen(screen FinalScreen, offscreen *Image, geoM GeoM) {
-	var op DrawImageOptions
-	op.GeoM = geoM
+	filter := builtinshader.FilterNearest
 	scale := geoM.Element(0, 0)
 	switch {
 	case !screenFilterEnabled.Load(), math.Floor(scale) == scale:
 	case scale < 1:
-		op.Filter = FilterLinear
+		filter = builtinshader.FilterLinear
 	default:
-		op.Filter = FilterPixelated
+		filter = builtinshader.FilterPixelated
 	}
-	// Call DrawImage on the concrete type. A call via the FinalScreen interface makes op escape to the heap in each frame.
-	screen.(*Image).DrawImage(offscreen, &op)
+	opaque := !finalScreenTransparent.Load()
+
+	// Call the methods on the concrete type. A call via the FinalScreen interface makes the options
+	// escape to the heap in each frame.
+	dst := screen.(*Image)
+
+	// Place the offscreen's corners where DrawImage places them, including its snapping of the
+	// destination positions, so that the pixels covered and the source positions sampled are the
+	// same. Then map the destination's corners back to source positions with the inverse of the
+	// affine map defined by three of the placed corners.
+	a, b, c, d, tx, ty := geoM.elements32()
+	srcBounds := offscreen.Bounds()
+	w, h := float32(srcBounds.Dx()), float32(srcBounds.Dy())
+	var corners [4 * graphics.VertexFloatCount]float32
+	graphics.QuadVerticesFromSrcAndMatrix(corners[:], 0, 0, w, h, a, b, c, d, tx, ty, 1, 1, 1, 1)
+	ox, oy := float64(corners[0]), float64(corners[1])
+	var m00, m01, m10, m11 float64
+	if w > 0 && h > 0 {
+		m00 = (float64(corners[graphics.VertexFloatCount]) - ox) / float64(w)
+		m10 = (float64(corners[graphics.VertexFloatCount+1]) - oy) / float64(w)
+		m01 = (float64(corners[2*graphics.VertexFloatCount]) - ox) / float64(h)
+		m11 = (float64(corners[2*graphics.VertexFloatCount+1]) - oy) / float64(h)
+	}
+	det := m00*m11 - m01*m10
+
+	if a*d-b*c == 0 || det == 0 {
+		// The offscreen covers no pixel.
+		var alpha uint8
+		if opaque {
+			alpha = 0xff
+		}
+		dst.Fill(color.RGBA{A: alpha})
+		return
+	}
+
+	dstBounds := dst.Bounds()
+	var vertices [4]Vertex
+	for j, p := range [4]image.Point{
+		dstBounds.Min,
+		{X: dstBounds.Max.X, Y: dstBounds.Min.Y},
+		{X: dstBounds.Min.X, Y: dstBounds.Max.Y},
+		dstBounds.Max,
+	} {
+		dx := float64(p.X) - ox
+		dy := float64(p.Y) - oy
+		vertices[j] = Vertex{
+			DstX: float32(p.X),
+			DstY: float32(p.Y),
+			SrcX: float32(float64(srcBounds.Min.X) + (m11*dx-m01*dy)/det),
+			SrcY: float32(float64(srcBounds.Min.Y) + (m00*dy-m10*dx)/det),
+		}
+	}
+
+	var op DrawTrianglesShaderOptions
+	op.Blend = BlendCopy
+	op.Images[0] = offscreen
+	dst.DrawTrianglesShader32(vertices[:], graphics.QuadIndices(), finalScreenShader(filter, opaque), &op)
 }

@@ -182,3 +182,43 @@ func builtinShader(filter builtinshader.Filter, address builtinshader.Address, u
 	builtinShadersForRead.Store(&shaders)
 	return shader
 }
+
+var (
+	finalScreenShaders  [builtinshader.FilterCount][2]*Shader
+	finalScreenShadersM sync.Mutex
+)
+
+// finalScreenShader returns the shader of builtinshader.FinalScreenShaderSource.
+func finalScreenShader(filter builtinshader.Filter, opaque bool) *Shader {
+	finalScreenShadersM.Lock()
+	defer finalScreenShadersM.Unlock()
+
+	var o int
+	if opaque {
+		o = 1
+	}
+	if s := finalScreenShaders[filter][o]; s != nil {
+		return s
+	}
+
+	var name string
+	switch filter {
+	case builtinshader.FilterNearest:
+		name = "finalscreen-nearest"
+	case builtinshader.FilterLinear:
+		name = "finalscreen-linear"
+	case builtinshader.FilterPixelated:
+		name = "finalscreen-pixelated"
+	default:
+		panic(fmt.Sprintf("ebiten: invalid filter: %d", filter))
+	}
+	if opaque {
+		name += "-opaque"
+	}
+	s, err := newShader(builtinshader.FinalScreenShaderSource(filter, opaque), name)
+	if err != nil {
+		panic(fmt.Sprintf("ebiten: NewShader for a built-in shader failed: %v", err))
+	}
+	finalScreenShaders[filter][o] = s
+	return s
+}

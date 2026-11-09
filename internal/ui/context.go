@@ -53,6 +53,9 @@ type Game interface {
 	ClearScreen(opaque bool)
 
 	DrawFinalScreen(scale, offsetX, offsetY float64)
+
+	// HasCustomFinalScreenDrawer reports whether the game draws the final screen with its own drawer.
+	HasCustomFinalScreenDrawer() bool
 }
 
 type context struct {
@@ -427,7 +430,8 @@ func (c *context) drawGame(graphicsDriver graphicsdriver.Graphics, ui *UserInter
 		return false, nil
 	}
 
-	if graphicsDriver.NeedsClearingScreen() {
+	if graphicsDriver.NeedsClearingScreen() && c.game.HasCustomFinalScreenDrawer() {
+		// A custom drawer might not cover the whole screen, unlike the default one.
 		// This clear is needed for fullscreen mode or some mobile platforms (#622).
 		// An opaque screen is cleared with opaque black: when the screen's framebuffer has an alpha
 		// channel, a compositor would show the desktop through the area the offscreen does not
