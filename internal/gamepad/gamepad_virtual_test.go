@@ -330,3 +330,31 @@ func TestVirtualGamepadVibrationAvailable(t *testing.T) {
 		t.Error("IsVibrationAvailable() = false; want true for a virtual gamepad")
 	}
 }
+
+func TestVirtualGamepadWithFoldedHats(t *testing.T) {
+	// A native gamepad can have ButtonCount buttons plus hats. VM hosts forward
+	// the public button view, which includes four additional buttons per hat.
+	source := gamepad.NewGamepadForTest("00000000000000000000000000009305")
+	buttons := make([]bool, gamepad.ButtonCount)
+	buttons[0] = true
+	source.SetReportForTest(nil, buttons, []int{gamepaddb.HatUp | gamepaddb.HatRight})
+	state := gamepad.VirtualGamepadState{ID: 0, SDLID: source.SDLID(), Name: "Forwarded Pad"}
+	for b := 0; b < source.ButtonCountWithHats(); b++ {
+		state.Buttons = append(state.Buttons, source.IsButtonPressedWithHats(b))
+	}
+	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{state})
+	defer updateVirtualGamepads(t, []gamepad.VirtualGamepadState{})
+
+	g := gamepad.Get(0)
+	if g == nil {
+		t.Fatal("forwarded gamepad was removed")
+	}
+	if got, want := g.ButtonCountWithHats(), source.ButtonCountWithHats(); got != want {
+		t.Errorf("ButtonCountWithHats() = %d; want %d", got, want)
+	}
+	for b, want := range state.Buttons {
+		if got := g.IsButtonPressedWithHats(b); got != want {
+			t.Errorf("IsButtonPressedWithHats(%d) = %t; want %t", b, got, want)
+		}
+	}
+}

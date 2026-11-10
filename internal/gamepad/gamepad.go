@@ -140,7 +140,9 @@ func (g *gamepads) update(nativeWindow uintptr, virtualGamepads []VirtualGamepad
 	// recognized as gamepads by OSes. In this case, the number of the 'buttons' can exceed the
 	// maximum. Skip such devices as a tentative solution (#1173, #2039).
 	g.remove(func(gamepad *Gamepad) bool {
-		if gamepad.ButtonCount() <= ButtonCount {
+		// Virtual gamepads receive the host's public button view, including
+		// hats, so the native button limit does not apply.
+		if gamepad.virtual || gamepad.ButtonCount() <= ButtonCount {
 			return false
 		}
 		// The gamepad is never updated again, so release its native resources as a disconnection does.
