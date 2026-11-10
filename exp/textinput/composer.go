@@ -194,7 +194,7 @@ func (c *Composer) Update() (handled bool, err error) {
 			var sess *session
 			sess, err = startSession(opts)
 			if err != nil {
-				return false, err
+				return handled, err
 			}
 			if sess == nil {
 				break
