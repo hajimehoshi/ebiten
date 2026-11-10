@@ -454,7 +454,9 @@ func (u *UserInterface) loopGame() error {
 			if err != nil {
 				return err
 			}
-			if !suspended {
+			if suspended {
+				u.ScheduleFrame()
+			} else {
 				u.onceUpdateCalled = true
 			}
 		}
