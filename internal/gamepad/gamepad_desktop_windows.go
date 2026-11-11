@@ -464,8 +464,8 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdeviceinfow
 		size = uint32(len(name))
 		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICENAME, unsafe.Pointer(&name[0]), &size); err != nil {
-			// The device can be removed between listing and querying it. As in GLFW, treat this as not XInput.
-			return false, nil
+			// The device can be removed between listing and querying it. Keep checking the remaining devices.
+			continue
 		}
 
 		if strings.Contains(windows.UTF16ToString(name[:]), "IG_") {
