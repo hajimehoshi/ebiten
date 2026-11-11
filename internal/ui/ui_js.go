@@ -683,11 +683,13 @@ func (u *UserInterface) setWindowEventHandlers(v js.Value) {
 }
 
 func (u *UserInterface) onResize() {
-	u.updateScreenSize()
-
 	// updateImpl can block. Use goroutine.
 	// See https://pkg.go.dev/syscall/js#FuncOf.
 	go func() {
+		u.mu.Lock()
+		u.updateScreenSize()
+		u.mu.Unlock()
+
 		if err := u.updateImpl(true); err != nil {
 			u.setError(err)
 			return
