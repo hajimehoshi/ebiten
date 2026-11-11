@@ -625,7 +625,9 @@ func (p *playerImpl) updatePosition() {
 	if !ok {
 		panic("audio: position is out of range")
 	}
-	p.adjustedPosition = position + int64(adjustingTime)
+	// Consumed samples can lag behind the previous interpolation after a buffer stall.
+	// Seeking resets adjustedPosition separately in afterSeek.
+	p.adjustedPosition = max(p.adjustedPosition, position+int64(adjustingTime))
 }
 
 type timeStream struct {

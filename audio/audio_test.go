@@ -675,6 +675,51 @@ func TestSetBufferSize(t *testing.T) {
 	}
 }
 
+type oneFrameReader struct{}
+
+func (r *oneFrameReader) Read(p []byte) (int, error) {
+	n := min(len(p), 8)
+	clear(p[:n])
+	return n, nil
+}
+
+func TestPositionDoesNotDecreaseAfterShortReads(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		setup()
+		defer teardown()
+
+		src := &oneFrameReader{}
+		p, err := context.NewPlayerF32(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		p.Play()
+		for !context.IsReady() {
+			if err := audio.UpdateForTesting(); err != nil {
+				t.Fatal(err)
+			}
+			time.Sleep(time.Millisecond)
+		}
+		if err := audio.UpdateForTesting(); err != nil {
+			t.Fatal(err)
+		}
+		synctest.Wait()
+		audio.UpdatePositionForTesting(p)
+		time.Sleep(500 * time.Microsecond)
+		audio.UpdatePositionForTesting(p)
+		before := p.Position()
+		time.Sleep(500 * time.Microsecond)
+		synctest.Wait()
+		audio.UpdatePositionForTesting(p)
+		if !p.IsPlaying() {
+			t.Fatal("the player stopped")
+		}
+		if after := p.Position(); after < before {
+			t.Errorf("Position decreased from %v to %v", before, after)
+		}
+	})
+}
+
 func TestPositionNotGrowingAfterFinished(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		setup()
