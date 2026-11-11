@@ -1034,7 +1034,7 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 	// In bitmap mode it resolves through sbix or CBDT/EBDT and
 	// matches the dimensions of the bitmap that realize will decode.
 	var bounds fixed.Rectangle26_6
-	if ext, ok := g.glyphExtents(gl.GlyphID); ok {
+	if ext, ok := g.glyphExtents(gl.GlyphID, sideways); ok {
 		var yOffset float32
 		if sideways {
 			yOffset = fixed26_6ToFloat32(-gl.YOffset) / fixed26_6ToFloat32(size) * float32(g.f.Upem())
@@ -1088,12 +1088,34 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 // base glyph's own outline, are what is rendered, and they may extend
 // beyond it. A COLRv1 color glyph resolves to its clip box, if any:
 // such glyphs typically have an empty base outline, and the clip box
-// is used for the fallback outline. SVG artwork has independent ink bounds.
+// is used for the fallback outline. Sideways COLR glyphs instead use the
+// control-point bounds of their base outline. SVG artwork has independent ink bounds.
 //
 // The caller must hold g.shapeMu.
-func (g *GoTextFaceSource) glyphExtents(gid font.GID) (font.GlyphExtents, bool) {
+func (g *GoTextFaceSource) glyphExtents(gid font.GID, sideways bool) (font.GlyphExtents, bool) {
 	if g.f.COLR != nil {
 		if c, ok := g.f.GlyphDataColor(gid); ok {
+			if sideways {
+				// Sideways color glyphs use the base outline, not the color layers or bitmap strikes.
+				o, ok := g.f.GlyphDataOutline(gid)
+				if !ok || len(o.Segments) == 0 {
+					return font.GlyphExtents{}, false
+				}
+				p := o.Segments[0].Args[0]
+				x0, x1, y0, y1 := p.X, p.X, p.Y, p.Y
+				for _, s := range o.Segments {
+					for _, p := range s.ArgsSlice() {
+						x0, x1 = min(x0, p.X), max(x1, p.X)
+						y0, y1 = min(y0, p.Y), max(y1, p.Y)
+					}
+				}
+				return font.GlyphExtents{
+					XBearing: x0,
+					YBearing: y1,
+					Width:    x1 - x0,
+					Height:   y0 - y1,
+				}, true
+			}
 			if layers, ok := c.Paint.(tables.PaintColrLayersResolved); ok {
 				if ext, ok := g.colrV0LayersExtents(layers); ok {
 					return ext, true
@@ -1175,7 +1197,7 @@ func colrClipBoxExtents(clips tables.ClipList, gid font.GID) (font.GlyphExtents,
 //
 // When sideways is true, the returned data is rotated: the outline
 // itself for an outline glyph, and the fallback outline carried by an
-// SVG or bitmap glyph, which is what a sideways run renders for those
+// SVG, bitmap, or COLR glyph, which is what a sideways run renders for those
 // glyphs. The rotation is applied to the cached value, so it happens
 // once per key.
 //
@@ -1203,6 +1225,15 @@ func (g *GoTextFaceSource) fetchGlyphData(gid font.GID, variationsString string,
 	}
 	return g.glyphDataCache.getOrCreate(key, func() (font.GlyphData, bool) {
 		d := g.glyphDataWithoutSVG(gid)
+		if sideways {
+			if _, ok := d.(font.GlyphColor); ok {
+				o, ok := g.f.GlyphDataOutline(gid)
+				if !ok {
+					return nil, false
+				}
+				d = o
+			}
+		}
 		if d == nil {
 			return nil, false
 		}

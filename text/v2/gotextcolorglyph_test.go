@@ -23,7 +23,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-text/typesetting/font"
 	"github.com/go-text/typesetting/font/opentype"
+	"golang.org/x/image/font/gofont/goregular"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/text/v2"
@@ -287,4 +289,98 @@ func colorDiff(a, b color.RGBA) int {
 		return int(y - x)
 	}
 	return max(diff(a.R, b.R), diff(a.G, b.G), diff(a.B, b.B), diff(a.A, b.A))
+}
+
+func TestCOLRSidewaysOutline(t *testing.T) {
+	loader, err := opentype.NewLoader(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := font.NewFont(loader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	base, _ := f.Cmap.Lookup('A')
+	layer, _ := f.Cmap.Lookup('g')
+	colr := make([]byte, 24)
+	binary.BigEndian.PutUint16(colr[2:], 1)
+	binary.BigEndian.PutUint32(colr[4:], 14)
+	binary.BigEndian.PutUint32(colr[8:], 20)
+	binary.BigEndian.PutUint16(colr[12:], 1)
+	binary.BigEndian.PutUint16(colr[14:], uint16(base))
+	binary.BigEndian.PutUint16(colr[18:], 1)
+	binary.BigEndian.PutUint16(colr[20:], uint16(layer))
+	data, err := os.ReadFile(filepath.Join("testdata", "chromacheck-colr.ttf"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	colorLoader, err := opentype.NewLoader(bytes.NewReader(data))
+	if err != nil {
+		t.Fatal(err)
+	}
+	palette, err := colorLoader.RawTable(opentype.MustNewTag("CPAL"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tables := []opentype.Table{
+		{
+			Tag:     opentype.MustNewTag("COLR"),
+			Content: colr,
+		},
+		{
+			Tag:     opentype.MustNewTag("CPAL"),
+			Content: palette,
+		},
+	}
+	for _, tag := range loader.Tables() {
+		content, err := loader.RawTable(tag)
+		if err != nil {
+			t.Fatal(err)
+		}
+		tables = append(tables, opentype.Table{
+			Tag:     tag,
+			Content: content,
+		})
+	}
+	colorSource, err := text.NewGoTextFaceSource(bytes.NewReader(opentype.WriteTTF(tables)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	plainSource, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	face := &text.GoTextFace{
+		Source:    plainSource,
+		Size:      32,
+		Direction: text.DirectionTopToBottomAndLeftToRight,
+	}
+	want := text.AppendGlyphs(nil, "A", face, nil)[0]
+	face.Source = colorSource
+	got := text.AppendGlyphs(nil, "A", face, nil)[0]
+	if got.Image == nil || want.Image == nil {
+		t.Fatal("missing outline image")
+	}
+	if got.Colored {
+		t.Error("sideways COLR used colored layers")
+	}
+	if got.X != want.X || got.Y != want.Y || got.Image.Bounds() != want.Image.Bounds() {
+		t.Errorf("sideways position/bounds = (%v, %v, %v), want (%v, %v, %v)", got.X, got.Y, got.Image.Bounds(), want.X, want.Y, want.Image.Bounds())
+		return
+	}
+	gp, wp := make([]byte, 4*got.Image.Bounds().Dx()*got.Image.Bounds().Dy()), make([]byte, 4*want.Image.Bounds().Dx()*want.Image.Bounds().Dy())
+	got.Image.ReadPixels(gp)
+	want.Image.ReadPixels(wp)
+	if !bytes.Equal(gp, wp) {
+		t.Error("sideways COLR did not use the rotated base outline")
+	}
+	lazy := text.AppendLazyGlyphs(nil, "A", face, nil)[0]
+	if got, want := lazy.ImageBounds.Size(), lazy.Image().Bounds().Size(); got != want {
+		t.Errorf("lazy bounds size = %v, want %v", got, want)
+	}
+	face.Direction = text.DirectionLeftToRight
+	horizontal := text.AppendGlyphs(nil, "A", face, nil)[0]
+	if horizontal.Image == nil || !horizontal.Colored {
+		t.Error("horizontal COLR lost its colored layers")
+	}
 }
