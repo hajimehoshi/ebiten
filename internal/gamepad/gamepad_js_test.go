@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/gamepad"
+	"github.com/hajimehoshi/ebiten/v2/internal/gamepaddb"
 )
 
 var object = js.Global().Get("Object")
@@ -204,5 +205,63 @@ func TestUpdateFindsGamepadWithoutEvent(t *testing.T) {
 	}
 	if calls != 13 {
 		t.Errorf("calls after ten more updates: got %d, want 13", calls)
+	}
+}
+
+func TestUpdateReplacesGamepadAtReusedIndex(t *testing.T) {
+	name, mapping := "slot-reuse-original", "standard"
+	setNavigator(t, func() any {
+		gp := object.New()
+		gp.Set("index", 0)
+		gp.Set("id", name)
+		gp.Set("mapping", mapping)
+		gp.Set("axes", []any{})
+		gp.Set("buttons", []any{})
+		return []any{gp}
+	})
+
+	var gps gamepad.Gamepads
+	n := &gamepad.JSGamepads{}
+	if err := n.Init(&gps); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(n.RemoveEventListener)
+	if err := n.Update(&gps); err != nil {
+		t.Fatal(err)
+	}
+	ids := gps.AppendGamepadIDs(nil)
+	if len(ids) != 1 {
+		t.Fatalf("got %d gamepads, want 1", len(ids))
+	}
+	original := gps.Get(ids[0])
+	oldSDLID := original.SDLID()
+	if err := gamepaddb.Update([]byte(oldSDLID + ",Custom name,a:b0,\n")); err != nil {
+		t.Fatal(err)
+	}
+	if err := n.Update(&gps); err != nil {
+		t.Fatal(err)
+	}
+	if gps.Get(ids[0]) != original {
+		t.Error("a custom display name replaced the same connected device")
+	}
+
+	// A different device reconnects between polls, without an empty snapshot.
+	name, mapping = "slot-reuse-replacement", ""
+	if err := n.Update(&gps); err != nil {
+		t.Fatal(err)
+	}
+	ids = gps.AppendGamepadIDs(nil)
+	if len(ids) != 1 {
+		t.Fatalf("got %d gamepads after replacement, want 1", len(ids))
+	}
+	gp := gps.Get(ids[0])
+	if got := gp.Name(); got != name {
+		t.Errorf("name = %q, want %q", got, name)
+	}
+	if gp.SDLID() == oldSDLID {
+		t.Error("SDL ID still identifies the old device")
+	}
+	if gp.IsStandardLayoutAvailable() {
+		t.Error("standard layout still comes from the old device")
 	}
 }

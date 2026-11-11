@@ -106,8 +106,15 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 		gamepad := gamepads.find(func(gamepad *Gamepad) bool {
 			return index == gamepad.native.(*nativeGamepadImpl).index
 		})
+		name := gp.Get("id").String()
+		if gamepad != nil && gamepad.name != name {
+			// A different device can reuse the index between polls.
+			gamepads.remove(func(other *Gamepad) bool {
+				return other == gamepad
+			})
+			gamepad = nil
+		}
 		if gamepad == nil {
-			name := gp.Get("id").String()
 
 			// This emulates the implementation of EMSCRIPTEN_JoystickGetDeviceGUID.
 			// https://github.com/libsdl-org/SDL/blob/0e9560aea22818884921e5e5064953257bfe7fa7/src/joystick/emscripten/SDL_sysjoystick.c#L385
