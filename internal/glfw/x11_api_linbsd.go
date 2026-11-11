@@ -195,7 +195,7 @@ type _XrmValue struct {
 func openX11Library(names ...string) (uintptr, error) {
 	var errs []error
 	for _, name := range names {
-		lib, err := purego.Dlopen(name, purego.RTLD_LAZY)
+		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
 		if err == nil {
 			return lib, nil
 		}
