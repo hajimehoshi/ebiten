@@ -155,13 +155,22 @@ func TestBitmapFontSideways(t *testing.T) {
 		Source: outlineSource,
 		Size:   size,
 	}))
-	got := glyphInk(t, str, &text.GoTextFace{
+	face := &text.GoTextFace{
 		Source:    bitmapSource,
 		Size:      size,
 		Direction: text.DirectionTopToBottomAndLeftToRight,
-	})
+	}
+	got := glyphInk(t, str, face)
 	if got != want {
 		t.Errorf("the sideways glyph of a bitmap font is not the rotated outline:\ngot:\n%swant:\n%s", got, want)
+	}
+
+	glyphs := text.AppendLazyGlyphs(nil, str, face, nil)
+	if len(glyphs) != 1 || glyphs[0].Image() == nil {
+		t.Fatal("expected one glyph image")
+	}
+	if got, want := glyphs[0].ImageBounds.Size(), glyphs[0].Image().Bounds().Size(); got != want {
+		t.Errorf("ImageBounds size = %v, want rasterized image size %v", got, want)
 	}
 }
 
