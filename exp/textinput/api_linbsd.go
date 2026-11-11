@@ -44,7 +44,7 @@ var (
 var ensureX11 = sync.OnceValue(func() bool {
 	var lib uintptr
 	for _, name := range []string{"libX11.so.6", "libX11.so"} {
-		l, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		l, err := purego.Dlopen(name, purego.RTLD_LAZY)
 		if err == nil {
 			lib = l
 			break

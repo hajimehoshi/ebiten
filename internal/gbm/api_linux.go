@@ -210,7 +210,7 @@ func regOptionalFunc(fptr any, lib uintptr, name string) {
 func dlopenAny(names ...string) (uintptr, error) {
 	var errs error
 	for _, n := range names {
-		h, err := purego.Dlopen(n, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		h, err := purego.Dlopen(n, purego.RTLD_LAZY)
 		if err == nil {
 			return h, nil
 		}

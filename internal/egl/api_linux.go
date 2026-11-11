@@ -73,7 +73,7 @@ func load() error {
 func loadImpl() error {
 	var errs []error
 	for _, name := range []string{"libEGL.so.1", "libEGL.so"} {
-		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		lib, err := purego.Dlopen(name, purego.RTLD_LAZY)
 		if err != nil {
 			errs = append(errs, err)
 			continue

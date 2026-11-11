@@ -41,7 +41,7 @@ func (c *defaultContext) init() error {
 	// window system there is no overlay, and OpenGL ES is the only option.
 	if !windowsystem.Available() || os.Getenv("SteamEnv") != "1" {
 		for _, name := range []string{"libGLESv2.so", "libGLESv2.so.2", "libGLESv2.so.1", "libGLESv2.so.0"} {
-			lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+			lib, err := purego.Dlopen(name, purego.RTLD_LAZY)
 			if err == nil {
 				libGLES = lib
 				c.isES = true
@@ -59,7 +59,7 @@ func (c *defaultContext) init() error {
 	// [2] https://github.com/glfw/glfw/commit/c18851f52ec9704eb06464058a600845ec1eada1
 	if windowsystem.Available() {
 		for _, name := range []string{"libGL.so", "libGL.so.2", "libGL.so.1", "libGL.so.0"} {
-			lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+			lib, err := purego.Dlopen(name, purego.RTLD_LAZY)
 			if err == nil {
 				libGL = lib
 				return nil

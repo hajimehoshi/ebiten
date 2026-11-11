@@ -254,7 +254,7 @@ func initEGL() error {
 	sonames := []string{"libEGL.so.1", "libEGL.so"}
 	var soname string
 	for _, name := range sonames {
-		handle, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		handle, err := purego.Dlopen(name, purego.RTLD_LAZY)
 		if err == nil {
 			egl.handle = handle
 			soname = name
@@ -484,7 +484,7 @@ func createContextEGL(window *Window, ctxconfig *ctxconfig, fbconfig *fbconfig) 
 				continue
 			}
 
-			handle, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+			handle, err := purego.Dlopen(name, purego.RTLD_LAZY)
 			if err == nil {
 				window.context.platform.egl.client = handle
 				break

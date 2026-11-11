@@ -113,7 +113,7 @@ func loadX11() {
 func openX11Library(names ...string) (uintptr, error) {
 	var firstErr error
 	for _, name := range names {
-		lib, err := purego.Dlopen(name, purego.RTLD_LAZY|purego.RTLD_GLOBAL)
+		lib, err := purego.Dlopen(name, purego.RTLD_LAZY)
 		if err == nil {
 			return lib, nil
 		}
