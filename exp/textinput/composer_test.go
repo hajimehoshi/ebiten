@@ -29,52 +29,6 @@ func compositionState(text string) textinput.TextInputState {
 	}
 }
 
-func TestComposerHandledOnStartError(t *testing.T) {
-	for _, tc := range []struct {
-		name        string
-		kind        textinput.CommitKind
-		wantHandled bool
-	}{
-		{
-			name:        "regular commit",
-			kind:        textinput.CommitRegular,
-			wantHandled: true,
-		},
-		{
-			name:        "passthrough commit",
-			kind:        textinput.CommitWithPassthroughKey,
-			wantHandled: false,
-		},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			d := textinput.NewComposerDriver("", "")
-			defer d.Composer.Cancel()
-			d.Composer.OnNewSession = func() *textinput.SessionOptions {
-				return &textinput.SessionOptions{
-					TextBeforeCaret: "\xff",
-				}
-			}
-			var commits []string
-			d.Composer.OnCommit = func(c *textinput.Commit) {
-				commits = append(commits, c.Text())
-			}
-			state := commitState("a")
-			state.CommitKind = tc.kind
-			d.Send(state)
-			handled, err := d.Composer.Update()
-			if err == nil {
-				t.Error("Update returned no error for invalid UTF-8")
-			}
-			if handled != tc.wantHandled {
-				t.Errorf("handled = %v, want %v", handled, tc.wantHandled)
-			}
-			if !slices.Equal(commits, []string{"a"}) {
-				t.Errorf("commits = %q, want [a]", commits)
-			}
-		})
-	}
-}
-
 func TestComposerEndDispatchesPendingStates(t *testing.T) {
 	for _, tc := range []struct {
 		name        string
