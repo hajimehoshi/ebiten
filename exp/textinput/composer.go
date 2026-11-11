@@ -168,6 +168,7 @@ func (c *Commit) SurroundingText() (before, after string) {
 // the registered callbacks. It returns true if the IME consumed input
 // during this tick — the caller should skip its own key handlers when
 // handled is true to avoid double-processing keys.
+// The handled result is valid even when Update returns a non-nil error.
 //
 // A commit delivered with a key press that the game also receives leaves
 // handled false, so the caller still acts on that key.
@@ -194,7 +195,7 @@ func (c *Composer) Update() (handled bool, err error) {
 			var sess *session
 			sess, err = startSession(opts)
 			if err != nil {
-				return false, err
+				return handled, err
 			}
 			if sess == nil {
 				break
