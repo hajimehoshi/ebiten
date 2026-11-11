@@ -35,9 +35,16 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 	path = p
 
 	path = i.dumpName(path)
+	if err := i.dumpToFile(graphicsDriver, path, blackbg, rect); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func (i *Image) dumpToFile(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool, rect image.Rectangle) error {
 	f, err := os.Create(path)
 	if err != nil {
-		return "", err
+		return err
 	}
 	defer func() {
 		_ = f.Close()
@@ -45,13 +52,9 @@ func (i *Image) Dump(graphicsDriver graphicsdriver.Graphics, path string, blackb
 
 	w := bufio.NewWriter(f)
 	if err := i.dumpTo(w, graphicsDriver, blackbg, rect); err != nil {
-		return "", err
+		return err
 	}
-	if err := w.Flush(); err != nil {
-		return "", err
-	}
-
-	return path, nil
+	return w.Flush()
 }
 
 // DumpImages dumps all the current images to the specified directory.
@@ -74,19 +77,7 @@ func DumpImages(images []*Image, graphicsDriver graphicsdriver.Graphics, dir str
 			continue
 		}
 
-		f, err := os.Create(filepath.Join(dir, img.dumpName("*.png")))
-		if err != nil {
-			return "", err
-		}
-		defer func() {
-			_ = f.Close()
-		}()
-
-		w := bufio.NewWriter(f)
-		if err := img.dumpTo(w, graphicsDriver, false, image.Rect(0, 0, img.width, img.height)); err != nil {
-			return "", err
-		}
-		if err := w.Flush(); err != nil {
+		if err := img.dumpToFile(graphicsDriver, filepath.Join(dir, img.dumpName("*.png")), false, image.Rect(0, 0, img.width, img.height)); err != nil {
 			return "", err
 		}
 	}
