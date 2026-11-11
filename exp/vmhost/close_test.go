@@ -16,6 +16,7 @@ package vmhost_test
 
 import (
 	"bytes"
+	"errors"
 	"image"
 	"net"
 	"os"
@@ -125,6 +126,55 @@ func TestCloseIsNotDelayedByTheIdleTimeout(t *testing.T) {
 	case <-time.After(budget):
 		t.Fatalf("Close did not return within %v; the deadline poke was overwritten by an idle-timeout refresh", budget)
 	}
+}
+
+func TestCloseWithDeadlineError(t *testing.T) {
+	skipIfVMUnsupported(t)
+
+	for _, idleTimeout := range []time.Duration{0, time.Hour} {
+		t.Run(idleTimeout.String(), func(t *testing.T) {
+			conn := &deadlineErrorConn{silentConn: newSilentConn()}
+			defer func() {
+				_ = conn.silentConn.Close()
+			}()
+			guest, err := vmhost.NewGuestSession(conn, &vmhost.NewGuestSessionOptions{
+				IdleTimeout: idleTimeout,
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := guest.SetOutsideScreen(ebiten.NewImage(320, 240)); err != nil {
+				t.Fatal(err)
+			}
+			<-conn.writing
+
+			closed := make(chan error, 1)
+			go func() {
+				closed <- guest.Close()
+			}()
+			select {
+			case err := <-closed:
+				if err != nil {
+					t.Error(err)
+				}
+			case <-time.After(time.Second):
+				t.Error("Close blocked after SetDeadline failed")
+				_ = conn.silentConn.Close()
+				_ = <-closed
+			}
+			if err := guest.Close(); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+}
+
+type deadlineErrorConn struct {
+	*silentConn
+}
+
+func (c *deadlineErrorConn) SetDeadline(time.Time) error {
+	return errors.New("deadline unavailable")
 }
 
 // silentConn is a connection whose peer answers the handshake and then never speaks again, so a read on
