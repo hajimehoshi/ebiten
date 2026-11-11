@@ -176,6 +176,35 @@ func (f *testGoXFace) Metrics() font.Metrics {
 	}
 }
 
+type shortLineHeightGoXFace struct {
+	testGoXFace
+}
+
+func (f *shortLineHeightGoXFace) Metrics() font.Metrics {
+	m := f.testGoXFace.Metrics()
+	m.Height = fixed.I(1)
+	return m
+}
+
+func TestDrawWithNegativeLineGap(t *testing.T) {
+	face := text.NewGoXFace(&shortLineHeightGoXFace{})
+	dst := ebiten.NewImage(testGoXFaceSize, 2)
+	defer dst.Deallocate()
+	var op text.DrawOptions
+	op.GeoM.Translate(0, -testGoXFaceSize+2)
+	text.Draw(dst, "b", face, &op)
+
+	// The glyph is six pixels tall regardless of its recommended line spacing.
+	// Its last two rows remain inside dst, even though its origin is above it.
+	for y := range 2 {
+		for x := range testGoXFaceSize {
+			if _, _, _, a := dst.At(x, y).RGBA(); a != 0xffff {
+				t.Errorf("alpha at (%d, %d) = %d, want %d", x, y, a, 0xffff)
+			}
+		}
+	}
+}
+
 // Issue #1378
 func TestNegativeKern(t *testing.T) {
 	f := text.NewGoXFace(&testGoXFace{})

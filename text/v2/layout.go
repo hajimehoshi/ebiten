@@ -234,10 +234,11 @@ func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) fun
 	const advanceMarginFactor = 100
 	m := face.Metrics()
 	var marginX, marginY float64
+	// Negative line gaps reduce line spacing, not glyph extents.
 	if face.direction().isHorizontal() {
 		height := m.HAscent + m.HDescent
 		marginX = advanceMarginFactor * height
-		marginY = height + m.HLineGap
+		marginY = height + max(m.HLineGap, 0)
 	} else {
 		width := m.VAscent + m.VDescent
 		lineGap := m.VLineGap
@@ -247,7 +248,7 @@ func keepGlyphFilter(face Face, geoM ebiten.GeoM, dstBounds image.Rectangle) fun
 			lineGap = m.HLineGap
 		}
 		marginY = advanceMarginFactor * width
-		marginX = width + lineGap
+		marginX = width + max(lineGap, 0)
 	}
 	a := geoM.Element(0, 0)
 	d := geoM.Element(1, 1)
