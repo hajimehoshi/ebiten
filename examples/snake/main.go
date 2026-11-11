@@ -120,10 +120,6 @@ func (g *Game) Update() error {
 	}
 
 	if g.needsToMoveSnake() {
-		if g.collidesWithWall() || g.collidesWithSelf() {
-			g.reset()
-		}
-
 		if g.collidesWithApple() {
 			g.apple.X = rand.IntN(xGridCountInScreen)
 			g.apple.Y = rand.IntN(yGridCountInScreen)
@@ -159,6 +155,9 @@ func (g *Game) Update() error {
 			g.snakeBody[0].Y++
 		case dirUp:
 			g.snakeBody[0].Y--
+		}
+		if g.collidesWithWall() || g.collidesWithSelf() {
+			g.reset()
 		}
 	}
 
