@@ -92,6 +92,7 @@ func TestTextInput(t *testing.T) {
 	// A commit ends the session; the guest applies it at the caret and paints green. Its Composer then
 	// starts the next session within the same tick, so the release and the new start ride together.
 	ti.Commit(textInputCommit)
+	ti.Commit("stale")
 	tickAndFrame(t, guest)
 	if r, g, b := screenColor(outsideScreen, pw, ph); !(g > 0xc0 && r < 0x40 && b < 0x40) {
 		t.Errorf("after the commit the guest painted (%d,%d,%d); want green", r, g, b)

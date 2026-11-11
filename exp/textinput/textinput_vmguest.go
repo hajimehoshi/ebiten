@@ -139,6 +139,7 @@ func (v *vmGuestTextInput) handleState(id int64, state vmprotocol.TextInputState
 		Error:                            err,
 	})
 	if kind.committed() || err != nil {
+		v.currentID = 0
 		v.events.end()
 	}
 }
