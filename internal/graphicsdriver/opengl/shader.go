@@ -123,6 +123,9 @@ func (s *Shader) compile() error {
 			programInfo, vertexShaderInfo, vssrc, fragmentShaderInfo, fssrc)
 	}
 
+	// Detach the linked shaders so the deferred deletions can release them while the program lives.
+	s.graphics.context.ctx.DetachShader(uint32(p), uint32(vs))
+	s.graphics.context.ctx.DetachShader(uint32(p), uint32(fs))
 	s.p = p
 	return nil
 }

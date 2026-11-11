@@ -48,6 +48,7 @@ type defaultContext struct {
 	gpDeleteSync              uintptr
 	gpDeleteTextures          uintptr
 	gpDeleteVertexArrays      uintptr
+	gpDetachShader            uintptr
 	gpDrawElements            uintptr
 	gpEnable                  uintptr
 	gpEnableVertexAttribArray uintptr
@@ -290,6 +291,10 @@ func (c *defaultContext) DeleteTexture(texture uint32) {
 
 func (c *defaultContext) DeleteVertexArray(array uint32) {
 	c.deleteName(c.gpDeleteVertexArrays, array)
+}
+
+func (c *defaultContext) DetachShader(program uint32, shader uint32) {
+	c.call(c.gpDetachShader, uintptr(program), uintptr(shader))
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {
@@ -608,6 +613,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteSync = g.get("glDeleteSync")
 	c.gpDeleteTextures = g.get("glDeleteTextures")
 	c.gpDeleteVertexArrays = g.get("glDeleteVertexArrays")
+	c.gpDetachShader = g.get("glDetachShader")
 	c.gpDrawElements = g.get("glDrawElements")
 	c.gpEnable = g.get("glEnable")
 	c.gpEnableVertexAttribArray = g.get("glEnableVertexAttribArray")
