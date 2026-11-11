@@ -1704,3 +1704,67 @@ func TestDrawVerticalWithoutVerticalMetrics(t *testing.T) {
 		}
 	}
 }
+
+func TestGlyphGranularityNegativeOrigins(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	font, err := opentype.Parse(goregular.TTF)
+	if err != nil {
+		t.Fatal(err)
+	}
+	xface, err := opentype.NewFace(font, &opentype.FaceOptions{
+		Size: 16,
+		DPI:  72,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		_ = xface.Close()
+	}()
+
+	for _, test := range []struct {
+		name string
+		face text.Face
+	}{
+		{
+			name: "GoTextFace",
+			face: &text.GoTextFace{
+				Source: source,
+				Size:   16,
+			},
+		},
+		{
+			name: "GoXFace",
+			face: text.NewGoXFace(xface),
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			// Each glyph has a fractional advance, but the whole line has an integer advance.
+			str := strings.Repeat("i", 64)
+			advance := text.Advance(str, test.face)
+			if advance <= 0 || math.Trunc(advance) != advance {
+				t.Fatalf("line advance must be a positive integer, got %g", advance)
+			}
+			start := ebiten.NewImage(int(advance)+8, 32)
+			end := ebiten.NewImage(int(advance)+8, 32)
+			defer start.Deallocate()
+			defer end.Deallocate()
+			text.Draw(start, str, test.face, nil)
+			op := &text.DrawOptions{}
+			op.PrimaryAlign = text.AlignEnd
+			op.GeoM.Translate(advance, 0)
+			text.Draw(end, str, test.face, op)
+
+			want := make([]byte, 4*start.Bounds().Dx()*start.Bounds().Dy())
+			got := make([]byte, len(want))
+			start.ReadPixels(want)
+			end.ReadPixels(got)
+			if !bytes.Equal(got, want) {
+				t.Error("end alignment followed by an integer translation changed the glyph pixels")
+			}
+		})
+	}
+}

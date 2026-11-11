@@ -129,7 +129,8 @@ func granularityFactor(face Face) fixed.Int26_6 {
 }
 
 func adjustGranularity(x, factor fixed.Int26_6) fixed.Int26_6 {
-	return x / factor * factor
+	// factor is a power of two. Round down for negative origins too.
+	return x &^ (factor - 1)
 }
 
 // Glyph represents one glyph to render.
