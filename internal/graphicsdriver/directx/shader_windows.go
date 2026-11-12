@@ -231,35 +231,35 @@ func appendAdjustedUniforms(dst []uint32, uniformTypes []shaderir.Type, uniformO
 			// Each element is aligned to the boundary.
 			switch typ.Sub[0].Main {
 			case shaderir.Bool:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					dst = append(dst, uniforms[idx+j])
 					if j < typ.Length-1 {
 						dst = append(dst, 0, 0, 0)
 					}
 				}
 			case shaderir.Float:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					dst = append(dst, uniforms[idx+j])
 					if j < typ.Length-1 {
 						dst = append(dst, 0, 0, 0)
 					}
 				}
 			case shaderir.Int:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					dst = append(dst, uniforms[idx+j])
 					if j < typ.Length-1 {
 						dst = append(dst, 0, 0, 0)
 					}
 				}
 			case shaderir.Vec2, shaderir.IVec2:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					dst = append(dst, uniforms[idx+2*j:idx+2*(j+1)]...)
 					if j < typ.Length-1 {
 						dst = append(dst, 0, 0)
 					}
 				}
 			case shaderir.Vec3, shaderir.IVec3:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					dst = append(dst, uniforms[idx+3*j:idx+3*(j+1)]...)
 					if j < typ.Length-1 {
 						dst = append(dst, 0)
@@ -268,7 +268,7 @@ func appendAdjustedUniforms(dst []uint32, uniformTypes []shaderir.Type, uniformO
 			case shaderir.Vec4, shaderir.IVec4:
 				dst = append(dst, uniforms[idx:idx+4*typ.Length]...)
 			case shaderir.Mat2:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					u := uniforms[idx+4*j : idx+4*(j+1)]
 					dst = append(dst,
 						u[0], u[2], 0, 0,
@@ -279,7 +279,7 @@ func appendAdjustedUniforms(dst []uint32, uniformTypes []shaderir.Type, uniformO
 					}
 				}
 			case shaderir.Mat3:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					u := uniforms[idx+9*j : idx+9*(j+1)]
 					dst = append(dst,
 						u[0], u[3], u[6], 0,
@@ -291,7 +291,7 @@ func appendAdjustedUniforms(dst []uint32, uniformTypes []shaderir.Type, uniformO
 					}
 				}
 			case shaderir.Mat4:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					u := uniforms[idx+16*j : idx+16*(j+1)]
 					dst = append(dst,
 						u[0], u[4], u[8], u[12],

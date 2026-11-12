@@ -206,8 +206,8 @@ func (g *Game) renderLevel(screen *ebiten.Image) {
 		scale = 1
 	}
 
-	for y := 0; y < g.currentLevel.h; y++ {
-		for x := 0; x < g.currentLevel.w; x++ {
+	for y := range g.currentLevel.h {
+		for x := range g.currentLevel.w {
 			xi, yi := g.cartesianToIso(float64(x), float64(y))
 
 			// Skip drawing tiles that are out of the screen.

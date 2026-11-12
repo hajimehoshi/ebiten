@@ -797,7 +797,7 @@ func TestGlyphAdvance(t *testing.T) {
 			}
 
 			// Per-glyph contiguity: origin + advance equals the next origin.
-			for i := 0; i < len(glyphs)-1; i++ {
+			for i := range len(glyphs) - 1 {
 				gotX := glyphs[i].OriginX + glyphs[i].AdvanceX
 				gotY := glyphs[i].OriginY + glyphs[i].AdvanceY
 				wantX := glyphs[i+1].OriginX

@@ -338,7 +338,7 @@ func (u *UserInterface) updateTouchesFromEvent(e js.Value) {
 	u.clearTouches()
 
 	touches := e.Get("targetTouches")
-	for i := 0; i < touches.Length(); i++ {
+	for i := range touches.Length() {
 		t := touches.Call("item", i)
 		u.touchesInClient = append(u.touchesInClient, touchInClient{
 			id: u.touchIDs.id(t.Get("identifier").Int()),

@@ -116,7 +116,7 @@ func (i *image12) WritePixels(args []graphicsdriver.PixelsArgs) error {
 	for idx, a := range args {
 		layout := layouts[idx]
 		w := 4 * a.Region.Dx()
-		for j := 0; j < a.Region.Dy(); j++ {
+		for j := range a.Region.Dy() {
 			copy(srcBytes[layout.Offset+uint64(j)*uint64(layout.Footprint.RowPitch):], a.Pixels[j*w:(j+1)*w])
 		}
 	}

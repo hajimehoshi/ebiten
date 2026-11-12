@@ -110,7 +110,7 @@ func createIcon(image *Image, xhot, yhot int, icon bool) (_HICON, error) {
 
 	source := image.Pixels
 	target := unsafe.Slice((*byte)(unsafe.Pointer(targetPtr)), len(source))
-	for i := 0; i < len(source)/4; i++ {
+	for i := range len(source) / 4 {
 		target[4*i] = source[4*i+2]
 		target[4*i+1] = source[4*i+1]
 		target[4*i+2] = source[4*i+0]

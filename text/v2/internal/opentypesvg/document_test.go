@@ -498,9 +498,9 @@ func TestLimits(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			var source strings.Builder
 			source.WriteString(svgStart + `<g id="glyph1"><use xlink:href="#n0"/></g><defs>`)
-			for i := 0; i < tc.levels; i++ {
+			for i := range tc.levels {
 				fmt.Fprintf(&source, `<g id="n%d">`, i)
-				for j := 0; j < tc.copies; j++ {
+				for range tc.copies {
 					fmt.Fprintf(&source, `<use xlink:href="#n%d"/>`, i+1)
 				}
 				source.WriteString(`</g>`)
@@ -530,7 +530,7 @@ func fontSVG(t *testing.T, record []byte) []byte {
 	binary.BigEndian.PutUint32(table[20:], uint32(len(record)))
 	source = append(source, table...)
 	source = append(source, record...)
-	for i := 0; i < int(binary.BigEndian.Uint16(source[4:])); i++ {
+	for i := range int(binary.BigEndian.Uint16(source[4:])) {
 		entry := source[12+16*i : 12+16*(i+1)]
 		if string(entry[:4]) != "SVG " {
 			continue

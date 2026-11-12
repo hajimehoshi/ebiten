@@ -77,13 +77,13 @@ var _ Context = (*DebugContext)(nil)
 	}
 
 	t := reflect.TypeOf((*gl.Context)(nil)).Elem()
-	for i := 0; i < t.NumMethod(); i++ {
+	for i := range t.NumMethod() {
 		m := t.Method(i)
 		name := m.Name
 
 		var argNames []string
 		var argNamesAndTypes []string
-		for j := 0; j < m.Type.NumIn(); j++ {
+		for j := range m.Type.NumIn() {
 			n := fmt.Sprintf("arg%d", j)
 			argNames = append(argNames, n)
 			argNamesAndTypes = append(argNamesAndTypes, n+" "+typeName(m.Type.In(j)))
@@ -91,7 +91,7 @@ var _ Context = (*DebugContext)(nil)
 
 		var outTypes []string
 		var outNames []string
-		for j := 0; j < m.Type.NumOut(); j++ {
+		for j := range m.Type.NumOut() {
 			outTypes = append(outTypes, typeName(m.Type.Out(j)))
 			outNames = append(outNames, fmt.Sprintf("out%d", j))
 		}

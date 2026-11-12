@@ -40,8 +40,8 @@ func init() {
 	derivedImage = ebiten.NewImage(w, h)
 
 	baseImage.Fill(color.White)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			baseImage.SubImage(image.Rect(i, j, i+1, j+1)).(*ebiten.Image).WritePixels([]byte{0, 0, 0, 0xff})
 		}
 	}

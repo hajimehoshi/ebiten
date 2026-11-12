@@ -458,7 +458,7 @@ func updateWindowMode(window *Window) {
 // convertLatin1toUTF8 converts the specified Latin-1 string to UTF-8.
 func convertLatin1toUTF8(source string) string {
 	codepoints := make([]rune, len(source))
-	for i := 0; i < len(source); i++ {
+	for i := range len(source) {
 		codepoints[i] = rune(source[i])
 	}
 	return string(codepoints)
@@ -801,7 +801,7 @@ func xiRawMotionScroll(re *_XIRawEvent) {
 	if re.Flags&_XIPointerEmulated == 0 && re.Valuators.MaskLen > 0 {
 		mask := unsafe.Slice((*byte)(unsafe.Pointer(re.Valuators.Mask)), re.Valuators.MaskLen)
 		values := re.RawValues
-		for i := 0; i < int(re.Valuators.MaskLen)*8; i++ {
+		for i := range int(re.Valuators.MaskLen) * 8 {
 			if !xiMaskIsSet(mask, i) {
 				continue
 			}
@@ -2462,7 +2462,7 @@ func (w *Window) platformSetWindowIcon(images []*Image) error {
 		for _, image := range images {
 			icon = append(icon, _Culong(image.Width), _Culong(image.Height))
 
-			for j := 0; j < image.Width*image.Height; j++ {
+			for j := range image.Width * image.Height {
 				icon = append(icon,
 					_Culong(image.Pixels[j*4+0])<<16|
 						_Culong(image.Pixels[j*4+1])<<8|

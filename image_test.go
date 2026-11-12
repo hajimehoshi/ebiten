@@ -198,8 +198,8 @@ func TestImageScale(t *testing.T) {
 
 		img1.DrawImage(img0, op)
 
-		for j := 0; j < h*scale; j++ {
-			for i := 0; i < w*scale; i++ {
+		for j := range h * scale {
+			for i := range w * scale {
 				c0 := img0.At(i/scale, j/scale).(color.RGBA)
 				c1 := img1.At(i, j).(color.RGBA)
 				if c0 != c1 {
@@ -276,8 +276,8 @@ func TestImageWritePixels(t *testing.T) {
 	img0 := ebiten.NewImage(size.X, size.Y)
 
 	img0.WritePixels(img.Pix)
-	for j := 0; j < img0.Bounds().Dy(); j++ {
-		for i := 0; i < img0.Bounds().Dx(); i++ {
+	for j := range img0.Bounds().Dy() {
+		for i := range img0.Bounds().Dx() {
 			got := img0.At(i, j)
 			want := img.At(i, j)
 			if got != want {
@@ -295,8 +295,8 @@ func TestImageWritePixels(t *testing.T) {
 	for i := range p {
 		p[i] = 0
 	}
-	for j := 0; j < img0.Bounds().Dy(); j++ {
-		for i := 0; i < img0.Bounds().Dx(); i++ {
+	for j := range img0.Bounds().Dy() {
+		for i := range img0.Bounds().Dx() {
 			got := img0.At(i, j)
 			want := color.RGBA{R: 0x80, G: 0x80, B: 0x80, A: 0x80}
 			if got != want {
@@ -464,8 +464,8 @@ func TestImageBlendLighter(t *testing.T) {
 	op := &ebiten.DrawImageOptions{}
 	op.Blend = ebiten.BlendLighter
 	img1.DrawImage(img0, op)
-	for j := 0; j < img1.Bounds().Dy(); j++ {
-		for i := 0; i < img1.Bounds().Dx(); i++ {
+	for j := range img1.Bounds().Dy() {
+		for i := range img1.Bounds().Dx() {
 			got := img1.At(i, j).(color.RGBA)
 			want := img0.At(i, j).(color.RGBA)
 			want.R = uint8(min(0xff, int(want.R)+1))
@@ -1033,7 +1033,7 @@ loop:
 		src := ebiten.NewImage(w+2, h+2)
 
 		pix := make([]byte, 4*(w+2)*(h+2))
-		for i := 0; i < (w+2)*(h+2); i++ {
+		for i := range (w + 2) * (h + 2) {
 			pix[4*i] = 0xff
 			pix[4*i+3] = 0xff
 		}

@@ -429,7 +429,7 @@ func TestStyleFixtureClasses(t *testing.T) {
 		t.Fatal(err)
 	}
 	parent := computed(t, r, glyph, nil)
-	for i := 0; i < glyph.ChildCount(); i++ {
+	for i := range glyph.ChildCount() {
 		p := paintOf(t, r, computed(t, r, glyph.Child(i), &parent), false)
 		if p.Color != blue {
 			t.Errorf("child %d: %v", i, p.Color)
@@ -454,7 +454,7 @@ func TestStyleRealFontFixtures(t *testing.T) {
 				for _, stroke := range []bool{false, true} {
 					p := paintOf(t, r, s, stroke)
 					if p.Kind == opentypesvg.PaintGradient {
-						for i := 0; i < p.Gradient.StopCount(); i++ {
+						for i := range p.Gradient.StopCount() {
 							stop := p.Gradient.Stop(i)
 							if math.IsNaN(stop.Color.A) || stop.Color.A < 0 || stop.Color.A > 1 {
 								t.Errorf("invalid stop: %+v", stop)
@@ -465,7 +465,7 @@ func TestStyleRealFontFixtures(t *testing.T) {
 				if _, err := r.Clip(s); err != nil {
 					t.Error(err)
 				}
-				for i := 0; i < e.ChildCount(); i++ {
+				for i := range e.ChildCount() {
 					visit(e.Child(i), &s)
 				}
 			}
@@ -979,7 +979,7 @@ func TestDeferredGeometrySources(t *testing.T) {
 	d, r := styles(t, svgStart+`<rect x="10" y="10" width="10" height="10" transform="translate(10 0)"/><path d="M0 0L1 1"/><circle cx="10" cy="10" r="10"/><ellipse rx="10" ry="10"/></svg>`, opentypesvg.ColorContext{
 		Foreground: black,
 	})
-	for i := 0; i < d.Root().ChildCount(); i++ {
+	for i := range d.Root().ChildCount() {
 		computed(t, r, d.Root().Child(i), nil)
 	}
 	m, err := d.Root().Child(0).LocalTransform(opentypesvg.LengthContext{})
@@ -1045,7 +1045,7 @@ func TestMarkerApplicabilityAndAttributeOrder(t *testing.T) {
 		Foreground: black,
 	})
 	parent := computed(t, r, d.Root().Child(0), nil)
-	for i := 0; i < d.Root().Child(0).ChildCount(); i++ {
+	for i := range d.Root().Child(0).ChildCount() {
 		e := d.Root().Child(0).Child(i)
 		_, err := r.Compute(e, &parent)
 		if i == 0 {
@@ -1169,7 +1169,7 @@ func TestStyleLargeSimpleGlyphBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	parent := computed(t, r, glyph, nil)
-	for i := 0; i < glyph.ChildCount(); i++ {
+	for i := range glyph.ChildCount() {
 		s, err := r.Compute(glyph.Child(i), &parent)
 		if err != nil {
 			t.Errorf("simple instance %d of %d: %v", i, count, err)
@@ -1309,7 +1309,7 @@ func TestSparseStyleCacheValueLimit(t *testing.T) {
 		Foreground: black,
 	})
 	parent := computed(t, r, d.Root().Child(1), nil)
-	for i := 0; i < d.Root().Child(1).ChildCount(); i++ {
+	for i := range d.Root().Child(1).ChildCount() {
 		_, err := r.Compute(d.Root().Child(1).Child(i), &parent)
 		if errors.Is(err, opentypesvg.ErrLimit) {
 			return
@@ -1333,7 +1333,7 @@ func TestStyleCacheKindsHaveIndependentEntryLimits(t *testing.T) {
 	}
 	parent := computed(t, r, glyph, nil)
 	var last opentypesvg.Style
-	for i := 0; i < glyph.ChildCount(); i++ {
+	for i := range glyph.ChildCount() {
 		last, err = r.Compute(glyph.Child(i), &parent)
 		if err != nil {
 			t.Errorf("instance %d: %v", i, err)

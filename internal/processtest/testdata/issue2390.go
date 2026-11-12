@@ -37,10 +37,10 @@ func (g *Game) Update() error {
 			op := &ebiten.NewImageFromImageOptions{
 				Unmanaged: true,
 			}
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				i := i
 				img := image.NewRGBA(image.Rect(0, 0, 512, 512))
-				for j := 0; j < len(img.Pix)/4; j++ {
+				for j := range len(img.Pix) / 4 {
 					img.Pix[4*j] = byte(0x60 * i)
 					img.Pix[4*j+1] = byte(0x60 * i)
 					img.Pix[4*j+2] = byte(0x60 * i)

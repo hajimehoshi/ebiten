@@ -339,7 +339,7 @@ func TestVirtualGamepadWithFoldedHats(t *testing.T) {
 	buttons[0] = true
 	source.SetReportForTest(nil, buttons, []int{gamepaddb.HatUp | gamepaddb.HatRight})
 	state := gamepad.VirtualGamepadState{ID: 0, SDLID: source.SDLID(), Name: "Forwarded Pad"}
-	for b := 0; b < source.ButtonCountWithHats(); b++ {
+	for b := range source.ButtonCountWithHats() {
 		state.Buttons = append(state.Buttons, source.IsButtonPressedWithHats(b))
 	}
 	updateVirtualGamepads(t, []gamepad.VirtualGamepadState{state})

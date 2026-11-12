@@ -304,7 +304,7 @@ func (g *nativeGamepadsIOKit) addDevice(device _IOHIDDeviceRef, gamepads *gamepa
 		n.close()
 	}, n)
 
-	for i := _CFIndex(0); i < _CFArrayGetCount(elements); i++ {
+	for i := range _CFArrayGetCount(elements) {
 		native := (_IOHIDElementRef)(_CFArrayGetValueAtIndex(elements, i))
 		if _CFGetTypeID(_CFTypeRef(native)) != _IOHIDElementGetTypeID() {
 			continue

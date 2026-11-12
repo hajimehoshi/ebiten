@@ -108,7 +108,7 @@ func main() {
 
 	ctx := audio.NewContext(48000)
 	var players []*audio.Player
-	for i := 0; i < game.playerCount; i++ {
+	for range game.playerCount {
 		p, err := ctx.NewPlayer(&emptyStream{length: 48000 * 2 * 2})
 		if err != nil {
 			panic(err)
@@ -119,7 +119,7 @@ func main() {
 		// at the same time.
 		go func() {
 			p.Play()
-			for i := 0; i < 3; i++ {
+			for range 3 {
 				for {
 					if !p.IsPlaying() {
 						p.Rewind()

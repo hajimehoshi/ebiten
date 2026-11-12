@@ -278,7 +278,7 @@ func (i *InfiniteLoop) read(b []byte) (int, error) {
 		if n%i.bitDepthInBytes != 0 {
 			panic(fmt.Sprintf("audio: n (%d) must be a multiple of bit depth %d [bytes]", n, i.bitDepthInBytes))
 		}
-		for idx := 0; idx < n/i.bitDepthInBytes; idx++ {
+		for idx := range n / i.bitDepthInBytes {
 			abspos := bpos + int64(idx)*int64(i.bitDepthInBytes)
 			rate := i.blendRate(abspos)
 			if rate == 0 {

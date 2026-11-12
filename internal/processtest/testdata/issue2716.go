@@ -38,8 +38,8 @@ func (g *Game) Update() error {
 	g.count++
 	if g.count >= 16 {
 		for c, img := range g.imgs {
-			for j := 0; j < h; j++ {
-				for i := 0; i < h; i++ {
+			for j := range h {
+				for i := range h {
 					got := img.At(i, j).(color.RGBA)
 					want := color.RGBA{byte(c), byte(c), byte(c), byte(c)}
 					if got != want {

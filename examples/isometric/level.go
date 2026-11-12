@@ -57,9 +57,9 @@ func NewLevel() (*Level, error) {
 
 	// Fill each tile with one or more sprites randomly.
 	l.tiles = make([][]*Tile, l.h)
-	for y := 0; y < l.h; y++ {
+	for y := range l.h {
 		l.tiles[y] = make([]*Tile, l.w)
-		for x := 0; x < l.w; x++ {
+		for x := range l.w {
 			t := &Tile{}
 			isBorderSpace := x == 0 || y == 0 || x == l.w-1 || y == l.h-1
 			val := rand.IntN(1000)

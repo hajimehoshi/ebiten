@@ -181,7 +181,7 @@ func (r *styleResolver) matches(e *element, s svgcss.Selector) (bool, error) {
 	states[last-1] = true
 	for e = e.parent; e != nil; e = e.parent {
 		var next [maxSelectorParts]bool
-		for i := 0; i < last; i++ {
+		for i := range last {
 			if !states[i] {
 				continue
 			}

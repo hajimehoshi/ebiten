@@ -441,7 +441,7 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		ridl = buf
 	}
 
-	for i := 0; i < int(count); i++ {
+	for i := range int(count) {
 		if ridl[i].dwType != _RIM_TYPEHID {
 			continue
 		}

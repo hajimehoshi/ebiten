@@ -35,7 +35,7 @@ func checkPaint(t *testing.T, p opentypesvg.Paint) {
 		check(v)
 	}
 	var previous float64
-	for i := 0; i < p.Gradient.StopCount(); i++ {
+	for i := range p.Gradient.StopCount() {
 		stop := p.Gradient.Stop(i)
 		check(stop.Offset)
 		if stop.Offset < previous {
@@ -103,7 +103,7 @@ func FuzzStyles(f *testing.F) {
 				Height:        50,
 				PixelsPerInch: 96,
 			})
-			for i := 0; i < e.ChildCount(); i++ {
+			for i := range e.ChildCount() {
 				visit(e.Child(i), &s)
 			}
 		}

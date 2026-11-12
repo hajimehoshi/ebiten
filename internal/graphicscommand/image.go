@@ -181,7 +181,7 @@ func (i *Image) WritePixels(pixels *graphics.ManagedBytes, region image.Rectangl
 	// Successive WritePixels calls might accumulate the pixels and never release,
 	// especially when the image is unmanaged (#3036).
 	var cur int
-	for idx := 0; idx < len(i.bufferedWritePixelsArgs); idx++ {
+	for idx := range i.bufferedWritePixelsArgs {
 		arg := i.bufferedWritePixelsArgs[idx]
 		if arg.region.In(region) {
 			arg.pixels.Release()

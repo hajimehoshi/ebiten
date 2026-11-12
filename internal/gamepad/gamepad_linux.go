@@ -244,7 +244,7 @@ func (g *nativeGamepadsImpl) openEventNode(gamepads *gamepads, path string) (*Ga
 		n.keyMap[code-_BTN_MISC] = buttonCount
 		buttonCount++
 	}
-	for code := 0; code < _ABS_CNT; code++ {
+	for code := range _ABS_CNT {
 		if !isBitSet(info.absBits, code) {
 			continue
 		}

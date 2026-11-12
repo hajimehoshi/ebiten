@@ -378,7 +378,7 @@ func (d *dir) ReadDir(count int) ([]fs.DirEntry, error) {
 					ch <- nil
 					return nil
 				}
-				for i := 0; i < entries.Length(); i++ {
+				for i := range entries.Length() {
 					ent := entries.Index(i)
 					name := ent.Get("name").String()
 					// A name can be empty when this directory is a root directory.

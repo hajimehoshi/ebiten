@@ -76,8 +76,8 @@ func xmain() error {
 		return err
 	}
 
-	for filter := builtinshader.Filter(0); filter < builtinshader.FilterCount; filter++ {
-		for address := builtinshader.Address(0); address < builtinshader.AddressCount; address++ {
+	for filter := range builtinshader.Filter(builtinshader.FilterCount) {
+		for address := range builtinshader.Address(builtinshader.AddressCount) {
 			s := builtinshader.ShaderSource(filter, address)
 			if _, err := w.WriteString("\n"); err != nil {
 				return err
@@ -91,7 +91,7 @@ func xmain() error {
 		}
 	}
 
-	for filter := builtinshader.Filter(0); filter < builtinshader.FilterCount; filter++ {
+	for filter := range builtinshader.Filter(builtinshader.FilterCount) {
 		for _, opaque := range []bool{false, true} {
 			s := builtinshader.FinalScreenShaderSource(filter, opaque)
 			if _, err := w.WriteString("\n"); err != nil {

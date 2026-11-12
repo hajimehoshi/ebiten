@@ -119,8 +119,8 @@ func (b *Board) Size() (int, int) {
 // Draw draws the board to the given boardImage.
 func (b *Board) Draw(boardImage *ebiten.Image) {
 	boardImage.Fill(frameColor)
-	for j := 0; j < b.size; j++ {
-		for i := 0; i < b.size; i++ {
+	for j := range b.size {
+		for i := range b.size {
 			var v int
 			op := &ebiten.DrawImageOptions{}
 			x := i*tileSize + (i+1)*tileMargin

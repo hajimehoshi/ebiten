@@ -343,7 +343,7 @@ func pollMonitorsNS() error {
 	disconnected := make([]*Monitor, len(_glfw.monitors))
 	copy(disconnected, _glfw.monitors)
 
-	for i := uint32(0); i < displayCount; i++ {
+	for i := range displayCount {
 		display := displays[i]
 
 		if cgDisplayIsAsleep(display) != 0 {
@@ -588,7 +588,7 @@ func (m *Monitor) platformGetGammaRamp() (GammaRamp, error) {
 		Green: make([]uint16, sampleCount),
 		Blue:  make([]uint16, sampleCount),
 	}
-	for i := uint32(0); i < sampleCount; i++ {
+	for i := range sampleCount {
 		ramp.Red[i] = uint16(red[i] * 65535.0)
 		ramp.Green[i] = uint16(green[i] * 65535.0)
 		ramp.Blue[i] = uint16(blue[i] * 65535.0)

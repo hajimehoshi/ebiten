@@ -296,7 +296,7 @@ func (b *renderBuilder) convertPath(p path, scale float64) ([]RenderCommand, err
 				return nil, errLimit
 			}
 			step := a.sweep / count
-			for i := 0; i < int(count); i++ {
+			for i := range int(count) {
 				t0, t1 := a.start+float64(i)*step, a.start+float64(i+1)*step
 				p0, p1 := a.at(t0), a.at(t1)
 				k := 4.0 / 3 * math.Tan(step/4)

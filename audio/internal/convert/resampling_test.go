@@ -45,7 +45,7 @@ func soundAt(timeInSecond float64) float64 {
 
 func newSoundBytes(sampleRate int, bitDepthInBytes int) []byte {
 	b := make([]byte, sampleRate*4) // 1 second
-	for i := 0; i < len(b)/(bitDepthInBytes*2); i++ {
+	for i := range len(b) / (bitDepthInBytes * 2) {
 		v := soundAt(float64(i) / float64(sampleRate))
 		switch bitDepthInBytes {
 		case 2:
@@ -150,7 +150,7 @@ func TestResampling(t *testing.T) {
 										t.Fatal(err)
 									}
 									// Shifting by incomplete bytes should not affect the result.
-									for i := 0; i < bitDepthInBytes*2; i++ {
+									for i := range bitDepthInBytes * 2 {
 										pos, err := outS.Seek(int64(i), io.SeekCurrent)
 										if err != nil {
 											t.Fatal(err)
@@ -167,7 +167,7 @@ func TestResampling(t *testing.T) {
 							if len(gotB) < len(wantB)-256 {
 								t.Errorf("len(gotB) >= len(wantB) - 256, but len(gotB) == %d, len(wantB) == %d", len(gotB), len(wantB))
 							}
-							for i := 0; i < len(gotB)/bitDepthInBytes; i++ {
+							for i := range len(gotB) / bitDepthInBytes {
 								var got, want float64
 								switch bitDepthInBytes {
 								case 2:

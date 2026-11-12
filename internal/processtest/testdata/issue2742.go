@@ -45,7 +45,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 func main() {
 	ch := make(chan struct{})
 	go func() {
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			ebiten.SetCursorMode(ebiten.CursorModeHidden)
 			time.Sleep(time.Millisecond)
 		}

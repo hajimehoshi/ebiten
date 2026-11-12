@@ -76,8 +76,8 @@ func xmain() error {
 		return err
 	}
 
-	for filter := colormshader.Filter(0); filter < colormshader.FilterCount; filter++ {
-		for address := colormshader.Address(0); address < colormshader.AddressCount; address++ {
+	for filter := range colormshader.Filter(colormshader.FilterCount) {
+		for address := range colormshader.Address(colormshader.AddressCount) {
 			s := colormshader.ShaderSource(filter, address)
 			if _, err := w.WriteString("\n"); err != nil {
 				return err

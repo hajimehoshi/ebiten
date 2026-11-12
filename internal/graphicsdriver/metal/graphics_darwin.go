@@ -1017,12 +1017,12 @@ func appendUniformVariables(values []uint32, uniformTypes []shaderir.Type, unifo
 			case shaderir.Float, shaderir.Int, shaderir.Vec2, shaderir.IVec2, shaderir.Vec4, shaderir.IVec4, shaderir.Mat2, shaderir.Mat4:
 				values = append(values, uniforms[idx:idx+n]...)
 			case shaderir.Vec3, shaderir.IVec3:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					values = append(values, uniforms[idx+3*j:idx+3*(j+1)]...)
 					values = append(values, 0)
 				}
 			case shaderir.Mat3:
-				for j := 0; j < typ.Length; j++ {
+				for j := range typ.Length {
 					values = append(values, uniforms[idx+9*j:idx+9*j+3]...)
 					values = append(values, 0)
 					values = append(values, uniforms[idx+9*j+3:idx+9*j+6]...)

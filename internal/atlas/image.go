@@ -615,7 +615,7 @@ func (i *Image) writePixels(pix []byte, region image.Rectangle) {
 		}
 
 		// Copy the content.
-		for j := 0; j < region.Dy(); j++ {
+		for j := range region.Dy() {
 			copy(bs[4*j*r.Dx():], pix[4*j*region.Dx():4*(j+1)*region.Dx()])
 		}
 	})

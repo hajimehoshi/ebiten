@@ -90,7 +90,7 @@ func (g *nativeGamepadsImpl) update(gamepads *gamepads) error {
 	}
 
 	l := gps.Length()
-	for idx := 0; idx < l; idx++ {
+	for idx := range l {
 		gp := gps.Index(idx)
 		if !gp.Truthy() {
 			continue

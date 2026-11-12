@@ -39,8 +39,8 @@ func init() {
 	derivedImage = ebiten.NewImage(w, h)
 
 	baseImage.Fill(color.White)
-	for j := 0; j < h; j++ {
-		for i := 0; i < w; i++ {
+	for j := range h {
+		for i := range w {
 			baseImage.Set(i, j, color.Black)
 		}
 	}

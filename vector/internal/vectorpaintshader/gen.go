@@ -76,7 +76,7 @@ func xmain() error {
 		return err
 	}
 
-	for coverage := vectorpaintshader.Coverage(0); coverage < vectorpaintshader.CoverageCount; coverage++ {
+	for coverage := range vectorpaintshader.CoverageCount {
 		for _, antialias := range []bool{false, true} {
 			for _, linear := range []bool{false, true} {
 				source := vectorpaintshader.ShaderSource(coverage, antialias, linear)
