@@ -14,10 +14,24 @@
 
 package ui
 
+import "syscall/js"
+
 func IsShortcutChordForTest(ctrl, alt, meta, altGraph, isApple bool) bool {
 	return isShortcutChord(ctrl, alt, meta, altGraph, isApple)
 }
 
 func IsKeyStringForTest(str string) bool {
 	return isKeyString(str)
+}
+
+func (u *UserInterface) UpdateInputFromEventForTest(e js.Value) error {
+	return u.updateInputFromEvent(e)
+}
+
+func (u *UserInterface) ReleaseAllInputsForTest() {
+	u.releaseAllInputs()
+}
+
+func (u *UserInterface) InputStateForTest() InputState {
+	return u.inputState
 }
