@@ -169,7 +169,7 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 		"__legacyshader_imageDstRegionOnTexture()",
 		"__legacyshader_imageSrc0Origin(), __legacyshader_imageSrc1Origin()",
 		"func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {",
-		"src0Pos /= max(imageSrc0TextureSize(), vec2(1))",
+		"src0Pos /= __legacyshader_srcPosDivisor()",
 	} {
 		if !strings.Contains(outStr, want) {
 			t.Errorf("ConvertToPixels result must contain %q but does not:\n%s", want, outStr)
@@ -262,6 +262,26 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 				if _, err := graphics.CompileShader(src); err == nil {
 					t.Error("graphics.CompileShader must return an error but did not")
 				}
+			}
+		})
+	}
+}
+
+func TestFragmentParameterShadowsBuiltin(t *testing.T) {
+	for _, unit := range []string{"texels", "pixels"} {
+		t.Run(unit, func(t *testing.T) {
+			for _, name := range []string{"max", "vec2", "imageSrc0TextureSize", "__legacyshader_srcPosDivisor"} {
+				t.Run(name, func(t *testing.T) {
+					src := fmt.Appendf(nil, `//kage:unit %s
+package main
+func Fragment(%s vec4, src vec2, color vec4) vec4 {
+	return vec4(src, 0, 1)
+}
+`, unit, name)
+					if _, _, err := legacyshader.CompileShader(src); err != nil {
+						t.Errorf("CompileShader failed: %v", err)
+					}
+				})
 			}
 		})
 	}
