@@ -464,7 +464,7 @@ func supportsXInput(guid windows.GUID) (bool, error) {
 		// https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getrawinputdeviceinfow
 		size = uint32(len(name))
 		if _, err := _GetRawInputDeviceInfoW(ridl[i].hDevice, _RIDI_DEVICENAME, unsafe.Pointer(&name[0]), &size); err != nil {
-			// The device can be removed between listing and querying it. Keep checking the remaining devices.
+			// Skip devices whose names cannot be queried and keep checking for XInput devices.
 			continue
 		}
 
