@@ -187,14 +187,18 @@ func swapBuffersEGL(window *Window) error {
 	if window != _glfw.currentContext {
 		return fmt.Errorf("%w: egl: the context must be current on the calling thread when swapping buffers", ErrPlatform)
 	}
-	egl.SwapBuffers(egl.display, window.context.platform.egl.surface)
+	if !egl.SwapBuffers(egl.display, window.context.platform.egl.surface) {
+		return fmt.Errorf("%w: egl: failed to swap buffers: %s", ErrPlatform, getEGLErrorString(egl.GetError()))
+	}
 	window.signalFrameSyncCounter()
 	return nil
 }
 
 func swapIntervalEGL(window *Window, interval int) error {
 	egl := &_glfw.platformContext.egl
-	egl.SwapInterval(egl.display, int32(interval))
+	if !egl.SwapInterval(egl.display, int32(interval)) {
+		return fmt.Errorf("%w: egl: failed to set swap interval: %s", ErrPlatform, getEGLErrorString(egl.GetError()))
+	}
 	return nil
 }
 
