@@ -199,3 +199,17 @@ func eqEpsilon(a, b uint8) bool {
 	const epsilon = 1
 	return uint16(a)-uint16(b) <= epsilon || uint16(b)-uint16(a) <= epsilon
 }
+
+func TestNewLibraryWithEmptyData(t *testing.T) {
+	device, err := mtl.CreateSystemDefaultDevice()
+	if err != nil {
+		t.Skipf("Metal device unavailable: %v", err)
+	}
+	for _, data := range [][]byte{nil, {}} {
+		lib, err := device.NewLibraryWithData(data)
+		if err == nil {
+			lib.Release()
+			t.Error("NewLibraryWithData returned no error for empty data")
+		}
+	}
+}
