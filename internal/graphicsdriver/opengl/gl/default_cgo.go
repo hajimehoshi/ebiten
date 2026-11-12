@@ -183,6 +183,13 @@ package gl
 //   ((fn)(fnptr))(n, arrays);
 // }
 //
+// #cgo noescape glowDetachShader
+// #cgo nocallback glowDetachShader
+// static void glowDetachShader(uintptr_t fnptr, GLuint program, GLuint shader) {
+//   typedef void (*fn)(GLuint program, GLuint shader);
+//   ((fn)(fnptr))(program, shader);
+// }
+//
 // #cgo noescape glowDrawElements
 // #cgo nocallback glowDrawElements
 // static void glowDrawElements(uintptr_t fnptr, GLenum mode, GLsizei count, GLenum type, const uintptr_t indices) {
@@ -521,6 +528,7 @@ type defaultContext struct {
 	gpDeleteSync              C.uintptr_t
 	gpDeleteTextures          C.uintptr_t
 	gpDeleteVertexArrays      C.uintptr_t
+	gpDetachShader            C.uintptr_t
 	gpDrawElements            C.uintptr_t
 	gpEnable                  C.uintptr_t
 	gpEnableVertexAttribArray C.uintptr_t
@@ -713,6 +721,10 @@ func (c *defaultContext) DeleteTexture(texture uint32) {
 
 func (c *defaultContext) DeleteVertexArray(array uint32) {
 	C.glowDeleteVertexArrays(c.gpDeleteVertexArrays, 1, (*C.GLuint)(unsafe.Pointer(&array)))
+}
+
+func (c *defaultContext) DetachShader(program uint32, shader uint32) {
+	C.glowDetachShader(c.gpDetachShader, C.GLuint(program), C.GLuint(shader))
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {
@@ -960,6 +972,7 @@ func (c *defaultContext) LoadFunctions() error {
 	c.gpDeleteSync = C.uintptr_t(g.get("glDeleteSync"))
 	c.gpDeleteTextures = C.uintptr_t(g.get("glDeleteTextures"))
 	c.gpDeleteVertexArrays = C.uintptr_t(g.get("glDeleteVertexArrays"))
+	c.gpDetachShader = C.uintptr_t(g.get("glDetachShader"))
 	c.gpDrawElements = C.uintptr_t(g.get("glDrawElements"))
 	c.gpEnable = C.uintptr_t(g.get("glEnable"))
 	c.gpEnableVertexAttribArray = C.uintptr_t(g.get("glEnableVertexAttribArray"))

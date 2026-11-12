@@ -253,6 +253,14 @@ func (d *DebugContext) DeleteVertexArray(arg0 uint32) {
 	}
 }
 
+func (d *DebugContext) DetachShader(arg0 uint32, arg1 uint32) {
+	d.Context.DetachShader(arg0, arg1)
+	fmt.Fprintln(os.Stderr, "DetachShader")
+	if e := d.Context.GetError(); e != NO_ERROR {
+		panic(fmt.Sprintf("gl: GetError() returned %d at DetachShader", e))
+	}
+}
+
 func (d *DebugContext) DrawElements(arg0 uint32, arg1 int32, arg2 uint32, arg3 int) {
 	d.Context.DrawElements(arg0, arg1, arg2, arg3)
 	fmt.Fprintln(os.Stderr, "DrawElements")

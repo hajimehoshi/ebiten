@@ -47,6 +47,7 @@ type defaultContext struct {
 	fnDeleteSync              js.Value
 	fnDeleteTexture           js.Value
 	fnDeleteVertexArray       js.Value
+	fnDetachShader            js.Value
 	fnDrawElements            js.Value
 	fnEnable                  js.Value
 	fnEnableVertexAttribArray js.Value
@@ -170,6 +171,7 @@ func NewDefaultContext(v js.Value) (Context, error) {
 		fnDeleteSync:              v.Get("deleteSync").Call("bind", v),
 		fnDeleteTexture:           v.Get("deleteTexture").Call("bind", v),
 		fnDeleteVertexArray:       v.Get("deleteVertexArray").Call("bind", v),
+		fnDetachShader:            v.Get("detachShader").Call("bind", v),
 		fnDrawElements:            v.Get("drawElements").Call("bind", v),
 		fnEnable:                  v.Get("enable").Call("bind", v),
 		fnEnableVertexAttribArray: v.Get("enableVertexAttribArray").Call("bind", v),
@@ -361,6 +363,10 @@ func (c *defaultContext) DeleteVertexArray(array uint32) {
 		c.fnDeleteVertexArray.Invoke(v)
 	}
 	c.vertexArrays.delete(array)
+}
+
+func (c *defaultContext) DetachShader(program uint32, shader uint32) {
+	c.fnDetachShader.Invoke(c.programs.get(program), c.shaders.get(shader))
 }
 
 func (c *defaultContext) DrawElements(mode uint32, count int32, xtype uint32, offset int) {

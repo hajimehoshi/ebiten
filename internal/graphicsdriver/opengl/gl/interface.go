@@ -54,6 +54,7 @@ type Context interface {
 	DeleteSync(sync uintptr)
 	DeleteTexture(texture uint32)
 	DeleteVertexArray(array uint32)
+	DetachShader(program uint32, shader uint32)
 	DrawElements(mode uint32, count int32, xtype uint32, offset int)
 	Enable(cap uint32)
 	EnableVertexAttribArray(index uint32)
