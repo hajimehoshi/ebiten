@@ -635,7 +635,7 @@ func (d Device) NewLibraryWithSource(source string, opt CompileOptions) (Library
 func (d Device) NewLibraryWithData(buffer []byte) (Library, error) {
 	defer runtime.KeepAlive(buffer)
 
-	data := dispatchDataCreate(unsafe.Pointer(&buffer[0]), uint(len(buffer)), 0, 0)
+	data := dispatchDataCreate(unsafe.Pointer(unsafe.SliceData(buffer)), uint(len(buffer)), 0, 0)
 	defer dispatchRelease(data)
 
 	var err cocoa.NSError
