@@ -209,7 +209,7 @@ const (
 
 var (
 	reShaderSourceDirective = regexp.MustCompile(`^\s*//` + regexp.QuoteMeta(shaderSourceDirective) + `$`)
-	reShaderFileDirective   = regexp.MustCompile(`^\s*//` + regexp.QuoteMeta(shaderFileDirective) + ` `)
+	reShaderFileDirective   = regexp.MustCompile(`^\s*//` + regexp.QuoteMeta(shaderFileDirective) + `[ \t]`)
 )
 
 func hasShaderSourceDirectiveInComment(commentGroup *ast.CommentGroup) bool {
