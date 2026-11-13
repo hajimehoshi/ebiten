@@ -122,6 +122,10 @@ func (c *pixelCache) tileRegion(idx image.Point) image.Rectangle {
 // region that are not cached. The pixels of the loaded tiles are read by finishReadPixels after the
 // read-backs of the returned load complete. The returned load is nil when no tile needs loading.
 func (c *pixelCache) startReadPixels(img *ui.Image, pixels []byte, region image.Rectangle) *tilesLoad {
+	if region.Empty() {
+		return nil
+	}
+
 	if region.Dx() == 1 && region.Dy() == 1 {
 		if clr, ok := c.dots[region.Min]; ok {
 			copy(pixels, clr[:])

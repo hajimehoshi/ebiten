@@ -2754,6 +2754,22 @@ func TestImageReadPixelsOnLargeImage(t *testing.T) {
 	}
 }
 
+func TestImageReadPixelsEmptyDoesNotLoadCache(t *testing.T) {
+	img := ebiten.NewImage(64, 64)
+	img.Fill(color.RGBA{R: 0x40, A: 0xff})
+
+	img.SubImage(image.Rectangle{}).(*ebiten.Image).ReadPixels(nil)
+	if got := img.CachedPixelsSizeForTesting(); got != 0 {
+		t.Errorf("empty ReadPixels cached %d bytes, want 0", got)
+	}
+
+	pixels := make([]byte, 4)
+	img.SubImage(image.Rect(0, 0, 1, 1)).(*ebiten.Image).ReadPixels(pixels)
+	if want := []byte{0x40, 0, 0, 0xff}; !bytes.Equal(pixels, want) {
+		t.Errorf("non-empty ReadPixels: got %v, want %v", pixels, want)
+	}
+}
+
 func TestImageReadPixelsOnLargeImageAcrossTiles(t *testing.T) {
 	const width = 1024
 	height := ebiten.MaxPixelsCacheSize/(4*width) + 1
