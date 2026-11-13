@@ -329,7 +329,7 @@ func NewGuestSession(conn net.Conn, options *NewGuestSessionOptions) (*GuestSess
 		}
 		rw = idleConn
 	}
-	// The handshake runs before the connection is wrapped in gob codecs (the host is the initiator).
+	// The handshake runs before the connection is wrapped in the message codecs (the host is the initiator).
 	if err := vmprotocol.PerformHandshake(rw, true); err != nil {
 		return nil, fmt.Errorf("vmhost: the handshake with the guest failed: %w", err)
 	}

@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"image"
 	"math"
+	"slices"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/atlas"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
@@ -37,10 +38,7 @@ type frameRenderer struct {
 	vertices []float32
 	indices  []uint32
 
-	// vtxBuf and idxBuf are reused per draw to forward only the vertices a draw references, rebased to a
-	// zero origin. Forwarding the whole shared vertex buffer per draw makes the host's command queue grow
-	// quadratically with the number of batched draws.
-	vtxBuf []float32
+	// idxBuf is reused per draw to hold the draw's indices rebased to the first vertex the draw references.
 	idxBuf []uint32
 
 	// screen is the mirror of the guest's screen framebuffer. It is a renderer-owned image, not the
@@ -250,14 +248,20 @@ func (f *frameRenderer) renderOne(c vmprotocol.GraphicsCommand) error {
 				return fmt.Errorf("vmhost: DrawTriangles references vertex %d, outside the %d vertices set", hi, vertexCount)
 			}
 
-			f.vtxBuf = append(f.vtxBuf[:0], f.vertices[int(lo)*graphics.VertexFloatCount:(int(hi)+1)*graphics.VertexFloatCount]...)
+			// The mirrors are unmanaged images, which have no atlas offset to apply to the given vertices, so
+			// drawing leaves the shared buffer as it is and its range is forwarded without a copy.
+			vertices := f.vertices[int(lo)*graphics.VertexFloatCount : (int(hi)+1)*graphics.VertexFloatCount]
 
-			f.idxBuf = f.idxBuf[:0]
-			for _, i := range idx {
-				f.idxBuf = append(f.idxBuf, i-lo)
+			indices := idx
+			if lo != 0 {
+				f.idxBuf = slices.Grow(f.idxBuf[:0], len(idx))
+				for _, i := range idx {
+					f.idxBuf = append(f.idxBuf, i-lo)
+				}
+				indices = f.idxBuf
 			}
 
-			dst.img.DrawTriangles(srcs, f.vtxBuf, f.idxBuf, c.Blend, dr.Region, srcRegions, shader.shader, uniforms, true)
+			dst.img.DrawTriangles(srcs, vertices, indices, c.Blend, dr.Region, srcRegions, shader.shader, uniforms, true)
 		}
 		return nil
 

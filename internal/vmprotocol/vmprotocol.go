@@ -19,10 +19,15 @@
 // operation at a time; the guest sends back a sequence of GuestMessages belonging to that operation
 // — graphics-command batches, audio control and data, and queries, concluded by a done message — in
 // lockstep. A query suspends the operation until the host answers it with the corresponding
-// HostMessage. The encoding is gob.
+// HostMessage.
+//
+// A message is encoded with gob. Its bulk payloads (vertices, indices, and pixels) are not part of the
+// gob data: they follow it as raw length-prefixed data, so that each one is read into a buffer of
+// exactly its size.
 package vmprotocol
 
 import (
+	"bufio"
 	"encoding/binary"
 	"encoding/gob"
 	"fmt"
@@ -31,7 +36,9 @@ import (
 	"net"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
@@ -433,36 +440,128 @@ type TextInputState struct {
 
 // Encoder writes messages to a connection.
 type Encoder struct {
-	enc *gob.Encoder
+	mu   sync.Mutex
+	w    *bufio.Writer
+	enc  *gob.Encoder
+	bulk bulkWriter
+
+	// commandsBuf holds the graphics commands of the message being encoded without their bulk payloads.
+	commandsBuf []GraphicsCommand
 }
 
 // Decoder reads messages from a connection.
 type Decoder struct {
-	dec *gob.Decoder
+	mu   sync.Mutex
+	dec  *gob.Decoder
+	bulk bulkReader
 }
 
 func NewEncoder(w io.Writer) *Encoder {
-	return &Encoder{enc: gob.NewEncoder(w)}
+	bw := bufio.NewWriter(w)
+	return &Encoder{
+		w:    bw,
+		enc:  gob.NewEncoder(bw),
+		bulk: newBulkWriter(bw),
+	}
 }
 
 func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{dec: gob.NewDecoder(r)}
+	// gob reads exactly one message at a time from a reader that is also an io.ByteReader, so the bulk
+	// payloads following a message are still unread when the message is decoded.
+	br := bufio.NewReader(r)
+	return &Decoder{
+		dec:  gob.NewDecoder(br),
+		bulk: newBulkReader(br),
+	}
 }
 
 func (e *Encoder) EncodeHostMessage(msg *HostMessage) error {
-	return e.enc.Encode(msg)
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	header := *msg
+	header.Pixels = nil
+	if err := e.enc.Encode(&header); err != nil {
+		return err
+	}
+	if err := e.bulk.writeBytesList(msg.Pixels); err != nil {
+		return err
+	}
+	return e.w.Flush()
 }
 
 func (d *Decoder) DecodeHostMessage(msg *HostMessage) error {
-	return d.dec.Decode(msg)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if err := d.dec.Decode(msg); err != nil {
+		return err
+	}
+	pixels, err := d.bulk.readBytesList()
+	if err != nil {
+		return err
+	}
+	msg.Pixels = pixels
+	return nil
 }
 
 func (e *Encoder) EncodeGuestMessage(msg *GuestMessage) error {
-	return e.enc.Encode(msg)
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	// Drop the references to the caller's data whatever the outcome, keeping the capacity.
+	defer func() {
+		e.commandsBuf = slices.Delete(e.commandsBuf, 0, len(e.commandsBuf))
+	}()
+	e.commandsBuf = append(e.commandsBuf, msg.GraphicsCommands...)
+	for i := range e.commandsBuf {
+		c := &e.commandsBuf[i]
+		c.Vertices = nil
+		c.Indices = nil
+		c.Pixels = nil
+	}
+
+	header := *msg
+	header.GraphicsCommands = e.commandsBuf
+	if err := e.enc.Encode(&header); err != nil {
+		return err
+	}
+	for i := range msg.GraphicsCommands {
+		c := &msg.GraphicsCommands[i]
+		if err := e.bulk.writeFloat32s(c.Vertices); err != nil {
+			return err
+		}
+		if err := e.bulk.writeUint32s(c.Indices); err != nil {
+			return err
+		}
+		if err := e.bulk.writeBytesList(c.Pixels); err != nil {
+			return err
+		}
+	}
+	return e.w.Flush()
 }
 
 func (d *Decoder) DecodeGuestMessage(msg *GuestMessage) error {
-	return d.dec.Decode(msg)
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if err := d.dec.Decode(msg); err != nil {
+		return err
+	}
+	for i := range msg.GraphicsCommands {
+		c := &msg.GraphicsCommands[i]
+		var err error
+		if c.Vertices, err = d.bulk.readFloat32s(); err != nil {
+			return err
+		}
+		if c.Indices, err = d.bulk.readUint32s(); err != nil {
+			return err
+		}
+		if c.Pixels, err = d.bulk.readBytesList(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // GuestMessageEncoder encodes a guest message to the host. A post-tick hook receives one so a guest
