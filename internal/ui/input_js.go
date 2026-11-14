@@ -330,6 +330,7 @@ func (u *UserInterface) clearTouches() {
 
 // releaseAllInputs releases all the buttons and touches that are down.
 func (u *UserInterface) releaseAllInputs() {
+	u.controlKeyInMouseEvent = false
 	u.inputState.releaseAllButtons(u.inputState.nextInputTime())
 	u.clearTouches()
 }
