@@ -515,6 +515,29 @@ func TestBlockedReadDoesNotBlockContext(t *testing.T) {
 		<-readDone
 		<-controlDone
 	}()
+	select {
+	case <-controlDone:
+	case <-time.After(5 * time.Second):
+		t.Error("control push blocked behind a player's source read")
+		return
+	}
+	stateDone := make(chan struct{})
+	go func() {
+		defer close(stateDone)
+		p.Pause()
+		p.Play()
+		p.SetVolume(0.5)
+		if !p.IsPlaying() || p.Volume() != 0.5 || p.BufferedSize() != 0 || p.Err() != nil {
+			t.Error("unexpected player state during source read")
+		}
+	}()
+	t.Cleanup(func() { <-stateDone })
+	select {
+	case <-stateDone:
+	case <-time.After(5 * time.Second):
+		t.Error("player state access blocked behind a source read")
+		return
+	}
 
 	for range 10 {
 		time.Sleep(time.Millisecond)
@@ -531,6 +554,47 @@ func TestBlockedReadDoesNotBlockContext(t *testing.T) {
 			t.Error("Suspend blocked behind a player's source read")
 			return
 		}
+	}
+}
+
+func TestPauseAndStopReadingWaitsForSourceRead(t *testing.T) {
+	c := newContext(t, 48000)
+	src := &blockedSource{
+		started: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	p := c.NewPlayer(src)
+	defer runtime.KeepAlive(p)
+	id := onlyControlID(t, c)
+	p.Play()
+	readDone := make(chan struct{})
+	go func() {
+		c.ReadForTesting(id, 8)
+		close(readDone)
+	}()
+	<-src.started
+	pauseStarted := make(chan struct{})
+	pauseDone := make(chan struct{})
+	go func() {
+		close(pauseStarted)
+		p.PauseAndStopReading()
+		close(pauseDone)
+	}()
+	<-pauseStarted
+	select {
+	case <-pauseDone:
+		t.Error("PauseAndStopReading returned before the source read finished")
+	case <-time.After(20 * time.Millisecond):
+	}
+	close(src.release)
+	<-readDone
+	select {
+	case <-pauseDone:
+	case <-time.After(5 * time.Second):
+		t.Fatal("PauseAndStopReading did not return after the source read finished")
+	}
+	if p.IsPlaying() {
+		t.Error("player is still playing after PauseAndStopReading")
 	}
 }
 
