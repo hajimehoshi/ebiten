@@ -581,6 +581,13 @@ func TestPauseAndStopReadingWaitsForSourceRead(t *testing.T) {
 		close(pauseDone)
 	}()
 	<-pauseStarted
+	deadline := time.Now().Add(5 * time.Second)
+	for p.IsPlaying() && time.Now().Before(deadline) {
+		runtime.Gosched()
+	}
+	if p.IsPlaying() {
+		t.Error("PauseAndStopReading did not pause before waiting for the source read")
+	}
 	select {
 	case <-pauseDone:
 		t.Error("PauseAndStopReading returned before the source read finished")
@@ -593,9 +600,6 @@ func TestPauseAndStopReadingWaitsForSourceRead(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("PauseAndStopReading did not return after the source read finished")
 	}
-	if p.IsPlaying() {
-		t.Error("player is still playing after PauseAndStopReading")
-	}
 }
 
 func TestSeekNonSeeker(t *testing.T) {
@@ -606,5 +610,62 @@ func TestSeekNonSeeker(t *testing.T) {
 		if _, err := p.Seek(0, whence); !errors.Is(err, errors.ErrUnsupported) {
 			t.Errorf("Seek(0, %d): got %v, want errors.ErrUnsupported", whence, err)
 		}
+	}
+}
+
+// blockedSeekSource permits reads but blocks a seek until released.
+type blockedSeekSource struct {
+	*bytes.Reader
+	started chan struct{}
+	release chan struct{}
+}
+
+func (s *blockedSeekSource) Seek(offset int64, whence int) (int64, error) {
+	close(s.started)
+	<-s.release
+	return s.Reader.Seek(offset, whence)
+}
+
+func TestBlockedSeekDoesNotBlockControls(t *testing.T) {
+	c := newContext(t, 48000)
+	src := &blockedSeekSource{
+		Reader:  bytes.NewReader(pcmBytes(1, 2, 3, 4)),
+		started: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	p := c.NewPlayer(src)
+	defer runtime.KeepAlive(p)
+	id := onlyControlID(t, c)
+	p.Play()
+	seekDone := make(chan error, 1)
+	go func() {
+		_, err := p.Seek(8, io.SeekStart)
+		seekDone <- err
+	}()
+	<-src.started
+	controlDone := make(chan struct{})
+	go func() {
+		defer close(controlDone)
+		p.Pause()
+		p.SetVolume(0.5)
+		c.TakeControlChangesForTesting(nil)
+		if p.IsPlaying() || p.Volume() != 0.5 {
+			t.Error("unexpected control state during seek")
+		}
+	}()
+	select {
+	case <-controlDone:
+	case <-time.After(5 * time.Second):
+		t.Error("player controls blocked behind a source seek")
+	}
+	close(src.release)
+	if err := <-seekDone; err != nil {
+		t.Fatal(err)
+	}
+	<-controlDone
+	p.Play()
+	pcm, _ := c.ReadForTesting(id, 8)
+	if !bytes.Equal(pcm, pcmBytes(3, 4)) {
+		t.Errorf("read after seek = %v, want %v", pcm, pcmBytes(3, 4))
 	}
 }

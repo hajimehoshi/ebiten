@@ -164,7 +164,6 @@ func (c *Context) takeControlChanges(controls []vmprotocol.AudioControl) []vmpro
 	start := len(controls)
 	players, controls := c.snapshotPlayersAndDrainClosedIDs(controls)
 
-	// Take player snapshots without holding the context mutex.
 	for _, p := range players {
 		if ctrl, ok := p.takeControlChange(); ok {
 			controls = append(controls, ctrl)
@@ -234,11 +233,17 @@ type Player struct {
 	c  *Context
 	id int64
 
-	// readMu serializes reads, seeks, and PauseAndStopReading. Acquire it before mu.
+	// src is fixed at creation.
+	src io.Reader
+
+	// readMu is held for every call into src, and guards srcBuf. Acquire it before mu.
 	readMu sync.Mutex
 
+	// srcBuf is the scratch buffer a source read fills.
+	srcBuf []byte
+
+	// mu guards the fields below. mu is never held across a call into src.
 	mu      sync.Mutex
-	src     io.Reader
 	playing bool
 	volume  float64
 	eof     bool
@@ -272,10 +277,10 @@ func (p *Player) Pause() {
 // closed safely. The data buffered from the source is kept.
 // PauseAndStopReading blocks until an ongoing read from the source finishes, if any.
 func (p *Player) PauseAndStopReading() {
-	// Wait for an ongoing source read before pausing, and forbid the next one.
+	// Pause before waiting so an ongoing read stops after its current source call.
+	p.Pause()
 	p.readMu.Lock()
 	defer p.readMu.Unlock()
-	p.Pause()
 }
 
 func (p *Player) IsPlaying() bool {
@@ -325,21 +330,25 @@ func (p *Player) Close() error {
 // failed stays finished.
 // Seek returns an error wrapping [errors.ErrUnsupported] when the source is not an [io.Seeker].
 func (p *Player) Seek(offset int64, whence int) (int64, error) {
-	p.readMu.Lock()
-	defer p.readMu.Unlock()
-	p.mu.Lock()
-	defer p.mu.Unlock()
 	s, ok := p.src.(io.Seeker)
 	if !ok {
 		return 0, fmt.Errorf("vmaudio: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
+	p.readMu.Lock()
+	defer p.readMu.Unlock()
 	n, err := s.Seek(offset, whence)
 	if err != nil {
 		return 0, err
 	}
+	p.discardBuffered()
+	return n, nil
+}
+
+func (p *Player) discardBuffered() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	p.buf = p.buf[:0]
 	p.eof = false
-	return n, nil
 }
 
 // takeControlChange returns the player's current control state and whether it differs from the state
@@ -368,45 +377,66 @@ func (p *Player) takeControlChange() (vmprotocol.AudioControl, bool) {
 func (p *Player) read(buf []byte, suspended bool) (n int, eof bool) {
 	p.readMu.Lock()
 	defer p.readMu.Unlock()
-	p.mu.Lock()
 
-	if !p.playing || suspended {
-		p.mu.Unlock()
+	if suspended || !p.isPlayingRequested() {
 		return 0, false
 	}
 
 	// Keep whole stereo frames (8 bytes); a trailing partial frame stays buffered for the next read.
 	need := len(buf) - len(buf)%8
-	for len(p.buf) < need && !p.eof && p.err == nil && p.playing {
-		m := len(p.buf)
-		p.buf = slices.Grow(p.buf, need-m)
-		b := p.buf[:need]
-		// Keep the buffered length unchanged until Read returns. Control snapshots
-		// only inspect that length, and readMu protects the backing array.
-		p.mu.Unlock()
-		read, err := p.src.Read(b[m:])
-		p.mu.Lock()
-		p.buf = b[:m+read]
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				p.eof = true
-			} else {
-				p.err = err
-			}
+	for {
+		size := p.sourceReadSize(need)
+		if size == 0 {
+			break
 		}
+		p.srcBuf = slices.Grow(p.srcBuf[:0], size)[:size]
+		read, err := p.src.Read(p.srcBuf)
+		p.appendSourceData(p.srcBuf[:read], err)
 		if read == 0 && err == nil {
 			break
 		}
 	}
+	return p.takeBuffered(buf, need)
+}
 
+func (p *Player) isPlayingRequested() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.playing
+}
+
+// sourceReadSize returns how many bytes to read from the source to buffer need bytes, or 0 when no read
+// should happen.
+func (p *Player) sourceReadSize(need int) int {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.eof || p.err != nil || !p.playing {
+		return 0
+	}
+	return max(need-len(p.buf), 0)
+}
+
+func (p *Player) appendSourceData(data []byte, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.buf = append(p.buf, data...)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			p.eof = true
+		} else {
+			p.err = err
+		}
+	}
+}
+
+func (p *Player) takeBuffered(buf []byte, need int) (n int, eof bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
 	consume := min(len(p.buf), need)
 	consume -= consume % 8
 	n = copy(buf, p.buf[:consume])
 	p.buf = p.buf[:copy(p.buf, p.buf[consume:])]
-
-	finished := p.finishedLocked()
-	p.mu.Unlock()
-	return n, finished
+	return n, p.finishedLocked()
 }
 
 // finishedLocked reports whether the player can produce no more samples: its source failed, which no Seek
