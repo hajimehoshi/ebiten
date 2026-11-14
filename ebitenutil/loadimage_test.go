@@ -21,6 +21,7 @@ import (
 	"image/color"
 	"image/gif"
 	"image/png"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -64,6 +65,9 @@ func TestLoadImageEmptyBounds(t *testing.T) {
 				if (err != nil) != wantError {
 					t.Fatalf("error: got %v, want error: %v", err, wantError)
 				}
+				if !wantError && (img == nil || original == nil || img.Bounds().Size() != size || original.Bounds().Size() != size) {
+					t.Fatal("expected non-nil images with the decoded dimensions")
+				}
 				if wantError && (img != nil || original != nil) {
 					t.Fatal("expected nil images on error")
 				}
@@ -74,18 +78,31 @@ func TestLoadImageEmptyBounds(t *testing.T) {
 				if (err != nil) != wantError {
 					t.Fatalf("error: got %v, want error: %v", err, wantError)
 				}
+				if !wantError && (img == nil || original == nil || img.Bounds().Size() != size || original.Bounds().Size() != size) {
+					t.Fatal("expected non-nil images with the decoded dimensions")
+				}
 				if wantError && (img != nil || original != nil) {
 					t.Fatal("expected nil images on error")
 				}
 			})
 			t.Run("URL", func(t *testing.T) {
-				s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					_, _ = w.Write(buf.Bytes())
-				}))
-				defer s.Close()
-				img, err := ebitenutil.NewImageFromURL(s.URL)
+				// Browser tests cannot connect to a Go httptest listener. Supply
+				// a successful HTTP response while exercising the URL loader.
+				oldClient := http.DefaultClient
+				t.Cleanup(func() { http.DefaultClient = oldClient })
+				http.DefaultClient = &http.Client{Transport: imageRoundTripper{data: buf.Bytes()}}
+				img, err := ebitenutil.NewImageFromURL("https://example.com/image.gif")
+				if wantError {
+					want := fmt.Sprintf("ebitenutil: decoded image has an empty size: %dx%d", size.X, size.Y)
+					if err == nil || err.Error() != want {
+						t.Fatalf("error: got %v, want %q", err, want)
+					}
+				}
 				if (err != nil) != wantError {
 					t.Fatalf("error: got %v, want error: %v", err, wantError)
+				}
+				if !wantError && (img == nil || img.Bounds().Size() != size) {
+					t.Fatal("expected a non-nil image with the decoded dimensions")
 				}
 				if wantError && img != nil {
 					t.Fatal("expected nil image on error")
@@ -93,4 +110,18 @@ func TestLoadImageEmptyBounds(t *testing.T) {
 			})
 		})
 	}
+}
+
+// imageRoundTripper serves encoded image data without requiring a network listener.
+type imageRoundTripper struct {
+	data []byte
+}
+
+func (r imageRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     make(http.Header),
+		Body:       io.NopCloser(bytes.NewReader(r.data)),
+		Request:    req,
+	}, nil
 }
