@@ -131,7 +131,11 @@ func convertToPixels(src []byte) ([]byte, error) {
 		return nil, err
 	}
 
+	idents := map[string]struct{}{}
 	ast.Inspect(f, func(n ast.Node) bool {
+		if id, ok := n.(*ast.Ident); ok {
+			idents[id.Name] = struct{}{}
+		}
 		call, ok := n.(*ast.CallExpr)
 		if !ok {
 			return true
@@ -153,6 +157,14 @@ func convertToPixels(src []byte) ([]byte, error) {
 		}
 		return true
 	})
+
+	divisorName := texelHelperPrefix + "srcPosDivisor"
+	for {
+		if _, ok := idents[divisorName]; !ok {
+			break
+		}
+		divisorName += "_"
+	}
 
 	for _, d := range f.Decls {
 		fd, ok := d.(*ast.FuncDecl)
@@ -178,7 +190,7 @@ func convertToPixels(src []byte) ([]byte, error) {
 		if srcPosIdent == nil || srcPosIdent.Name == "_" {
 			continue
 		}
-		fd.Body.List = append([]ast.Stmt{srcPosConversionStmt(srcPosIdent.Name)}, fd.Body.List...)
+		fd.Body.List = append([]ast.Stmt{srcPosConversionStmt(srcPosIdent.Name, divisorName)}, fd.Body.List...)
 	}
 
 	var buf bytes.Buffer
@@ -187,28 +199,21 @@ func convertToPixels(src []byte) ([]byte, error) {
 		return nil, err
 	}
 	buf.WriteString(texelHelpersSuffix)
+	fmt.Fprintf(&buf, "\nfunc %s() vec2 {\n\treturn max(imageSrc0TextureSize(), vec2(1))\n}\n", divisorName)
 	return buf.Bytes(), nil
 }
 
-// srcPosConversionStmt returns the statement `name /= max(imageSrc0TextureSize(), vec2(1))`,
+// srcPosConversionStmt returns the statement `name /= divisorName()`,
 // converting the fragment entry point's source position from pixels to texels. The texture size is
-// guarded against zero (no source image) to avoid a division by zero.
-func srcPosConversionStmt(name string) ast.Stmt {
+// guarded against zero (no source image) to avoid a division by zero. The helper keeps builtin
+// references outside the fragment scope, where parameter names can shadow them.
+func srcPosConversionStmt(name, divisorName string) ast.Stmt {
 	return &ast.AssignStmt{
 		Lhs: []ast.Expr{ast.NewIdent(name)},
 		Tok: token.QUO_ASSIGN,
 		Rhs: []ast.Expr{
 			&ast.CallExpr{
-				Fun: ast.NewIdent("max"),
-				Args: []ast.Expr{
-					&ast.CallExpr{
-						Fun: ast.NewIdent("imageSrc0TextureSize"),
-					},
-					&ast.CallExpr{
-						Fun:  ast.NewIdent("vec2"),
-						Args: []ast.Expr{&ast.BasicLit{Kind: token.INT, Value: "1"}},
-					},
-				},
+				Fun: ast.NewIdent(divisorName),
 			},
 		},
 	}
