@@ -95,6 +95,10 @@ func (i *Image) flushBufferedWritePixels() {
 }
 
 func (i *Image) Dispose() {
+	// Discarded writes are not submitted, so their pixel buffers can be reused immediately.
+	for _, arg := range i.bufferedWritePixelsArgs {
+		arg.pixels.Release()
+	}
 	i.bufferedWritePixelsArgs = nil
 	c := &disposeImageCommand{
 		target: i,
