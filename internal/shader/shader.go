@@ -155,6 +155,12 @@ func (b *block) findLocalVariable(name string, markLocalVariableUsed bool) (int,
 			return idx + i, v.typ, true
 		}
 	}
+	// A constant in this scope hides variables in enclosing scopes.
+	for _, c := range b.consts {
+		if c.name == name {
+			return 0, shaderir.Type{}, false
+		}
+	}
 	if b.outer != nil {
 		return b.outer.findLocalVariable(name, markLocalVariableUsed)
 	}
