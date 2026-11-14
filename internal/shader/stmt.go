@@ -736,6 +736,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 					Exprs: []shaderir.Expr{l[0], r[0]},
 				})
 			} else {
+				stmts = append(stmts, cs.captureAssignmentIndices(block, &l[0])...)
 				// For variable swapping, use temporary variables.
 				t := rts[0]
 				if t.Main == shaderir.None {
@@ -785,6 +786,7 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 		}
 		stmts = append(stmts, ss...)
 
+		var assignments []shaderir.Stmt
 		for i, e := range lhs {
 			if define {
 				if _, ok := e.(*ast.Ident); !ok {
@@ -845,11 +847,13 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 				return nil, false
 			}
 
-			stmts = append(stmts, shaderir.Stmt{
+			stmts = append(stmts, cs.captureAssignmentIndices(block, &l[0])...)
+			assignments = append(assignments, shaderir.Stmt{
 				Type:  shaderir.Assign,
 				Exprs: []shaderir.Expr{l[0], rhsExprs[i]},
 			})
 		}
+		stmts = append(stmts, assignments...)
 	}
 
 	if define && !newVariable {
@@ -858,6 +862,32 @@ func (cs *compileState) assign(block *block, fname string, pos token.Pos, lhs, r
 	}
 
 	return stmts, true
+}
+
+// captureAssignmentIndices evaluates indexed assignment targets before any target is written.
+// Only indices are copied; the array, vector, or matrix must remain the original storage.
+func (cs *compileState) captureAssignmentIndices(block *block, expr *shaderir.Expr) []shaderir.Stmt {
+	switch expr.Type {
+	case shaderir.FieldSelector:
+		return cs.captureAssignmentIndices(block, &expr.Exprs[0])
+	case shaderir.Index:
+		stmts := cs.captureAssignmentIndices(block, &expr.Exprs[0])
+		if expr.Exprs[1].Type == shaderir.NumberExpr {
+			return stmts
+		}
+		block.vars = append(block.vars, variable{typ: shaderir.Type{Main: shaderir.Int}})
+		index := shaderir.Expr{
+			Type:  shaderir.LocalVariable,
+			Index: block.totalLocalVariableCount() - 1,
+		}
+		stmts = append(stmts, shaderir.Stmt{
+			Type:  shaderir.Assign,
+			Exprs: []shaderir.Expr{index, expr.Exprs[1]},
+		})
+		expr.Exprs[1] = index
+		return stmts
+	}
+	return nil
 }
 
 // checkLocalVariableType reports whether a local variable can have the type t, and adds an error if not.
