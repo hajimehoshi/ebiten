@@ -40,6 +40,35 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestSyntaxConstantShadowsVariable(t *testing.T) {
+	cases := []struct {
+		name string
+		stmt string
+		err  bool
+	}{
+		{
+			name: "constant_expression",
+			stmt: "n := 1; _ = n; { const n = 2; for i := range n { _ = i } }",
+		},
+		{
+			name: "constant_assignment",
+			stmt: "n := 1; _ = n; { const n = 2; n = 3 }",
+			err:  true,
+		},
+		{
+			name: "inner_variable",
+			stmt: "n := 1; _ = n; { const n = 2; { n := 3; n = 4; _ = n }; for i := range n { _ = i } }",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if err := compileFragmentStmt(c.stmt); (err != nil) != c.err {
+				t.Errorf("compileFragmentStmt: got error %v, want error %t", err, c.err)
+			}
+		})
+	}
+}
+
 func TestSyntaxDuplicatedVariables(t *testing.T) {
 	if _, err := compileToIR([]byte(`package main
 
