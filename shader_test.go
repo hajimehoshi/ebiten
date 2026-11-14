@@ -3118,6 +3118,30 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	}
 }
 
+func TestShaderAssignmentIndices(t *testing.T) {
+	for name, assignment := range map[string]string{
+		"array":            "var a [2]float; i := 0; i, a[i] = 1, 1; return vec4(a[0], a[1], 0, 1)",
+		"vector":           "a := vec2(0); i := 0; i, a[i] = 1, 1; return vec4(a, 0, 1)",
+		"matrix":           "m := mat2(0); i, j := 0, 0; i, j, m[i][j] = 1, 1, 1; return vec4(m[0][0], m[1][1], 0, 1)",
+		"matrix_component": "m := mat2(0); i := 0; i, m[i].x = 1, 1; return vec4(m[0].x, m[1].x, 0, 1)",
+		"multiple_returns": "var a [2]float; i := 0; i, a[i] = pair(); return vec4(a[0], a[1], 0, 1)",
+	} {
+		t.Run(name, func(t *testing.T) {
+			s, err := ebiten.NewShader([]byte("//kage:unit pixels\npackage main\nfunc pair() (int, float) { return 1, 1 }\nfunc Fragment() vec4 {" + assignment + "}"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer s.Dispose()
+			dst := ebiten.NewImage(1, 1)
+			defer dst.Deallocate()
+			dst.DrawRectShader(1, 1, s, nil)
+			if got, want := dst.At(0, 0).(color.RGBA), (color.RGBA{R: 0xff, A: 0xff}); got != want {
+				t.Errorf("pixel: got %v, want %v", got, want)
+			}
+		})
+	}
+}
+
 func TestShaderVectorAndScalarMinMax(t *testing.T) {
 	const w, h = 16, 16
 
