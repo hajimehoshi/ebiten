@@ -32,8 +32,11 @@ func NewImageFromReader(reader io.Reader) (*ebiten.Image, image.Image, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	img2 := ebiten.NewImageFromImage(img)
-	return img2, img, err
+	img2, err := newImageFromDecodedImage(img)
+	if err != nil {
+		return nil, nil, err
+	}
+	return img2, img, nil
 }
 
 // NewImageFromURL creates a new ebiten.Image from the given URL.
@@ -57,6 +60,12 @@ func NewImageFromURL(url string) (*ebiten.Image, error) {
 		return nil, err
 	}
 
-	eimg := ebiten.NewImageFromImage(img)
-	return eimg, nil
+	return newImageFromDecodedImage(img)
+}
+
+func newImageFromDecodedImage(img image.Image) (*ebiten.Image, error) {
+	if bounds := img.Bounds(); bounds.Empty() {
+		return nil, fmt.Errorf("ebitenutil: decoded image has an empty size: %dx%d", bounds.Dx(), bounds.Dy())
+	}
+	return ebiten.NewImageFromImage(img), nil
 }

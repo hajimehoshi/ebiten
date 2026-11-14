@@ -37,6 +37,9 @@ func NewImageFromFileSystem(fs fs.FS, path string) (*ebiten.Image, image.Image, 
 	if err != nil {
 		return nil, nil, err
 	}
-	img2 := ebiten.NewImageFromImage(img)
+	img2, err := newImageFromDecodedImage(img)
+	if err != nil {
+		return nil, nil, err
+	}
 	return img2, img, nil
 }
