@@ -105,6 +105,32 @@ func TestWritePixelsPartAfterDrawTriangles(t *testing.T) {
 	// TODO: Check the result.
 }
 
+func TestDisposeReleasesBufferedPixels(t *testing.T) {
+	for _, count := range []int{0, 1, 2} {
+		t.Run(fmt.Sprint(count), func(t *testing.T) {
+			img := graphicscommand.NewImage(2, 1, false, "")
+			var buffers []*graphics.ManagedBytes
+			for x := range count {
+				pixels := graphics.NewManagedBytes(4, func(bs []byte) {
+					copy(bs, []byte{123, 0, 0, 255})
+				})
+				buffers = append(buffers, pixels)
+				img.WritePixels(pixels, image.Rect(x, 0, x+1, 1))
+			}
+			img.Dispose()
+			if got := len(img.BufferedWritePixelsArgsForTesting()); got != 0 {
+				t.Errorf("buffered writes after Dispose: got %d, want 0", got)
+			}
+			// Holding the wrappers makes this independent of garbage collection.
+			for i, pixels := range buffers {
+				if got := pixels.Len(); got != 0 {
+					t.Errorf("buffer %d after Dispose: got %d bytes, want 0", i, got)
+				}
+			}
+		})
+	}
+}
+
 func TestShader(t *testing.T) {
 	const w, h = 16, 16
 	clr := graphicscommand.NewImage(w, h, false, "")
