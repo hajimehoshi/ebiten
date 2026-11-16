@@ -109,6 +109,9 @@
 //
 // `ebitenginedebug` outputs a log of graphics commands. This is useful to know what happens in Ebitengine. In general, the
 // number of graphics commands affects the performance of your game.
+// The messages are buffered for each graphics command batch and emitted at INFO level through [log/slog.Default].
+// The default logger writes to standard error. Applications can configure the output format, destination, and level
+// with [log/slog.SetDefault]. The legacy build tag `ebitendebug` enables the same logging.
 //
 // `ebitenginegldebug` enables a debug mode for OpenGL. This is valid only when the graphics library is OpenGL.
 // This affects performance very much.

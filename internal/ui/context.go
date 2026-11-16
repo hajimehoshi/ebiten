@@ -181,7 +181,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		return true, nil
 	}
 
-	debug.FrameLogf("----\n")
+	debug.FrameLog("Frame")
 
 	if err := atlas.BeginFrame(graphicsDriver); err != nil {
 		return false, err
@@ -220,7 +220,7 @@ func (c *context) updateFrameImpl(graphicsDriver graphicsdriver.Graphics, update
 		// (#3477) would otherwise advance the game time faster than the target TPS (#2615).
 		clock.SinkTick()
 	}
-	debug.FrameLogf("Update count per frame: %d\n", updateCount)
+	debug.FrameLog("Update count per frame", "count", updateCount)
 
 	// Update the game.
 	for range updateCount {

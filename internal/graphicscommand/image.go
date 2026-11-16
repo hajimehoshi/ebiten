@@ -250,12 +250,6 @@ func LogImagesInfo(images []*Image) {
 	})
 	for _, i := range images {
 		w, h := i.InternalSize()
-		var attr string
-		if i.attribute != "" {
-			attr = " (" + i.attribute + ")"
-		} else if i.screen {
-			attr = " (screen)"
-		}
-		debug.FrameLogf("  %d: (%d, %d)%s\n", i.id, w, h, attr)
+		debug.FrameLog("Internal image", "id", i.id, "width", w, "height", h, "attribute", i.attribute, "screen", i.screen)
 	}
 }
