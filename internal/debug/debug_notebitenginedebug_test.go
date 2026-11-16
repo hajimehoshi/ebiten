@@ -18,6 +18,7 @@ package debug
 
 import (
 	"bytes"
+	"log"
 	"log/slog"
 	"testing"
 )
@@ -28,8 +29,13 @@ func TestFrameLoggingDisabled(t *testing.T) {
 	}
 	var output bytes.Buffer
 	old := slog.Default()
+	oldWriter, oldFlags := log.Writer(), log.Flags()
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&output, nil)))
-	t.Cleanup(func() { slog.SetDefault(old) })
+	t.Cleanup(func() {
+		slog.SetDefault(old)
+		log.SetOutput(oldWriter)
+		log.SetFlags(oldFlags)
+	})
 
 	FrameLog("frame", "count", 2)
 	logger := SwitchFrameLogger()
