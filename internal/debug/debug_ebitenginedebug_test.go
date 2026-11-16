@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"log"
 	"log/slog"
 	"sync"
 	"testing"
@@ -29,10 +30,13 @@ func captureFrameLogs(t *testing.T, level slog.Level) *bytes.Buffer {
 	t.Helper()
 	var output bytes.Buffer
 	old := slog.Default()
+	oldWriter, oldFlags := log.Writer(), log.Flags()
 	slog.SetDefault(slog.New(slog.NewJSONHandler(&output, &slog.HandlerOptions{Level: level})))
 	theFrameLogger.Store(&frameLogger{})
 	t.Cleanup(func() {
 		slog.SetDefault(old)
+		log.SetOutput(oldWriter)
+		log.SetFlags(oldFlags)
 		theFrameLogger.Store(&frameLogger{})
 	})
 	return &output
