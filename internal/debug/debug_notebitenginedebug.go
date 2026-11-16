@@ -18,7 +18,7 @@ package debug
 
 const IsDebug = false
 
-func FrameLogf(format string, args ...any) {
+func FrameLog(msg string, args ...any) {
 }
 
 func SwitchFrameLogger() FrameLogger {
@@ -27,7 +27,7 @@ func SwitchFrameLogger() FrameLogger {
 
 type dummyFrameLogger struct{}
 
-func (dummyFrameLogger) FrameLogf(format string, args ...any) {
+func (dummyFrameLogger) FrameLog(msg string, args ...any) {
 }
 
 func (dummyFrameLogger) Flush() {

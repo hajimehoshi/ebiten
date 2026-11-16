@@ -17,7 +17,8 @@
 package debug
 
 import (
-	"fmt"
+	"log/slog"
+	"slices"
 	"sync"
 	"sync/atomic"
 )
@@ -32,13 +33,14 @@ func init() {
 
 var flushM sync.Mutex
 
-// FrameLogf calls the current global logger's FrameLogf.
-// FrameLogf buffers the arguments and doesn't dump the log immediately.
+// FrameLog calls the current global logger's FrameLog.
+// FrameLog buffers a message and its key-value pairs until Flush is called.
 // You can dump logs by calling SwitchFrameLogger and Flush.
+// Messages are emitted at INFO level through slog.Default so that a debug build produces logs by default.
 //
-// FrameLogf is concurrent-safe.
-func FrameLogf(format string, args ...any) {
-	theFrameLogger.Load().FrameLogf(format, args...)
+// FrameLog is concurrent-safe.
+func FrameLog(msg string, args ...any) {
+	theFrameLogger.Load().FrameLog(msg, args...)
 }
 
 // SwitchFrameLogger sets a new logger as the current logger and returns the original global logger.
@@ -55,17 +57,17 @@ type frameLogger struct {
 }
 
 type logItem struct {
-	format string
-	args   []any
+	msg  string
+	args []any
 }
 
-func (l *frameLogger) FrameLogf(format string, args ...any) {
+func (l *frameLogger) FrameLog(msg string, args ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.items = append(l.items, logItem{
-		format: format,
-		args:   args,
+		msg:  msg,
+		args: slices.Clone(args),
 	})
 }
 
@@ -74,8 +76,9 @@ func (l *frameLogger) Flush() {
 	flushM.Lock()
 	defer flushM.Unlock()
 
+	logger := slog.Default()
 	for _, item := range l.takeItems() {
-		fmt.Printf(item.format, item.args...)
+		logger.Info(item.msg, item.args...)
 	}
 }
 

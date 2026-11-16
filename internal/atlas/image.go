@@ -1018,7 +1018,7 @@ func FlushCommands(graphicsDriver graphicsdriver.Graphics, present bool) error {
 	}
 
 	if debug.IsDebug {
-		debug.FrameLogf("Internal image sizes:\n")
+		debug.FrameLog("Internal image sizes")
 		imgs := make([]*graphicscommand.Image, 0, len(theBackends))
 		for _, img := range theBackends {
 			if img.backendImage == nil {
