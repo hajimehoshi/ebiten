@@ -18,6 +18,7 @@ import (
 	"math"
 	"regexp"
 	"syscall/js"
+	"time"
 	"unicode"
 
 	"golang.org/x/text/unicode/norm"
@@ -444,13 +445,12 @@ func (u *UserInterface) KeyName(key Key) string {
 		return ""
 	}
 
-	// keyboardLayoutMap is reset every tick.
+	// Successful layout maps are cached until readInputState expires them.
 	// Request the layout map at most once per tick even on failure, so that a
 	// failing request does not cause a new request for every KeyName call.
 	if u.keyboardLayoutMap.IsUndefined() && !u.keyboardLayoutMapRequested {
 		u.keyboardLayoutMapRequested = true
-		// Invoke getLayoutMap every tick to detect the keyboard change.
-		// TODO: Calling this every tick might be inefficient. Is there a way to detect a keyboard change?
+		u.keyboardLayoutMapTime = time.Now()
 		jsKeyboardGetLayoutMap.Invoke().Call("then", jsKeyboardGetLayoutMapThenCallback).Call("catch", jsKeyboardGetLayoutMapCatchCallback)
 		u.keyboardLayoutMap = <-jsKeyboardGetLayoutMapCh
 	}

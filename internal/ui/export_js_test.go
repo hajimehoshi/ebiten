@@ -14,7 +14,10 @@
 
 package ui
 
-import "syscall/js"
+import (
+	"syscall/js"
+	"time"
+)
 
 func IsShortcutChordForTest(ctrl, alt, meta, altGraph, isApple bool) bool {
 	return isShortcutChord(ctrl, alt, meta, altGraph, isApple)
@@ -34,4 +37,29 @@ func (u *UserInterface) ReleaseAllInputsForTest() {
 
 func (u *UserInterface) InputStateForTest() InputState {
 	return u.inputState
+}
+
+// NewKeyboardLayoutUIForTest replaces the browser API without requiring Keyboard Map support.
+func NewKeyboardLayoutUIForTest(getLayoutMap js.Value) (*UserInterface, func()) {
+	oldAvailable, oldGet := jsKeyboardLayoutAvailable, jsKeyboardGetLayoutMap
+	oldCh, oldThen, oldCatch := jsKeyboardGetLayoutMapCh, jsKeyboardGetLayoutMapThenCallback, jsKeyboardGetLayoutMapCatchCallback
+	jsKeyboardLayoutAvailable, jsKeyboardGetLayoutMap = true, getLayoutMap
+	ch := make(chan js.Value, 1)
+	jsKeyboardGetLayoutMapCh = ch
+	then := js.FuncOf(func(this js.Value, args []js.Value) any { ch <- args[0]; return nil })
+	catch := js.FuncOf(func(this js.Value, args []js.Value) any { ch <- js.Undefined(); return nil })
+	jsKeyboardGetLayoutMapThenCallback, jsKeyboardGetLayoutMapCatchCallback = then, catch
+	u := &UserInterface{}
+	u.running.Store(true)
+	return u, func() {
+		jsKeyboardLayoutAvailable, jsKeyboardGetLayoutMap = oldAvailable, oldGet
+		jsKeyboardGetLayoutMapCh, jsKeyboardGetLayoutMapThenCallback, jsKeyboardGetLayoutMapCatchCallback = oldCh, oldThen, oldCatch
+		then.Release()
+		catch.Release()
+	}
+}
+
+func (u *UserInterface) ReadInputStateForTest() { var state InputState; u.readInputState(&state) }
+func (u *UserInterface) ExpireKeyboardLayoutForTest() {
+	u.keyboardLayoutMapTime = time.Now().Add(-2 * time.Second)
 }
