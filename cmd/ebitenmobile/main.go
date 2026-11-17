@@ -177,12 +177,13 @@ func xmain() error {
 
 // appendBindLdflags overrides the forwarded linker flags before the package arguments.
 func appendBindLdflags(args []string, flagset *flag.FlagSet, ldflags string) []string {
-	flags := args[:len(args)-flagset.NArg()]
-	if flags[len(flags)-1] == "--" {
-		flags = flags[:len(flags)-1]
-	}
-	result := append([]string(nil), flags...)
-	result = append(result, "-ldflags", ldflags, "--")
+	result := []string{args[0]}
+	flagset.Visit(func(f *flag.Flag) {
+		if f.Name != "ldflags" {
+			result = append(result, "-"+f.Name+"="+f.Value.String())
+		}
+	})
+	result = append(result, "-ldflags="+ldflags, "--")
 	return append(result, flagset.Args()...)
 }
 
