@@ -137,6 +137,7 @@ func xmain() error {
 			buildLdflags += " "
 		}
 		buildLdflags += "-extldflags=-Wl,-soname,libgojni.so"
+		args = appendBindLdflags(args, &flagset, buildLdflags)
 
 		if !isValidJavaPackageName(bindJavaPkg) {
 			return usageError(fmt.Sprintf("invalid Java package name: %s", bindJavaPkg))
@@ -172,6 +173,17 @@ func xmain() error {
 	}
 
 	return doBind(args, &flagset, buildTarget)
+}
+
+// appendBindLdflags overrides the forwarded linker flags before the package arguments.
+func appendBindLdflags(args []string, flagset *flag.FlagSet, ldflags string) []string {
+	flags := args[:len(args)-flagset.NArg()]
+	if flags[len(flags)-1] == "--" {
+		flags = flags[:len(flags)-1]
+	}
+	result := append([]string(nil), flags...)
+	result = append(result, "-ldflags", ldflags, "--")
+	return append(result, flagset.Args()...)
 }
 
 func osFromBuildTarget(buildTarget string) (string, error) {

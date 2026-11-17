@@ -15,7 +15,10 @@
 package main_test
 
 import (
+	"flag"
+	"fmt"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	ebitenmobile "github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile"
@@ -108,5 +111,41 @@ func TestFrameworkName(t *testing.T) {
 		if got, want := ebitenmobile.FrameworkName(tc.in), tc.out; got != want {
 			t.Errorf("frameworkName(%q) = %q; want %q", tc.in, got, want)
 		}
+	}
+}
+
+func TestAppendBindLdflags(t *testing.T) {
+	for _, args := range [][]string{
+		{"bind"},
+		{"bind", "./game"},
+		{"bind", "--", "./game", "./other"},
+		{"bind", "-ldflags", "-X main.Name=value with spaces", "./game"},
+		{"bind", "-ldflags=-s -w", "--", "./game"},
+		{"bind", "-ldflags=-s", "-ldflags", "-w", "./game"},
+	} {
+		t.Run(fmt.Sprint(args), func(t *testing.T) {
+			fs := flag.NewFlagSet("", flag.ContinueOnError)
+			var ldflags string
+			fs.StringVar(&ldflags, "ldflags", "", "")
+			if err := fs.Parse(args[1:]); err != nil {
+				t.Fatal(err)
+			}
+			packages := append([]string(nil), fs.Args()...)
+			want := ldflags
+			if want != "" {
+				want += " "
+			}
+			want += "-extldflags=-Wl,-soname,libgojni.so"
+			forwarded := ebitenmobile.AppendBindLdflags(args, fs, want)
+			if err := fs.Parse(forwarded[1:]); err != nil {
+				t.Fatal(err)
+			}
+			if ldflags != want {
+				t.Errorf("ldflags: got %q, want %q", ldflags, want)
+			}
+			if !reflect.DeepEqual(append([]string(nil), fs.Args()...), packages) {
+				t.Errorf("packages: got %v, want %v", fs.Args(), packages)
+			}
+		})
 	}
 }
