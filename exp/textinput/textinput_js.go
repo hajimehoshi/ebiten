@@ -195,8 +195,10 @@ func (t *textInputImpl) init() {
 	}))
 	t.textareaElement.Call("addEventListener", "input", js.FuncOf(func(this js.Value, args []js.Value) any {
 		e := args[0]
+		// Older iOS Safari omits isComposing, so retain its inputType fallback.
 		if e.Get("inputType").String() == "insertCompositionText" {
-			t.composing = true
+			isComposing := e.Get("isComposing")
+			t.composing = isComposing.IsUndefined() || isComposing.Bool()
 		}
 		// On iOS Safari, `isComposing` can be undefined.
 		if e.Get("isComposing").IsUndefined() {
