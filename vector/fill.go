@@ -519,7 +519,9 @@ func (f *fillPathsState) addPath(path *Path, bounds image.Rectangle, clr ebiten.
 
 // snapToSubpixel rounds p to the nearest point on the subpixel grid.
 // Vertices on the grid are not moved by the float32 conversion, the stencil offsets, or the GPU's
-// coordinate transforms and snapping, so a path is rasterized identically wherever its stencil is placed (#3860).
+// coordinate transforms and snapping, so the samples a stencil triangle covers do not depend on where the stencil
+// is placed (#3860). The Loop-Blinn curve test can still flip with the placement for a sample on or very close to
+// a curve, as the GPU's interpolation of (u, v) rounds differently at different positions.
 func snapToSubpixel(p point) point {
 	// subpixelResolution is the number of grid steps per pixel.
 	// Every rasterizer must represent the grid exactly. A vertex halfway between two points of a rasterizer's grid
