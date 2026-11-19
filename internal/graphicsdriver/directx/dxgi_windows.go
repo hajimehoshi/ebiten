@@ -72,7 +72,8 @@ const _DXGI_SCALING_STRETCH _DXGI_SCALING = 0
 type _DXGI_SWAP_CHAIN_FLAG int32
 
 const (
-	_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING _DXGI_SWAP_CHAIN_FLAG = 2048
+	_DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT _DXGI_SWAP_CHAIN_FLAG = 64
+	_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING                 _DXGI_SWAP_CHAIN_FLAG = 2048
 )
 
 type _DXGI_SWAP_EFFECT int32
@@ -674,7 +675,20 @@ func (i *_IDXGISwapChain4) GetCurrentBackBufferIndex() uint32 {
 	return uint32(r)
 }
 
+func (i *_IDXGISwapChain4) GetFrameLatencyWaitableObject() windows.Handle {
+	r, _, _ := syscall.Syscall(i.vtbl.GetFrameLatencyWaitableObject, 1, uintptr(unsafe.Pointer(i)), 0, 0)
+	return windows.Handle(r)
+}
+
 func (i *_IDXGISwapChain4) Release() uint32 {
 	r, _, _ := syscall.Syscall(i.vtbl.Release, 1, uintptr(unsafe.Pointer(i)), 0, 0)
 	return uint32(r)
+}
+
+func (i *_IDXGISwapChain4) SetMaximumFrameLatency(maxLatency uint32) error {
+	r, _, _ := syscall.Syscall(i.vtbl.SetMaximumFrameLatency, 2, uintptr(unsafe.Pointer(i)), uintptr(maxLatency), 0)
+	if uint32(r) != uint32(windows.S_OK) {
+		return fmt.Errorf("directx: IDXGISwapChain4::SetMaximumFrameLatency failed: %w", handleError(windows.Handle(uint32(r))))
+	}
+	return nil
 }

@@ -34,6 +34,15 @@ import (
 
 const frameCount = 2
 
+// maxFrameLatencyWithVsync is the maximum number of presented frames queued to be shown while vsync is enabled.
+const maxFrameLatencyWithVsync = 2
+
+// maxFrameLatencyWithoutVsync is the maximum number of presented frames queued to be shown while vsync is disabled.
+const maxFrameLatencyWithoutVsync = 3
+
+// frameLatencyWaitTimeout is the maximum time in milliseconds to wait for a queued frame to be shown.
+const frameLatencyWaitTimeout = 1000
+
 func pow2(x uint32) uint32 {
 	if x > (math.MaxUint32+1)/2 {
 		return math.MaxUint32
@@ -151,6 +160,12 @@ type graphicsInfra struct {
 
 	bufferCount int
 
+	// swapChainFlags is the flags the swap chain was created with. Resizing the swap chain must keep them.
+	swapChainFlags uint32
+
+	// queuedFrameCount is the number of presented frames that frameLatencyWaitableObject has not reported as shown.
+	queuedFrameCount int
+
 	// bufferWidth and bufferHeight are the allocated size of the swap chain's back buffers, which
 	// can exceed the window size (see canReuseSwapChainBuffers).
 	bufferWidth  int
@@ -163,6 +178,10 @@ type graphicsInfraResources struct {
 	factory    *_IDXGIFactory
 	swapChain  *_IDXGISwapChain
 	swapChain4 *_IDXGISwapChain4
+
+	// frameLatencyWaitableObject is signaled each time a presented frame is shown.
+	// It is 0 when the swap chain does not provide one.
+	frameLatencyWaitableObject windows.Handle
 
 	// dcompDevice, dcompTarget, and dcompVisual are non-nil when the swap chain is presented through
 	// a DirectComposition visual tree instead of being bound directly to the window (#3477).
@@ -202,6 +221,10 @@ func (g *graphicsInfraResources) releaseResources() {
 	if g.factory != nil {
 		g.factory.Release()
 		g.factory = nil
+	}
+	if g.frameLatencyWaitableObject != 0 {
+		_ = windows.CloseHandle(g.frameLatencyWaitableObject)
+		g.frameLatencyWaitableObject = 0
 	}
 	if g.swapChain != nil {
 		g.swapChain.Release()
@@ -331,6 +354,10 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 
 		g.bufferCount = int(desc.BufferCount)
 
+		// A frame latency waitable object requires a flip-model swap effect.
+		if desc.SwapEffect == _DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL {
+			desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
+		}
 		if g.allowTearing {
 			desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
 		}
@@ -339,6 +366,7 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 			return err
 		}
 		g.swapChain = s
+		g.swapChainFlags = desc.Flags
 	}
 
 	defer func() {
@@ -349,6 +377,12 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 
 	if s4, err := g.swapChain.QueryInterface(&_IID_IDXGISwapChain4); err == nil && s4 != nil {
 		g.swapChain4 = (*_IDXGISwapChain4)(s4)
+	}
+
+	if g.swapChainFlags&uint32(_DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT) != 0 {
+		if err := g.initFrameLatencyWaitableObject(); err != nil {
+			return err
+		}
 	}
 
 	// MakeWindowAssociation should be called after swap chain creation. It only applies to a swap
@@ -363,6 +397,37 @@ func (g *graphicsInfra) initSwapChain(width, height int, device unsafe.Pointer, 
 	g.bufferWidth = width
 	g.bufferHeight = height
 
+	return nil
+}
+
+// initFrameLatencyWaitableObject gets the frame latency waitable object of the swap chain.
+func (g *graphicsInfra) initFrameLatencyWaitableObject() error {
+	if g.swapChain4 == nil {
+		return fmt.Errorf("directx: IDXGISwapChain4 is not available")
+	}
+
+	// Let DXGI queue as many frames as without vsync. present waits for fewer queued frames while vsync is enabled.
+	if err := g.swapChain4.SetMaximumFrameLatency(maxFrameLatencyWithoutVsync); err != nil {
+		return err
+	}
+
+	h := g.swapChain4.GetFrameLatencyWaitableObject()
+	if h == 0 {
+		return nil
+	}
+	g.frameLatencyWaitableObject = h
+
+	// The object starts signaled once for each frame that the maximum frame latency allows. Consume these signals so
+	// that each later signal corresponds to a presented frame.
+	for range maxFrameLatencyWithoutVsync {
+		e, err := windows.WaitForSingleObject(h, 0)
+		if err != nil {
+			return fmt.Errorf("directx: WaitForSingleObject failed: %w", err)
+		}
+		if e != windows.WAIT_OBJECT_0 {
+			break
+		}
+	}
 	return nil
 }
 
@@ -396,12 +461,19 @@ func (g *graphicsInfra) createCompositionSwapChain(width, height int, device uns
 		Scaling:     _DXGI_SCALING_STRETCH,
 		SwapEffect:  _DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL,
 		AlphaMode:   _DXGI_ALPHA_MODE_IGNORE,
-	}
-	if g.allowTearing {
-		desc.Flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+		Flags:       g.compositionSwapChainFlags(),
 	}
 
 	return factory4.CreateSwapChainForComposition(device, desc, nil)
+}
+
+// compositionSwapChainFlags returns the flags a composition swap chain is created with.
+func (g *graphicsInfra) compositionSwapChainFlags() uint32 {
+	flags := uint32(_DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT)
+	if g.allowTearing {
+		flags |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
+	}
+	return flags
 }
 
 // supportsComposition reports whether a swap chain can be presented through a DirectComposition
@@ -479,6 +551,7 @@ func (g *graphicsInfra) initSwapChainComposition(width, height int, device unsaf
 	}
 
 	g.swapChain = swapChain
+	g.swapChainFlags = g.compositionSwapChainFlags()
 	g.dcompDevice = dcompDevice
 	g.dcompTarget = dcompTarget
 	g.dcompVisual = dcompVisual
@@ -514,11 +587,7 @@ func (g *graphicsInfra) resizeSwapChain(width, height int) error {
 		bufferHeight = alignSwapChainBufferSize(max(height, g.bufferHeight))
 	}
 
-	var flag uint32
-	if g.allowTearing {
-		flag |= uint32(_DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING)
-	}
-	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(bufferWidth), uint32(bufferHeight), _DXGI_FORMAT_B8G8R8A8_UNORM, flag); err != nil {
+	if err := g.swapChain.ResizeBuffers(uint32(g.bufferCount), uint32(bufferWidth), uint32(bufferHeight), _DXGI_FORMAT_B8G8R8A8_UNORM, g.swapChainFlags); err != nil {
 		return err
 	}
 	g.bufferWidth = bufferWidth
@@ -565,6 +634,49 @@ func (g *graphicsInfra) present(vsyncEnabled bool) error {
 	}
 	g.occluded.Store(occluded)
 
+	// A tested or occluded present does not queue a frame.
+	if flags&_DXGI_PRESENT_TEST != 0 || occluded {
+		return nil
+	}
+
+	// Wait right after presenting, so that the next frame reads the input after the wait and the input reaches the
+	// screen with fewer frames queued ahead of it (#4080).
+	maxLatency := maxFrameLatencyWithoutVsync
+	if vsyncEnabled {
+		maxLatency = maxFrameLatencyWithVsync
+	}
+	return g.waitForQueuedFrames(maxLatency)
+}
+
+// waitForQueuedFrames records a frame that has just been presented, and waits until fewer than maxLatency presented
+// frames are queued to be shown.
+func (g *graphicsInfra) waitForQueuedFrames(maxLatency int) error {
+	if g.frameLatencyWaitableObject == 0 {
+		return nil
+	}
+
+	g.queuedFrameCount++
+	for g.queuedFrameCount > 0 {
+		// Take the signals of the frames already shown without blocking, and block only while too many frames are
+		// queued.
+		var timeout uint32
+		if g.queuedFrameCount >= maxLatency {
+			timeout = frameLatencyWaitTimeout
+		}
+		e, err := windows.WaitForSingleObject(g.frameLatencyWaitableObject, timeout)
+		if err != nil {
+			return fmt.Errorf("directx: WaitForSingleObject failed: %w", err)
+		}
+		if e != windows.WAIT_OBJECT_0 {
+			if timeout > 0 {
+				// The queued frames might never be reported. Stop counting them, or every later frame would wait for
+				// the timeout.
+				g.queuedFrameCount = 0
+			}
+			return nil
+		}
+		g.queuedFrameCount--
+	}
 	return nil
 }
 
