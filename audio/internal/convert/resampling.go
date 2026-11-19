@@ -19,67 +19,74 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"math/bits"
 	"sync"
 	"sync/atomic"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/mathutil"
 )
 
-var (
-	// cosTable contains values of cosine applied to the range [0, π/2).
-	// It must be initialised the first time it is referenced
-	// in a function via its lazy load wrapper ensureCosTable().
-	cosTable     []float64
-	cosTableOnce sync.Once
+const (
+	// resamplingHalfTaps is the number of taps on each side of the source frame at or before an output frame's position.
+	resamplingHalfTaps = 8
+
+	// resamplingTaps is the number of source frames weighted for an output frame.
+	resamplingTaps = 2*resamplingHalfTaps + 1
+
+	// maxResamplingPhases is the maximum number of phases in a weight table.
+	maxResamplingPhases = 1024
+
+	// resamplingBlockFrames is the number of frames in a source block.
+	resamplingBlockFrames = 4096
 )
 
-func ensureCosTable() []float64 {
-	cosTableOnce.Do(func() {
-		cosTable = make([]float64, 65536)
-		for i := range cosTable {
-			cosTable[i] = math.Cos(float64(i) * math.Pi / 2 / float64(len(cosTable)))
-		}
-	})
-	return cosTable
-}
+var (
+	resamplingWeightTablesMu sync.Mutex
 
-func fastCos01(x float64) float64 {
-	if x < 0 {
-		x = -x
-	}
+	// resamplingWeightTables maps a phase count to its weight table.
+	resamplingWeightTables = map[int][]float64{}
+)
 
-	cosTable := ensureCosTable()
-	i := int(4 * float64(len(cosTable)) * x)
-	if 4*len(cosTable) < i {
-		i %= 4 * len(cosTable)
-	}
-	sign := 1
-	switch {
-	case i < len(cosTable):
-	case i < len(cosTable)*2:
-		i = len(cosTable)*2 - i
-		sign = -1
-	case i < len(cosTable)*3:
-		i -= len(cosTable) * 2
-		sign = -1
-	default:
-		i = len(cosTable)*4 - i
-	}
-	if i == len(cosTable) {
-		return 0
-	}
-	return float64(sign) * cosTable[i]
-}
-
-func fastSin01(x float64) float64 {
-	return fastCos01(x - 0.25)
-}
-
-func sinc01(x float64) float64 {
-	if math.Abs(x) < 1e-8 {
+// resamplingWeight returns the weight of a source frame d frames before an output frame's position.
+func resamplingWeight(d float64) float64 {
+	if d == 0 {
 		return 1
 	}
-	return fastSin01(x) / (x * 2 * math.Pi)
+	// The sinc function is zero at the other integers.
+	if d == math.Trunc(d) {
+		return 0
+	}
+	// A Hann window that spans resamplingTaps frames.
+	w := 0.5 + 0.5*math.Cos(2*math.Pi*d/resamplingTaps)
+	return math.Sin(math.Pi*d) / (math.Pi * d) * w
+}
+
+// resamplingWeightTable returns the tap weights for phaseCount+1 phases evenly spaced from 0 to 1 frame.
+// The weight of the tap j at the phase p is at the index p*resamplingTaps+j.
+func resamplingWeightTable(phaseCount int) []float64 {
+	resamplingWeightTablesMu.Lock()
+	defer resamplingWeightTablesMu.Unlock()
+
+	if table, ok := resamplingWeightTables[phaseCount]; ok {
+		return table
+	}
+	table := make([]float64, (phaseCount+1)*resamplingTaps)
+	for p := range phaseCount + 1 {
+		for j := range resamplingTaps {
+			// The tap j is the source frame j-resamplingHalfTaps frames after the one at or before the position.
+			d := float64(p)/float64(phaseCount) + float64(resamplingHalfTaps-j)
+			table[p*resamplingTaps+j] = resamplingWeight(d)
+		}
+	}
+	resamplingWeightTables[phaseCount] = table
+	return table
+}
+
+func gcd(a, b int64) int64 {
+	for b != 0 {
+		a, b = b, a%b
+	}
+	return a
 }
 
 // errSourceNotReady defers output until a source block can be completed.
@@ -102,7 +109,41 @@ type Resampling struct {
 	to              int
 	bitDepthInBytes int
 	pos             int64
-	srcBlock        int64
+
+	// reducedFrom and reducedTo are from and to divided by their greatest common divisor.
+	// The output frame t is at t*reducedFrom/reducedTo frames in the source.
+	reducedFrom uint64
+	reducedTo   uint64
+
+	// srcFrameStep and srcRemStep are the whole frames and the 1/reducedTo frames
+	// that the position in the source advances by per output frame.
+	srcFrameStep int64
+	srcRemStep   uint64
+
+	// maxDstFrame is the last output frame whose source frames have offsets in bytes that fit in int64.
+	// -1 indicates no output frame is computed, for a non-positive sample rate.
+	maxDstFrame int64
+
+	// phaseCount is the number of phases in a source frame that weights holds.
+	// phaseCount equals reducedTo unless reducedTo exceeds maxResamplingPhases.
+	phaseCount int
+
+	// weights is the weight table for phaseCount, shared among Resamplings.
+	weights []float64
+
+	// interpolatedWeightsBuf holds the weights of a phase between two phases in weights.
+	interpolatedWeightsBuf [resamplingTaps]float64
+
+	// tapsBufL and tapsBufR hold the source frames of an output frame whose taps do not lie in one block.
+	tapsBufL [resamplingTaps]float64
+	tapsBufR [resamplingTaps]float64
+
+	// srcBlock is the most recently used block, and srcBlockL and srcBlockR are its frames.
+	// srcBlock is -1 before a block is used.
+	srcBlock  int64
+	srcBlockL []float64
+	srcBlockR []float64
+
 	// lastReadSrcBlock is the last block read completely or through EOF.
 	// It is -1 before the first block is read. Its value is ignored when
 	// lastReadSrcBlockValid is false.
@@ -131,6 +172,7 @@ func NewResampling(source io.Reader, length int64, from, to int, bitDepthInBytes
 		from:                  from,
 		bitDepthInBytes:       bitDepthInBytes,
 		to:                    to,
+		maxDstFrame:           -1,
 		srcBlock:              -1,
 		lastReadSrcBlock:      -1,
 		lastReadSrcBlockValid: true,
@@ -138,6 +180,25 @@ func NewResampling(source io.Reader, length int64, from, to int, bitDepthInBytes
 		srcBufR:               map[int64][]float64{},
 	}
 	r.derivedSrcLength.Store(-1)
+
+	if from > 0 && to > 0 {
+		g := gcd(int64(from), int64(to))
+		r.reducedFrom = uint64(int64(from) / g)
+		r.reducedTo = uint64(int64(to) / g)
+		r.srcFrameStep = int64(r.reducedFrom / r.reducedTo)
+		r.srcRemStep = r.reducedFrom % r.reducedTo
+
+		// Byte offsets through the end of the block that holds maxSrcFrame fit in int64.
+		maxSrcFrame := math.MaxInt64/int64(r.bytesPerSample()) - resamplingBlockFrames
+		maxDstFrame, ok := mathutil.MulDiv(maxSrcFrame-resamplingHalfTaps, int64(r.reducedTo), int64(r.reducedFrom))
+		if !ok {
+			maxDstFrame = math.MaxInt64
+		}
+		r.maxDstFrame = maxDstFrame
+
+		r.phaseCount = int(min(r.reducedTo, maxResamplingPhases))
+		r.weights = resamplingWeightTable(r.phaseCount)
+	}
 	return r
 }
 
@@ -172,27 +233,28 @@ func (r *Resampling) resampledLength(srcLength int64) int64 {
 	return s / int64(r.bytesPerSample()) * int64(r.bytesPerSample())
 }
 
-func (r *Resampling) src(i int64) (float64, float64, error) {
-	const resamplingBufferSize = 4096
-
-	if i < 0 {
-		return 0, 0, nil
+// block returns the frames of each channel in the source block at index.
+// Frames past the end of the source are zero.
+// It returns io.EOF and no frames when the block is beyond the bytes the source has delivered and the end is unknown.
+func (r *Resampling) block(index int64) ([]float64, []float64, error) {
+	if index == r.srcBlock {
+		return r.srcBlockL, r.srcBlockR, nil
 	}
+
 	sizePerSample := int64(r.bytesPerSample())
-	nextPos := int64(i) / resamplingBufferSize
-	if _, ok := r.srcBufL[nextPos]; !ok {
-		blockStart := nextPos * resamplingBufferSize * sizePerSample
-		buf := make([]byte, resamplingBufferSize*sizePerSample)
+	if _, ok := r.srcBufL[index]; !ok {
+		blockStart := index * resamplingBlockFrames * sizePerSample
+		buf := make([]byte, resamplingBlockFrames*sizePerSample)
 		var c int
-		if r.partialSrcBuf != nil && r.partialSrcBlock == nextPos {
+		if r.partialSrcBuf != nil && r.partialSrcBlock == index {
 			c = copy(buf, r.partialSrcBuf)
-		} else if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != nextPos {
+		} else if !r.lastReadSrcBlockValid || r.lastReadSrcBlock+1 != index {
 			seeker, ok := r.source.(io.Seeker)
 			if !ok {
-				return 0, 0, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
+				return nil, nil, fmt.Errorf("convert: source must be io.Seeker: %w", errors.ErrUnsupported)
 			}
 			if _, err := seeker.Seek(blockStart, io.SeekStart); err != nil {
-				return 0, 0, err
+				return nil, nil, err
 			}
 		}
 		r.partialSrcBuf = nil
@@ -217,24 +279,24 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 					if r.declaredSrcLength < 0 && r.derivedSrcLength.Load() < 0 && (c > 0 || blockStart <= r.srcReadEnd) {
 						r.derivedSrcLength.Store(blockStart + int64(c))
 					}
-					r.lastReadSrcBlock = nextPos
+					r.lastReadSrcBlock = index
 					r.lastReadSrcBlockValid = true
 					break
 				}
 				r.lastReadSrcBlockValid = false
 				// Keep the bytes read so far, as a source that is not an io.Seeker cannot deliver them again.
 				if c > 0 || err == errSourceNotReady {
-					r.partialSrcBlock = nextPos
+					r.partialSrcBlock = index
 					r.partialSrcBuf = buf[:c]
 					if c > 0 {
 						r.srcReadEnd = max(r.srcReadEnd, blockStart+int64(c))
 					}
 				}
-				return 0, 0, err
+				return nil, nil, err
 			}
 		}
 		if c == len(buf) {
-			r.lastReadSrcBlock = nextPos
+			r.lastReadSrcBlock = index
 			r.lastReadSrcBlockValid = true
 		}
 		if c > 0 {
@@ -243,11 +305,11 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		// A block whose end position is not determined must not be cached, so that the block is read
 		// again once the preceding data has been delivered.
 		if eof && c == 0 && r.srcLength() < 0 && blockStart > r.srcReadEnd {
-			return 0, 0, io.EOF
+			return nil, nil, io.EOF
 		}
 		buf = buf[:c]
-		sl := make([]float64, resamplingBufferSize)
-		sr := make([]float64, resamplingBufferSize)
+		sl := make([]float64, resamplingBlockFrames)
+		sr := make([]float64, resamplingBlockFrames)
 		switch r.bitDepthInBytes {
 		case 2:
 			for i := range len(buf) / int(sizePerSample) {
@@ -262,7 +324,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		default:
 			panic("not reached")
 		}
-		r.srcBlock = nextPos
+		r.srcBlock = index
 		r.srcBufL[r.srcBlock] = sl
 		r.srcBufR[r.srcBlock] = sr
 		// To keep srcBufL/R not too big, let's remove the least used buffers.
@@ -275,7 +337,7 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		}
 		r.lruSrcBlocks = append(r.lruSrcBlocks, r.srcBlock)
 	} else {
-		r.srcBlock = nextPos
+		r.srcBlock = index
 		idx := -1
 		for i, p := range r.lruSrcBlocks {
 			if p == r.srcBlock {
@@ -289,40 +351,104 @@ func (r *Resampling) src(i int64) (float64, float64, error) {
 		r.lruSrcBlocks = append(r.lruSrcBlocks[:idx], r.lruSrcBlocks[idx+1:]...)
 		r.lruSrcBlocks = append(r.lruSrcBlocks, r.srcBlock)
 	}
-	ii := i % resamplingBufferSize
-	var err error
-	// An unknown length is determined once the source reaches its end.
-	if srcLength := r.srcLength(); srcLength >= 0 && srcLength/sizePerSample <= i {
-		err = io.EOF
-	}
-	return r.srcBufL[r.srcBlock][ii], r.srcBufR[r.srcBlock][ii], err
+	r.srcBlockL = r.srcBufL[r.srcBlock]
+	r.srcBlockR = r.srcBufR[r.srcBlock]
+	return r.srcBlockL, r.srcBlockR, nil
 }
 
-func (r *Resampling) at(t int64) (float64, float64, error) {
-	windowSize := 8.0
-	tInSrc := float64(t) * float64(r.from) / float64(r.to)
-	startN := max(int64(tInSrc-windowSize), 0)
-	endN := int64(tInSrc + windowSize)
-	var lv, rv float64
-	var eof bool
-	for n := startN; n <= endN; n++ {
-		srcL, srcR, err := r.src(n)
-		if err != nil && err != io.EOF {
-			return 0, 0, err
+// taps returns the source frames [first, first+resamplingTaps) of each channel.
+// Frames before the start of the source are zero. The returned arrays are valid until the next call.
+// It returns io.EOF when a block of the frames is beyond the bytes the source has delivered and the end is unknown.
+func (r *Resampling) taps(first int64) (*[resamplingTaps]float64, *[resamplingTaps]float64, error) {
+	last := first + resamplingTaps - 1
+	if first >= 0 && first/resamplingBlockFrames == last/resamplingBlockFrames {
+		sl, sr, err := r.block(first / resamplingBlockFrames)
+		if err == nil {
+			i := first % resamplingBlockFrames
+			return (*[resamplingTaps]float64)(sl[i : i+resamplingTaps]), (*[resamplingTaps]float64)(sr[i : i+resamplingTaps]), nil
 		}
+		if err != io.EOF {
+			return nil, nil, err
+		}
+		clear(r.tapsBufL[:])
+		clear(r.tapsBufR[:])
+		return &r.tapsBufL, &r.tapsBufR, io.EOF
+	}
+
+	clear(r.tapsBufL[:])
+	clear(r.tapsBufR[:])
+	var eof bool
+	for index := max(first, 0) / resamplingBlockFrames; index <= last/resamplingBlockFrames; index++ {
+		sl, sr, err := r.block(index)
 		if err == io.EOF {
 			eof = true
+			continue
 		}
-		d := tInSrc - float64(n)
-		w := 0.5 + 0.5*fastCos01(d/(windowSize*2+1))
-		s := sinc01(d/2) * w
-		lv += srcL * s
-		rv += srcR * s
+		if err != nil {
+			return nil, nil, err
+		}
+		blockFirst := index * resamplingBlockFrames
+		start := max(first, blockFirst)
+		end := min(last+1, blockFirst+resamplingBlockFrames)
+		copy(r.tapsBufL[start-first:end-first], sl[start-blockFirst:end-blockFirst])
+		copy(r.tapsBufR[start-first:end-first], sr[start-blockFirst:end-blockFirst])
 	}
 	if eof {
-		return lv, rv, io.EOF
+		return &r.tapsBufL, &r.tapsBufR, io.EOF
 	}
-	return lv, rv, nil
+	return &r.tapsBufL, &r.tapsBufR, nil
+}
+
+// phaseWeights returns the tap weights for an output frame srcRem/reducedTo frames after a source frame.
+// The returned array is valid until the next call.
+func (r *Resampling) phaseWeights(srcRem uint64) *[resamplingTaps]float64 {
+	if uint64(r.phaseCount) == r.reducedTo {
+		i := int(srcRem) * resamplingTaps
+		return (*[resamplingTaps]float64)(r.weights[i : i+resamplingTaps])
+	}
+
+	// Interpolate the weights linearly between the two nearest phases.
+	pos := float64(srcRem) / float64(r.reducedTo) * float64(r.phaseCount)
+	p := min(int(pos), r.phaseCount-1)
+	a := pos - float64(p)
+	w0 := (*[resamplingTaps]float64)(r.weights[p*resamplingTaps : (p+1)*resamplingTaps])
+	w1 := (*[resamplingTaps]float64)(r.weights[(p+1)*resamplingTaps : (p+2)*resamplingTaps])
+	for j := range r.interpolatedWeightsBuf {
+		r.interpolatedWeightsBuf[j] = w0[j] + (w1[j]-w0[j])*a
+	}
+	return &r.interpolatedWeightsBuf
+}
+
+// srcPosition returns the position of the output frame dstFrame in the source, srcFrame+srcRem/reducedTo frames.
+// dstFrame must be in [0, maxDstFrame].
+func (r *Resampling) srcPosition(dstFrame int64) (srcFrame int64, srcRem uint64) {
+	hi, lo := bits.Mul64(uint64(dstFrame), r.reducedFrom)
+	q, rem := bits.Div64(hi, lo, r.reducedTo)
+	return int64(q), rem
+}
+
+// frame returns the output frame at srcFrame+srcRem/reducedTo frames in the source.
+// It returns io.EOF when the source frames include a block beyond the bytes the source has delivered and the end is unknown.
+func (r *Resampling) frame(srcFrame int64, srcRem uint64) (float64, float64, error) {
+	srcL, srcR, err := r.taps(srcFrame - resamplingHalfTaps)
+	if err != nil && err != io.EOF {
+		return 0, 0, err
+	}
+	var lv, rv float64
+	for j, w := range r.phaseWeights(srcRem) {
+		lv += srcL[j] * w
+		rv += srcR[j] * w
+	}
+	return lv, rv, err
+}
+
+// frameAt returns the output frame dstFrame. See frame for the error.
+func (r *Resampling) frameAt(dstFrame int64) (float64, float64, error) {
+	if dstFrame > r.maxDstFrame {
+		return 0, 0, io.EOF
+	}
+	srcFrame, srcRem := r.srcPosition(dstFrame)
+	return r.frame(srcFrame, srcRem)
 }
 
 // Read reads resampled audio and returns an error wrapping [errors.ErrUnsupported] if it requires seeking a non-seekable source.
@@ -338,7 +464,7 @@ func (r *Resampling) Read(b []byte) (int, error) {
 	if len(b) < size {
 		if r.srcLength() < 0 {
 			// Resolve EOF through the source cache without advancing the output position.
-			_, _, err := r.at(r.pos / int64(size))
+			_, _, err := r.frameAt(r.pos / int64(size))
 			if err != nil && err != io.EOF {
 				if err == errSourceNotReady {
 					err = io.ErrShortBuffer
@@ -353,61 +479,59 @@ func (r *Resampling) Read(b []byte) (int, error) {
 		return 0, io.ErrShortBuffer
 	}
 
+	dstFrame := r.pos / int64(size)
+	var srcFrame int64
+	var srcRem uint64
+	if dstFrame <= r.maxDstFrame {
+		srcFrame, srcRem = r.srcPosition(dstFrame)
+	}
+	length := r.Length()
 	n := len(b) / size * size
-	switch r.bitDepthInBytes {
-	case 2:
-		for i := range n / size {
-			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
-			if err != nil && err != io.EOF {
-				r.pos += int64(size * i)
-				if err == errSourceNotReady {
-					err = nil
-				}
-				return size * i, err
+	for i := range n / size {
+		var ldata, rdata float64
+		// The source of a frame past maxDstFrame is beyond any byte the source can deliver.
+		var err error = io.EOF
+		if dstFrame <= r.maxDstFrame {
+			ldata, rdata, err = r.frame(srcFrame, srcRem)
+		}
+		if err != nil && err != io.EOF {
+			r.pos += int64(size * i)
+			if err == errSourceNotReady {
+				err = nil
 			}
-			// EOF from the at method indicates that the source reaches the end, and doesn't indicate the resampled data ends.
-			// The length check below is the terminator of the resampled data, except when the length is still unknown:
-			// then the position is beyond the source's end after seeking, and the resampled data ends here.
-			if err == io.EOF && r.srcLength() < 0 {
-				n = size * i
-				r.eof = true
-				break
-			}
+			return size * i, err
+		}
+		// EOF from the frame method indicates that the source reaches the end, and doesn't indicate the resampled data ends.
+		// The length check below is the terminator of the resampled data, except when the length is still unknown:
+		// then the position is beyond the source's end after seeking, and the resampled data ends here.
+		if err == io.EOF && r.srcLength() < 0 {
+			n = size * i
+			r.eof = true
+			break
+		}
+		// If the length is known, check whether the resampled data ends (#3352).
+		if length < 0 {
+			length = r.Length()
+		}
+		if length >= 0 && r.pos+int64(size*i) >= length {
+			n = size * i
+			r.eof = true
+			break
+		}
+
+		switch r.bitDepthInBytes {
+		case 2:
 			ldata = min(max(ldata, -1), 1)
 			rdata = min(max(rdata, -1), 1)
-
 			l16 := int16(ldata * (1<<15 - 1))
 			r16 := int16(rdata * (1<<15 - 1))
 			b[4*i] = byte(l16)
 			b[4*i+1] = byte(l16 >> 8)
 			b[4*i+2] = byte(r16)
 			b[4*i+3] = byte(r16 >> 8)
-			// If the length is known, check whether the resampled data ends (#3352).
-			if srcLength := r.srcLength(); srcLength >= 0 && r.pos+int64(size*i) >= r.resampledLength(srcLength) {
-				n = size * i
-				r.eof = true
-				break
-			}
-		}
-	case 4:
-		for i := range n / size {
-			ldata, rdata, err := r.at(r.pos/int64(size) + int64(i))
-			if err != nil && err != io.EOF {
-				r.pos += int64(size * i)
-				if err == errSourceNotReady {
-					err = nil
-				}
-				return size * i, err
-			}
-			if err == io.EOF && r.srcLength() < 0 {
-				n = size * i
-				r.eof = true
-				break
-			}
-			l32 := float32(ldata)
-			r32 := float32(rdata)
-			l32b := math.Float32bits(l32)
-			r32b := math.Float32bits(r32)
+		case 4:
+			l32b := math.Float32bits(float32(ldata))
+			r32b := math.Float32bits(float32(rdata))
 			b[8*i] = byte(l32b)
 			b[8*i+1] = byte(l32b >> 8)
 			b[8*i+2] = byte(l32b >> 16)
@@ -416,14 +540,17 @@ func (r *Resampling) Read(b []byte) (int, error) {
 			b[8*i+5] = byte(r32b >> 8)
 			b[8*i+6] = byte(r32b >> 16)
 			b[8*i+7] = byte(r32b >> 24)
-			if srcLength := r.srcLength(); srcLength >= 0 && r.pos+int64(size*i) >= r.resampledLength(srcLength) {
-				n = size * i
-				r.eof = true
-				break
-			}
+		default:
+			panic("not reached")
 		}
-	default:
-		panic("not reached")
+
+		dstFrame++
+		srcFrame += r.srcFrameStep
+		srcRem += r.srcRemStep
+		if srcRem >= r.reducedTo {
+			srcRem -= r.reducedTo
+			srcFrame++
+		}
 	}
 	r.pos += int64(n)
 	if r.eof {

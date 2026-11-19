@@ -1349,3 +1349,84 @@ func TestResamplingEmptyReadDoesNotSpin(t *testing.T) {
 		t.Errorf("Length = %d, want -1", got)
 	}
 }
+
+func TestResamplingWindowedSinc(t *testing.T) {
+	cases := []struct {
+		In  int
+		Out int
+	}{
+		{
+			In:  44100,
+			Out: 48000,
+		},
+		{
+			In:  11025,
+			Out: 96000,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%d to %d", c.In, c.Out), func(t *testing.T) {
+			inB := newSoundBytes(c.In, 4)
+			src := make([]float64, len(inB)/8)
+			for i := range src {
+				src[i] = float64(math.Float32frombits(binary.LittleEndian.Uint32(inB[8*i:])))
+			}
+			outB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out, 4))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := range len(outB) / 8 {
+				pos := float64(i) * float64(c.In) / float64(c.Out)
+				var want float64
+				for n := int(pos) - 8; n <= int(pos)+8; n++ {
+					if n < 0 || n >= len(src) {
+						continue
+					}
+					d := pos - float64(n)
+					sinc := 1.0
+					if d != 0 {
+						sinc = math.Sin(math.Pi*d) / (math.Pi * d)
+					}
+					want += src[n] * sinc * (0.5 + 0.5*math.Cos(2*math.Pi*d/17))
+				}
+				if got := float64(math.Float32frombits(binary.LittleEndian.Uint32(outB[8*i:]))); math.Abs(got-want) > 1e-6 {
+					t.Errorf("frame %d: got %v, want %v", i, got, want)
+					break
+				}
+			}
+		})
+	}
+}
+
+func BenchmarkResampling(b *testing.B) {
+	cases := []struct {
+		In  int
+		Out int
+	}{
+		{
+			In:  44100,
+			Out: 48000,
+		},
+		{
+			In:  11025,
+			Out: 96000,
+		},
+	}
+	for _, c := range cases {
+		b.Run(fmt.Sprintf("%d to %d", c.In, c.Out), func(b *testing.B) {
+			inB := newSoundBytes(c.In, 2)
+			buf := make([]byte, 4096)
+			for b.Loop() {
+				r := convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out, 2)
+				for {
+					if _, err := r.Read(buf); err != nil {
+						if err != io.EOF {
+							b.Fatal(err)
+						}
+						break
+					}
+				}
+			}
+		})
+	}
+}
