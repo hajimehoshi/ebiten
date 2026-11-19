@@ -205,6 +205,11 @@ func (s *session) drain() error {
 				case replStart == noReplacement || replEnd == noReplacement:
 					replStart = preLen
 					replEnd = preLen
+				default:
+					// A platform or host can report a range outside this session's surrounding text.
+					total := preLen + len(s.textAfterCaret)
+					replStart = min(max(replStart, 0), total)
+					replEnd = min(max(replEnd, replStart), total)
 				}
 				s.commitKind = st.CommitKind
 				s.commit = Commit{
