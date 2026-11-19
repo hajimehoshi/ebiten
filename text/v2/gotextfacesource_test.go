@@ -724,3 +724,20 @@ func TestGoTextFaceUnchangedOptionsAllocateNothing(t *testing.T) {
 		})
 	}
 }
+
+func TestEmptyGlyphRenderDataCanExpire(t *testing.T) {
+	source, err := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, size := range []float64{12, 16, 24} {
+		text.AppendGlyphs(nil, " ", &text.GoTextFace{Source: source, Size: size}, nil)
+	}
+	total, immortal := text.NegativeGlyphCacheEntriesForTesting(source)
+	if total != 3 {
+		t.Fatalf("negative entries = %d, want 3", total)
+	}
+	if immortal != 0 {
+		t.Errorf("non-expiring negative entries = %d, want 0", immortal)
+	}
+}

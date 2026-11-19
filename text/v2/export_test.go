@@ -130,3 +130,21 @@ func GoTextFaceVariationState(face *GoTextFace) ([]font.Variation, string) {
 func GoTextFaceFeatureState(face *GoTextFace) ([]shaping.FontFeature, string) {
 	return slices.Clone(face.features.values()), face.features.key
 }
+
+func NegativeGlyphCacheEntriesForTesting(source *GoTextFaceSource) (total, immortal int) {
+	source.shapeMu.Lock()
+	defer source.shapeMu.Unlock()
+	if c := source.renderDataCache; c != nil {
+		c.m.Lock()
+		for _, e := range c.values {
+			if e.value == nil {
+				total++
+				if e.atime == infTick {
+					immortal++
+				}
+			}
+		}
+		c.m.Unlock()
+	}
+	return
+}
