@@ -1387,20 +1387,73 @@ func TestResamplingWindowedSinc(t *testing.T) {
 			taps := float64(2*c.HalfTaps + 1)
 			for i := range len(outB) / 8 {
 				pos := float64(i) * float64(c.In) / float64(c.Out)
-				var want float64
+				var want, weightSum float64
 				for n := int(pos) - c.HalfTaps; n <= int(pos)+c.HalfTaps; n++ {
-					if n < 0 || n >= len(src) {
-						continue
-					}
 					d := pos - float64(n)
 					sinc := 1.0
 					if d != 0 {
 						sinc = math.Sin(math.Pi*cutoff*d) / (math.Pi * cutoff * d)
 					}
-					want += src[n] * cutoff * sinc * (0.5 + 0.5*math.Cos(2*math.Pi*d/taps))
+					weight := cutoff * sinc * (0.5 + 0.5*math.Cos(2*math.Pi*d/taps))
+					weightSum += weight
+					if n < 0 || n >= len(src) {
+						continue
+					}
+					want += src[n] * weight
 				}
+				want /= weightSum
 				if got := float64(math.Float32frombits(binary.LittleEndian.Uint32(outB[8*i:]))); math.Abs(got-want) > 1e-6 {
 					t.Errorf("frame %d: got %v, want %v", i, got, want)
+					break
+				}
+			}
+		})
+	}
+}
+
+func TestResamplingConstant(t *testing.T) {
+	const value = 0.5
+	cases := []struct {
+		In       int
+		Out      int
+		HalfTaps int
+	}{
+		{
+			In:       44100,
+			Out:      48000,
+			HalfTaps: 8,
+		},
+		{
+			In:       11025,
+			Out:      96000,
+			HalfTaps: 8,
+		},
+		{
+			In:       48000,
+			Out:      44100,
+			HalfTaps: 9,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%d to %d", c.In, c.Out), func(t *testing.T) {
+			inB := make([]byte, c.In*8)
+			for i := range c.In {
+				binary.LittleEndian.PutUint32(inB[8*i:], math.Float32bits(value))
+				binary.LittleEndian.PutUint32(inB[8*i+4:], math.Float32bits(value))
+			}
+			outB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), c.In, c.Out, 4))
+			if err != nil {
+				t.Fatal(err)
+			}
+			for i := range len(outB) / 8 {
+				srcFrame := int64(i) * int64(c.In) / int64(c.Out)
+				if srcFrame < int64(c.HalfTaps) || srcFrame+int64(c.HalfTaps) >= int64(c.In) {
+					continue
+				}
+				l := float64(math.Float32frombits(binary.LittleEndian.Uint32(outB[8*i:])))
+				r := float64(math.Float32frombits(binary.LittleEndian.Uint32(outB[8*i+4:])))
+				if math.Abs(l-value) > 1e-7 || math.Abs(r-value) > 1e-7 {
+					t.Errorf("frame %d of a constant %v: got (%v, %v), want (%v, %v)", i, value, l, r, value, value)
 					break
 				}
 			}

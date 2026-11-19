@@ -102,6 +102,7 @@ var (
 
 // resamplingWeightTable returns the tap weights of kernel for phaseCount+1 phases evenly spaced from 0 to 1 frame.
 // The weight of the tap j at the phase p is at the index p*kernel.taps()+j.
+// The weights of each phase sum to 1.
 func resamplingWeightTable(kernel resamplingKernel, phaseCount int) []float64 {
 	resamplingWeightTablesMu.Lock()
 	defer resamplingWeightTablesMu.Unlock()
@@ -116,10 +117,18 @@ func resamplingWeightTable(kernel resamplingKernel, phaseCount int) []float64 {
 	taps := kernel.taps()
 	table := make([]float64, (phaseCount+1)*taps)
 	for p := range phaseCount + 1 {
-		for j := range taps {
+		weights := table[p*taps : (p+1)*taps]
+		var sum float64
+		for j := range weights {
 			// The tap j is the source frame j-kernel.halfTaps frames after the one at or before the position.
 			d := float64(p)/float64(phaseCount) + float64(kernel.halfTaps-j)
-			table[p*taps+j] = kernel.weight(d)
+			weights[j] = kernel.weight(d)
+			sum += weights[j]
+		}
+		// The sum of the truncated, windowed kernel is not exactly 1 and varies with the phase.
+		// Dividing by it keeps a constant signal constant.
+		for j := range weights {
+			weights[j] /= sum
 		}
 	}
 	resamplingWeightTables[key] = table
