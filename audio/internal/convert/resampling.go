@@ -27,11 +27,18 @@ import (
 )
 
 const (
-	// resamplingHalfTaps is the number of taps on each side of the source frame at or before an output frame's position.
+	// resamplingHalfTaps is the number of taps on each side of the source frame at or before an output frame's position
+	// when the cutoff is the source Nyquist frequency.
 	resamplingHalfTaps = 8
 
-	// resamplingTaps is the number of source frames weighted for an output frame.
+	// resamplingTaps is the number of source frames weighted for an output frame
+	// when the cutoff is the source Nyquist frequency.
 	resamplingTaps = 2*resamplingHalfTaps + 1
+
+	// minResamplingCutoff is the lowest cutoff relative to the source Nyquist frequency.
+	// It is below the ratio of common sample rates, such as 8000 Hz to 192000 Hz,
+	// and bounds the number of taps so that the taps of an output frame lie in at most two source blocks.
+	minResamplingCutoff = 1.0 / 32
 
 	// maxResamplingPhases is the maximum number of phases in a weight table.
 	maxResamplingPhases = 1024
@@ -40,45 +47,82 @@ const (
 	resamplingBlockFrames = 4096
 )
 
+// resamplingKernel is a Hann-windowed sinc function.
+type resamplingKernel struct {
+	// cutoff is the cutoff frequency relative to the source Nyquist frequency, in (0, 1].
+	cutoff float64
+
+	// halfTaps is the number of taps on each side of the source frame at or before an output frame's position.
+	// The window spans the 2*halfTaps+1 taps.
+	halfTaps int
+}
+
+// newResamplingKernel returns the kernel to resample from the sample rate from to the sample rate to.
+func newResamplingKernel(from, to uint64) resamplingKernel {
+	// When downsampling, the cutoff is the destination Nyquist frequency, so that the frequencies above it do not alias.
+	cutoff := max(min(float64(to)/float64(from), 1), minResamplingCutoff)
+	return resamplingKernel{
+		cutoff: cutoff,
+		// The window spans at least resamplingTaps/cutoff source frames,
+		// so that it covers as many zero crossings of the sinc function as at the source Nyquist frequency.
+		halfTaps: int(math.Ceil((resamplingTaps/cutoff - 1) / 2)),
+	}
+}
+
+func (k resamplingKernel) taps() int {
+	return 2*k.halfTaps + 1
+}
+
+// weight returns the weight of a source frame d frames before an output frame's position.
+func (k resamplingKernel) weight(d float64) float64 {
+	x := k.cutoff * d
+	if x == 0 {
+		return k.cutoff
+	}
+	// The sinc function is zero at the other integers.
+	if x == math.Trunc(x) {
+		return 0
+	}
+	// A Hann window that spans the taps.
+	w := 0.5 + 0.5*math.Cos(2*math.Pi*d/float64(k.taps()))
+	return k.cutoff * math.Sin(math.Pi*x) / (math.Pi * x) * w
+}
+
+type resamplingWeightTableKey struct {
+	kernel     resamplingKernel
+	phaseCount int
+}
+
 var (
 	resamplingWeightTablesMu sync.Mutex
 
-	// resamplingWeightTables maps a phase count to its weight table.
-	resamplingWeightTables = map[int][]float64{}
+	// resamplingWeightTables maps a kernel and a phase count to their weight table.
+	resamplingWeightTables = map[resamplingWeightTableKey][]float64{}
 )
 
-// resamplingWeight returns the weight of a source frame d frames before an output frame's position.
-func resamplingWeight(d float64) float64 {
-	if d == 0 {
-		return 1
-	}
-	// The sinc function is zero at the other integers.
-	if d == math.Trunc(d) {
-		return 0
-	}
-	// A Hann window that spans resamplingTaps frames.
-	w := 0.5 + 0.5*math.Cos(2*math.Pi*d/resamplingTaps)
-	return math.Sin(math.Pi*d) / (math.Pi * d) * w
-}
-
-// resamplingWeightTable returns the tap weights for phaseCount+1 phases evenly spaced from 0 to 1 frame.
-// The weight of the tap j at the phase p is at the index p*resamplingTaps+j.
-func resamplingWeightTable(phaseCount int) []float64 {
+// resamplingWeightTable returns the tap weights of kernel for phaseCount+1 phases evenly spaced from 0 to 1 frame.
+// The weight of the tap j at the phase p is at the index p*kernel.taps()+j.
+func resamplingWeightTable(kernel resamplingKernel, phaseCount int) []float64 {
 	resamplingWeightTablesMu.Lock()
 	defer resamplingWeightTablesMu.Unlock()
 
-	if table, ok := resamplingWeightTables[phaseCount]; ok {
+	key := resamplingWeightTableKey{
+		kernel:     kernel,
+		phaseCount: phaseCount,
+	}
+	if table, ok := resamplingWeightTables[key]; ok {
 		return table
 	}
-	table := make([]float64, (phaseCount+1)*resamplingTaps)
+	taps := kernel.taps()
+	table := make([]float64, (phaseCount+1)*taps)
 	for p := range phaseCount + 1 {
-		for j := range resamplingTaps {
-			// The tap j is the source frame j-resamplingHalfTaps frames after the one at or before the position.
-			d := float64(p)/float64(phaseCount) + float64(resamplingHalfTaps-j)
-			table[p*resamplingTaps+j] = resamplingWeight(d)
+		for j := range taps {
+			// The tap j is the source frame j-kernel.halfTaps frames after the one at or before the position.
+			d := float64(p)/float64(phaseCount) + float64(kernel.halfTaps-j)
+			table[p*taps+j] = kernel.weight(d)
 		}
 	}
-	resamplingWeightTables[phaseCount] = table
+	resamplingWeightTables[key] = table
 	return table
 }
 
@@ -124,19 +168,21 @@ type Resampling struct {
 	// -1 indicates no output frame is computed, for a non-positive sample rate.
 	maxDstFrame int64
 
+	kernel resamplingKernel
+
 	// phaseCount is the number of phases in a source frame that weights holds.
 	// phaseCount equals reducedTo unless reducedTo exceeds maxResamplingPhases.
 	phaseCount int
 
-	// weights is the weight table for phaseCount, shared among Resamplings.
+	// weights is the weight table for kernel and phaseCount, shared among Resamplings.
 	weights []float64
 
 	// interpolatedWeightsBuf holds the weights of a phase between two phases in weights.
-	interpolatedWeightsBuf [resamplingTaps]float64
+	interpolatedWeightsBuf []float64
 
 	// tapsBufL and tapsBufR hold the source frames of an output frame whose taps do not lie in one block.
-	tapsBufL [resamplingTaps]float64
-	tapsBufR [resamplingTaps]float64
+	tapsBufL []float64
+	tapsBufR []float64
 
 	// srcBlock is the most recently used block, and srcBlockL and srcBlockR are its frames.
 	// srcBlock is -1 before a block is used.
@@ -187,17 +233,22 @@ func NewResampling(source io.Reader, length int64, from, to int, bitDepthInBytes
 		r.reducedTo = uint64(int64(to) / g)
 		r.srcFrameStep = int64(r.reducedFrom / r.reducedTo)
 		r.srcRemStep = r.reducedFrom % r.reducedTo
+		r.kernel = newResamplingKernel(r.reducedFrom, r.reducedTo)
 
 		// Byte offsets through the end of the block that holds maxSrcFrame fit in int64.
 		maxSrcFrame := math.MaxInt64/int64(r.bytesPerSample()) - resamplingBlockFrames
-		maxDstFrame, ok := mathutil.MulDiv(maxSrcFrame-resamplingHalfTaps, int64(r.reducedTo), int64(r.reducedFrom))
+		maxDstFrame, ok := mathutil.MulDiv(maxSrcFrame-int64(r.kernel.halfTaps), int64(r.reducedTo), int64(r.reducedFrom))
 		if !ok {
 			maxDstFrame = math.MaxInt64
 		}
 		r.maxDstFrame = maxDstFrame
 
 		r.phaseCount = int(min(r.reducedTo, maxResamplingPhases))
-		r.weights = resamplingWeightTable(r.phaseCount)
+		r.weights = resamplingWeightTable(r.kernel, r.phaseCount)
+		taps := r.kernel.taps()
+		r.interpolatedWeightsBuf = make([]float64, taps)
+		r.tapsBufL = make([]float64, taps)
+		r.tapsBufR = make([]float64, taps)
 	}
 	return r
 }
@@ -356,27 +407,28 @@ func (r *Resampling) block(index int64) ([]float64, []float64, error) {
 	return r.srcBlockL, r.srcBlockR, nil
 }
 
-// taps returns the source frames [first, first+resamplingTaps) of each channel.
-// Frames before the start of the source are zero. The returned arrays are valid until the next call.
+// taps returns the source frames [first, first+r.kernel.taps()) of each channel.
+// Frames before the start of the source are zero. The returned slices are valid until the next call.
 // It returns io.EOF when a block of the frames is beyond the bytes the source has delivered and the end is unknown.
-func (r *Resampling) taps(first int64) (*[resamplingTaps]float64, *[resamplingTaps]float64, error) {
-	last := first + resamplingTaps - 1
+func (r *Resampling) taps(first int64) ([]float64, []float64, error) {
+	n := int64(len(r.tapsBufL))
+	last := first + n - 1
 	if first >= 0 && first/resamplingBlockFrames == last/resamplingBlockFrames {
 		sl, sr, err := r.block(first / resamplingBlockFrames)
 		if err == nil {
 			i := first % resamplingBlockFrames
-			return (*[resamplingTaps]float64)(sl[i : i+resamplingTaps]), (*[resamplingTaps]float64)(sr[i : i+resamplingTaps]), nil
+			return sl[i : i+n], sr[i : i+n], nil
 		}
 		if err != io.EOF {
 			return nil, nil, err
 		}
-		clear(r.tapsBufL[:])
-		clear(r.tapsBufR[:])
-		return &r.tapsBufL, &r.tapsBufR, io.EOF
+		clear(r.tapsBufL)
+		clear(r.tapsBufR)
+		return r.tapsBufL, r.tapsBufR, io.EOF
 	}
 
-	clear(r.tapsBufL[:])
-	clear(r.tapsBufR[:])
+	clear(r.tapsBufL)
+	clear(r.tapsBufR)
 	var eof bool
 	for index := max(first, 0) / resamplingBlockFrames; index <= last/resamplingBlockFrames; index++ {
 		sl, sr, err := r.block(index)
@@ -394,29 +446,31 @@ func (r *Resampling) taps(first int64) (*[resamplingTaps]float64, *[resamplingTa
 		copy(r.tapsBufR[start-first:end-first], sr[start-blockFirst:end-blockFirst])
 	}
 	if eof {
-		return &r.tapsBufL, &r.tapsBufR, io.EOF
+		return r.tapsBufL, r.tapsBufR, io.EOF
 	}
-	return &r.tapsBufL, &r.tapsBufR, nil
+	return r.tapsBufL, r.tapsBufR, nil
 }
 
 // phaseWeights returns the tap weights for an output frame srcRem/reducedTo frames after a source frame.
-// The returned array is valid until the next call.
-func (r *Resampling) phaseWeights(srcRem uint64) *[resamplingTaps]float64 {
+// The returned slice is valid until the next call.
+func (r *Resampling) phaseWeights(srcRem uint64) []float64 {
+	buf := r.interpolatedWeightsBuf
+	n := len(buf)
 	if uint64(r.phaseCount) == r.reducedTo {
-		i := int(srcRem) * resamplingTaps
-		return (*[resamplingTaps]float64)(r.weights[i : i+resamplingTaps])
+		i := int(srcRem) * n
+		return r.weights[i : i+n]
 	}
 
 	// Interpolate the weights linearly between the two nearest phases.
 	pos := float64(srcRem) / float64(r.reducedTo) * float64(r.phaseCount)
 	p := min(int(pos), r.phaseCount-1)
 	a := pos - float64(p)
-	w0 := (*[resamplingTaps]float64)(r.weights[p*resamplingTaps : (p+1)*resamplingTaps])
-	w1 := (*[resamplingTaps]float64)(r.weights[(p+1)*resamplingTaps : (p+2)*resamplingTaps])
-	for j := range r.interpolatedWeightsBuf {
-		r.interpolatedWeightsBuf[j] = w0[j] + (w1[j]-w0[j])*a
+	w0 := r.weights[p*n:][:n]
+	w1 := r.weights[(p+1)*n:][:n]
+	for j := range buf {
+		buf[j] = w0[j] + (w1[j]-w0[j])*a
 	}
-	return &r.interpolatedWeightsBuf
+	return buf
 }
 
 // srcPosition returns the position of the output frame dstFrame in the source, srcFrame+srcRem/reducedTo frames.
@@ -430,12 +484,15 @@ func (r *Resampling) srcPosition(dstFrame int64) (srcFrame int64, srcRem uint64)
 // frame returns the output frame at srcFrame+srcRem/reducedTo frames in the source.
 // It returns io.EOF when the source frames include a block beyond the bytes the source has delivered and the end is unknown.
 func (r *Resampling) frame(srcFrame int64, srcRem uint64) (float64, float64, error) {
-	srcL, srcR, err := r.taps(srcFrame - resamplingHalfTaps)
+	srcL, srcR, err := r.taps(srcFrame - int64(r.kernel.halfTaps))
 	if err != nil && err != io.EOF {
 		return 0, 0, err
 	}
+	weights := r.phaseWeights(srcRem)
+	srcL = srcL[:len(weights)]
+	srcR = srcR[:len(weights)]
 	var lv, rv float64
-	for j, w := range r.phaseWeights(srcRem) {
+	for j, w := range weights {
 		lv += srcL[j] * w
 		rv += srcR[j] * w
 	}

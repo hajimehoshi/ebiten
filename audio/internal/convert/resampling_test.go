@@ -1257,8 +1257,8 @@ func TestResamplingFloat32Headroom(t *testing.T) {
 			t.Error("resampling produced no stereo samples")
 			continue
 		}
-		if got := math.Float32frombits(binary.LittleEndian.Uint32(loud)); math.Abs(float64(got-1.5)) > 1e-6 {
-			t.Errorf("first sample: got %v, want 1.5", got)
+		if got := math.Float32frombits(binary.LittleEndian.Uint32(loud)); got <= 1 {
+			t.Errorf("%d to %d, first sample: got %v, want a value above 1", rates.from, rates.to, got)
 		}
 		if len(quiet) != len(loud) {
 			t.Fatal("output lengths differ")
@@ -1352,16 +1352,24 @@ func TestResamplingEmptyReadDoesNotSpin(t *testing.T) {
 
 func TestResamplingWindowedSinc(t *testing.T) {
 	cases := []struct {
-		In  int
-		Out int
+		In       int
+		Out      int
+		HalfTaps int
 	}{
 		{
-			In:  44100,
-			Out: 48000,
+			In:       44100,
+			Out:      48000,
+			HalfTaps: 8,
 		},
 		{
-			In:  11025,
-			Out: 96000,
+			In:       11025,
+			Out:      96000,
+			HalfTaps: 8,
+		},
+		{
+			In:       48000,
+			Out:      44100,
+			HalfTaps: 9,
 		},
 	}
 	for _, c := range cases {
@@ -1375,24 +1383,75 @@ func TestResamplingWindowedSinc(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			cutoff := min(float64(c.Out)/float64(c.In), 1)
+			taps := float64(2*c.HalfTaps + 1)
 			for i := range len(outB) / 8 {
 				pos := float64(i) * float64(c.In) / float64(c.Out)
 				var want float64
-				for n := int(pos) - 8; n <= int(pos)+8; n++ {
+				for n := int(pos) - c.HalfTaps; n <= int(pos)+c.HalfTaps; n++ {
 					if n < 0 || n >= len(src) {
 						continue
 					}
 					d := pos - float64(n)
 					sinc := 1.0
 					if d != 0 {
-						sinc = math.Sin(math.Pi*d) / (math.Pi * d)
+						sinc = math.Sin(math.Pi*cutoff*d) / (math.Pi * cutoff * d)
 					}
-					want += src[n] * sinc * (0.5 + 0.5*math.Cos(2*math.Pi*d/17))
+					want += src[n] * cutoff * sinc * (0.5 + 0.5*math.Cos(2*math.Pi*d/taps))
 				}
 				if got := float64(math.Float32frombits(binary.LittleEndian.Uint32(outB[8*i:]))); math.Abs(got-want) > 1e-6 {
 					t.Errorf("frame %d: got %v, want %v", i, got, want)
 					break
 				}
+			}
+		})
+	}
+}
+
+func TestResamplingDownsamplingAliasing(t *testing.T) {
+	const (
+		from       = 96000
+		to         = 44100
+		amplitude  = 0.5
+		edgeFrames = 100
+	)
+	cases := []struct {
+		Freq    float64
+		MinGain float64
+		MaxGain float64
+	}{
+		{
+			Freq:    1000,
+			MinGain: 0.99,
+			MaxGain: 1.01,
+		},
+		{
+			Freq:    30000,
+			MinGain: 0,
+			MaxGain: 0.01,
+		},
+	}
+	for _, c := range cases {
+		t.Run(fmt.Sprintf("%v Hz", c.Freq), func(t *testing.T) {
+			inB := make([]byte, from*8)
+			for i := range from {
+				v := math.Float32bits(float32(amplitude * math.Sin(2*math.Pi*c.Freq*float64(i)/from)))
+				binary.LittleEndian.PutUint32(inB[8*i:], v)
+				binary.LittleEndian.PutUint32(inB[8*i+4:], v)
+			}
+			outB, err := io.ReadAll(convert.NewResampling(bytes.NewReader(inB), int64(len(inB)), from, to, 4))
+			if err != nil {
+				t.Fatal(err)
+			}
+			outB = outB[edgeFrames*8 : len(outB)-edgeFrames*8]
+			var sum float64
+			for i := range len(outB) / 8 {
+				v := float64(math.Float32frombits(binary.LittleEndian.Uint32(outB[8*i:])))
+				sum += v * v
+			}
+			gain := math.Sqrt(2*sum/float64(len(outB)/8)) / amplitude
+			if gain < c.MinGain || gain > c.MaxGain {
+				t.Errorf("gain of a %v Hz tone resampled from %d Hz to %d Hz: got %v, want in [%v, %v]", c.Freq, from, to, gain, c.MinGain, c.MaxGain)
 			}
 		})
 	}
@@ -1410,6 +1469,10 @@ func BenchmarkResampling(b *testing.B) {
 		{
 			In:  11025,
 			Out: 96000,
+		},
+		{
+			In:  48000,
+			Out: 44100,
 		},
 	}
 	for _, c := range cases {
