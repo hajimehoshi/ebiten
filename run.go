@@ -338,6 +338,7 @@ type RunGameOptions struct {
 // game's Layout function is called when necessary, and you can specify the logical screen size by the function.
 //
 // options can be nil. In this case, the default options are used.
+// RunGameWithOptions does not modify options.
 //
 // If game implements FinalScreenDrawer, its DrawFinalScreen is called after Draw.
 // The argument screen represents the final screen. The argument offscreen is an offscreen modified at Draw.
@@ -760,6 +761,9 @@ func toUIRunOptions(options *RunGameOptions) *ui.RunOptions {
 			X11InstanceName:   defaultX11InstanceName,
 		}
 	}
+
+	optionsCopy := *options
+	options = &optionsCopy
 
 	if options.X11ClassName == "" {
 		options.X11ClassName = defaultX11ClassName
