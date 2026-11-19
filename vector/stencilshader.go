@@ -15,6 +15,7 @@
 package vector
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/hajimehoshi/ebiten/v2"
@@ -102,6 +103,27 @@ func ensureStencilBufferEvenOddShader(antialias bool) (*ebiten.Shader, error) {
 	}
 	stencilBufferEvenOddShader = s
 	return stencilBufferEvenOddShader, nil
+}
+
+// ensureStencilBufferResolveShader returns the shader rendering a stencil buffer with fillRule.
+// An invalid fillRule causes a panic.
+func ensureStencilBufferResolveShader(fillRule FillRule, antialias bool) *ebiten.Shader {
+	switch fillRule {
+	case FillRuleNonZero:
+		shader, err := ensureStencilBufferNonZeroShader(antialias)
+		if err != nil {
+			panic(fmt.Sprintf("vector: failed to create stencil buffer non-zero shader: %v", err))
+		}
+		return shader
+	case FillRuleEvenOdd:
+		shader, err := ensureStencilBufferEvenOddShader(antialias)
+		if err != nil {
+			panic(fmt.Sprintf("vector: failed to create stencil buffer even-odd shader: %v", err))
+		}
+		return shader
+	default:
+		panic(fmt.Sprintf("vector: invalid fill rule: %d", fillRule))
+	}
 }
 
 //ebitengine:shadersource

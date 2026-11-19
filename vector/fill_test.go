@@ -172,6 +172,109 @@ func TestFillPathAntialiasWideDestination(t *testing.T) {
 	}
 }
 
+func TestFillPathClippedAtDestinationEdge(t *testing.T) {
+	const size = 64
+	dst := ebiten.NewImage(size, size)
+	defer dst.Deallocate()
+
+	fillRect := func(x0, y0, x1, y1 float32) {
+		var path vector.Path
+		path.MoveTo(x0, y0)
+		path.LineTo(x1, y0)
+		path.LineTo(x1, y1)
+		path.LineTo(x0, y1)
+		path.Close()
+		vector.FillPath(dst, &path, nil, &vector.DrawPathOptions{
+			AntiAlias: true,
+		})
+	}
+
+	// The stencil buffers of the paths have the same size, so the second one follows the first one in the atlas.
+	// The second path crosses the left edge of the destination by less than a pixel.
+	unclipped := image.Rect(20, 20, 30, 30)
+	clipped := image.Rect(0, 40, 10, 50)
+	fillRect(20, 20, 30, 30)
+	fillRect(-0.5, 40, 9.5, 50)
+
+	pixels := make([]byte, 4*size*size)
+	dst.ReadPixels(pixels)
+	for y := range size {
+		for x := range size {
+			if p := image.Pt(x, y); p.In(unclipped) || p.In(clipped) {
+				continue
+			}
+			i := 4 * (y*size + x)
+			if got := pixels[i : i+4]; !bytes.Equal(got, []byte{0, 0, 0, 0}) {
+				t.Errorf("pixel at (%d, %d): got %v, want transparent", x, y, got)
+				return
+			}
+		}
+	}
+}
+
+func TestFillPathMultipleAtlasImages(t *testing.T) {
+	const size = 1024
+
+	colors := []color.RGBA{
+		{R: 0xff, A: 0xff},
+		{G: 0xff, A: 0xff},
+		{B: 0xff, A: 0xff},
+		{R: 0xff, G: 0xff, A: 0xff},
+	}
+	paths := make([]*vector.Path, len(colors))
+	bounds := make([]image.Rectangle, len(paths))
+	squares := make([]image.Rectangle, len(paths))
+	for i := range paths {
+		var path vector.Path
+		// Segments without area extend the bounds to the whole destination.
+		path.MoveTo(0, 0)
+		path.LineTo(1, 0)
+		path.MoveTo(size-1, size)
+		path.LineTo(size, size)
+		sq := image.Rect(100+200*i, 100, 116+200*i, 116)
+		path.MoveTo(float32(sq.Min.X), float32(sq.Min.Y))
+		path.LineTo(float32(sq.Max.X), float32(sq.Min.Y))
+		path.LineTo(float32(sq.Max.X), float32(sq.Max.Y))
+		path.LineTo(float32(sq.Min.X), float32(sq.Max.Y))
+		path.Close()
+		paths[i] = &path
+		bounds[i] = image.Rect(0, 0, size, size)
+		squares[i] = sq
+	}
+	// The last path's stencil buffer is on another atlas image than the previous paths' ones.
+	if got := vector.AtlasImageCount(image.Rect(0, 0, size, size), paths, bounds, true); got != 2 {
+		t.Fatalf("atlas image count: got %d, want 2", got)
+	}
+
+	dst := ebiten.NewImage(size, size)
+	defer dst.Deallocate()
+	for i, path := range paths {
+		op := &vector.DrawPathOptions{
+			AntiAlias: true,
+		}
+		op.ColorScale.ScaleWithColor(colors[i])
+		vector.FillPath(dst, path, nil, op)
+	}
+
+	pixels := make([]byte, 4*size*size)
+	dst.ReadPixels(pixels)
+	for y := range size {
+		for x := range size {
+			var want color.RGBA
+			for j, sq := range squares {
+				if image.Pt(x, y).In(sq) {
+					want = colors[j]
+				}
+			}
+			i := 4 * (y*size + x)
+			if got := (color.RGBA{R: pixels[i], G: pixels[i+1], B: pixels[i+2], A: pixels[i+3]}); got != want {
+				t.Errorf("pixel at (%d, %d): got %v, want %v", x, y, got, want)
+				return
+			}
+		}
+	}
+}
+
 func TestFillPathZeroCoverage(t *testing.T) {
 	for _, aa := range []bool{false, true} {
 		for _, rule := range []vector.FillRule{vector.FillRuleNonZero, vector.FillRuleEvenOdd} {

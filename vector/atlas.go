@@ -179,13 +179,23 @@ func (a *atlas) setPaths(dstBounds image.Rectangle, paths []*Path, bounds []imag
 }
 
 func (a *atlas) stencilBufferImageAt(i int, antialias bool, antialiasIndex int) *ebiten.Image {
+	img, region := a.stencilBufferRegionAt(i, antialias, antialiasIndex)
+	if img == nil {
+		return nil
+	}
+	return img.SubImage(region).(*ebiten.Image)
+}
+
+// stencilBufferRegionAt returns the atlas image holding the i-th path's stencil buffer image and the bounds of
+// the stencil buffer image on it. stencilBufferRegionAt returns nil if the path has no stencil buffer.
+func (a *atlas) stencilBufferRegionAt(i int, antialias bool, antialiasIndex int) (*ebiten.Image, image.Rectangle) {
 	idx, ok := a.pathIndexToAtlasRegionIndex[i]
 	if !ok {
-		return nil
+		return nil, image.Rectangle{}
 	}
 	ar := a.atlasRegions[idx]
 	if ar.imageBounds.Empty() {
-		return nil
+		return nil, image.Rectangle{}
 	}
 
 	atlas := a.atlasImages[ar.imageIndex]
@@ -206,7 +216,12 @@ func (a *atlas) stencilBufferImageAt(i int, antialias bool, antialiasIndex int) 
 			panic("not reached")
 		}
 	}
-	return atlas.SubImage(b).(*ebiten.Image)
+	b = b.Intersect(atlas.Bounds())
+	// Need to check Empty explicitly as SubImage does.
+	if b.Empty() {
+		b = image.Rectangle{}
+	}
+	return atlas, b
 }
 
 func (a *atlas) pathRenderingPositionAt(i int) image.Point {

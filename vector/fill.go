@@ -438,6 +438,129 @@ func appendStencilVertices(vs []ebiten.Vertex, is []uint32, path *Path, sign int
 	return vs, is
 }
 
+// appendStencilImageVertices appends the vertices and the indices of appendStencilVertices for every sample
+// of offsetAndColors in the stencil buffer image imageIndex, translated by (dx, dy).
+func appendStencilImageVertices(vs []ebiten.Vertex, is []uint32, path *Path, sign int, offsetAndColors []offsetAndColor, imageIndex int, dx, dy float64) ([]ebiten.Vertex, []uint32) {
+	// Each sample of a stencil buffer image has its own channel, and blending within a sign only adds
+	// or only subtracts with saturation. Thus, the samples of one image can be rendered in one call.
+	for _, oac := range offsetAndColors {
+		if oac.imageIndex != imageIndex {
+			continue
+		}
+		vs, is = appendStencilVertices(vs, is, path, sign, float64(oac.offsetX)+dx, float64(oac.offsetY)+dy, &oac)
+	}
+	return vs, is
+}
+
+// stencilVerticesWithin reports whether every vertex appendStencilVertices appends for path,
+// before it is translated, lies in the closed rectangle r.
+func stencilVerticesWithin(path *Path, r image.Rectangle) bool {
+	within := func(p point) bool {
+		return float64(r.Min.X) <= p.x && p.x <= float64(r.Max.X) && float64(r.Min.Y) <= p.y && p.y <= float64(r.Max.Y)
+	}
+	for i := range path.subPaths {
+		subPath := &path.subPaths[i]
+		// A sub-path without operations has no triangles.
+		if !subPath.isValid() || len(subPath.ops) == 0 {
+			continue
+		}
+		if !within(subPath.start) {
+			return false
+		}
+		for _, op := range subPath.ops {
+			if !within(op.p1) {
+				return false
+			}
+			if op.typ == opTypeQuadTo && !within(op.p2) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// maxBatchVertexCount is the number of vertices at which a batch is rendered without waiting for more triangles.
+const maxBatchVertexCount = 1 << 16
+
+// stencilBatch is a set of triangles rendered onto an atlas image in one call.
+type stencilBatch struct {
+	dst      *ebiten.Image
+	vertices []ebiten.Vertex
+	indices  []uint32
+}
+
+// flush renders the triangles in b onto b.dst, and removes them from b.
+func (b *stencilBatch) flush(shader *ebiten.Shader, blend ebiten.Blend) {
+	if len(b.indices) > 0 {
+		op := &ebiten.DrawTrianglesShaderOptions{}
+		op.Blend = blend
+		b.dst.DrawTrianglesShader32(b.vertices, b.indices, shader, op)
+	}
+	b.vertices = b.vertices[:0]
+	b.indices = b.indices[:0]
+}
+
+// appendStencilResolveQuad appends a quad rendering the stencil buffer at srcRegion onto the destination at dstPos.
+// (offsetX, offsetY) is the offset from srcRegion to the other half of the antialiasing samples.
+func appendStencilResolveQuad(vs []ebiten.Vertex, is []uint32, dstPos image.Point, srcRegion image.Rectangle, clr ebiten.ColorScale, offsetX, offsetY float32) ([]ebiten.Vertex, []uint32) {
+	clrR := clr.R()
+	clrG := clr.G()
+	clrB := clr.B()
+	clrA := clr.A()
+	idx := uint32(len(vs))
+	vs = append(vs,
+		ebiten.Vertex{
+			DstX:    float32(dstPos.X),
+			DstY:    float32(dstPos.Y),
+			SrcX:    float32(srcRegion.Min.X),
+			SrcY:    float32(srcRegion.Min.Y),
+			ColorR:  clrR,
+			ColorG:  clrG,
+			ColorB:  clrB,
+			ColorA:  clrA,
+			Custom0: offsetX,
+			Custom1: offsetY,
+		},
+		ebiten.Vertex{
+			DstX:    float32(dstPos.X + srcRegion.Dx()),
+			DstY:    float32(dstPos.Y),
+			SrcX:    float32(srcRegion.Max.X),
+			SrcY:    float32(srcRegion.Min.Y),
+			ColorR:  clrR,
+			ColorG:  clrG,
+			ColorB:  clrB,
+			ColorA:  clrA,
+			Custom0: offsetX,
+			Custom1: offsetY,
+		},
+		ebiten.Vertex{
+			DstX:    float32(dstPos.X),
+			DstY:    float32(dstPos.Y + srcRegion.Dy()),
+			SrcX:    float32(srcRegion.Min.X),
+			SrcY:    float32(srcRegion.Max.Y),
+			ColorR:  clrR,
+			ColorG:  clrG,
+			ColorB:  clrB,
+			ColorA:  clrA,
+			Custom0: offsetX,
+			Custom1: offsetY,
+		},
+		ebiten.Vertex{
+			DstX:    float32(dstPos.X + srcRegion.Dx()),
+			DstY:    float32(dstPos.Y + srcRegion.Dy()),
+			SrcX:    float32(srcRegion.Max.X),
+			SrcY:    float32(srcRegion.Max.Y),
+			ColorR:  clrR,
+			ColorG:  clrG,
+			ColorB:  clrB,
+			ColorA:  clrA,
+			Custom0: offsetX,
+			Custom1: offsetY,
+		})
+	is = append(is, idx, idx+1, idx+2, idx+1, idx+2, idx+3)
+	return vs, is
+}
+
 // theAtlas manages the atlas for stencil buffer images.
 // theAtlas is a singleton to avoid unnecessary texture allocations.
 //
@@ -457,6 +580,9 @@ type fillPathsState struct {
 
 	vertices []ebiten.Vertex
 	indices  []uint32
+
+	// stencilBatches holds the pending triangles of a sign for each atlas image.
+	stencilBatches []stencilBatch
 
 	antialias bool
 	blend     ebiten.Blend
@@ -481,6 +607,47 @@ func (f *fillPathsState) reset() {
 	f.paths = f.paths[:0]
 	f.bounds = f.bounds[:0]
 	f.colors = slices.Delete(f.colors, 0, len(f.colors))
+	f.resetStencilBatches()
+}
+
+// stencilBatchFor returns the batch of pending triangles for the atlas image img.
+func (f *fillPathsState) stencilBatchFor(img *ebiten.Image) *stencilBatch {
+	for i := range f.stencilBatches {
+		if f.stencilBatches[i].dst == img {
+			return &f.stencilBatches[i]
+		}
+	}
+	for i := range f.stencilBatches {
+		if f.stencilBatches[i].dst == nil {
+			f.stencilBatches[i].dst = img
+			return &f.stencilBatches[i]
+		}
+	}
+	f.stencilBatches = append(f.stencilBatches, stencilBatch{
+		dst: img,
+	})
+	return &f.stencilBatches[len(f.stencilBatches)-1]
+}
+
+// flushStencilBatches renders and removes all the pending triangles.
+func (f *fillPathsState) flushStencilBatches(shader *ebiten.Shader, blend ebiten.Blend) {
+	for i := range f.stencilBatches {
+		if f.stencilBatches[i].dst == nil {
+			continue
+		}
+		f.stencilBatches[i].flush(shader, blend)
+	}
+	f.resetStencilBatches()
+}
+
+// resetStencilBatches removes all the pending triangles without rendering them, keeping the allocated buffers.
+func (f *fillPathsState) resetStencilBatches() {
+	for i := range f.stencilBatches {
+		b := &f.stencilBatches[i]
+		b.dst = nil
+		b.vertices = b.vertices[:0]
+		b.indices = b.indices[:0]
+	}
 }
 
 const invalidPathIndex = -1
@@ -565,8 +732,10 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 	}
 
 	offsetAndColors := offsetAndColorsNonAA
+	stencilImageCount := 1
 	if f.antialias {
 		offsetAndColors = offsetAndColorsAA
+		stencilImageCount = 2
 	}
 
 	stencilShader, err := ensureStencilBufferShader()
@@ -589,26 +758,38 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 				continue
 			}
 
-			for _, oac := range offsetAndColors {
-				stencilBufferImage := theAtlas.stencilBufferImageAt(i, f.antialias, oac.imageIndex)
-				if stencilBufferImage == nil {
+			pp := theAtlas.pathRenderingPositionAt(i)
+			for imageIndex := range stencilImageCount {
+				atlasImage, region := theAtlas.stencilBufferRegionAt(i, f.antialias, imageIndex)
+				if atlasImage == nil {
 					continue
 				}
-				pp := theAtlas.pathRenderingPositionAt(i)
-				dstOffsetX := float64(-pp.X + stencilBufferImage.Bounds().Min.X)
-				dstOffsetY := float64(-pp.Y + stencilBufferImage.Bounds().Min.Y)
-				offsetX := float64(oac.offsetX) + dstOffsetX
-				offsetY := float64(oac.offsetY) + dstOffsetY
+				dstOffsetX := float64(region.Min.X - pp.X)
+				dstOffsetY := float64(region.Min.Y - pp.Y)
 
-				vs, is = appendStencilVertices(vs[:0], is[:0], path, sign, offsetX, offsetY, &oac)
+				// Sample offsets are less than 1/2 px, so triangles with all vertices in the closed region
+				// cover no pixel centers outside it. Stencil buffers do not overlap, and the order of blending
+				// within a sign does not matter. Thus, such paths are rendered onto the atlas image together.
+				// The other paths are rendered onto their stencil buffer images, which clip the triangles.
+				if stencilVerticesWithin(path, region.Sub(region.Min).Add(pp)) {
+					b := f.stencilBatchFor(atlasImage)
+					b.vertices, b.indices = appendStencilImageVertices(b.vertices, b.indices, path, sign, offsetAndColors, imageIndex, dstOffsetX, dstOffsetY)
+					if len(b.vertices) >= maxBatchVertexCount {
+						b.flush(stencilShader, blend)
+					}
+					continue
+				}
+
+				vs, is = appendStencilImageVertices(vs[:0], is[:0], path, sign, offsetAndColors, imageIndex, dstOffsetX, dstOffsetY)
 				if len(is) == 0 {
 					continue
 				}
 				op := &ebiten.DrawTrianglesShaderOptions{}
 				op.Blend = blend
-				stencilBufferImage.DrawTrianglesShader32(vs, is, stencilShader, op)
+				theAtlas.stencilBufferImageAt(i, f.antialias, imageIndex).DrawTrianglesShader32(vs, is, stencilShader, op)
 			}
 		}
+		f.flushStencilBatches(stencilShader, blend)
 	}
 
 	var clippedImages []*ebiten.Image
@@ -619,6 +800,12 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 	}
 
 	// Render the stencil buffer with the specified color.
+	// vs and is hold the quads not rendered yet, which read the stencil buffers on pendingSrc
+	// and are rendered onto the region pendingBounds of dst with pendingShader.
+	var pendingSrc *ebiten.Image
+	var pendingBounds image.Rectangle
+	var pendingShader *ebiten.Shader
+	vs, is = vs[:0], is[:0]
 	var clipChunkEnd int
 	for j, i := range f.drawPathIndices {
 		if len(clippedImages) > 0 && j == clipChunkEnd {
@@ -629,8 +816,8 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			continue
 		}
 
-		stencilImage := theAtlas.stencilBufferImageAt(i, f.antialias, 0)
-		if stencilImage == nil {
+		atlasImage, stencilRegion := theAtlas.stencilBufferRegionAt(i, f.antialias, 0)
+		if atlasImage == nil {
 			continue
 		}
 		if plan := f.drawPathIndexToClipPlan[i]; plan != nil && plan.kind == clipBatchKindEmpty {
@@ -644,83 +831,56 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 		var clipped *ebiten.Image
 		if len(clippedImages) > 0 {
 			clipped = clippedImages[j]
-			if clipped != nil {
-				stencilImage = clipped
-			}
 		}
-		srcRegion := stencilImage.Bounds()
-		if clipped != nil && f.antialias {
-			srcRegion.Max.X = srcRegion.Min.X + srcRegion.Dx()/clipSamplePlanesAA
+		srcRegion := stencilRegion
+		if clipped != nil {
+			srcRegion = clipped.Bounds()
+			if f.antialias {
+				srcRegion.Max.X = srcRegion.Min.X + srcRegion.Dx()/clipSamplePlanesAA
+			}
 		}
 
 		var offsetX, offsetY float32
 		if clipped != nil && f.antialias {
 			offsetX = float32(srcRegion.Dx())
 		} else if f.antialias {
-			stencilImage1 := theAtlas.stencilBufferImageAt(i, f.antialias, 1)
-			offsetX = float32(stencilImage1.Bounds().Min.X - stencilImage.Bounds().Min.X)
-			offsetY = float32(stencilImage1.Bounds().Min.Y - stencilImage.Bounds().Min.Y)
+			_, stencilRegion1 := theAtlas.stencilBufferRegionAt(i, f.antialias, 1)
+			offsetX = float32(stencilRegion1.Min.X - stencilRegion.Min.X)
+			offsetY = float32(stencilRegion1.Min.Y - stencilRegion.Min.Y)
 		}
 
 		pp := theAtlas.pathRenderingPositionAt(i)
 
-		vs = vs[:0]
-		is = is[:0]
-		var clrR, clrG, clrB, clrA float32
-		clrR = f.colors[i].R()
-		clrG = f.colors[i].G()
-		clrB = f.colors[i].B()
-		clrA = f.colors[i].A()
-		vs = append(vs,
-			ebiten.Vertex{
-				DstX:    float32(pp.X),
-				DstY:    float32(pp.Y),
-				SrcX:    float32(srcRegion.Min.X),
-				SrcY:    float32(srcRegion.Min.Y),
-				ColorR:  clrR,
-				ColorG:  clrG,
-				ColorB:  clrB,
-				ColorA:  clrA,
-				Custom0: offsetX,
-				Custom1: offsetY,
-			},
-			ebiten.Vertex{
-				DstX:    float32(pp.X + srcRegion.Dx()),
-				DstY:    float32(pp.Y),
-				SrcX:    float32(srcRegion.Max.X),
-				SrcY:    float32(srcRegion.Min.Y),
-				ColorR:  clrR,
-				ColorG:  clrG,
-				ColorB:  clrB,
-				ColorA:  clrA,
-				Custom0: offsetX,
-				Custom1: offsetY,
-			},
-			ebiten.Vertex{
-				DstX:    float32(pp.X),
-				DstY:    float32(pp.Y + srcRegion.Dy()),
-				SrcX:    float32(srcRegion.Min.X),
-				SrcY:    float32(srcRegion.Max.Y),
-				ColorR:  clrR,
-				ColorG:  clrG,
-				ColorB:  clrB,
-				ColorA:  clrA,
-				Custom0: offsetX,
-				Custom1: offsetY,
-			},
-			ebiten.Vertex{
-				DstX:    float32(pp.X + srcRegion.Dx()),
-				DstY:    float32(pp.Y + srcRegion.Dy()),
-				SrcX:    float32(srcRegion.Max.X),
-				SrcY:    float32(srcRegion.Max.Y),
-				ColorR:  clrR,
-				ColorG:  clrG,
-				ColorB:  clrB,
-				ColorA:  clrA,
-				Custom0: offsetX,
-				Custom1: offsetY,
-			})
-		is = append(is, 0, 1, 2, 1, 2, 3)
+		// The stencil buffer shaders read a stencil buffer only at the given source positions,
+		// so quads of solid paths without clips can read the atlas image itself.
+		// Quads in one call are rendered in order, so consecutive quads with the same source and
+		// destination are rendered in one call.
+		paint, hasPaint := f.pathIndexToImagePaint[i]
+		if clipped == nil && !hasPaint {
+			shader := ensureStencilBufferResolveShader(f.fillRule, f.antialias)
+			if len(is) > 0 && (pendingSrc != atlasImage || pendingBounds != f.bounds[i]) {
+				f.drawStencilResolveQuads(dst, pendingBounds, pendingSrc, pendingShader, vs, is)
+				vs, is = vs[:0], is[:0]
+			}
+			pendingSrc = atlasImage
+			pendingBounds = f.bounds[i]
+			pendingShader = shader
+			vs, is = appendStencilResolveQuad(vs, is, pp, srcRegion, f.colors[i], offsetX, offsetY)
+			if len(vs) >= maxBatchVertexCount {
+				f.drawStencilResolveQuads(dst, pendingBounds, pendingSrc, pendingShader, vs, is)
+				vs, is = vs[:0], is[:0]
+			}
+			continue
+		}
+		if len(is) > 0 {
+			f.drawStencilResolveQuads(dst, pendingBounds, pendingSrc, pendingShader, vs, is)
+		}
+
+		stencilImage := clipped
+		if stencilImage == nil {
+			stencilImage = theAtlas.stencilBufferImageAt(i, f.antialias, 0)
+		}
+		vs, is = appendStencilResolveQuad(vs[:0], is[:0], pp, srcRegion, f.colors[i], offsetX, offsetY)
 
 		op := &ebiten.DrawTrianglesShaderOptions{}
 		op.Blend = f.blend
@@ -731,31 +891,16 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			dst2 = dst.RecyclableSubImage(f.bounds[i])
 			recycle = true
 		}
-		if paint, ok := f.pathIndexToImagePaint[i]; ok {
+		if hasPaint {
 			paint.draw(dst2, vs, is, stencilImage, op, f.fillRule, f.antialias, clipped != nil)
 		} else {
-			var shader *ebiten.Shader
-			switch f.fillRule {
-			case FillRuleNonZero:
-				var err error
-				shader, err = ensureStencilBufferNonZeroShader(f.antialias)
-				if err != nil {
-					panic(fmt.Sprintf("vector: failed to create stencil buffer non-zero shader: %v", err))
-				}
-			case FillRuleEvenOdd:
-				var err error
-				shader, err = ensureStencilBufferEvenOddShader(f.antialias)
-				if err != nil {
-					panic(fmt.Sprintf("vector: failed to create stencil buffer even-odd shader: %v", err))
-				}
-			default:
-				panic(fmt.Sprintf("vector: invalid fill rule: %d", f.fillRule))
-			}
+			shader := ensureStencilBufferResolveShader(f.fillRule, f.antialias)
 			if clipped != nil {
 				shader = ensureClipResolveShader(f.antialias)
 			}
 			dst2.DrawTrianglesShader32(vs, is, shader, op)
 		}
+		vs, is = vs[:0], is[:0]
 		if recycle {
 			dst2.Recycle()
 		}
@@ -764,4 +909,21 @@ func (f *fillPathsState) fillPaths(dst *ebiten.Image) {
 			clippedImages[j] = nil
 		}
 	}
+	if len(is) > 0 {
+		f.drawStencilResolveQuads(dst, pendingBounds, pendingSrc, pendingShader, vs, is)
+	}
+}
+
+// drawStencilResolveQuads renders the quads vs and is, which read the stencil buffers on src,
+// onto the region bounds of dst with shader.
+func (f *fillPathsState) drawStencilResolveQuads(dst *ebiten.Image, bounds image.Rectangle, src *ebiten.Image, shader *ebiten.Shader, vs []ebiten.Vertex, is []uint32) {
+	op := &ebiten.DrawTrianglesShaderOptions{}
+	op.Blend = f.blend
+	op.Images[0] = src
+	dst2 := dst
+	if dst.Bounds() != bounds {
+		dst2 = dst.RecyclableSubImage(bounds)
+		defer dst2.Recycle()
+	}
+	dst2.DrawTrianglesShader32(vs, is, shader, op)
 }
