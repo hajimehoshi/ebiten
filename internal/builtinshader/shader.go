@@ -61,8 +61,10 @@ const samplingTmplText = `{{if eq .Filter .FilterNearest}}
 {{end}}
 {{else}}
 {{if eq .Filter .FilterLinear}}
-	p0 := src0Pos - 1/2.0
-	p1 := src0Pos + 1/2.0
+	lower := src0Pos - 1/2.0
+	p0 := floor(lower)
+	p1 := p0 + 1
+	rate := lower - p0
 {{else if eq .Filter .FilterPixelated}}
 	// inversedScale is the size of the region on the source image.
 	// Include both screen axes so that rotating the image does not change its scale.
@@ -91,9 +93,7 @@ const samplingTmplText = `{{if eq .Filter .FilterNearest}}
 	c3 := imageSrc0At(p1)
 {{end}}
 
-{{if eq .Filter .FilterLinear}}
-	rate := fract(p1)
-{{else if eq .Filter .FilterPixelated}}
+{{if eq .Filter .FilterPixelated}}
 	rate := clamp(fract(p1)/inversedScale, 0, 1)
 {{end}}
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
