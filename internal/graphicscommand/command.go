@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"image"
 	"slices"
-	"strings"
 	"sync"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir"
@@ -33,8 +33,7 @@ import (
 // A command is not immediately executed after created. Instead, it is queued after created,
 // and executed only when necessary.
 type command interface {
-	fmt.Stringer
-
+	Log(logger debug.FrameLogger)
 	Exec(commandQueue *commandQueue, graphicsDriver graphicsdriver.Graphics, indexOffset int) error
 	NeedsSync() bool
 }
@@ -57,7 +56,7 @@ type drawTrianglesCommand struct {
 	firstCaller      string
 }
 
-func (c *drawTrianglesCommand) String() string {
+func (c *drawTrianglesCommand) Log(logger debug.FrameLogger) {
 	var blend string
 	switch c.blend {
 	case graphicsdriver.BlendSourceOver:
@@ -120,11 +119,19 @@ func (c *drawTrianglesCommand) String() string {
 		shader += " (" + c.shader.name + ")"
 	}
 
-	str := fmt.Sprintf("draw-triangles: dst: %s <- src: [%s], num of dst regions: %d, num of indices: %d, blend: %s, shader: %s", dst, strings.Join(srcstrs[:], ", "), len(c.dstRegions), c.numIndices(), blend, shader)
-	if c.firstCaller != "" {
-		str += "\n  first-caller: " + c.firstCaller
+	args := []any{
+		"command", "draw-triangles",
+		"dst", dst,
+		"src", srcstrs,
+		"dst-regions", len(c.dstRegions),
+		"indices", c.numIndices(),
+		"blend", blend,
+		"shader", shader,
 	}
-	return str
+	if c.firstCaller != "" {
+		args = append(args, "first-caller", c.firstCaller)
+	}
+	logger.FrameLog("Graphics command", args...)
 }
 
 // Exec executes the drawTrianglesCommand.
@@ -190,12 +197,12 @@ type writePixelsCommandArgs struct {
 	region image.Rectangle
 }
 
-func (c *writePixelsCommand) String() string {
-	var args []string
-	for _, a := range c.args {
-		args = append(args, fmt.Sprintf("region: %s", a.region.String()))
+func (c *writePixelsCommand) Log(logger debug.FrameLogger) {
+	regions := make([]string, len(c.args))
+	for i, a := range c.args {
+		regions[i] = a.region.String()
 	}
-	return fmt.Sprintf("write-pixels: dst: %d, args: %s", c.dst.id, strings.Join(args, ", "))
+	logger.FrameLog("Graphics command", "command", "write-pixels", "dst", c.dst.id, "regions", regions)
 }
 
 // Exec executes the writePixelsCommand.
@@ -228,8 +235,8 @@ type disposeImageCommand struct {
 	target *Image
 }
 
-func (c *disposeImageCommand) String() string {
-	return fmt.Sprintf("dispose-image: target: %d", c.target.id)
+func (c *disposeImageCommand) Log(logger debug.FrameLogger) {
+	logger.FrameLog("Graphics command", "command", "dispose-image", "target", c.target.id)
 }
 
 // Exec executes the disposeImageCommand.
@@ -247,8 +254,8 @@ type disposeShaderCommand struct {
 	target *Shader
 }
 
-func (c *disposeShaderCommand) String() string {
-	return "dispose-shader: target"
+func (c *disposeShaderCommand) Log(logger debug.FrameLogger) {
+	logger.FrameLog("Graphics command", "command", "dispose-shader", "target", c.target.id)
 }
 
 // Exec executes the disposeShaderCommand.
@@ -270,12 +277,18 @@ type newImageCommand struct {
 	attribute string
 }
 
-func (c *newImageCommand) String() string {
-	str := fmt.Sprintf("new-image: result: %d, width: %d, height: %d, screen: %t", c.result.id, c.width, c.height, c.screen)
-	if c.attribute != "" {
-		str += ", attribute: " + c.attribute
+func (c *newImageCommand) Log(logger debug.FrameLogger) {
+	args := []any{
+		"command", "new-image",
+		"result", c.result.id,
+		"width", c.width,
+		"height", c.height,
+		"screen", c.screen,
 	}
-	return str
+	if c.attribute != "" {
+		args = append(args, "attribute", c.attribute)
+	}
+	logger.FrameLog("Graphics command", args...)
 }
 
 // Exec executes a newImageCommand.
@@ -299,8 +312,8 @@ type newShaderCommand struct {
 	ir     *shaderir.Program
 }
 
-func (c *newShaderCommand) String() string {
-	return "new-shader"
+func (c *newShaderCommand) Log(logger debug.FrameLogger) {
+	logger.FrameLog("Graphics command", "command", "new-shader", "result", c.result.id)
 }
 
 // Exec executes a newShaderCommand.

@@ -67,10 +67,15 @@ func TestFrameLogStructuredAndBuffered(t *testing.T) {
 	logger := &frameLogger{}
 	logger.FrameLog("Internal image", "id", 7, "width", 320, "screen", true)
 	if output.Len() != 0 {
-		t.Fatal("logged before Flush")
+		t.Fatal("logged before FlushFrameLogs")
 	}
-	logger.Flush()
-	logger.Flush()
+	logger.Queue()
+	logger.Queue()
+	if output.Len() != 0 {
+		t.Fatal("queueing invoked the log handler")
+	}
+	FlushFrameLogs()
+	FlushFrameLogs()
 	records := readFrameLogs(t, output)
 	if len(records) != 1 {
 		t.Fatalf("got %d records, want 1", len(records))
@@ -93,7 +98,8 @@ func TestFrameLogCopiesArguments(t *testing.T) {
 	logger.FrameLog("Update count per frame", args...)
 	args[0] = "changed"
 	args[1] = 99
-	logger.Flush()
+	logger.Queue()
+	FlushFrameLogs()
 	records := readFrameLogs(t, output)
 	if len(records) != 1 || records[0]["count"] != float64(2) {
 		t.Fatalf("arguments changed after buffering: %v", records)
@@ -106,12 +112,14 @@ func TestSwitchFrameLoggerKeepsBatchesSeparate(t *testing.T) {
 	old := SwitchFrameLogger()
 	FrameLog("new frame")
 	old.FrameLog("old graphics command")
-	old.Flush()
+	old.Queue()
+	FlushFrameLogs()
 	records := readFrameLogs(t, output)
 	if len(records) != 2 || records[0]["msg"] != "old frame" || records[1]["msg"] != "old graphics command" {
 		t.Fatalf("unexpected old batch: %v", records)
 	}
-	SwitchFrameLogger().Flush()
+	SwitchFrameLogger().Queue()
+	FlushFrameLogs()
 	records = readFrameLogs(t, output)
 	if len(records) != 1 || records[0]["msg"] != "new frame" {
 		t.Fatalf("unexpected new batch: %v", records)
@@ -136,7 +144,10 @@ func TestFrameLogConcurrentWritesAndFlushes(t *testing.T) {
 	writers.Wait()
 	var flushes sync.WaitGroup
 	for _, logger := range loggers {
-		flushes.Go(func() { logger.Flush() })
+		flushes.Go(func() {
+			logger.Queue()
+			FlushFrameLogs()
+		})
 	}
 	flushes.Wait()
 	records := readFrameLogs(t, output)
@@ -165,7 +176,8 @@ func TestFrameLogConcurrentWritesAndFlushes(t *testing.T) {
 func TestFrameLogRespectsApplicationLevel(t *testing.T) {
 	output := captureFrameLogs(t, slog.LevelWarn)
 	FrameLog("filtered", "count", 1)
-	SwitchFrameLogger().Flush()
+	SwitchFrameLogger().Queue()
+	FlushFrameLogs()
 	if output.Len() != 0 {
 		t.Fatalf("application level ignored: %s", output)
 	}

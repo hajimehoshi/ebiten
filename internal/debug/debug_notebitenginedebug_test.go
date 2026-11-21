@@ -40,8 +40,9 @@ func TestFrameLoggingDisabled(t *testing.T) {
 	FrameLog("frame", "count", 2)
 	logger := SwitchFrameLogger()
 	logger.FrameLog("command", "id", 7)
-	logger.Flush()
-	SwitchFrameLogger().Flush()
+	logger.Queue()
+	SwitchFrameLogger().Queue()
+	FlushFrameLogs()
 	if output.Len() != 0 {
 		t.Fatalf("normal build emitted frame logs: %s", &output)
 	}

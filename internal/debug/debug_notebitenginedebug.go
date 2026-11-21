@@ -30,5 +30,8 @@ type dummyFrameLogger struct{}
 func (dummyFrameLogger) FrameLog(msg string, args ...any) {
 }
 
-func (dummyFrameLogger) Flush() {
+func (dummyFrameLogger) Queue() {
+}
+
+func FlushFrameLogs() {
 }

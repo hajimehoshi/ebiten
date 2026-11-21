@@ -253,7 +253,7 @@ type commandQueueFlushArgs struct {
 }
 
 func (a commandQueueFlushArgs) flush() error {
-	defer a.logger.Flush()
+	defer a.logger.Queue()
 	var flushErr error
 	defer func() {
 		if flushErr != nil {
@@ -363,7 +363,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 				return err
 			}
 			if debug.IsDebug {
-				logger.FrameLog("Graphics command", "command", c.String())
+				c.Log(logger)
 			}
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is

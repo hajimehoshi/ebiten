@@ -17,5 +17,5 @@ package debug
 // FrameLogger defines the interface for logging debug information for each frame.
 type FrameLogger interface {
 	FrameLog(msg string, args ...any)
-	Flush()
+	Queue()
 }

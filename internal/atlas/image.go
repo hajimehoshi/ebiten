@@ -883,6 +883,9 @@ loop:
 }
 
 func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path string, blackbg bool) (string, error) {
+	if debug.IsDebug {
+		defer debug.FlushFrameLogs()
+	}
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -895,6 +898,9 @@ func (i *Image) DumpScreenshot(graphicsDriver graphicsdriver.Graphics, path stri
 
 // FlushAndPollPixelReadbacks submits pending commands and checks read-back completion.
 func FlushAndPollPixelReadbacks(graphicsDriver graphicsdriver.Graphics) error {
+	if debug.IsDebug {
+		defer debug.FlushFrameLogs()
+	}
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -913,6 +919,9 @@ func FlushAndWaitPixelReadbacks(graphicsDriver graphicsdriver.Graphics, results 
 		<-queued
 	}
 
+	if debug.IsDebug {
+		defer debug.FlushFrameLogs()
+	}
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -935,6 +944,9 @@ func deferredReadPixelsQueued(results []*graphicscommand.PixelReadback) <-chan s
 
 // AbortReadPixels completes pending, queued, and deferred pixel read-backs with an error.
 func AbortReadPixels() {
+	if debug.IsDebug {
+		defer debug.FlushFrameLogs()
+	}
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -949,6 +961,9 @@ func AbortReadPixels() {
 }
 
 func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
+	if debug.IsDebug {
+		defer debug.FlushFrameLogs()
+	}
 	backendsM.Lock()
 	defer backendsM.Unlock()
 	defer func() {
@@ -1010,6 +1025,10 @@ func EndFrame(graphicsDriver graphicsdriver.Graphics) error {
 }
 
 func FlushCommands(graphicsDriver graphicsdriver.Graphics, present bool) error {
+	if debug.IsDebug {
+		// Run the handler after backendsM is unlocked and rendering can proceed.
+		defer debug.FlushFrameLogs()
+	}
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
@@ -1127,6 +1146,9 @@ func BeginFrame(graphicsDriver graphicsdriver.Graphics) error {
 }
 
 func DumpImages(graphicsDriver graphicsdriver.Graphics, dir string) (string, error) {
+	if debug.IsDebug {
+		defer debug.FlushFrameLogs()
+	}
 	backendsM.Lock()
 	defer backendsM.Unlock()
 
