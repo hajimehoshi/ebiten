@@ -210,6 +210,16 @@ func (s *session) drain() error {
 					total := preLen + len(s.textAfterCaret)
 					replStart = min(max(replStart, 0), total)
 					replEnd = min(max(replEnd, replStart), total)
+					// An invalid byte offset must not split a UTF-8 rune.
+					isRuneBoundary := func(offset int) bool {
+						if offset < preLen {
+							return utf8.RuneStart(s.textBeforeCaret[offset])
+						}
+						return offset == total || utf8.RuneStart(s.textAfterCaret[offset-preLen])
+					}
+					if !isRuneBoundary(replStart) || !isRuneBoundary(replEnd) {
+						replStart, replEnd = preLen, preLen
+					}
 				}
 				s.commitKind = st.CommitKind
 				s.commit = Commit{
