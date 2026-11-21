@@ -5833,3 +5833,73 @@ func TestImageDrawTrianglesWithNilImageAndEmptyIndices(t *testing.T) {
 	vs := make([]ebiten.Vertex, 3)
 	dst.DrawTriangles(vs, nil, nil, nil)
 }
+
+// Issue #4081
+func TestImageLinearFilterTexelBoundary(t *testing.T) {
+	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 2, 2), &ebiten.NewImageOptions{Unmanaged: true})
+	src.WritePixels([]byte{
+		0xff, 0, 0, 0xff, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+	})
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+
+	// Sample just left of the texel center (0.5, 0.5) so the old fract-based
+	// rate rounded across the center and skipped texel 0.
+	srcX := math.Nextafter32(0.5, 0)
+	const srcY = 0.5
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, &ebiten.DrawTrianglesOptions{
+		Filter:  ebiten.FilterLinear,
+		Address: ebiten.AddressClampToZero,
+	})
+
+	got := dst.At(w/2, h/2)
+	want := color.RGBA{R: 0xff, A: 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
