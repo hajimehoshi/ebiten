@@ -73,9 +73,10 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4, custom vec4) vec4 {
 		discard()
 	}
 {{if .Linear}}
-	p0 := src0Pos - 0.5
-	p1 := src0Pos + 0.5
-	rate := fract(p1)
+	lower := src0Pos - 0.5
+	p0 := floor(lower)
+	p1 := p0 + 1
+	rate := lower - p0
 	a := mix(imageSrc0At(p0), imageSrc0At(vec2(p1.x, p0.y)), rate.x)
 	b := mix(imageSrc0At(vec2(p0.x, p1.y)), imageSrc0At(p1), rate.x)
 	clr := mix(a, b, rate.y)
