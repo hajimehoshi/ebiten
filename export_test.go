@@ -17,7 +17,8 @@ package ebiten
 import "github.com/hajimehoshi/ebiten/v2/internal/builtinshader"
 
 var (
-	ImageToBytes = imageToBytes
+	ImageToBytes   = imageToBytes
+	ToUIRunOptions = toUIRunOptions
 )
 
 func SetPanicOnErrorOnReadingPixelsForTesting(value bool) {
