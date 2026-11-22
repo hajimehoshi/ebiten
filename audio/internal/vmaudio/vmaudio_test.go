@@ -534,6 +534,150 @@ func TestBlockedReadDoesNotBlockContext(t *testing.T) {
 	}
 }
 
+type selfQueryingSource struct {
+	r      io.Reader
+	player *vmaudio.Player
+}
+
+func (s *selfQueryingSource) Read(buf []byte) (int, error) {
+	s.player.IsPlaying()
+	return s.r.Read(buf)
+}
+
+func TestSourceReadCallsItsPlayer(t *testing.T) {
+	c := newContext(t, 8)
+	src := &selfQueryingSource{r: bytes.NewReader(pcmBytes(ramp(1, 4)...))}
+	p := c.NewPlayer(src)
+	defer runtime.KeepAlive(p)
+	src.player = p
+	p.Play()
+	id := onlyControlID(t, c)
+
+	done := make(chan []byte, 1)
+	go func() {
+		pcm, _ := c.ReadForTesting(id, 16)
+		done <- pcm
+	}()
+	select {
+	case pcm := <-done:
+		if got, want := pcmComps(pcm), ramp(1, 4); !slices.Equal(got, want) {
+			t.Errorf("samples %v; want %v", got, want)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("a source read calling its own player deadlocked")
+	}
+}
+
+func TestPauseAndStopReadingWaitsForSourceRead(t *testing.T) {
+	c := newContext(t, 8)
+	src := &blockedSource{started: make(chan struct{}), release: make(chan struct{})}
+	p := c.NewPlayer(src)
+	defer runtime.KeepAlive(p)
+	p.Play()
+	id := onlyControlID(t, c)
+
+	readDone := make(chan struct{})
+	go func() {
+		c.ReadForTesting(id, 8)
+		close(readDone)
+	}()
+	<-src.started
+
+	pauseDone := make(chan struct{})
+	go func() {
+		p.PauseAndStopReading()
+		close(pauseDone)
+	}()
+	select {
+	case <-pauseDone:
+		t.Error("PauseAndStopReading returned while a source read was in progress")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	close(src.release)
+	select {
+	case <-pauseDone:
+	case <-time.After(5 * time.Second):
+		t.Error("PauseAndStopReading did not return after the source read finished")
+	}
+	<-readDone
+}
+
+type gatedSeekSource struct {
+	r       *bytes.Reader
+	started chan struct{}
+	release chan struct{}
+	gated   bool
+}
+
+func (s *gatedSeekSource) Read(buf []byte) (int, error) {
+	n, err := s.r.Read(buf)
+	if !s.gated {
+		s.gated = true
+		close(s.started)
+		<-s.release
+	}
+	return n, err
+}
+
+func (s *gatedSeekSource) Seek(offset int64, whence int) (int64, error) {
+	return s.r.Seek(offset, whence)
+}
+
+func TestSeekWaitsForSourceRead(t *testing.T) {
+	c := newContext(t, 8)
+	src := &gatedSeekSource{
+		r:       bytes.NewReader(pcmBytes(ramp(1, 12)...)),
+		started: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	p := c.NewPlayer(src)
+	defer runtime.KeepAlive(p)
+	p.Play()
+	id := onlyControlID(t, c)
+
+	readDone := make(chan struct{})
+	go func() {
+		c.ReadForTesting(id, 16)
+		close(readDone)
+	}()
+	<-src.started
+	pauseDone := make(chan struct{})
+	go func() {
+		p.Pause()
+		close(pauseDone)
+	}()
+	select {
+	case <-pauseDone:
+	case <-time.After(5 * time.Second):
+		close(src.release)
+		t.Fatal("Pause blocked while a source read was in progress")
+	}
+
+	seekDone := make(chan struct{})
+	go func() {
+		if _, err := p.Seek(32, io.SeekStart); err != nil {
+			t.Errorf("Seek: %v", err)
+		}
+		close(seekDone)
+	}()
+	select {
+	case <-seekDone:
+		t.Error("Seek returned while a source read was in progress")
+	case <-time.After(10 * time.Millisecond):
+	}
+
+	close(src.release)
+	<-seekDone
+	<-readDone
+
+	p.Play()
+	pcm, _ := c.ReadForTesting(id, 16)
+	if got, want := pcmComps(pcm), ramp(9, 4); !slices.Equal(got, want) {
+		t.Errorf("samples after a seek during a source read %v; want %v (the bytes read before the seek must be discarded)", got, want)
+	}
+}
+
 func TestSeekNonSeeker(t *testing.T) {
 	c := newContext(t, 8)
 	p := c.NewPlayer(bytes.NewBuffer(nil))
