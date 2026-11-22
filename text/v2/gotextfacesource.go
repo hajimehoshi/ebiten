@@ -998,7 +998,7 @@ func (g *GoTextFaceSource) buildGlyphs(outputs []shaping.Output, text string, fa
 // its bounding rectangle and the bitmap-mode discriminator — and
 // captures the parameters needed to defer everything else (the
 // GlyphData fetch, segment scaling, bitmap decoding) to a later
-// [GoTextFaceSource.realizeRenderData] call. It returns (nil, false)
+// [GoTextFaceSource.realizeRenderData] call. It returns (nil, true)
 // for glyphs that produce no bounds (control characters, glyphs
 // absent from the font) when not in bitmap mode; in bitmap mode a
 // render data is returned even if GlyphExtents fails, in case the
@@ -1059,7 +1059,7 @@ func (g *GoTextFaceSource) buildRenderData(gl shaping.Glyph, size fixed.Int26_6,
 		}
 	}
 	if bounds.Empty() && !useBitmap && !hasSVG {
-		return nil, false
+		return nil, true
 	}
 
 	// variations is a caller-owned snapshot — taken by buildGlyphs
