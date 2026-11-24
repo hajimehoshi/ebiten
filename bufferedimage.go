@@ -15,6 +15,7 @@
 package ebiten
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"sync"
@@ -122,14 +123,16 @@ func (b *bufferedImage) startReadPixels(pixels []byte, region image.Rectangle) *
 }
 
 // finishReadPixels waits for load, and reads the loaded pixels in region into pixels.
-// An error is reported as the error of the game.
+// An error other than graphicsdriver.ErrGPUNotPermitted is reported as the error of the game.
 func (b *bufferedImage) finishReadPixels(load *tilesLoad, pixels []byte, region image.Rectangle) {
 	if load == nil {
 		return
 	}
 	// Waiting for the read-backs can need the next frame, so mu must not be held here.
 	for _, r := range load.results {
-		if err := r.Wait(); err != nil {
+		err := r.Wait()
+		// The loaded pixels are still what the image holds, and a game must survive going to the background.
+		if err != nil && !errors.Is(err, graphicsdriver.ErrGPUNotPermitted) {
 			setReadPixelsError(err)
 			return
 		}

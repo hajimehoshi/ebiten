@@ -130,3 +130,20 @@ func TestPrograms(t *testing.T) {
 		})
 	}
 }
+
+func TestForcedFrameTermination(t *testing.T) {
+	if runtime.GOOS != "darwin" && runtime.GOOS != "windows" {
+		t.Skip("frames are rendered during event polling only on macOS and Windows")
+	}
+
+	binary := filepath.Join(t.TempDir(), "game.exe")
+	if output, err := exec.Command("go", "build", "-buildvcs=false", "-o", binary, "./testdata/forcedframetermination").CombinedOutput(); err != nil {
+		t.Fatalf("build: %v\n%s", err, output)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	if output, err := exec.CommandContext(ctx, binary).CombinedOutput(); err != nil {
+		t.Errorf("%v\n%s", err, output)
+	}
+}

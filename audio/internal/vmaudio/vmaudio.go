@@ -127,6 +127,7 @@ func (c *Context) NewPlayer(src io.Reader) *Player {
 		src:    src,
 		volume: 1,
 	}
+	p.readCond = sync.NewCond(&p.mu)
 	c.players[p.id] = weak.Make(p)
 	// Reclaim a player the game abandons: the map holds it only weakly, so once it is unreferenced and no
 	// longer playing GC collects it, and this cleanup removes the entry and reports the removal (the same
@@ -164,8 +165,8 @@ func (c *Context) takeControlChanges(controls []vmprotocol.AudioControl) []vmpro
 	start := len(controls)
 	players, controls := c.snapshotPlayersAndDrainClosedIDs(controls)
 
-	// A player's source read can block while holding its mutex. Do not hold
-	// the context mutex while waiting for that player.
+	// A player's Seek holds its mutex while seeking the source, which can block.
+	// Do not hold the context mutex while waiting for that player.
 	for _, p := range players {
 		if ctrl, ok := p.takeControlChange(); ok {
 			controls = append(controls, ctrl)
@@ -231,12 +232,12 @@ func (c *Context) closePlayer(id int64) {
 // Player is a virtual audio player: the audio package controls it through the device player methods
 // (Play, Pause, and the rest), while the host pulls its source on demand.
 type Player struct {
-	// c is the owning context, used by Close to remove the player; it is fixed at creation.
-	c  *Context
-	id int64
+	// c is the owning context, used by Close to remove the player. c, id, and src are fixed at creation.
+	c   *Context
+	id  int64
+	src io.Reader
 
 	mu      sync.Mutex
-	src     io.Reader
 	playing bool
 	volume  float64
 	eof     bool
@@ -247,6 +248,15 @@ type Player struct {
 	// buf holds bytes read from the source but not yet returned (a short or unaligned source read can
 	// leave a partial frame behind).
 	buf []byte
+
+	// reading reports whether a read is calling src.Read with mu released.
+	reading bool
+
+	// readCond is broadcast when reading becomes false. Its L is &mu.
+	readCond *sync.Cond
+
+	// srcBuf receives the bytes of the source read in progress. Only the read that set reading uses it.
+	srcBuf []byte
 
 	// lastSent is the control state last reported to the host. Its zero value has ID 0, which no player
 	// has, so the first comparison always differs and the player's creation is reported.
@@ -270,9 +280,14 @@ func (p *Player) Pause() {
 // closed safely. The data buffered from the source is kept.
 // PauseAndStopReading blocks until an ongoing read from the source finishes, if any.
 func (p *Player) PauseAndStopReading() {
-	// A paused virtual player reads nothing, and mu is held for a whole source read, so pausing
-	// waits for an ongoing read and forbids the next one.
-	p.Pause()
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.playing = false
+	// A read calls the source only while the player is playing, so once the read in progress (if any)
+	// finishes, the source is not read until Play.
+	for p.reading {
+		p.readCond.Wait()
+	}
 }
 
 func (p *Player) IsPlaying() bool {
@@ -328,6 +343,11 @@ func (p *Player) Seek(offset int64, whence int) (int64, error) {
 	if !ok {
 		return 0, fmt.Errorf("vmaudio: source must be io.Seeker: %w", errors.ErrUnsupported)
 	}
+	// Do not seek the source while it is being read. A read in progress buffers its bytes before it
+	// finishes, so discarding the buffer below drops them as well.
+	for p.reading {
+		p.readCond.Wait()
+	}
 	n, err := s.Seek(offset, whence)
 	if err != nil {
 		return 0, err
@@ -359,39 +379,73 @@ func (p *Player) takeControlChange() (vmprotocol.AudioControl, bool) {
 // reports whether the source has ended. A paused or suspended player consumes no source and produces
 // nothing, but is not finished. A source past its end ends the player once its buffer can no longer
 // form a frame; a source with no data available now (e.g. a real-time stream) yields a short read
-// rather than blocking. p.mu is held for the duration.
+// rather than blocking.
 func (p *Player) read(buf []byte, suspended bool) (n int, eof bool) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if !p.playing || suspended {
+	if suspended {
 		return 0, false
 	}
 
 	// Keep whole stereo frames (8 bytes); a trailing partial frame stays buffered for the next read.
 	need := len(buf) - len(buf)%8
-	for len(p.buf) < need && !p.eof && p.err == nil {
-		m := len(p.buf)
-		p.buf = slices.Grow(p.buf, need-m)[:need]
-		read, err := p.src.Read(p.buf[m:])
-		p.buf = p.buf[:m+read]
-		if err != nil {
-			if errors.Is(err, io.EOF) {
-				p.eof = true
-			} else {
-				p.err = err
-			}
+	for {
+		srcBuf, ok := p.startSourceRead(need)
+		if !ok {
+			break
 		}
-		if read == 0 && err == nil {
+		read, err := p.src.Read(srcBuf)
+		p.finishSourceRead(srcBuf[:read], err)
+		if read == 0 {
 			break
 		}
 	}
+	return p.takeFrames(buf[:need])
+}
 
-	consume := min(len(p.buf), need)
+// startSourceRead waits for any source read in progress and reports whether to read the source toward
+// need buffered bytes. If so, it marks a read in progress and returns the buffer to read into.
+func (p *Player) startSourceRead(need int) ([]byte, bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	for p.reading {
+		p.readCond.Wait()
+	}
+	if !p.playing || p.eof || p.err != nil || len(p.buf) >= need {
+		return nil, false
+	}
+	p.reading = true
+	n := need - len(p.buf)
+	p.srcBuf = slices.Grow(p.srcBuf[:0], n)[:n]
+	return p.srcBuf, true
+}
+
+// finishSourceRead buffers data, records err, and ends the read in progress.
+func (p *Player) finishSourceRead(data []byte, err error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.buf = append(p.buf, data...)
+	if err != nil {
+		if errors.Is(err, io.EOF) {
+			p.eof = true
+		} else {
+			p.err = err
+		}
+	}
+	p.reading = false
+	p.readCond.Broadcast()
+}
+
+// takeFrames moves buffered whole frames into buf, up to len(buf) bytes, and reports whether the player
+// is finished. A paused player gives nothing and is not finished.
+func (p *Player) takeFrames(buf []byte) (n int, eof bool) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if !p.playing {
+		return 0, false
+	}
+	consume := min(len(p.buf), len(buf))
 	consume -= consume % 8
 	n = copy(buf, p.buf[:consume])
 	p.buf = p.buf[:copy(p.buf, p.buf[consume:])]
-
 	return n, p.finishedLocked()
 }
 

@@ -45,7 +45,15 @@ const (
 
 	// residencyKeepAliveDuration is how long the resources are kept resident after the last draw.
 	residencyKeepAliveDuration = 3 * time.Minute
+
+	// maxRenderPassesPerCommandBuffer is the maximum number of render passes in one command buffer.
+	// A command buffer holds the memory for its render passes until it is completed.
+	// The value is large enough that the command buffers of usual frames are not split.
+	maxRenderPassesPerCommandBuffer = 256
 )
+
+// errUnknownCommandBufferError indicates that a command buffer failed without any details.
+var errUnknownCommandBufferError = errors.New("metal: unknown command buffer error")
 
 type Graphics struct {
 	view view
@@ -56,6 +64,9 @@ type Graphics struct {
 	cb  mtl.CommandBuffer
 	rce mtl.RenderCommandEncoder
 
+	// renderPassCount is the number of render passes encoded into cb.
+	renderPassCount int
+
 	screenDrawable ca.MetalDrawable
 
 	// frame is the current frame number.
@@ -65,6 +76,9 @@ type Graphics struct {
 	// frameToCB maps a frame number to command buffers used in the frame.
 	// frameToCB keeps command buffers not to be released until the command buffers are completed.
 	frameToCB map[int64][]mtl.CommandBuffer
+
+	// lastFrameError is the error of the last released frame's command buffers, or nil.
+	lastFrameError error
 
 	buffers       map[int64][]mtl.Buffer
 	unusedBuffers map[mtl.Buffer]struct{}
@@ -223,6 +237,30 @@ func isCommandBufferFinished(status mtl.CommandBufferStatus) bool {
 	return false
 }
 
+// areCommandBuffersFinished reports whether all the committed command buffers have finished executing,
+// whether successfully or with an error.
+func (g *Graphics) areCommandBuffersFinished() bool {
+	for _, cbs := range g.frameToCB {
+		for _, cb := range cbs {
+			if cb != g.cb && !isCommandBufferFinished(cb.Status()) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// waitForCommandBuffers waits for all the committed command buffers to finish executing.
+func (g *Graphics) waitForCommandBuffers() {
+	for _, cbs := range g.frameToCB {
+		for _, cb := range cbs {
+			if cb != g.cb {
+				cb.WaitUntilCompleted()
+			}
+		}
+	}
+}
+
 func (g *Graphics) gcBuffers() {
 loop:
 	for frame, cbs := range g.frameToCB {
@@ -237,6 +275,7 @@ loop:
 				continue loop
 			}
 		}
+		g.logFrameError(cbs)
 		for _, cb := range cbs {
 			cb.Release()
 		}
@@ -266,6 +305,26 @@ loop:
 			b.Release()
 		}
 	}
+}
+
+// logFrameError logs the first error of cbs, the finished command buffers of a frame, unless the last
+// released frame had the same error.
+func (g *Graphics) logFrameError(cbs []mtl.CommandBuffer) {
+	var err error
+	for _, cb := range cbs {
+		if cb.Status() != mtl.CommandBufferStatusError {
+			continue
+		}
+		err = cb.Error()
+		if err == nil {
+			err = errUnknownCommandBufferError
+		}
+		break
+	}
+	if err != nil && err != g.lastFrameError {
+		slog.Error("metal: a command buffer failed", "error", err)
+	}
+	g.lastFrameError = err
 }
 
 func (g *Graphics) ensureCommandBuffer() error {
@@ -382,6 +441,7 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 	g.tmpBuffers = g.tmpBuffers[:0]
 
 	g.cb = mtl.CommandBuffer{}
+	g.renderPassCount = 0
 
 	if presented {
 		g.screenDrawable.Release()
@@ -651,6 +711,12 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	// so switching the destination requires a new encoder.
 	if g.lastDst != dst {
 		g.flushRenderCommandEncoderIfNeeded()
+
+		// Split the command buffer only when a render pass follows, so that the last command buffer of a frame,
+		// which presents the drawable, always exists.
+		if g.renderPassCount >= maxRenderPassesPerCommandBuffer {
+			g.flushCommandBufferIfNeeded(false)
+		}
 	}
 	g.lastDst = dst
 
@@ -682,6 +748,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 			return fmt.Errorf("metal: cb.RenderCommandEncoderWithDescriptor failed: %w", err)
 		}
 		g.rce = rce
+		g.renderPassCount++
 		g.lastDrawTime = time.Now()
 		g.lastRenderPassTime = g.lastDrawTime
 	}

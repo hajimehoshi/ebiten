@@ -168,7 +168,7 @@ func (c *pixelCache) startReadPixels(img *ui.Image, pixels []byte, region image.
 }
 
 // finishReadPixels reads the pixels in region of the tiles loaded by load into pixels.
-// The read-backs of load must have completed successfully.
+// The read-backs of load must have completed, and the loaded pixels must be valid.
 func (c *pixelCache) finishReadPixels(load *tilesLoad, pixels []byte, region image.Rectangle) {
 	// The loaded pixels and the dots are the pixels at the start of the load, so they are cached only
 	// when the pixels have not changed since then.
