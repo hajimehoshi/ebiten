@@ -72,11 +72,11 @@ const samplingTmplText = `{{if eq .Filter .FilterNearest}}
 	inversedScale := vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y)))
 	// Cap the inversedScale to 1 as dfdx/dfdy is not accurate on some machines (#3182).
 	inversedScale = min(inversedScale, vec2(1))
-	lower := src0Pos - inversedScale/2.0
-	upper := src0Pos + inversedScale/2.0
-	p0 := floor(lower)
-	p1 := p0 + 1
-	rate := clamp((upper - p1)/inversedScale, 0, 1)
+	// edge is the texel edge nearest to src0Pos.
+	edge := floor(src0Pos + 1/2.0)
+	p0 := edge - 1
+	p1 := edge
+	rate := clamp((src0Pos - edge)/inversedScale + 1/2.0, 0, 1)
 {{end}}
 
 {{if eq .Address .AddressRepeat}}
