@@ -847,6 +847,12 @@ func (u *glfwBackend) forceUpdateFrameDuringPollEvents(outsideWidth, outsideHeig
 		return
 	}
 
+	// An earlier forced frame in the same event polling might have ended the game. The game loop
+	// sees its error only after the event polling returns.
+	if u.error() != nil {
+		return
+	}
+
 	// In the single-thread mode, the game loop runs on the main thread and cannot be resumed here.
 	mainThread, ok := u.mainThread.(interface {
 		NestedLoop(done <-chan struct{})
@@ -1389,6 +1395,12 @@ func (u *glfwBackend) update() (outsideWidth, outsideHeight float64, screenWidth
 			return 0, 0, 0, 0, err
 		}
 	}
+
+	// Do not start another frame if a forced frame during the event polling ended the game.
+	if err := u.error(); err != nil {
+		return 0, 0, 0, 0, err
+	}
+
 	if err := u.applyWindowSettings(); err != nil {
 		return 0, 0, 0, 0, err
 	}
