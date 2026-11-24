@@ -5833,3 +5833,27 @@ func TestImageDrawTrianglesWithNilImageAndEmptyIndices(t *testing.T) {
 	vs := make([]ebiten.Vertex, 3)
 	dst.DrawTriangles(vs, nil, nil, nil)
 }
+
+func TestImageManyRenderPasses(t *testing.T) {
+	const w, h = 32, 32
+	var imgs [2]*ebiten.Image
+	for i := range imgs {
+		imgs[i] = ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), &ebiten.NewImageOptions{
+			Unmanaged: true,
+		})
+	}
+
+	clr := color.RGBA{R: 0x20, G: 0x40, B: 0x60, A: 0x80}
+	imgs[0].Set(0, 0, clr)
+	for i := 1; i < w*h; i++ {
+		sx, sy := (i-1)%w, (i-1)/w
+		src := imgs[(i-1)%2].SubImage(image.Rect(sx, sy, sx+1, sy+1)).(*ebiten.Image)
+		var op ebiten.DrawImageOptions
+		op.GeoM.Translate(float64(i%w), float64(i/w))
+		imgs[i%2].DrawImage(src, &op)
+	}
+
+	if got := imgs[(w*h-1)%2].At(w-1, h-1); got != clr {
+		t.Errorf("got: %v, want: %v", got, clr)
+	}
+}

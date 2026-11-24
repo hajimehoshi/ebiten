@@ -45,6 +45,11 @@ const (
 
 	// residencyKeepAliveDuration is how long the resources are kept resident after the last draw.
 	residencyKeepAliveDuration = 3 * time.Minute
+
+	// maxRenderPassesPerCommandBuffer is the maximum number of render passes in one command buffer.
+	// A command buffer holds the memory for its render passes until it is completed.
+	// The value is large enough that the command buffers of usual frames are not split.
+	maxRenderPassesPerCommandBuffer = 256
 )
 
 // errUnknownCommandBufferError indicates that a command buffer failed without any details.
@@ -58,6 +63,9 @@ type Graphics struct {
 	cq  mtl.CommandQueue
 	cb  mtl.CommandBuffer
 	rce mtl.RenderCommandEncoder
+
+	// renderPassCount is the number of render passes encoded into cb.
+	renderPassCount int
 
 	screenDrawable ca.MetalDrawable
 
@@ -433,6 +441,7 @@ func (g *Graphics) flushCommandBufferIfNeeded(present bool) {
 	g.tmpBuffers = g.tmpBuffers[:0]
 
 	g.cb = mtl.CommandBuffer{}
+	g.renderPassCount = 0
 
 	if presented {
 		g.screenDrawable.Release()
@@ -702,6 +711,12 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 	// so switching the destination requires a new encoder.
 	if g.lastDst != dst {
 		g.flushRenderCommandEncoderIfNeeded()
+
+		// Split the command buffer only when a render pass follows, so that the last command buffer of a frame,
+		// which presents the drawable, always exists.
+		if g.renderPassCount >= maxRenderPassesPerCommandBuffer {
+			g.flushCommandBufferIfNeeded(false)
+		}
 	}
 	g.lastDst = dst
 
@@ -733,6 +748,7 @@ func (g *Graphics) draw(dst *Image, dstRegions []graphicsdriver.DstRegion, srcs 
 			return fmt.Errorf("metal: cb.RenderCommandEncoderWithDescriptor failed: %w", err)
 		}
 		g.rce = rce
+		g.renderPassCount++
 		g.lastDrawTime = time.Now()
 		g.lastRenderPassTime = g.lastDrawTime
 	}
