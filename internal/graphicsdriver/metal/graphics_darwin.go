@@ -223,6 +223,30 @@ func isCommandBufferFinished(status mtl.CommandBufferStatus) bool {
 	return false
 }
 
+// areCommandBuffersFinished reports whether all the committed command buffers have finished executing,
+// whether successfully or with an error.
+func (g *Graphics) areCommandBuffersFinished() bool {
+	for _, cbs := range g.frameToCB {
+		for _, cb := range cbs {
+			if cb != g.cb && !isCommandBufferFinished(cb.Status()) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+// waitForCommandBuffers waits for all the committed command buffers to finish executing.
+func (g *Graphics) waitForCommandBuffers() {
+	for _, cbs := range g.frameToCB {
+		for _, cb := range cbs {
+			if cb != g.cb {
+				cb.WaitUntilCompleted()
+			}
+		}
+	}
+}
+
 func (g *Graphics) gcBuffers() {
 loop:
 	for frame, cbs := range g.frameToCB {

@@ -15,6 +15,7 @@
 package metal
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -27,6 +28,9 @@ type readback struct {
 	buffer        mtl.Buffer
 	size          int
 	args          []graphicsdriver.PixelsArgs
+
+	// texture is the retained texture being read, or zero if the CPU cannot read it without GPU commands.
+	texture mtl.Texture
 
 	// reusable is set only after the command buffer and every copy have succeeded.
 	reusable bool
@@ -68,6 +72,10 @@ func (i *Image) ReadPixelsAsync(args []graphicsdriver.PixelsArgs) (_ graphicsdri
 	}
 	r.commandBuffer = g.cb
 	r.commandBuffer.Retain()
+	if storageMode == mtl.StorageModeShared {
+		r.texture = i.texture
+		r.texture.Retain()
+	}
 	bce, err := g.cb.BlitCommandEncoder()
 	if err != nil {
 		return nil, fmt.Errorf("metal: cb.BlitCommandEncoder failed: %w", err)
@@ -96,7 +104,17 @@ func (r *readback) Poll() (bool, error) {
 	case mtl.CommandBufferStatusCompleted:
 		// Shared storage is CPU-visible after GPU execution completes.
 	case mtl.CommandBufferStatusError:
-		return true, fmt.Errorf("metal: asynchronous pixel read-back command buffer failed")
+		if !r.canReadWithoutGPU() {
+			return true, fmt.Errorf("metal: asynchronous pixel read-back command buffer failed")
+		}
+		// The GPU might still be executing other command buffers that render to the texture.
+		if !r.graphics.areCommandBuffersFinished() {
+			return false, nil
+		}
+		if err := r.readWithoutGPU(); err != nil {
+			return true, err
+		}
+		return true, fmt.Errorf("metal: asynchronous pixel read-back command buffer failed: %w", graphicsdriver.ErrGPUNotPermitted)
 	default:
 		return false, nil
 	}
@@ -114,11 +132,50 @@ func (r *readback) Wait() error {
 		return nil
 	}
 	r.commandBuffer.WaitUntilCompleted()
-	_, err := r.Poll()
+	done, err := r.Poll()
+	if !done {
+		r.graphics.waitForCommandBuffers()
+		_, err = r.Poll()
+	}
 	return err
 }
 
-// Dispose releases the staging buffer and command buffer.
+// canReadWithoutGPU reports whether the failed command buffer was rejected for the lack of permission to
+// use the GPU, and the texture can be read without the GPU.
+func (r *readback) canReadWithoutGPU() bool {
+	if r.texture == (mtl.Texture{}) {
+		return false
+	}
+	// iOS rejects a command buffer submitted in the background. The rejection does not affect the texture.
+	err, ok := errors.AsType[mtl.CommandBufferError](r.commandBuffer.Error())
+	return ok && err.Code == mtl.CommandBufferErrorCodeNotPermitted
+}
+
+// readWithoutGPU copies the pixels that the texture currently holds.
+// All the committed command buffers must have finished.
+func (r *readback) readWithoutGPU() error {
+	for _, arg := range r.args {
+		if arg.Region.Empty() {
+			continue
+		}
+		if err := r.texture.GetBytes(arg.Pixels, 4*arg.Region.Dx(), mtl.Region{
+			Origin: mtl.Origin{
+				X: arg.Region.Min.X,
+				Y: arg.Region.Min.Y,
+			},
+			Size: mtl.Size{
+				Width:  arg.Region.Dx(),
+				Height: arg.Region.Dy(),
+				Depth:  1,
+			},
+		}, 0); err != nil {
+			return fmt.Errorf("metal: texture.GetBytes failed: %w", err)
+		}
+	}
+	return nil
+}
+
+// Dispose releases the staging buffer, command buffer, and texture.
 func (r *readback) Dispose() {
 	// Metal command buffers retain encoded resources until execution finishes,
 	// including when a pending read-back is discarded during shutdown.
@@ -134,6 +191,10 @@ func (r *readback) Dispose() {
 	if r.commandBuffer != (mtl.CommandBuffer{}) {
 		r.commandBuffer.Release()
 		r.commandBuffer = mtl.CommandBuffer{}
+	}
+	if r.texture != (mtl.Texture{}) {
+		r.texture.Release()
+		r.texture = mtl.Texture{}
 	}
 }
 

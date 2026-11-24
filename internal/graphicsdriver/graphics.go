@@ -15,6 +15,7 @@
 package graphicsdriver
 
 import (
+	"errors"
 	"image"
 
 	"github.com/hajimehoshi/ebiten/v2/internal/color"
@@ -83,17 +84,22 @@ type Image interface {
 	WritePixels(args []PixelsArgs) error
 }
 
+// ErrGPUNotPermitted indicates that the commands of a pixel read-back were rejected because the process was
+// not permitted to use the GPU, like in the background on iOS.
+var ErrGPUNotPermitted = errors.New("graphicsdriver: the GPU is not permitted to be used")
+
 // PixelReadback represents a pending pixel read-back started by Image.ReadPixelsAsync.
 type PixelReadback interface {
 	// Poll reports whether the read-back has completed. Poll must not wait for the GPU.
 	//
 	// When Poll reports true without an error, the read pixels have been copied into the
 	// arguments passed to ReadPixelsAsync. When Poll returns an error, the read-back has failed
-	// and their contents are unspecified. Poll must not be called again after it reports done or
-	// returns an error.
+	// and their contents are unspecified. The exception is ErrGPUNotPermitted: the arguments then hold
+	// the pixels of the image, which lack the effects of the commands rejected together.
+	// Poll must not be called again after it reports done or returns an error.
 	Poll() (done bool, err error)
 
-	// Wait completes the read-back and copies its pixels, or returns an error.
+	// Wait completes the read-back and copies its pixels, or returns an error as Poll does.
 	// Wait must be called on the render thread, and must not be called after
 	// Poll reports completion or an error. Neither Poll nor Wait may be called after Wait.
 	// For hardware drivers, Wait must be called outside a Begin/End command batch.

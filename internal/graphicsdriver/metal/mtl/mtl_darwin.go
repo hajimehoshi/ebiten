@@ -330,6 +330,26 @@ const (
 	CommandBufferStatusError       CommandBufferStatus = 5 // Execution of the command buffer was aborted due to an error during execution.
 )
 
+// CommandBufferErrorCode represents a reason why the execution of a command buffer failed.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffererror?language=objc.
+type CommandBufferErrorCode int
+
+const (
+	CommandBufferErrorCodeNotPermitted CommandBufferErrorCode = 7 // The process does not have access to use the device.
+)
+
+// CommandBufferError is an error that occurred during the execution of a command buffer.
+type CommandBufferError struct {
+	Code        CommandBufferErrorCode
+	Description string
+}
+
+// Error returns a message with the description and the code.
+func (e CommandBufferError) Error() string {
+	return fmt.Sprintf("mtl: %s (code: %d)", e.Description, e.Code)
+}
+
 // Resource represents a memory allocation for storing specialized data
 // that is accessible to the GPU.
 //
@@ -501,6 +521,8 @@ var (
 	sel_newTextureWithDescriptor                                                                                                                   = objc.RegisterName("newTextureWithDescriptor:")
 	sel_commandBuffer                                                                                                                              = objc.RegisterName("commandBuffer")
 	sel_status                                                                                                                                     = objc.RegisterName("status")
+	sel_error                                                                                                                                      = objc.RegisterName("error")
+	sel_code                                                                                                                                       = objc.RegisterName("code")
 	sel_presentDrawable                                                                                                                            = objc.RegisterName("presentDrawable:")
 	sel_commit                                                                                                                                     = objc.RegisterName("commit")
 	sel_waitUntilCompleted                                                                                                                         = objc.RegisterName("waitUntilCompleted")
@@ -825,6 +847,23 @@ func (cb CommandBuffer) Status() CommandBufferStatus {
 	return CommandBufferStatus(cb.commandBuffer.Send(sel_status))
 }
 
+// Error returns the error that occurred during the execution of the command buffer as a [CommandBufferError], or nil.
+//
+// Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/error?language=objc.
+func (cb CommandBuffer) Error() error {
+	pool := cocoa.NSAutoreleasePool_new()
+	defer pool.Release()
+
+	err := cb.commandBuffer.Send(sel_error)
+	if err == 0 {
+		return nil
+	}
+	return CommandBufferError{
+		Code:        CommandBufferErrorCode(err.Send(sel_code)),
+		Description: cocoa.NSString{ID: err.Send(sel_localizedDescription)}.String(),
+	}
+}
+
 // PresentDrawable registers a drawable presentation to occur as soon as possible.
 //
 // Reference: https://developer.apple.com/documentation/metal/mtlcommandbuffer/1443029-presentdrawable?language=objc.
@@ -1051,6 +1090,10 @@ func NewTexture(texture objc.ID) Texture {
 // resource implements the Resource interface.
 func (t Texture) resource() unsafe.Pointer {
 	return *(*unsafe.Pointer)(unsafe.Pointer(&t.texture))
+}
+
+func (t Texture) Retain() {
+	t.texture.Send(sel_retain)
 }
 
 func (t Texture) Release() {
