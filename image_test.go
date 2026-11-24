@@ -5904,6 +5904,28 @@ func TestImageLinearFilterTexelBoundary(t *testing.T) {
 	}
 }
 
+// Issue #4081
+func TestFilterPixelatedShearedEdge(t *testing.T) {
+	want := color.RGBA{R: 255, A: 255}
+	opts := &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}
+	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 96, 96), opts)
+	src.Fill(want)
+	dst := ebiten.NewImageWithOptions(image.Rect(0, 0, 640, 128), opts)
+
+	var op ebiten.DrawImageOptions
+	op.Filter = ebiten.FilterPixelated
+	op.GeoM.Scale(5, 1)
+	op.GeoM.SetElement(0, 1, 6)
+	op.GeoM.Translate(64, 8)
+	dst.DrawImage(src, &op)
+
+	if got := dst.At(69, 8); got != want {
+		t.Errorf("pixel (69, 8) = %v, want %v", got, want)
+	}
+}
+
 func TestImageManyRenderPasses(t *testing.T) {
 	const w, h = 32, 32
 	var imgs [2]*ebiten.Image

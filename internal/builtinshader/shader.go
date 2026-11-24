@@ -72,8 +72,11 @@ const samplingTmplText = `{{if eq .Filter .FilterNearest}}
 	inversedScale := vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y)))
 	// Cap the inversedScale to 1 as dfdx/dfdy is not accurate on some machines (#3182).
 	inversedScale = min(inversedScale, vec2(1))
-	p0 := src0Pos - inversedScale/2.0
-	p1 := src0Pos + inversedScale/2.0
+	lower := src0Pos - inversedScale/2.0
+	upper := src0Pos + inversedScale/2.0
+	p0 := floor(lower)
+	p1 := p0 + 1
+	rate := clamp((upper - p1)/inversedScale, 0, 1)
 {{end}}
 
 {{if eq .Address .AddressRepeat}}
@@ -93,9 +96,6 @@ const samplingTmplText = `{{if eq .Filter .FilterNearest}}
 	c3 := imageSrc0At(p1)
 {{end}}
 
-{{if eq .Filter .FilterPixelated}}
-	rate := clamp(fract(p1)/inversedScale, 0, 1)
-{{end}}
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 {{end}}
 `
