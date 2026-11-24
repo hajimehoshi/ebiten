@@ -47,6 +47,9 @@ const (
 	residencyKeepAliveDuration = 3 * time.Minute
 )
 
+// errUnknownCommandBufferError indicates that a command buffer failed without any details.
+var errUnknownCommandBufferError = errors.New("metal: unknown command buffer error")
+
 type Graphics struct {
 	view view
 
@@ -65,6 +68,9 @@ type Graphics struct {
 	// frameToCB maps a frame number to command buffers used in the frame.
 	// frameToCB keeps command buffers not to be released until the command buffers are completed.
 	frameToCB map[int64][]mtl.CommandBuffer
+
+	// lastFrameError is the error of the last released frame's command buffers, or nil.
+	lastFrameError error
 
 	buffers       map[int64][]mtl.Buffer
 	unusedBuffers map[mtl.Buffer]struct{}
@@ -261,6 +267,7 @@ loop:
 				continue loop
 			}
 		}
+		g.logFrameError(cbs)
 		for _, cb := range cbs {
 			cb.Release()
 		}
@@ -290,6 +297,26 @@ loop:
 			b.Release()
 		}
 	}
+}
+
+// logFrameError logs the first error of cbs, the finished command buffers of a frame, unless the last
+// released frame had the same error.
+func (g *Graphics) logFrameError(cbs []mtl.CommandBuffer) {
+	var err error
+	for _, cb := range cbs {
+		if cb.Status() != mtl.CommandBufferStatusError {
+			continue
+		}
+		err = cb.Error()
+		if err == nil {
+			err = errUnknownCommandBufferError
+		}
+		break
+	}
+	if err != nil && err != g.lastFrameError {
+		slog.Error("metal: a command buffer failed", "error", err)
+	}
+	g.lastFrameError = err
 }
 
 func (g *Graphics) ensureCommandBuffer() error {
