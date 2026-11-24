@@ -31,6 +31,11 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/internal/shaderir/hlsl"
 )
 
+// maxDrawCallCount is the maximum number of draw calls recorded in a frame without waiting for the GPU.
+// The memory for draw calls is not reusable until the GPU finishes them.
+// The value is large enough that usual frames do not reach it.
+const maxDrawCallCount = 4096
+
 type resourceWithSize struct {
 	value       *_ID3D12Resource
 	sizeInBytes uint32
@@ -68,6 +73,9 @@ type graphics12 struct {
 	drawCommandList *_ID3D12GraphicsCommandList
 
 	needFlushDrawCommandList bool
+
+	// drawCallCount is the number of draw calls recorded in the current frame since reclaimDrawResources was called.
+	drawCallCount int
 
 	// copyCommandList is a command list for a copy engine (CopyTextureRegion).
 	copyCommandList *_ID3D12GraphicsCommandList
@@ -813,6 +821,7 @@ func (g *graphics12) Begin() error {
 		if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
 			return err
 		}
+		g.drawCallCount = 0
 	}
 	g.prevBeginFrameIndex = g.frameIndex
 
@@ -1004,6 +1013,45 @@ func (g *graphics12) reclaimFrameResources() error {
 	g.releaseResources(g.frameIndex)
 	g.resetVerticesAndIndices(g.frameIndex)
 	g.pipelineStates.resetFrame(g.frameIndex)
+	return nil
+}
+
+// reclaimDrawResources executes the pending draw calls, waits for the GPU, and makes the resources for the draw calls
+// reusable in the middle of a frame. The vertex and index buffers are kept for the following draw calls.
+// The command lists must be open, and the copy command list must not have pending commands.
+func (g *graphics12) reclaimDrawResources() error {
+	if err := g.submitCommandList(g.drawCommandList); err != nil {
+		return err
+	}
+	if err := g.waitForCommandQueue(); err != nil {
+		return err
+	}
+
+	// A command allocator cannot be reset while a command list using it is open.
+	if err := g.drawCommandList.Close(); err != nil {
+		return g.withDeviceRemovedReason(err)
+	}
+	if err := g.copyCommandList.Close(); err != nil {
+		return g.withDeviceRemovedReason(err)
+	}
+	if err := g.drawCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
+	if err := g.copyCommandAllocators[g.frameIndex].Reset(); err != nil {
+		return err
+	}
+	if err := g.drawCommandList.Reset(g.drawCommandAllocators[g.frameIndex], nil); err != nil {
+		return err
+	}
+	if err := g.copyCommandList.Reset(g.copyCommandAllocators[g.frameIndex], nil); err != nil {
+		return err
+	}
+
+	for i := range frameCount {
+		g.releaseResources(i)
+	}
+	g.pipelineStates.resetFrame(g.frameIndex)
+	g.drawCallCount = 0
 	return nil
 }
 
@@ -1371,6 +1419,13 @@ func (g *graphics12) DrawTriangles(dstID graphicsdriver.ImageID, srcs [graphics.
 	if err := g.submitCommandList(g.copyCommandList); err != nil {
 		return err
 	}
+
+	if g.drawCallCount >= maxDrawCallCount {
+		if err := g.reclaimDrawResources(); err != nil {
+			return err
+		}
+	}
+	g.drawCallCount++
 
 	dst := g.images[dstID]
 	var resourceBarriers []_D3D12_RESOURCE_BARRIER_Transition

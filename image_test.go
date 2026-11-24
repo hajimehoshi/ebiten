@@ -5835,7 +5835,7 @@ func TestImageDrawTrianglesWithNilImageAndEmptyIndices(t *testing.T) {
 }
 
 func TestImageManyRenderPasses(t *testing.T) {
-	const w, h = 32, 32
+	const w, h = 65, 65
 	var imgs [2]*ebiten.Image
 	for i := range imgs {
 		imgs[i] = ebiten.NewImageWithOptions(image.Rect(0, 0, w, h), &ebiten.NewImageOptions{
