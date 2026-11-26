@@ -17,7 +17,8 @@
 package debug
 
 import (
-	"fmt"
+	"log/slog"
+	"slices"
 	"sync"
 	"sync/atomic"
 )
@@ -30,15 +31,19 @@ func init() {
 	theFrameLogger.Store(&frameLogger{})
 }
 
-var flushM sync.Mutex
+var completedFrameLogs struct {
+	mu       sync.Mutex
+	batches  [][]logItem
+	flushing bool
+}
 
-// FrameLogf calls the current global logger's FrameLogf.
-// FrameLogf buffers the arguments and doesn't dump the log immediately.
-// You can dump logs by calling SwitchFrameLogger and Flush.
+// FrameLog calls the current global logger's FrameLog.
+// FrameLog buffers a message and its key-value pairs for the next graphics flush.
+// Messages are emitted at INFO level through slog.Default so that a debug build produces logs by default.
 //
-// FrameLogf is concurrent-safe.
-func FrameLogf(format string, args ...any) {
-	theFrameLogger.Load().FrameLogf(format, args...)
+// FrameLog is concurrent-safe.
+func FrameLog(msg string, args ...any) {
+	theFrameLogger.Load().FrameLog(msg, args...)
 }
 
 // SwitchFrameLogger sets a new logger as the current logger and returns the original global logger.
@@ -55,28 +60,29 @@ type frameLogger struct {
 }
 
 type logItem struct {
-	format string
-	args   []any
+	msg  string
+	args []any
 }
 
-func (l *frameLogger) FrameLogf(format string, args ...any) {
+func (l *frameLogger) FrameLog(msg string, args ...any) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
 	l.items = append(l.items, logItem{
-		format: format,
-		args:   args,
+		msg:  msg,
+		args: slices.Clone(args),
 	})
 }
 
-func (l *frameLogger) Flush() {
-	// Flushing is protected by a mutex not to mix another logger's logs.
-	flushM.Lock()
-	defer flushM.Unlock()
-
-	for _, item := range l.takeItems() {
-		fmt.Printf(item.format, item.args...)
+// Queue hands off a completed batch from the render thread without calling the log handler.
+func (l *frameLogger) Queue() {
+	items := l.takeItems()
+	if len(items) == 0 {
+		return
 	}
+	completedFrameLogs.mu.Lock()
+	completedFrameLogs.batches = append(completedFrameLogs.batches, items)
+	completedFrameLogs.mu.Unlock()
 }
 
 // takeItems removes the buffered log items and returns them.
@@ -87,4 +93,36 @@ func (l *frameLogger) takeItems() []logItem {
 	items := l.items
 	l.items = nil
 	return items
+}
+
+// FlushFrameLogs invokes the application logger after rendering has handed
+// off its batches. The caller must not hold the atlas lock, which a handler
+// can acquire through ebiten.ReadDebugInfo.
+func FlushFrameLogs() {
+	logs := &completedFrameLogs
+	logs.mu.Lock()
+	if logs.flushing {
+		// The active flush will pick up any new batches, including when a
+		// handler calls back into the engine.
+		logs.mu.Unlock()
+		return
+	}
+
+	logs.flushing = true
+	for len(logs.batches) > 0 {
+		batches := logs.batches
+		logs.batches = nil
+		logs.mu.Unlock()
+
+		for _, batch := range batches {
+			logger := slog.Default()
+			for _, item := range batch {
+				logger.Info(item.msg, item.args...)
+			}
+		}
+
+		logs.mu.Lock()
+	}
+	logs.flushing = false
+	logs.mu.Unlock()
 }

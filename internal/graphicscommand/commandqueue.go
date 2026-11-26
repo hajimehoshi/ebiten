@@ -19,7 +19,6 @@ import (
 	"fmt"
 	"image"
 	"math"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -254,7 +253,7 @@ type commandQueueFlushArgs struct {
 }
 
 func (a commandQueueFlushArgs) flush() error {
-	defer a.logger.Flush()
+	defer a.logger.Queue()
 	var flushErr error
 	defer func() {
 		if flushErr != nil {
@@ -290,7 +289,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 
 	es := q.indices
 	vs := q.vertices
-	logger.FrameLogf("Graphics commands:\n")
+	logger.FrameLog("Graphics commands")
 
 	var begun bool
 	defer func() {
@@ -364,15 +363,7 @@ func (q *commandQueue) flush(graphicsDriver graphicsdriver.Graphics, mode graphi
 				return err
 			}
 			if debug.IsDebug {
-				str := c.String()
-				for {
-					head, tail, ok := strings.Cut(str, "\n")
-					logger.FrameLogf("  %s\n", head)
-					if !ok {
-						break
-					}
-					str = tail
-				}
+				c.Log(logger)
 			}
 			// TODO: indexOffset should be reset if the command type is different
 			// from the previous one. This fix is needed when another drawing command is

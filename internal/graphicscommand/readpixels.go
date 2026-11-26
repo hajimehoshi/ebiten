@@ -16,10 +16,9 @@ package graphicscommand
 
 import (
 	"errors"
-	"fmt"
 	"slices"
-	"strings"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
 	"github.com/hajimehoshi/ebiten/v2/internal/thread"
 )
@@ -174,12 +173,12 @@ type readPixelsAsyncCommand struct {
 	req *readPixelsRequest
 }
 
-func (c *readPixelsAsyncCommand) String() string {
-	var args []string
-	for _, a := range c.req.args {
-		args = append(args, fmt.Sprintf("region: %s", a.Region.String()))
+func (c *readPixelsAsyncCommand) Log(logger debug.FrameLogger) {
+	regions := make([]string, len(c.req.args))
+	for i, a := range c.req.args {
+		regions[i] = a.Region.String()
 	}
-	return fmt.Sprintf("read-pixels-async: image: %d, args: %s", c.img.id, strings.Join(args, ", "))
+	logger.FrameLog("Graphics command", "command", "read-pixels-async", "image", c.img.id, "regions", regions)
 }
 
 // Exec records the read-back into the graphics driver's command stream at this position, so the

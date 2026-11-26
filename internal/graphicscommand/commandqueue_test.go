@@ -23,6 +23,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/hajimehoshi/ebiten/v2/internal/debug"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphics"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicscommand"
 	"github.com/hajimehoshi/ebiten/v2/internal/graphicsdriver"
@@ -98,9 +99,7 @@ func (*failingCommand) NeedsSync() bool {
 	return false
 }
 
-func (*failingCommand) String() string {
-	return "failing"
-}
+func (*failingCommand) Log(debug.FrameLogger) {}
 
 type asyncFlushDriver struct {
 	graphicsdriver.Graphics
@@ -171,8 +170,8 @@ func (c *resourceCommand) Exec(q *graphicscommand.CommandQueueForTesting, _ grap
 	return nil
 }
 
-func (*resourceCommand) NeedsSync() bool { return false }
-func (*resourceCommand) String() string  { return "resource" }
+func (*resourceCommand) NeedsSync() bool       { return false }
+func (*resourceCommand) Log(debug.FrameLogger) {}
 
 func (*frameDriver) SetVsyncEnabled(bool) {}
 
