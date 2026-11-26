@@ -76,7 +76,10 @@ const samplingTmplText = `{{if eq .Filter .FilterNearest}}
 	edge := floor(src0Pos + 1/2.0)
 	p0 := edge - 1
 	p1 := edge
-	rate := clamp((src0Pos - edge)/inversedScale + 1/2.0, 0, 1)
+	// When inversedScale is 0 on an axis (e.g., constant source coordinate across a primitive),
+	// fall back to nearest sampling floor(src0Pos) on that axis without dividing by zero (Issue #4081).
+	blendRate := clamp((src0Pos - edge)/max(inversedScale, vec2(1e-6)) + 1/2.0, 0, 1)
+	rate := mix(blendRate, step(edge, src0Pos), step(inversedScale, vec2(0)))
 {{end}}
 
 {{if eq .Address .AddressRepeat}}
