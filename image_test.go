@@ -5834,6 +5834,157 @@ func TestImageDrawTrianglesWithNilImageAndEmptyIndices(t *testing.T) {
 	dst.DrawTriangles(vs, nil, nil, nil)
 }
 
+// Issue #4081
+func TestImageLinearFilterTexelBoundary(t *testing.T) {
+	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 2, 2), &ebiten.NewImageOptions{Unmanaged: true})
+	src.WritePixels([]byte{
+		0xff, 0, 0, 0xff, 0, 0, 0, 0,
+		0, 0, 0, 0, 0, 0, 0, 0,
+	})
+
+	const w, h = 16, 16
+	dst := ebiten.NewImage(w, h)
+
+	// Sample just left of the texel center (0.5, 0.5) so the old fract-based
+	// rate rounded across the center and skipped texel 0.
+	srcX := math.Nextafter32(0.5, 0)
+	const srcY = 0.5
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   0,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   h,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   w,
+			DstY:   h,
+			SrcX:   srcX,
+			SrcY:   srcY,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2, 1, 2, 3}
+	dst.DrawTriangles(vs, is, src, &ebiten.DrawTrianglesOptions{
+		Filter:  ebiten.FilterLinear,
+		Address: ebiten.AddressClampToZero,
+	})
+
+	got := dst.At(w/2, h/2)
+	want := color.RGBA{R: 0xff, A: 0xff}
+	if got != want {
+		t.Errorf("got: %v, want: %v", got, want)
+	}
+}
+
+// Issue #4081
+func TestFilterPixelatedShearedEdge(t *testing.T) {
+	want := color.RGBA{R: 255, A: 255}
+	opts := &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}
+	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 96, 96), opts)
+	src.Fill(want)
+	dst := ebiten.NewImageWithOptions(image.Rect(0, 0, 640, 128), opts)
+
+	var op ebiten.DrawImageOptions
+	op.Filter = ebiten.FilterPixelated
+	op.GeoM.Scale(5, 1)
+	op.GeoM.SetElement(0, 1, 6)
+	op.GeoM.Translate(64, 8)
+	dst.DrawImage(src, &op)
+
+	if got := dst.At(69, 8); got != want {
+		t.Errorf("pixel (69, 8) = %v, want %v", got, want)
+	}
+}
+
+// Issue #4081
+func TestFilterPixelatedZeroInversedScale(t *testing.T) {
+	// Constant SrcX across the triangle yields inversedScale.x == 0 on the texel edge;
+	// FilterPixelated must fall back to nearest sampling on that axis instead of 0/0.
+	opts := &ebiten.NewImageOptions{
+		Unmanaged: true,
+	}
+	src := ebiten.NewImageWithOptions(image.Rect(0, 0, 4, 4), opts)
+	green := color.RGBA{G: 0xff, A: 0xff}
+	red := color.RGBA{R: 0xff, A: 0xff}
+	for y := range 4 {
+		src.Set(0, y, green)
+		src.Set(1, y, red)
+	}
+	dst := ebiten.NewImageWithOptions(image.Rect(0, 0, 4, 4), opts)
+
+	vs := []ebiten.Vertex{
+		{
+			DstX:   0,
+			DstY:   0,
+			SrcX:   1,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   4,
+			DstY:   0,
+			SrcX:   1,
+			SrcY:   0,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+		{
+			DstX:   0,
+			DstY:   4,
+			SrcX:   1,
+			SrcY:   4,
+			ColorR: 1,
+			ColorG: 1,
+			ColorB: 1,
+			ColorA: 1,
+		},
+	}
+	is := []uint16{0, 1, 2}
+	dst.DrawTriangles(vs, is, src, &ebiten.DrawTrianglesOptions{
+		Filter:  ebiten.FilterPixelated,
+		Address: ebiten.AddressClampToZero,
+	})
+
+	if got := dst.At(0, 0); got != red {
+		t.Errorf("got: %v, want: %v", got, red)
+	}
+}
+
 func TestImageManyRenderPasses(t *testing.T) {
 	const w, h = 65, 65
 	var imgs [2]*ebiten.Image

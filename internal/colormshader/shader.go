@@ -84,8 +84,10 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 {{end}}
 {{else}}
 {{if eq .Filter .FilterLinear}}
-	p0 := src0Pos - 1/2.0
-	p1 := src0Pos + 1/2.0
+	lower := src0Pos - 1/2.0
+	p0 := floor(lower)
+	p1 := p0 + 1
+	rate := lower - p0
 {{else if eq .Filter .FilterPixelated}}
 	// inversedScale is the size of the region on the source image.
 	// Include both screen axes so that rotating the image does not change its scale.
@@ -93,8 +95,14 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	inversedScale := vec2(length(vec2(dx.x, dy.x)), length(vec2(dx.y, dy.y)))
 	// Cap the inversedScale to 1 as dfdx/dfdy is not accurate on some machines (#3182).
 	inversedScale = min(inversedScale, vec2(1))
-	p0 := src0Pos - inversedScale/2.0
-	p1 := src0Pos + inversedScale/2.0
+	// edge is the texel edge nearest to src0Pos.
+	edge := floor(src0Pos + 1/2.0)
+	p0 := edge - 1
+	p1 := edge
+	// When inversedScale is 0 on an axis (e.g., constant source coordinate across a primitive),
+	// fall back to nearest sampling floor(src0Pos) on that axis without dividing by zero (Issue #4081).
+	blendRate := clamp((src0Pos - edge)/max(inversedScale, vec2(1e-6)) + 1/2.0, 0, 1)
+	rate := mix(blendRate, step(edge, src0Pos), step(inversedScale, vec2(0)))
 {{end}}
 
 {{if eq .Address .AddressRepeat}}
@@ -114,11 +122,6 @@ func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
 	c3 := imageSrc0At(p1)
 {{end}}
 
-{{if eq .Filter .FilterLinear}}
-	rate := fract(p1)
-{{else if eq .Filter .FilterPixelated}}
-	rate := clamp(fract(p1)/inversedScale, 0, 1)
-{{end}}
 	clr := mix(mix(c0, c1, rate.x), mix(c2, c3, rate.x), rate.y)
 {{end}}
 
