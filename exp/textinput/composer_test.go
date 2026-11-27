@@ -328,3 +328,109 @@ func TestComposerUpdateFromCallbacks(t *testing.T) {
 		})
 	}
 }
+
+func TestComposerClampsAbsoluteReplacement(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		before     string
+		after      string
+		start      int
+		end        int
+		wantBefore string
+		wantAfter  string
+	}{
+		{
+			name:      "negative start",
+			before:    "ab",
+			after:     "cd",
+			start:     -2,
+			end:       1,
+			wantAfter: "bcd",
+		},
+		{
+			name:       "past the end",
+			before:     "ab",
+			after:      "cd",
+			start:      6,
+			end:        99,
+			wantBefore: "abcd",
+		},
+		{
+			name:       "reversed",
+			before:     "ab",
+			after:      "cd",
+			start:      3,
+			end:        1,
+			wantBefore: "abc",
+			wantAfter:  "d",
+		},
+		{
+			name:       "valid",
+			before:     "ab",
+			after:      "cd",
+			start:      1,
+			end:        3,
+			wantBefore: "a",
+			wantAfter:  "d",
+		},
+		{
+			name:       "unspecified",
+			before:     "ab",
+			after:      "cd",
+			start:      -1,
+			end:        -1,
+			wantBefore: "ab",
+			wantAfter:  "cd",
+		},
+		{
+			name:       "start inside a rune before the caret",
+			before:     "é",
+			start:      1,
+			end:        4,
+			wantBefore: "é",
+		},
+		{
+			name:       "end inside a rune after the caret",
+			before:     "a",
+			after:      "界",
+			start:      1,
+			end:        2,
+			wantBefore: "a",
+			wantAfter:  "界",
+		},
+		{
+			name:       "valid multibyte range across the caret",
+			before:     "aé",
+			after:      "界b",
+			start:      1,
+			end:        6,
+			wantBefore: "a",
+			wantAfter:  "b",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d := textinput.NewComposerDriver(tc.before, tc.after)
+			d.Composer.OnNewSession = func() *textinput.SessionOptions { return nil }
+			var commits int
+			d.Composer.OnCommit = func(c *textinput.Commit) {
+				commits++
+				before, after := c.SurroundingText()
+				if before != tc.wantBefore || after != tc.wantAfter {
+					t.Errorf("SurroundingText = %q, %q, want %q, %q", before, after, tc.wantBefore, tc.wantAfter)
+				}
+			}
+			d.Send(textinput.TextInputState{
+				Text:                    "x",
+				CommitKind:              textinput.CommitRegular,
+				ReplacementStartInBytes: tc.start,
+				ReplacementEndInBytes:   tc.end,
+			})
+			if _, err := d.Composer.Update(); err != nil {
+				t.Fatal(err)
+			}
+			if commits != 1 {
+				t.Errorf("commits = %d, want 1", commits)
+			}
+		})
+	}
+}
