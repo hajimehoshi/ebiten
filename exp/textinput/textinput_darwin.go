@@ -36,6 +36,15 @@ type textInputImpl struct {
 	// rather than a commit, so that the IME may still hold a composition.
 	// Accessed on the main thread only.
 	marked bool
+
+	// handlingKeyDown reports whether the text input client is handling a
+	// key-down event. Accessed on the main thread only.
+	handlingKeyDown bool
+
+	// heldCommit is a commit the IME reported while the key-down event is
+	// handled, held until the IME has finished with the key, or nil.
+	// Accessed on the main thread only.
+	heldCommit *textInputState
 }
 
 func (t *textInputImpl) markIMEDiscardNeeded() {
@@ -52,18 +61,63 @@ func (t *textInputImpl) Start(bounds image.Rectangle, _, _ string) (<-chan textI
 }
 
 func (t *textInputImpl) update(text string, startInBytes, endInBytes int, replacementStartInBytes, replacementEndInBytes int, kind commitKind) {
+	// A held commit precedes this state, as the IME reported it first.
+	t.releaseHeldCommit()
+
 	t.marked = !kind.committed() && text != ""
-	t.events.send(textInputState{
+	state := textInputState{
 		Text:                             text,
 		CompositionSelectionStartInBytes: startInBytes,
 		CompositionSelectionEndInBytes:   endInBytes,
 		ReplacementStartInBytes:          replacementStartInBytes,
 		ReplacementEndInBytes:            replacementEndInBytes,
 		CommitKind:                       kind,
-	})
-	if kind.committed() {
+	}
+	if kind.committed() && t.handlingKeyDown {
+		// Whether the key passes through is known only after the IME has
+		// finished with it: an IME that commits and then passes the key on
+		// sends the key's command to doCommandBySelector: (e.g. Return in
+		// Vietnamese or Korean input).
+		t.heldCommit = &state
+		return
+	}
+	t.deliver(state)
+}
+
+func (t *textInputImpl) deliver(state textInputState) {
+	t.events.send(state)
+	if state.CommitKind.committed() {
 		t.endIfNeeded()
 	}
+}
+
+// releaseHeldCommit delivers the held commit, if any.
+func (t *textInputImpl) releaseHeldCommit() {
+	if t.heldCommit == nil {
+		return
+	}
+	state := *t.heldCommit
+	t.heldCommit = nil
+	t.deliver(state)
+}
+
+// passKeyThrough records that the IME passed the key being handled on to the
+// application, so that a commit the key produced lets the key pass through.
+func (t *textInputImpl) passKeyThrough() {
+	if t.heldCommit == nil {
+		return
+	}
+	t.heldCommit.CommitKind = commitWithPassthroughKey
+	t.releaseHeldCommit()
+}
+
+func (t *textInputImpl) beginKeyDown() {
+	t.handlingKeyDown = true
+}
+
+func (t *textInputImpl) endKeyDown() {
+	t.handlingKeyDown = false
+	t.releaseHeldCommit()
 }
 
 func (t *textInputImpl) endIfNeeded() {
@@ -90,6 +144,8 @@ var (
 	sel_array                = objc.RegisterName("array")
 	sel_inputContext         = objc.RegisterName("inputContext")
 	sel_discardMarkedText    = objc.RegisterName("discardMarkedText")
+	sel_keyDown              = objc.RegisterName("keyDown:")
+	sel_noop                 = objc.RegisterName("noop:")
 
 	class_NSArray            = objc.GetClass("NSArray")
 	class_NSView             = objc.GetClass("NSView")
@@ -226,6 +282,10 @@ func init() {
 			{
 				Cmd: objc.RegisterName("doCommandBySelector:"),
 				Fn:  doCommandBySelector,
+			},
+			{
+				Cmd: sel_keyDown,
+				Fn:  keyDown,
 			},
 			{
 				Cmd: sel_resignFirstResponder,
@@ -442,8 +502,21 @@ func firstRectForCharacterRange(self objc.ID, _ objc.SEL, rang nsRange, actualRa
 	return objc.Send[nsRect](window, sel_convertRectToScreen, frame)
 }
 
-func doCommandBySelector(_ objc.ID, _ objc.SEL, _ objc.SEL) {
-	// Do nothing
+func doCommandBySelector(_ objc.ID, _ objc.SEL, selector objc.SEL) {
+	// noop: is the command of a key bound to nothing, which gives the
+	// application nothing to act on.
+	if selector == sel_noop {
+		return
+	}
+	theTextInputImpl.passKeyThrough()
+}
+
+func keyDown(self objc.ID, cmd objc.SEL, event objc.ID) {
+	// The superclass hands the event to the next responder, the content view,
+	// which reports the key press and passes the event to the IME.
+	theTextInputImpl.beginKeyDown()
+	defer theTextInputImpl.endKeyDown()
+	objcutil.SendSuper[struct{}](self, class_EbitengineTextInputClient, cmd, event)
 }
 
 func resignFirstResponder(self objc.ID, cmd objc.SEL) bool {
