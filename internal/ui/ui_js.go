@@ -131,10 +131,11 @@ type userInterfaceImpl struct {
 	savedOutsideHeight        float64
 	outsideSizeUnchangedCount int
 
-	keyboardLayoutMap js.Value
+	keyboardLayoutMap     js.Value
+	keyboardLayoutMapTime time.Time
 	// keyboardLayoutMapRequested is true once getLayoutMap has been requested
 	// in the current tick, even if the request failed. This is reset every
-	// tick along with keyboardLayoutMap so that a failing request is retried
+	// tick so that a failing request is retried
 	// at most once per tick, not on every KeyName call.
 	keyboardLayoutMapRequested bool
 
@@ -1019,7 +1020,11 @@ func (u *UserInterface) updateScreenSize() {
 
 func (u *UserInterface) readInputState(inputState *InputState) {
 	u.inputState.copyAndReset(inputState)
-	u.keyboardLayoutMap = js.Value{}
+	// Keep names stable within a tick, but refresh successful maps periodically:
+	// keyboard layouts can change while the page retains focus.
+	if time.Since(u.keyboardLayoutMapTime) >= time.Second {
+		u.keyboardLayoutMap = js.Value{}
+	}
 	u.keyboardLayoutMapRequested = false
 }
 

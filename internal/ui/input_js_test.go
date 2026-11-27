@@ -180,3 +180,49 @@ func TestPinchAfterReleasingInputs(t *testing.T) {
 		})
 	}
 }
+
+func TestKeyNameCachesLayoutAcrossTicks(t *testing.T) {
+	var calls int
+	name := "a"
+	fail := false
+	get := js.FuncOf(func(this js.Value, args []js.Value) any {
+		calls++
+		if fail {
+			return js.Global().Get("Promise").Call("reject", "temporary failure")
+		}
+		m := js.Global().Get("Map").New()
+		m.Call("set", "KeyA", name)
+		return js.Global().Get("Promise").Call("resolve", m)
+	})
+	defer get.Release()
+	u, cleanup := ui.NewKeyboardLayoutUIForTest(get.Value)
+	defer cleanup()
+	check := func(want string, wantCalls int) {
+		t.Helper()
+		if got := u.KeyName(ui.KeyA); got != want {
+			t.Fatalf("KeyName = %q, want %q", got, want)
+		}
+		if calls != wantCalls {
+			t.Fatalf("getLayoutMap calls = %d, want %d", calls, wantCalls)
+		}
+	}
+	check("a", 1)
+	name = "q"
+	check("a", 1)
+	u.ReadInputStateForTest()
+	check("a", 1)
+	// A layout change while focused is detected after expiry, at a tick boundary.
+	u.ExpireKeyboardLayoutForTest()
+	check("a", 1)
+	u.ReadInputStateForTest()
+	check("q", 2)
+	// Transient errors remain limited to one request per tick and can recover.
+	u.ExpireKeyboardLayoutForTest()
+	u.ReadInputStateForTest()
+	fail = true
+	check("", 3)
+	check("", 3)
+	fail = false
+	u.ReadInputStateForTest()
+	check("q", 4)
+}
