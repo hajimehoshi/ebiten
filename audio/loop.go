@@ -57,6 +57,9 @@ type InfiniteLoop struct {
 // In this case, try to add more (about 0.1[s]) data to src after the loop end.
 // If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
 // to make the loop joint smooth.
+//
+// length is truncated to a multiple of 4 bytes (one stereo frame).
+// NewInfiniteLoop panics if length is less than 4 bytes.
 func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 	return newInfiniteLoopWithIntro(src, 0, length, bitDepthInBytesInt16)
 }
@@ -70,6 +73,9 @@ func NewInfiniteLoop(src io.ReadSeeker, length int64) *InfiniteLoop {
 // In this case, try to add more (about 0.1[s]) data to src after the loop end.
 // If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
 // to make the loop joint smooth.
+//
+// length is truncated to a multiple of 8 bytes (one stereo frame).
+// NewInfiniteLoopF32 panics if length is less than 8 bytes.
 func NewInfiniteLoopF32(src io.ReadSeeker, length int64) *InfiniteLoop {
 	return newInfiniteLoopWithIntro(src, 0, length, bitDepthInBytesFloat32)
 }
@@ -84,6 +90,9 @@ func NewInfiniteLoopF32(src io.ReadSeeker, length int64) *InfiniteLoop {
 // In this case, try to add more (about 0.1[s]) data to src after the loop end.
 // If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
 // to make the loop joint smooth.
+//
+// introLength and loopLength are truncated to multiples of 4 bytes (one stereo frame).
+// NewInfiniteLoopWithIntro panics if loopLength is less than 4 bytes.
 func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
 	return newInfiniteLoopWithIntro(src, introLength, loopLength, bitDepthInBytesInt16)
 }
@@ -98,6 +107,9 @@ func NewInfiniteLoopWithIntro(src io.ReadSeeker, introLength int64, loopLength i
 // In this case, try to add more (about 0.1[s]) data to src after the loop end.
 // If src has data after the loop end, an InfiniteLoop uses part of the data to blend with the loop start
 // to make the loop joint smooth.
+//
+// introLength and loopLength are truncated to multiples of 8 bytes (one stereo frame).
+// NewInfiniteLoopWithIntroF32 panics if loopLength is less than 8 bytes.
 func NewInfiniteLoopWithIntroF32(src io.ReadSeeker, introLength int64, loopLength int64) *InfiniteLoop {
 	return newInfiniteLoopWithIntro(src, introLength, loopLength, bitDepthInBytesFloat32)
 }
