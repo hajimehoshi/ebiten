@@ -24,9 +24,9 @@ import (
 //
 // The final color is calculated like this:
 //
-//	c_src: source RGB values
-//	c_dst: destination RGB values
-//	c_out: result RGB values
+//	c_src: source alpha-premultiplied RGB values
+//	c_dst: destination alpha-premultiplied RGB values
+//	c_out: result alpha-premultiplied RGB values
 //	α_src: source alpha values
 //	α_dst: destination alpha values
 //	α_out: result alpha values
@@ -34,8 +34,11 @@ import (
 //	c_out = BlendOperationRGB((BlendFactorSourceRGB) × c_src, (BlendFactorDestinationRGB) × c_dst)
 //	α_out = BlendOperationAlpha((BlendFactorSourceAlpha) × α_src, (BlendFactorDestinationAlpha) × α_dst)
 //
+// The zero value of Blend is source-over (regular alpha blending).
+//
 // A blend factor is a factor for source and destination color values.
-// The default is source-over (regular alpha blending).
+// The default factor is [BlendFactorOne] for the source and [BlendFactorOneMinusSourceAlpha]
+// for the destination.
 //
 // A blend operation is a binary operator of a source color and a destination color.
 // The default is adding.
@@ -290,8 +293,7 @@ func internalBlendToBlend(blend graphicsdriver.Blend) Blend {
 
 // This name convention follows CSS compositing: https://drafts.fxtf.org/compositing-2/.
 //
-// In the comments,
-// c_src, c_dst and c_out represent alpha-premultiplied RGB values of source, destination and output respectively. α_src and α_dst represent alpha values of source and destination respectively.
+// The presets use the same notation as [Blend].
 var (
 	// BlendSourceOver is a preset Blend for the regular alpha blending.
 	//
