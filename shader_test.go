@@ -3537,3 +3537,40 @@ func Fragment(dstPos vec4, srcPos vec2, color vec4) vec4 {
 	s0.Deallocate()
 	s1.Deallocate()
 }
+
+func TestShaderNilUniform(t *testing.T) {
+	const w, h = 1, 1
+
+	dst := ebiten.NewImage(w, h)
+	defer dst.Deallocate()
+	s, err := ebiten.NewShader([]byte(`//kage:unit pixels
+
+package main
+
+var C float
+
+func Fragment(dstPos vec4, src0Pos vec2, color vec4) vec4 {
+	return vec4(C, 0, 0, 1)
+}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer s.Deallocate()
+
+	defer func() {
+		e := recover()
+		if e == nil {
+			t.Error("DrawRectShader with a nil uniform value must panic but did not")
+			return
+		}
+		if got, want := fmt.Sprint(e), "ui: unexpected uniform value for C (float)"; got != want {
+			t.Errorf("panic = %q, want %q", got, want)
+		}
+	}()
+
+	dst.DrawRectShader(w, h, s, &ebiten.DrawRectShaderOptions{
+		Uniforms: map[string]any{"C": nil},
+	})
+}

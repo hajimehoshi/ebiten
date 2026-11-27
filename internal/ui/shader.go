@@ -68,6 +68,9 @@ func (s *Shader) AppendUniforms(dst []uint32, uniforms map[string]any) []uint32 
 		// Ignore if an unused name is specified (#2710).
 		if uv, ok := uniforms[name]; ok {
 			v := reflect.ValueOf(uv)
+			if !v.IsValid() {
+				panic(fmt.Sprintf("ui: unexpected uniform value for %s (%s)", name, typ.String()))
+			}
 			t := v.Type()
 			switch t.Kind() {
 			case reflect.Bool:
