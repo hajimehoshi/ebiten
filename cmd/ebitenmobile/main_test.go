@@ -15,7 +15,10 @@
 package main_test
 
 import (
+	"flag"
+	"fmt"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	ebitenmobile "github.com/hajimehoshi/ebiten/v2/cmd/ebitenmobile"
@@ -108,5 +111,51 @@ func TestFrameworkName(t *testing.T) {
 		if got, want := ebitenmobile.FrameworkName(tc.in), tc.out; got != want {
 			t.Errorf("frameworkName(%q) = %q; want %q", tc.in, got, want)
 		}
+	}
+}
+
+func TestAppendBindLdflags(t *testing.T) {
+	for _, args := range [][]string{
+		{"bind"},
+		{"bind", "./game"},
+		{"bind", "--", "./game", "./other"},
+		{"bind", "-ldflags", "-X main.Name=value with spaces", "./game"},
+		{"bind", "-ldflags=-s -w", "--", "./game"},
+		{"bind", "-ldflags=-s", "-ldflags", "-w", "./game"},
+		{"bind", "-o", "out.aar", "-prefix", "--", "./game"},
+		{"bind", "-ldflags", "--", "./game"},
+		{"bind", "--", "--"},
+	} {
+		t.Run(fmt.Sprint(args), func(t *testing.T) {
+			fs := flag.NewFlagSet("", flag.ContinueOnError)
+			var ldflags, output, prefix string
+			fs.StringVar(&ldflags, "ldflags", "", "")
+			fs.StringVar(&output, "o", "", "")
+			fs.StringVar(&prefix, "prefix", "", "")
+			if err := fs.Parse(args[1:]); err != nil {
+				t.Fatal(err)
+			}
+			packages := append([]string(nil), fs.Args()...)
+			wantOutput, wantPrefix := output, prefix
+			want := ldflags
+			if want != "" {
+				want += " "
+			}
+			want += "-extldflags=-Wl,-soname,libgojni.so"
+			forwarded := ebitenmobile.AppendBindLdflags(args, fs, want)
+			output, prefix = "", ""
+			if err := fs.Parse(forwarded[1:]); err != nil {
+				t.Fatal(err)
+			}
+			if output != wantOutput || prefix != wantPrefix {
+				t.Errorf("flags changed: output %q/%q, prefix %q/%q", output, wantOutput, prefix, wantPrefix)
+			}
+			if ldflags != want {
+				t.Errorf("ldflags: got %q, want %q", ldflags, want)
+			}
+			if !reflect.DeepEqual(append([]string(nil), fs.Args()...), packages) {
+				t.Errorf("packages: got %v, want %v", fs.Args(), packages)
+			}
+		})
 	}
 }

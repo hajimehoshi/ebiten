@@ -15,6 +15,7 @@
 package main
 
 var (
+	AppendBindLdflags      = appendBindLdflags
 	FrameworkName          = frameworkName
 	IsValidJavaPackageName = isValidJavaPackageName
 )
