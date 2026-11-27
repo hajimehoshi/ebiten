@@ -142,6 +142,64 @@ func TestFloat32SeekInvalidWhence(t *testing.T) {
 	}
 }
 
+func TestStereoSeekInvalidWhence(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		newReader func(io.ReadSeeker) io.ReadSeeker
+	}{
+		{
+			name: "F32Stereo",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoF32(r, false)
+			},
+		},
+		{
+			name: "F32Mono",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoF32(r, true)
+			},
+		},
+		{
+			name: "I16Stereo",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoI16ReadSeeker(r, false, convert.FormatS16)
+			},
+		},
+		{
+			name: "I16MonoU8",
+			newReader: func(r io.ReadSeeker) io.ReadSeeker {
+				return convert.NewStereoI16ReadSeeker(r, true, convert.FormatU8)
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, whence := range []int{-1, 3} {
+				data := make([]byte, 48)
+				for i := range data {
+					data[i] = byte(i + 1)
+				}
+				want := readAligned(t, tc.newReader(bytes.NewReader(data)))
+				src := &seekCountingReader{
+					r: &permissiveSeeker{r: bytes.NewReader(data)},
+				}
+				r := tc.newReader(src)
+				if _, err := r.Read(make([]byte, 1)); !errors.Is(err, io.ErrShortBuffer) {
+					t.Fatal(err)
+				}
+				if _, err := r.Seek(8, whence); err == nil {
+					t.Errorf("Seek(8, %d) must return an error", whence)
+				}
+				if src.seeks != 0 {
+					t.Errorf("Seek(8, %d) reached the source", whence)
+				}
+				if got := readAligned(t, r); !bytes.Equal(got, want) {
+					t.Errorf("Seek(8, %d) changed the buffered stream", whence)
+				}
+			}
+		})
+	}
+}
+
 // dribbleReader is an io.ReadSeeker that returns at most maxN bytes for each Read.
 type dribbleReader struct {
 	r    *bytes.Reader

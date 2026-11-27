@@ -178,8 +178,7 @@ func (s *StereoI16ReadSeeker) presentedPosition(pos int64) (int64, bool) {
 }
 
 func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
-	// Resolve the requested position before rounding the offset down to a frame boundary. An
-	// unknown whence is left to the source.
+	// Resolve the requested position before rounding the offset down to a frame boundary.
 	var base int64
 	ok := true
 	// alignedEnd is the source position just past the last whole frame. It is resolved only
@@ -214,6 +213,8 @@ func (s *StereoI16ReadSeeker) Seek(offset int64, whence int) (int64, error) {
 		frameSize := s.sourceFrameSize()
 		alignedEnd = end / frameSize * frameSize
 		base, ok = s.presentedPosition(alignedEnd)
+	default:
+		return 0, fmt.Errorf("convert: whence must be io.SeekStart, io.SeekCurrent, or io.SeekEnd but was %d", whence)
 	}
 	if !ok {
 		return 0, fmt.Errorf("convert: position overflows int64")
