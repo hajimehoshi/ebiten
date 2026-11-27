@@ -1438,7 +1438,7 @@ func (i *Image) Set(x, y int, clr color.Color) {
 
 // Dispose disposes the image data.
 // After disposing, most of the image functions do nothing and return meaningless values.
-// Bounds, Size, ReadPixels, and RecyclableSubImage are exceptions: they panic instead.
+// Bounds, Size, ReadPixels, ReadPixelsAsync, and RecyclableSubImage are exceptions: they panic instead.
 //
 // Calling Dispose is not mandatory. GC automatically collects internal resources that no objects refer to.
 // However, calling Dispose explicitly is helpful if memory usage matters.
