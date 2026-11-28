@@ -595,6 +595,8 @@ func euclideanMod(a, b float32) float32 {
 // If any coordinate, radius, or angle is infinite or NaN, Arc does nothing.
 // Otherwise, Arc panics if radius is negative, leaving the path unchanged.
 // If radius is zero, Arc adds a line to (x, y), or starts a sub-path there if none exists.
+// If endAngle is a positive multiple of 2π away from startAngle in the direction dir, Arc adds a full circle.
+// This allows for the rounding of float32 angles, as in startAngle+2*math.Pi.
 func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	if !isRegular(float64(x)) || !isRegular(float64(y)) || !isRegular(float64(startAngle)) || !isRegular(float64(endAngle)) {
 		return
@@ -602,10 +604,34 @@ func (p *Path) Arc(x, y, radius, startAngle, endAngle float32, dir Direction) {
 	if !checkRegularNonNegative(float64(radius), "radius") {
 		return
 	}
-	p.addArc(float64(x), float64(y), float64(radius), startAngle, endAngle, dir)
+	p.addArcOrCircle(float64(x), float64(y), float64(radius), startAngle, endAngle, dir, isFullCircleSweep(startAngle, endAngle, dir))
+}
+
+// isFullCircleSweep reports whether the sweep from startAngle to endAngle in the direction dir is a positive multiple
+// of 2π within the rounding error of float32 angles.
+func isFullCircleSweep(startAngle, endAngle float32, dir Direction) bool {
+	sweep := float64(endAngle) - float64(startAngle)
+	if dir == CounterClockwise {
+		sweep = -sweep
+	}
+	n := math.Round(sweep / (2 * math.Pi))
+	if n < 1 {
+		return false
+	}
+	// An angle like startAngle + 2*math.Pi is rounded to a float32 value, so the sweep can differ from a multiple of 2π
+	// by about the spacing of float32 values around the angles.
+	a := max(float32(math.Abs(float64(startAngle))), float32(math.Abs(float64(endAngle))))
+	ulp := float64(math.Nextafter32(a, math.MaxFloat32)) - float64(a)
+	return math.Abs(sweep-n*2*math.Pi) <= 2*ulp
 }
 
 func (p *Path) addArc(x, y, radius float64, startAngle, endAngle float32, dir Direction) {
+	p.addArcOrCircle(x, y, radius, startAngle, endAngle, dir, false)
+}
+
+// addArcOrCircle adds an arc to the path.
+// If fullCircle is true, the arc is a full circle, even if the angles do not differ by exactly a multiple of 2π.
+func (p *Path) addArcOrCircle(x, y, radius float64, startAngle, endAngle float32, dir Direction, fullCircle bool) {
 	if radius == 0 {
 		p.lineTo(x, y)
 		return
@@ -624,7 +650,8 @@ func (p *Path) addArc(x, y, radius float64, startAngle, endAngle float32, dir Di
 		da = float64(startAngle - endAngle)
 	}
 
-	if da == 0 && origStartAngle != origEndAngle {
+	// A sweep slightly bigger than 2π must not be reduced to a tiny arc.
+	if fullCircle || da == 0 && origStartAngle != origEndAngle {
 		da = 2 * math.Pi
 		if dir == Clockwise {
 			endAngle = startAngle + 2*math.Pi

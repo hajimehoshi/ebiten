@@ -466,6 +466,62 @@ func TestArcHugeAngle(t *testing.T) {
 	}
 }
 
+func TestArcFullCircle(t *testing.T) {
+	const (
+		cx     = 100
+		cy     = 100
+		radius = 50
+	)
+
+	// The sum of a float32 angle and 2π is rounded, so the difference of the two angles can be
+	// slightly smaller or bigger than 2π. The arc must be a full circle in either case.
+	for _, turns := range []int{1, 2} {
+		for deg := range 360 {
+			for _, dir := range []vector.Direction{vector.Clockwise, vector.CounterClockwise} {
+				start := float32(deg) * math.Pi / 180
+				end := start + float32(turns)*2*math.Pi
+				if dir == vector.CounterClockwise {
+					start, end = end, start
+				}
+
+				var p vector.Path
+				p.Arc(cx, cy, radius, start, end, dir)
+
+				got := p.Bounds()
+				inner := image.Rect(cx-radius+1, cy-radius+1, cx+radius-1, cy+radius-1)
+				outer := image.Rect(cx-radius-1, cy-radius-1, cx+radius+1, cy+radius+1)
+				if !inner.In(got) || !got.In(outer) {
+					t.Errorf("turns: %d, start: %d [deg], dir: %d: bounds: got: %v, want: a rectangle between %v and %v", turns, deg, dir, got, inner, outer)
+				}
+			}
+		}
+	}
+}
+
+func TestArcSmallSweep(t *testing.T) {
+	const (
+		cx     = 100
+		cy     = 100
+		radius = 50
+	)
+
+	// A small sweep must not be treated as a full circle.
+	for _, dir := range []vector.Direction{vector.Clockwise, vector.CounterClockwise} {
+		start := float32(1)
+		end := math.Nextafter32(start, 2)
+		if dir == vector.CounterClockwise {
+			start, end = end, start
+		}
+
+		var p vector.Path
+		p.Arc(cx, cy, radius, start, end, dir)
+
+		if got := p.Bounds(); got.Dx() > 1 || got.Dy() > 1 {
+			t.Errorf("dir: %d: bounds: got: %v, want: a rectangle not bigger than 1x1", dir, got)
+		}
+	}
+}
+
 // Issue #3330
 func TestFillPathSubImage(t *testing.T) {
 	dst := ebiten.NewImage(16, 16)
