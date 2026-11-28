@@ -1141,7 +1141,8 @@ func (cs *compileState) parseFor(block *block, fname string, stmt *ast.ForStmt, 
 		return nil, false
 	}
 	bodyir := b.ir
-	for len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
+	// Unwrap a block only when it declares no variables, or the variables would be lost.
+	for len(bodyir.LocalVars) == 0 && len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
 		bodyir = bodyir.Stmts[0].Blocks[0]
 	}
 
@@ -1282,7 +1283,8 @@ func (cs *compileState) parseForRange(block *block, fname string, stmt *ast.Rang
 	}
 
 	bodyir := b.ir
-	for len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
+	// Unwrap a block only when it declares no variables, or the variables would be lost.
+	for len(bodyir.LocalVars) == 0 && len(bodyir.Stmts) == 1 && bodyir.Stmts[0].Type == shaderir.BlockStmt {
 		bodyir = bodyir.Stmts[0].Blocks[0]
 	}
 	if stmt.Value != nil {
